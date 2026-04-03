@@ -54,6 +54,7 @@ interface NavItem {
   id: ViewId
   label: string
   icon: React.ReactNode
+  color: string
   permission?: string
 }
 
@@ -68,66 +69,66 @@ const navigation: NavGroup[] = [
     title: 'Tableau de bord',
     icon: <LayoutDashboard className="h-4 w-4" />,
     items: [
-      { id: 'dashboard', label: 'Vue d\'ensemble', icon: <LayoutDashboard className="h-4 w-4" /> }
+      { id: 'dashboard', label: 'Vue d\'ensemble', icon: <LayoutDashboard className="h-4 w-4" />, color: 'text-sky-500' }
     ]
   },
   {
     title: 'Commercial',
     icon: <ShoppingCart className="h-4 w-4" />,
     items: [
-      { id: 'clients', label: 'Clients', icon: <Users className="h-4 w-4" />, permission: 'clients:read' },
-      { id: 'products', label: 'Produits', icon: <Package className="h-4 w-4" />, permission: 'products:read' },
-      { id: 'quotes', label: 'Devis', icon: <FileText className="h-4 w-4" />, permission: 'quotes:read' },
-      { id: 'sales-orders', label: 'Commandes', icon: <ShoppingCart className="h-4 w-4" />, permission: 'sales_orders:read' },
-      { id: 'preparations', label: 'Préparations', icon: <ClipboardList className="h-4 w-4" />, permission: 'preparations:read' },
-      { id: 'invoices', label: 'Factures', icon: <Receipt className="h-4 w-4" />, permission: 'invoices:read' },
-      { id: 'credit-notes', label: 'Avoirs', icon: <RotateCcw className="h-4 w-4" />, permission: 'credit_notes:read' }
+      { id: 'clients', label: 'Clients', icon: <Users className="h-4 w-4" />, color: 'text-violet-500', permission: 'clients:read' },
+      { id: 'products', label: 'Produits', icon: <Package className="h-4 w-4" />, color: 'text-amber-500', permission: 'products:read' },
+      { id: 'quotes', label: 'Devis', icon: <FileText className="h-4 w-4" />, color: 'text-cyan-500', permission: 'quotes:read' },
+      { id: 'sales-orders', label: 'Commandes', icon: <ShoppingCart className="h-4 w-4" />, color: 'text-emerald-500', permission: 'sales_orders:read' },
+      { id: 'preparations', label: 'Préparations', icon: <ClipboardList className="h-4 w-4" />, color: 'text-blue-500', permission: 'preparations:read' },
+      { id: 'invoices', label: 'Factures', icon: <Receipt className="h-4 w-4" />, color: 'text-rose-500', permission: 'invoices:read' },
+      { id: 'credit-notes', label: 'Avoirs', icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500', permission: 'credit_notes:read' }
     ]
   },
   {
     title: 'Achats',
     icon: <Truck className="h-4 w-4" />,
     items: [
-      { id: 'suppliers', label: 'Fournisseurs', icon: <Truck className="h-4 w-4" />, permission: 'suppliers:read' },
-      { id: 'purchase-orders', label: 'Commandes fournisseur', icon: <ArrowDownToLine className="h-4 w-4" />, permission: 'purchase_orders:read' },
-      { id: 'receptions', label: 'Réceptions', icon: <Warehouse className="h-4 w-4" />, permission: 'receptions:read' }
+      { id: 'suppliers', label: 'Fournisseurs', icon: <Truck className="h-4 w-4" />, color: 'text-indigo-500', permission: 'suppliers:read' },
+      { id: 'purchase-orders', label: 'Commandes fournisseur', icon: <ArrowDownToLine className="h-4 w-4" />, color: 'text-teal-500', permission: 'purchase_orders:read' },
+      { id: 'receptions', label: 'Réceptions', icon: <Warehouse className="h-4 w-4" />, color: 'text-lime-600', permission: 'receptions:read' }
     ]
   },
   {
     title: 'Stock',
     icon: <Box className="h-4 w-4" />,
     items: [
-      { id: 'stock-movements', label: 'Mouvements', icon: <Box className="h-4 w-4" />, permission: 'stock:read' },
-      { id: 'stock-alerts', label: 'Alertes stock', icon: <AlertTriangle className="h-4 w-4" />, permission: 'stock:read' },
-      { id: 'inventory', label: 'Inventaires', icon: <ClipboardList className="h-4 w-4" />, permission: 'stock:read' }
+      { id: 'stock-movements', label: 'Mouvements', icon: <Box className="h-4 w-4" />, color: 'text-slate-400', permission: 'stock:read' },
+      { id: 'stock-alerts', label: 'Alertes stock', icon: <AlertTriangle className="h-4 w-4" />, color: 'text-red-500', permission: 'stock:read' },
+      { id: 'inventory', label: 'Inventaires', icon: <ClipboardList className="h-4 w-4" />, color: 'text-yellow-500', permission: 'stock:read' }
     ]
   },
   {
     title: 'Production',
     icon: <Factory className="h-4 w-4" />,
     items: [
-      { id: 'bom', label: 'Nomenclatures', icon: <Network className="h-4 w-4" />, permission: 'bom:read' },
-      { id: 'routing', label: 'Gammes', icon: <Route className="h-4 w-4" />, permission: 'routing:read' },
-      { id: 'workstations', label: 'Postes de travail', icon: <Cog className="h-4 w-4" />, permission: 'workstations:read' },
-      { id: 'work-orders', label: 'Ordres de fabrication', icon: <Factory className="h-4 w-4" />, permission: 'work_orders:read' }
+      { id: 'bom', label: 'Nomenclatures', icon: <Network className="h-4 w-4" />, color: 'text-pink-500', permission: 'bom:read' },
+      { id: 'routing', label: 'Gammes', icon: <Route className="h-4 w-4" />, color: 'text-fuchsia-500', permission: 'routing:read' },
+      { id: 'workstations', label: 'Postes de travail', icon: <Cog className="h-4 w-4" />, color: 'text-stone-500', permission: 'workstations:read' },
+      { id: 'work-orders', label: 'Ordres de fabrication', icon: <Factory className="h-4 w-4" />, color: 'text-green-600', permission: 'work_orders:read' }
     ]
   },
   {
     title: 'Finance',
     icon: <Landmark className="h-4 w-4" />,
     items: [
-      { id: 'cash-registers', label: 'Caisses', icon: <CreditCard className="h-4 w-4" />, permission: 'cash:read' },
-      { id: 'bank-accounts', label: 'Banque', icon: <Landmark className="h-4 w-4" />, permission: 'bank:read' },
-      { id: 'payments', label: 'Paiements', icon: <CreditCard className="h-4 w-4" />, permission: 'payments:read' },
-      { id: 'accounting', label: 'Comptabilité', icon: <BookOpen className="h-4 w-4" />, permission: 'accounting:read' }
+      { id: 'cash-registers', label: 'Caisses', icon: <CreditCard className="h-4 w-4" />, color: 'text-emerald-500', permission: 'cash:read' },
+      { id: 'bank-accounts', label: 'Banque', icon: <Landmark className="h-4 w-4" />, color: 'text-blue-600', permission: 'bank:read' },
+      { id: 'payments', label: 'Paiements', icon: <CreditCard className="h-4 w-4" />, color: 'text-violet-400', permission: 'payments:read' },
+      { id: 'accounting', label: 'Comptabilité', icon: <BookOpen className="h-4 w-4" />, color: 'text-amber-600', permission: 'accounting:read' }
     ]
   },
   {
     title: 'Administration',
     icon: <Settings className="h-4 w-4" />,
     items: [
-      { id: 'audit-log', label: 'Journal d\'audit', icon: <Shield className="h-4 w-4" /> },
-      { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" /> }
+      { id: 'audit-log', label: 'Journal d\'audit', icon: <Shield className="h-4 w-4" />, color: 'text-slate-500' },
+      { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" />, color: 'text-gray-400' }
     ]
   }
 ]
@@ -243,7 +244,14 @@ function SidebarContent() {
                                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                             )}
                           >
-                            {item.icon}
+                            {currentView === item.id
+                              ? item.icon
+                              : React.isValidElement(item.icon)
+                                ? React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, {
+                                    className: cn('h-4 w-4', item.color),
+                                  })
+                                : item.icon
+                            }
                             {sidebarOpen && <span>{item.label}</span>}
                           </button>
                         </TooltipTrigger>
