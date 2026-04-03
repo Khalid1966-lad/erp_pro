@@ -59,6 +59,7 @@ export type ViewId =
   | 'audit-log'
   | 'users'
   | 'profile'
+  | 'guide'
 
 export interface NavState {
   currentView: ViewId

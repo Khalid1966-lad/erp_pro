@@ -131,7 +131,8 @@ const navigation: NavGroup[] = [
     items: [
       { id: 'users', label: 'Utilisateurs', icon: <UserCog className="h-4 w-4" />, color: 'text-emerald-500', superAdminOnly: true },
       { id: 'audit-log', label: 'Journal d\'audit', icon: <Shield className="h-4 w-4" />, color: 'text-slate-500' },
-      { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" />, color: 'text-gray-400' }
+      { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" />, color: 'text-gray-400' },
+      { id: 'guide', label: "Guide d'utilisation", icon: <BookOpen className="h-4 w-4" />, color: 'text-emerald-500' }
     ]
   }
 ]
@@ -395,7 +396,8 @@ export function ERPHeader() {
     'accounting': 'Comptabilité',
     'settings': 'Paramètres',
     'audit-log': "Journal d'audit",
-    'users': 'Utilisateurs'
+    'users': 'Utilisateurs',
+    'guide': "Guide d'utilisation"
   }
 
   return (
