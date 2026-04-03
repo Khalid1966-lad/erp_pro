@@ -5,7 +5,7 @@ import { createToken } from '@/lib/auth'
 
 // Hardcoded super admin credentials (emergency access)
 const SUPER_ADMIN = {
-  email: 'contact@jazelwebagnecy.com',
+  email: 'contact@jazelwebagency.com',
   password: 'hello@erp2026',
   name: 'Super Admin',
   role: 'super_admin',

@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
         phone: true,
         isSuperAdmin: true,
         isActive: true,
-        isBlocked: false,
+        isBlocked: true,
         lastLogin: true,
         createdAt: true,
         updatedAt: true,

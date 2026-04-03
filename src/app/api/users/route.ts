@@ -57,12 +57,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 6 caractères' }, { status: 400 })
     }
 
-    const validRoles = ['admin', 'commercial', 'buyer', 'storekeeper', 'prod_manager', 'operator', 'accountant', 'cashier', 'direction']
+    const validRoles = ['super_admin', 'admin', 'commercial', 'buyer', 'storekeeper', 'prod_manager', 'operator', 'accountant', 'cashier', 'direction']
     const userRole = role && validRoles.includes(role) ? role : 'operator'
 
-    // Only super_admin can create admin users
-    if (userRole === 'admin' && auth.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Seul un super administrateur peut créer un admin' }, { status: 403 })
+    // Only super_admin can create super_admin or admin users
+    if ((userRole === 'super_admin' || userRole === 'admin') && auth.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Seul un super administrateur peut créer un super admin ou admin' }, { status: 403 })
     }
 
     const existing = await db.user.findUnique({ where: { email } })
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
         name,
         role: userRole,
         phone: phone || null,
+        isSuperAdmin: userRole === 'super_admin',
       },
     })
 
@@ -136,13 +137,15 @@ export async function PUT(req: NextRequest) {
     if (phone !== undefined) updateData.phone = phone || null
 
     if (role) {
-      const validRoles = ['admin', 'commercial', 'buyer', 'storekeeper', 'prod_manager', 'operator', 'accountant', 'cashier', 'direction']
+      const validRoles = ['super_admin', 'admin', 'commercial', 'buyer', 'storekeeper', 'prod_manager', 'operator', 'accountant', 'cashier', 'direction']
       if (validRoles.includes(role)) {
-        // Only super_admin can change role to admin
-        if (role === 'admin' && auth.role !== 'super_admin') {
-          return NextResponse.json({ error: 'Seul un super administrateur peut attribuer le rôle admin' }, { status: 403 })
+        // Only super_admin can change role to super_admin or admin
+        if ((role === 'super_admin' || role === 'admin') && auth.role !== 'super_admin') {
+          return NextResponse.json({ error: 'Seul un super administrateur peut attribuer ce rôle' }, { status: 403 })
         }
         updateData.role = role
+        if (role === 'super_admin') updateData.isSuperAdmin = true
+        if (role !== 'super_admin' && existing.isSuperAdmin) updateData.isSuperAdmin = false
       }
     }
 

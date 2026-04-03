@@ -50,6 +50,7 @@ interface User {
 
 // ───────────────────── Constants ─────────────────────
 const ROLE_OPTIONS = [
+  { value: 'super_admin', label: 'Super Admin', color: 'bg-red-500 text-white' },
   { value: 'admin', label: 'Administrateur', color: 'bg-red-100 text-red-800' },
   { value: 'commercial', label: 'Commercial', color: 'bg-blue-100 text-blue-800' },
   { value: 'buyer', label: 'Acheteur', color: 'bg-teal-100 text-teal-800' },
