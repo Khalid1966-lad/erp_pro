@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const search = searchParams.get('search') || ''
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '50')))
+    const limit = Math.max(1, Math.min(5000, parseInt(searchParams.get('limit') || '50')))
     const statut = searchParams.get('statut')
     const categorie = searchParams.get('categorie')
     const formeJuridique = searchParams.get('formeJuridique')
