@@ -317,3 +317,222 @@ export const clientDocumentSchema = z.object({
   type: z.string().optional(),
   taille: z.number().int().min(0).optional(),
 })
+
+// ═══════════════════════════════════════════════════════════════
+// Form schema (extends create schema with contacts array)
+// ═══════════════════════════════════════════════════════════════
+export const clientFormSchema = clientCreateSchema.extend({
+  contacts: z.array(clientContactSchema).default([]),
+})
+
+// ═══════════════════════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════════════════════
+export type ClientFormData = z.infer<typeof clientFormSchema>
+export type ContactFormData = z.infer<typeof clientContactSchema>
+
+// ═══════════════════════════════════════════════════════════════
+// Default form values
+// ═══════════════════════════════════════════════════════════════
+export const defaultClientFormValues: ClientFormData = {
+  raisonSociale: '',
+  nomCommercial: '',
+  ice: '',
+  patente: '',
+  cnss: '',
+  identifiantFiscal: '',
+  registreCommerce: '',
+  villeRC: '',
+  formeJuridique: 'SARL',
+  dateCreation: null,
+
+  adresse: '',
+  codePostal: '',
+  ville: '',
+  provincePrefecture: '',
+  telephone: '',
+  gsm: '',
+  email: '',
+  emailSecondaire: '',
+  siteWeb: '',
+  langueCommunication: 'francais',
+
+  conditionsPaiement: '30 jours',
+  modeReglementPrefere: 'virement',
+  escompte: 0,
+  remisePermanente: 0,
+  baremePrix: '',
+  seuilCredit: 0,
+  delaiLivraison: null,
+  transporteurPrefere: '',
+  incoterm: null,
+
+  tauxTva: 'taux_20',
+  codeComptableClient: '3421',
+  modeFacturation: 'electronique',
+  emailFacturation: '',
+  regimeFiscal: 'IS',
+
+  datePremierAchat: null,
+  dateDernierAchat: null,
+  caTotalHT: 0,
+  nbCommandes: 0,
+  panierMoyen: 0,
+  tauxRetour: 0,
+  dernierDevisDate: null,
+  dernierDevisMontant: null,
+  dernierDevisStatut: '',
+  derniereFactureDate: null,
+  derniereFactureMontant: null,
+  statutPaiement: null,
+
+  statut: 'prospect',
+  categorie: 'PME',
+  priorite: 3,
+  origineProspect: '',
+  commentairesInternes: '',
+
+  nbImpayes: 0,
+  delaiMoyenPaiement: 0,
+  alerteImpaye: false,
+  contentieuxNom: '',
+  contentieuxEmail: '',
+  contentieuxTelephone: '',
+  derniereRelanceDate: null,
+  derniereRelanceType: '',
+
+  certificationsRequises: '',
+  referencesInternes: '',
+  specsTechniquesUrl: '',
+  packagingInstructions: '',
+  planningLivraisonRecurrent: '',
+  seuilLotMinimal: null,
+  frequenceReporting: '',
+
+  // Legacy fields
+  name: '',
+  siret: '',
+  country: 'Maroc',
+  creditLimit: 0,
+  paymentTerms: '30 jours',
+  notes: '',
+  balance: 0,
+
+  contacts: [],
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Select option lists for forms
+// ═══════════════════════════════════════════════════════════════
+export const clientStatusOptions = [
+  { value: 'actif', label: 'Actif', color: 'bg-green-100 text-green-800' },
+  { value: 'inactif', label: 'Inactif', color: 'bg-gray-100 text-gray-700' },
+  { value: 'prospect', label: 'Prospect', color: 'bg-blue-100 text-blue-800' },
+  { value: 'client_risque', label: 'À risque', color: 'bg-red-100 text-red-800' },
+  { value: 'client_privilegie', label: 'Privilégié', color: 'bg-purple-100 text-purple-800' },
+]
+
+export const categorieOptions = [
+  { value: 'grand_compte', label: 'Grand compte' },
+  { value: 'PME', label: 'PME' },
+  { value: 'particulier', label: 'Particulier' },
+  { value: 'revendeur', label: 'Revendeur' },
+  { value: 'export', label: 'Export' },
+]
+
+export const formeJuridiqueOptions = [
+  { value: 'SARL', label: 'SARL' },
+  { value: 'SA', label: 'SA' },
+  { value: 'SNC', label: 'SNC' },
+  { value: 'SARLAU', label: 'SARLAU' },
+  { value: 'Autre', label: 'Autre' },
+]
+
+export const langueOptions = [
+  { value: 'francais', label: 'Français' },
+  { value: 'arabe', label: 'Arabe' },
+  { value: 'anglais', label: 'Anglais' },
+]
+
+export const contactTypeOptions = [
+  { value: 'principal', label: 'Principal' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'comptable', label: 'Comptable' },
+  { value: 'technique', label: 'Technique' },
+  { value: 'expedition', label: 'Expédition' },
+]
+
+export const modeReglementOptions = [
+  { value: 'virement', label: 'Virement bancaire' },
+  { value: 'cheque', label: 'Chèque' },
+  { value: 'effet', label: 'Effet de commerce' },
+  { value: 'especes', label: 'Espèces' },
+]
+
+export const conditionsPaiementOptions = [
+  { value: 'comptant', label: 'Comptant' },
+  { value: '15 jours', label: '15 jours' },
+  { value: '30 jours', label: '30 jours' },
+  { value: '45 jours', label: '45 jours' },
+  { value: '60 jours', label: '60 jours' },
+  { value: '90 jours', label: '90 jours' },
+  { value: 'fin_de_mois', label: 'Fin de mois' },
+  { value: '30 jours_fin_de_mois', label: '30 jours fin de mois' },
+  { value: '60 jours_fin_de_mois', label: '60 jours fin de mois' },
+]
+
+export const incotermOptions = [
+  { value: 'EXW', label: 'EXW — Départ usine' },
+  { value: 'FCA', label: 'FCA — Porteur charge' },
+  { value: 'DAP', label: 'DAP — Rendu lieu' },
+  { value: 'autre', label: 'Autre' },
+]
+
+export const tauxTVAOptions = [
+  { value: 'taux_20', label: 'TVA 20%' },
+  { value: 'taux_14', label: 'TVA 14%' },
+  { value: 'taux_10', label: 'TVA 10%' },
+  { value: 'taux_7', label: 'TVA 7%' },
+  { value: 'taux_0', label: 'TVA 0%' },
+  { value: 'exonere', label: 'Exonéré' },
+  { value: 'autoliquidation', label: 'Autoliquidation' },
+]
+
+export const modeFacturationOptions = [
+  { value: 'electronique', label: 'Électronique' },
+  { value: 'papier', label: 'Papier' },
+]
+
+export const regimeFiscalOptions = [
+  { value: 'IS', label: 'Impôt sur les Sociétés (IS)' },
+  { value: 'IR', label: 'Impôt sur le Revenu (IR)' },
+  { value: 'reel_simplifie', label: 'Régime réel simplifié' },
+  { value: 'reel_normal', label: 'Régime réel normal' },
+]
+
+export const relanceTypeOptions = [
+  { value: 'courrier', label: 'Courrier' },
+  { value: 'email', label: 'Email' },
+  { value: 'telephone', label: 'Téléphone' },
+  { value: 'mise_en_demeure', label: 'Mise en demeure' },
+  { value: 'contentieux', label: 'Contentieux' },
+]
+
+export const frequenceReportingOptions = [
+  { value: 'hebdomadaire', label: 'Hebdomadaire' },
+  { value: 'mensuel', label: 'Mensuel' },
+  { value: 'trimestriel', label: 'Trimestriel' },
+  { value: 'semestriel', label: 'Semestriel' },
+  { value: 'annuel', label: 'Annuel' },
+]
+
+export const origineProspectOptions = [
+  { value: 'site_web', label: 'Site web' },
+  { value: 'referral', label: 'Parrainage' },
+  { value: 'salon', label: 'Salon / Foire' },
+  { value: ' Linkedin', label: 'LinkedIn' },
+  { value: 'telephone', label: 'Appel entrant' },
+  { value: 'visite', label: 'Visite commerciale' },
+  { value: 'publicite', label: 'Publicité' },
+  { value: 'autre', label: 'Autre' },
+]
