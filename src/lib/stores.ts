@@ -8,11 +8,12 @@ export interface AuthState {
     email: string
     name: string
     role: string
+    isSuperAdmin?: boolean
   } | null
   isAuthenticated: boolean
-  login: (token: string, user: { id: string; email: string; name: string; role: string }) => void
+  login: (token: string, user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean }) => void
   logout: () => void
-  setUser: (user: { id: string; email: string; name: string; role: string }) => void
+  setUser: (user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean }) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -56,6 +57,7 @@ export type ViewId =
   | 'accounting'
   | 'settings'
   | 'audit-log'
+  | 'users'
 
 export interface NavState {
   currentView: ViewId

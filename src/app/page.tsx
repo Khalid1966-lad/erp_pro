@@ -31,6 +31,7 @@ const PaymentsView = dynamic(() => import('@/components/erp/finance/payments-vie
 const AccountingView = dynamic(() => import('@/components/erp/finance/accounting-view'), { ssr: false })
 const AuditLogView = dynamic(() => import('@/components/erp/admin/audit-log-view'), { ssr: false })
 const SettingsView = dynamic(() => import('@/components/erp/admin/settings-view'), { ssr: false })
+const UsersView = dynamic(() => import('@/components/erp/admin/users-view'), { ssr: false })
 
 function ViewRouter() {
   const { currentView } = useNavStore()
@@ -60,6 +61,7 @@ function ViewRouter() {
     case 'accounting': return <AccountingView />
     case 'audit-log': return <AuditLogView />
     case 'settings': return <SettingsView />
+    case 'users': return <UsersView />
     default: return <DashboardView />
   }
 }

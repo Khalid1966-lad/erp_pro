@@ -16,7 +16,12 @@ model User {
   passwordHash  String
   name          String
   role          String   @default("operator")
+  phone         String?
+  isSuperAdmin  Boolean  @default(false)
+  isBlocked     Boolean  @default(false)
   isActive      Boolean  @default(true)
+  blockedAt     DateTime?
+  blockedBy     String?
   lastLogin     DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

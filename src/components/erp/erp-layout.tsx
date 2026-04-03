@@ -43,7 +43,8 @@ import {
   LogOut,
   Menu,
   Factory,
-  ChevronDown
+  ChevronDown,
+  UserCog
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -127,6 +128,7 @@ const navigation: NavGroup[] = [
     title: 'Administration',
     icon: <Settings className="h-4 w-4" />,
     items: [
+      { id: 'users', label: 'Utilisateurs', icon: <UserCog className="h-4 w-4" />, color: 'text-emerald-500' },
       { id: 'audit-log', label: 'Journal d\'audit', icon: <Shield className="h-4 w-4" />, color: 'text-slate-500' },
       { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" />, color: 'text-gray-400' }
     ]
@@ -134,6 +136,7 @@ const navigation: NavGroup[] = [
 ]
 
 const roleLabels: Record<string, string> = {
+  super_admin: 'Super Admin',
   admin: 'Administrateur',
   commercial: 'Commercial',
   buyer: 'Acheteur',
@@ -371,7 +374,8 @@ export function ERPHeader() {
     'payments': 'Paiements',
     'accounting': 'Comptabilité',
     'settings': 'Paramètres',
-    'audit-log': "Journal d'audit"
+    'audit-log': "Journal d'audit",
+    'users': 'Utilisateurs'
   }
 
   return (

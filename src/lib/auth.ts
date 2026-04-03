@@ -51,6 +51,9 @@ export async function requireAuth(req: NextRequest): Promise<AuthUser | NextResp
 }
 
 export function hasPermission(user: AuthUser, permission: string): boolean {
+  // Super admin has all permissions
+  if (user.role === 'super_admin') return true
+  // Admin has all permissions
   if (user.role === 'admin') return true
 
   const rolePermissions: Record<string, string[]> = {
