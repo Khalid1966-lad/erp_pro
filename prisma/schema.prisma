@@ -1,0 +1,614 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ AUTH & RBAC ============
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  role          String   @default("operator")
+  isActive      Boolean  @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  auditLogs     AuditLog[]
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  action      String
+  entity      String
+  entityId    String?
+  oldValues   String?
+  newValues   String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+}
+
+// ============ COMMERCIAL (SALES) ============
+
+model Client {
+  id                  String    @id @default(cuid())
+  name                String
+  siret               String?
+  address             String?
+  city                String?
+  postalCode          String?
+  country             String    @default("France")
+  phone               String?
+  email               String?
+  creditLimit         Float     @default(0)
+  paymentTerms        String    @default("30 jours")
+  notes               String?
+  balance             Float     @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  quotes              Quote[]
+  salesOrders         SalesOrder[]
+  invoices            Invoice[]
+  creditNotes         CreditNote[]
+}
+
+enum ProductType {
+  raw_material
+  semi_finished
+  finished
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  reference     String      @unique
+  designation   String
+  description   String?
+  priceHT       Float
+  tvaRate       Float       @default(20)
+  unit          String      @default("unité")
+  productType   ProductType @default(raw_material)
+  currentStock  Float       @default(0)
+  minStock      Float       @default(0)
+  maxStock      Float       @default(100)
+  averageCost   Float       @default(0)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  bomComponents BomComponent[]
+  bomProducts   BomComponent[]  @relation("BomProduct")
+  workOrderProducts WorkOrder[]
+  quoteLines        QuoteLine[]
+  salesOrderLines   SalesOrderLine[]
+  invoiceLines      InvoiceLine[]
+  creditNoteLines   CreditNoteLine[]
+  purchaseOrderLines PurchaseOrderLine[]
+  stockMovements    StockMovement[]
+  routingSteps      RoutingStep[]
+}
+
+enum QuoteStatus {
+  draft
+  sent
+  accepted
+  rejected
+  expired
+}
+
+model Quote {
+  id            String      @id @default(cuid())
+  number        String      @unique
+  clientId      String
+  client        Client      @relation(fields: [clientId], references: [id])
+  status        QuoteStatus @default(draft)
+  date          DateTime    @default(now())
+  validUntil    DateTime
+  discountRate  Float       @default(0)
+  shippingCost  Float       @default(0)
+  notes         String?
+  totalHT       Float       @default(0)
+  totalTVA      Float       @default(0)
+  totalTTC      Float       @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  lines         QuoteLine[]
+  salesOrders   SalesOrder[]
+}
+
+model QuoteLine {
+  id          String  @id @default(cuid())
+  quoteId     String
+  quote       Quote   @relation(fields: [quoteId], references: [id])
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+  quantity    Float
+  unitPrice   Float
+  tvaRate     Float
+  totalHT     Float
+  discount    Float   @default(0)
+}
+
+enum SalesOrderStatus {
+  pending
+  confirmed
+  in_preparation
+  prepared
+  partially_delivered
+  delivered
+  cancelled
+}
+
+model SalesOrder {
+  id            String            @id @default(cuid())
+  number        String            @unique
+  quoteId       String?
+  quote         Quote?            @relation(fields: [quoteId], references: [id])
+  clientId      String
+  client        Client            @relation(fields: [clientId], references: [id])
+  status        SalesOrderStatus  @default(pending)
+  date          DateTime          @default(now())
+  deliveryDate  DateTime?
+  notes         String?
+  totalHT       Float             @default(0)
+  totalTVA      Float             @default(0)
+  totalTTC      Float             @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  lines         SalesOrderLine[]
+  invoices      Invoice[]
+  preparationOrders PreparationOrder[]
+}
+
+model SalesOrderLine {
+  id              String      @id @default(cuid())
+  orderId         String
+  order           SalesOrder  @relation(fields: [orderId], references: [id])
+  productId       String
+  product         Product     @relation(fields: [productId], references: [id])
+  quantity        Float
+  unitPrice       Float
+  tvaRate         Float
+  totalHT         Float
+  quantityPrepared Float       @default(0)
+}
+
+enum PreparationStatus {
+  pending
+  in_progress
+  completed
+  cancelled
+}
+
+model PreparationOrder {
+  id            String            @id @default(cuid())
+  number        String            @unique
+  salesOrderId  String
+  salesOrder    SalesOrder        @relation(fields: [salesOrderId], references: [id])
+  status        PreparationStatus @default(pending)
+  completedAt   DateTime?
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+enum InvoiceStatus {
+  draft
+  validated
+  sent
+  paid
+  overdue
+  cancelled
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  number        String        @unique
+  salesOrderId  String?
+  salesOrder    SalesOrder?   @relation(fields: [salesOrderId], references: [id])
+  clientId      String
+  client        Client        @relation(fields: [clientId], references: [id])
+  status        InvoiceStatus @default(draft)
+  date          DateTime      @default(now())
+  dueDate       DateTime
+  paymentDate   DateTime?
+  discountRate  Float         @default(0)
+  shippingCost  Float         @default(0)
+  notes         String?
+  totalHT       Float         @default(0)
+  totalTVA      Float         @default(0)
+  totalTTC      Float         @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  lines         InvoiceLine[]
+  creditNotes   CreditNote[]
+  payments      Payment[]
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id])
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+  quantity    Float
+  unitPrice   Float
+  tvaRate     Float
+  totalHT     Float
+}
+
+enum CreditNoteStatus {
+  draft
+  validated
+  applied
+  cancelled
+}
+
+model CreditNote {
+  id            String            @id @default(cuid())
+  number        String            @unique
+  invoiceId     String
+  invoice       Invoice           @relation(fields: [invoiceId], references: [id])
+  clientId      String
+  client        Client            @relation(fields: [clientId], references: [id])
+  status        CreditNoteStatus  @default(draft)
+  date          DateTime          @default(now())
+  reason        String?
+  totalHT       Float             @default(0)
+  totalTVA      Float             @default(0)
+  totalTTC      Float             @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  lines         CreditNoteLine[]
+}
+
+model CreditNoteLine {
+  id            String      @id @default(cuid())
+  creditNoteId  String
+  creditNote    CreditNote @relation(fields: [creditNoteId], references: [id])
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+  quantity      Float
+  unitPrice     Float
+  tvaRate       Float
+  totalHT       Float
+}
+
+// ============ PURCHASING ============
+
+model Supplier {
+  id              String    @id @default(cuid())
+  name            String
+  siret           String?
+  address         String?
+  city            String?
+  postalCode      String?
+  country         String    @default("France")
+  phone           String?
+  email           String?
+  deliveryDelay   Int       @default(7)
+  paymentTerms    String    @default("30 jours")
+  notes           String?
+  balance         Float     @default(0)
+  rating          Float     @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  purchaseOrders  PurchaseOrder[]
+}
+
+enum PurchaseOrderStatus {
+  draft
+  sent
+  partially_received
+  received
+  cancelled
+}
+
+model PurchaseOrder {
+  id              String                @id @default(cuid())
+  number          String                @unique
+  supplierId      String
+  supplier        Supplier              @relation(fields: [supplierId], references: [id])
+  status          PurchaseOrderStatus   @default(draft)
+  date            DateTime              @default(now())
+  expectedDate    DateTime
+  notes           String?
+  totalHT         Float                 @default(0)
+  totalTVA        Float                 @default(0)
+  totalTTC        Float                 @default(0)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  lines           PurchaseOrderLine[]
+  receptions      Reception[]
+}
+
+model PurchaseOrderLine {
+  id               String          @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id])
+  productId        String
+  product          Product         @relation(fields: [productId], references: [id])
+  quantity         Float
+  unitPrice        Float
+  tvaRate          Float
+  totalHT          Float
+  quantityReceived Float           @default(0)
+}
+
+model Reception {
+  id               String          @id @default(cuid())
+  number           String          @unique
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id])
+  date             DateTime        @default(now())
+  qualityCheck     String          @default("conforme")
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+// ============ STOCK ============
+
+enum MovementType {
+  in
+  out
+  adjustment
+}
+
+enum MovementOrigin {
+  purchase_reception
+  production_input
+  production_output
+  sale
+  return
+  inventory_adjustment
+  manual
+}
+
+model StockMovement {
+  id            String        @id @default(cuid())
+  productId     String
+  product       Product       @relation(fields: [productId], references: [id])
+  type          MovementType
+  origin        MovementOrigin
+  quantity      Float
+  unitCost      Float         @default(0)
+  documentRef   String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+}
+
+model Inventory {
+  id            String    @id @default(cuid())
+  number        String    @unique
+  type          String    @default("tournant")
+  status        String    @default("en_cours")
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lines         InventoryLine[]
+}
+
+model InventoryLine {
+  id            String    @id @default(cuid())
+  inventoryId   String
+  inventory     Inventory @relation(fields: [inventoryId], references: [id])
+  productId     String
+  systemQty     Float
+  physicalQty   Float
+  difference    Float
+  unitCost      Float
+  notes         String?
+}
+
+// ============ PRODUCTION ============
+
+model BomComponent {
+  id            String      @id @default(cuid())
+  bomId         String
+  bom           Product     @relation("BomProduct", fields: [bomId], references: [id])
+  componentId   String
+  component     Product     @relation(fields: [componentId], references: [id])
+  quantity      Float
+  notes         String?
+
+  @@unique([bomId, componentId])
+}
+
+model WorkStation {
+  id            String          @id @default(cuid())
+  name          String
+  description   String?
+  efficiency    Float           @default(100)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  routingSteps  RoutingStep[]
+}
+
+model RoutingStep {
+  id            String      @id @default(cuid())
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+  workStationId String
+  workStation   WorkStation @relation(fields: [workStationId], references: [id])
+  stepOrder     Int
+  duration      Int
+  description   String?
+
+  @@unique([productId, stepOrder])
+}
+
+enum WorkOrderStatus {
+  draft
+  planned
+  in_progress
+  completed
+  closed
+  cancelled
+}
+
+model WorkOrder {
+  id              String           @id @default(cuid())
+  number          String           @unique
+  productId       String
+  product         Product          @relation(fields: [productId], references: [id])
+  quantity        Float
+  status          WorkOrderStatus  @default(draft)
+  plannedDate     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  closedAt        DateTime?
+  notes           String?
+  goodQuantity    Float            @default(0)
+  scrapQuantity   Float            @default(0)
+  totalCost       Float            @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  steps           WorkOrderStep[]
+}
+
+enum StepStatus {
+  pending
+  in_progress
+  completed
+  skipped
+}
+
+model WorkOrderStep {
+  id             String      @id @default(cuid())
+  workOrderId    String
+  workOrder      WorkOrder   @relation(fields: [workOrderId], references: [id])
+  stepOrder      Int
+  description    String?
+  workStationId  String?
+  duration       Int
+  actualDuration Int         @default(0)
+  status         StepStatus  @default(pending)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  goodQuantity   Float       @default(0)
+  scrapQuantity  Float       @default(0)
+  notes          String?
+}
+
+// ============ FINANCE ============
+
+model CashRegister {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  balance       Float     @default(0)
+  minBalance    Float     @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  cashMovements CashMovement[]
+}
+
+enum CashMovementType {
+  in
+  out
+}
+
+model CashMovement {
+  id              String            @id @default(cuid())
+  cashRegisterId  String
+  cashRegister    CashRegister      @relation(fields: [cashRegisterId], references: [id])
+  type            CashMovementType
+  amount          Float
+  paymentMethod   String            @default("espèces")
+  reference       String?
+  notes           String?
+  createdAt       DateTime          @default(now())
+}
+
+model BankAccount {
+  id              String            @id @default(cuid())
+  name            String
+  iban            String
+  bic             String?
+  balance         Float             @default(0)
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  bankTransactions BankTransaction[]
+}
+
+model BankTransaction {
+  id              String          @id @default(cuid())
+  bankAccountId   String
+  bankAccount     BankAccount     @relation(fields: [bankAccountId], references: [id])
+  date            DateTime
+  label           String
+  amount          Float
+  reference       String?
+  isReconciled    Boolean         @default(false)
+  reconciledWith  String?
+  createdAt       DateTime        @default(now())
+}
+
+enum PaymentType {
+  client_payment
+  supplier_payment
+  cash_in
+  cash_out
+}
+
+enum PaymentMethod {
+  cash
+  check
+  bank_transfer
+  card
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  invoiceId       String?
+  invoice         Invoice?      @relation(fields: [invoiceId], references: [id])
+  type            PaymentType
+  amount          Float
+  method          PaymentMethod
+  reference       String?
+  date            DateTime      @default(now())
+  notes           String?
+  createdAt       DateTime      @default(now())
+}
+
+model AccountingEntry {
+  id              String    @id @default(cuid())
+  date            DateTime  @default(now())
+  label           String
+  account         String
+  debit           Float     @default(0)
+  credit          Float     @default(0)
+  documentRef     String?
+  createdAt       DateTime  @default(now())
+}
+
+// ============ SETTINGS ============
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}

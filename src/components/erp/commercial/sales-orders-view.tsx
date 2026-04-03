@@ -1,0 +1,671 @@
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import { api } from '@/lib/api'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from '@/components/ui/table'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+} from '@/components/ui/dialog'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import {
+  ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
+  Receipt, CheckCircle, XCircle, ArrowRight
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
+
+const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+
+interface SalesOrderLine {
+  id?: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  tvaRate: number
+  totalHT?: number
+  quantityPrepared?: number
+  product?: { id: string; reference: string; designation: string }
+}
+
+interface SalesOrder {
+  id: string
+  number: string
+  status: string
+  date: string
+  deliveryDate: string | null
+  notes: string | null
+  totalHT: number
+  totalTVA: number
+  totalTTC: number
+  client: { id: string; name: string }
+  lines: SalesOrderLine[]
+}
+
+interface Client { id: string; name: string }
+interface Product { id: string; reference: string; designation: string; priceHT: number; tvaRate: number }
+
+const statusLabels: Record<string, string> = {
+  pending: 'En attente',
+  confirmed: 'Confirmé',
+  in_preparation: 'En préparation',
+  prepared: 'Préparé',
+  partially_delivered: 'Partiellement livré',
+  delivered: 'Livré',
+  cancelled: 'Annulé'
+}
+
+const statusColors: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  confirmed: 'bg-blue-100 text-blue-800',
+  in_preparation: 'bg-orange-100 text-orange-800',
+  prepared: 'bg-teal-100 text-teal-800',
+  partially_delivered: 'bg-indigo-100 text-indigo-800',
+  delivered: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800'
+}
+
+const emptyLine = (): SalesOrderLine => ({
+  productId: '',
+  quantity: 1,
+  unitPrice: 0,
+  tvaRate: 20
+})
+
+export default function SalesOrdersView() {
+  const [orders, setOrders] = useState<SalesOrder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [clients, setClients] = useState<Client[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+
+  // Form state
+  const [formClientId, setFormClientId] = useState('')
+  const [formDeliveryDate, setFormDeliveryDate] = useState('')
+  const [formNotes, setFormNotes] = useState('')
+  const [formLines, setFormLines] = useState<SalesOrderLine[]>([emptyLine()])
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+      if (search) params.set('search', search)
+      const data = await api.get<{ orders: SalesOrder[]; total: number }>(`/sales-orders?${params.toString()}`)
+      setOrders(data.orders)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error(msg || 'Erreur chargement commandes')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchDropdowns = async () => {
+    try {
+      const [clientsRes, productsRes] = await Promise.all([
+        api.get<{ clients: Client[] }>('/clients'),
+        api.get<{ products: Product[] }>('/products')
+      ])
+      setClients(clientsRes.clients || [])
+      setProducts(productsRes.products || [])
+    } catch (err) {
+      console.error('Erreur chargement dropdowns:', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchOrders()
+    fetchDropdowns()
+  }, [statusFilter])
+
+  const handleSearch = () => fetchOrders()
+
+  const calcFormTotals = useMemo(() => {
+    let totalHT = 0
+    let totalTVA = 0
+    for (const line of formLines) {
+      if (!line.productId) continue
+      const lineHT = line.quantity * line.unitPrice
+      const lineTVA = lineHT * (line.tvaRate / 100)
+      totalHT += lineHT
+      totalTVA += lineTVA
+    }
+    return { totalHT, totalTVA, totalTTC: totalHT + totalTVA }
+  }, [formLines])
+
+  const openCreate = () => {
+    setSelectedOrder(null)
+    setFormClientId('')
+    const in7 = new Date()
+    in7.setDate(in7.getDate() + 7)
+    setFormDeliveryDate(in7.toISOString().slice(0, 10))
+    setFormNotes('')
+    setFormLines([emptyLine()])
+    setDialogOpen(true)
+  }
+
+  const openDetail = (order: SalesOrder) => {
+    setSelectedOrder(order)
+    setDetailOpen(true)
+  }
+
+  const handleStatusChange = async (order: SalesOrder, newStatus: string) => {
+    try {
+      await api.put('/sales-orders', { id: order.id, status: newStatus })
+      toast.success(`Commande ${order.number} mise à jour`)
+      fetchOrders()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error(msg || 'Erreur mise à jour')
+    }
+  }
+
+  const handleCreatePreparation = async (order: SalesOrder) => {
+    try {
+      await api.put('/sales-orders', { id: order.id, action: 'create_preparation' })
+      toast.success(`Préparation créée pour ${order.number}`)
+      fetchOrders()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error(msg || 'Erreur création préparation')
+    }
+  }
+
+  const handleCreateInvoice = async (order: SalesOrder) => {
+    try {
+      await api.put('/sales-orders', { id: order.id, action: 'create_invoice' })
+      toast.success(`Facture créée depuis ${order.number}`)
+      fetchOrders()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error(msg || 'Erreur création facture')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/sales-orders?id=${id}`)
+      toast.success('Commande supprimée')
+      fetchOrders()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error(msg || 'Erreur suppression')
+    }
+  }
+
+  const handleSave = async () => {
+    if (!formClientId) {
+      toast.error('Veuillez sélectionner un client')
+      return
+    }
+    const validLines = formLines.filter(l => l.productId)
+    if (validLines.length === 0) {
+      toast.error('Au moins une ligne est requise')
+      return
+    }
+
+    try {
+      setSaving(true)
+      const deliveryDate = formDeliveryDate ? new Date(formDeliveryDate + 'T23:59:59.000Z').toISOString() : undefined
+      await api.post('/sales-orders', {
+        clientId: formClientId,
+        deliveryDate,
+        notes: formNotes || undefined,
+        lines: validLines.map(l => ({
+          productId: l.productId,
+          quantity: l.quantity,
+          unitPrice: l.unitPrice,
+          tvaRate: l.tvaRate
+        }))
+      })
+      toast.success('Commande créée')
+      setDialogOpen(false)
+      fetchOrders()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error(msg || 'Erreur création')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const addLine = () => setFormLines([...formLines, emptyLine()])
+  const removeLine = (idx: number) => setFormLines(formLines.filter((_, i) => i !== idx))
+  const updateLine = (idx: number, field: keyof SalesOrderLine, value: string | number) => {
+    const updated = [...formLines]
+    updated[idx] = { ...updated[idx], [field]: value }
+    if (field === 'productId') {
+      const prod = products.find(p => p.id === value)
+      if (prod) {
+        updated[idx].unitPrice = prod.priceHT
+        updated[idx].tvaRate = prod.tvaRate
+      }
+    }
+    setFormLines(updated)
+  }
+
+  const getStatusActions = (order: SalesOrder) => {
+    const actions: { label: string; icon: React.ReactNode; action: string }[] = []
+    switch (order.status) {
+      case 'pending':
+        actions.push({ label: 'Confirmer', icon: <CheckCircle className="h-4 w-4" />, action: 'confirmed' })
+        actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancelled' })
+        break
+      case 'confirmed':
+        actions.push({ label: 'Créer préparation', icon: <ClipboardList className="h-4 w-4" />, action: 'create_preparation' })
+        actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancelled' })
+        break
+      case 'in_preparation':
+        actions.push({ label: 'Marquer préparé', icon: <CheckCircle className="h-4 w-4" />, action: 'prepared' })
+        break
+      case 'prepared':
+        actions.push({ label: 'Marquer livré', icon: <CheckCircle className="h-4 w-4" />, action: 'delivered' })
+        break
+      case 'partially_delivered':
+        actions.push({ label: 'Marquer livré', icon: <CheckCircle className="h-4 w-4" />, action: 'delivered' })
+        break
+      case 'delivered':
+        actions.push({ label: 'Créer facture', icon: <Receipt className="h-4 w-4" />, action: 'create_invoice' })
+        break
+    }
+    return actions
+  }
+
+  const executeAction = async (order: SalesOrder, action: string) => {
+    switch (action) {
+      case 'create_preparation':
+        await handleCreatePreparation(order)
+        break
+      case 'create_invoice':
+        await handleCreateInvoice(order)
+        break
+      default:
+        await handleStatusChange(order, action)
+        break
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-40" />
+        </div>
+        <Card><CardContent className="p-4"><div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div></CardContent></Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Commandes clients</h2>
+          <Badge variant="secondary">{orders.length}</Badge>
+        </div>
+        <Button onClick={openCreate} size="sm">
+          <Plus className="h-4 w-4 mr-1" />
+          Nouvelle commande
+        </Button>
+      </div>
+
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher par numéro ou client..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            <SelectItem value="pending">En attente</SelectItem>
+            <SelectItem value="confirmed">Confirmé</SelectItem>
+            <SelectItem value="in_preparation">En préparation</SelectItem>
+            <SelectItem value="prepared">Préparé</SelectItem>
+            <SelectItem value="partially_delivered">Partiellement livré</SelectItem>
+            <SelectItem value="delivered">Livré</SelectItem>
+            <SelectItem value="cancelled">Annulé</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="max-h-[500px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Numéro</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead className="hidden md:table-cell">Date</TableHead>
+                  <TableHead className="hidden lg:table-cell">Livraison</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">Total HT</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">Total TTC</TableHead>
+                  <TableHead className="text-right w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      {search || statusFilter !== 'all' ? 'Aucune commande trouvée.' : 'Aucune commande enregistrée.'}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-mono font-medium">{order.number}</TableCell>
+                      <TableCell>{order.client.name}</TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                        {format(new Date(order.date), 'dd/MM/yyyy', { locale: fr })}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-muted-foreground">
+                        {order.deliveryDate ? format(new Date(order.deliveryDate), 'dd/MM/yyyy', { locale: fr }) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={statusColors[order.status] || ''}>
+                          {statusLabels[order.status] || order.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right hidden sm:table-cell font-medium">
+                        {formatCurrency(order.totalHT)}
+                      </TableCell>
+                      <TableCell className="text-right hidden sm:table-cell font-semibold">
+                        {formatCurrency(order.totalTTC)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(order)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {getStatusActions(order).length > 0 && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {getStatusActions(order).map((action) => (
+                                  <DropdownMenuItem key={action.action} onClick={() => executeAction(order, action.action)}>
+                                    {action.icon}
+                                    <span className="ml-2">{action.label}</span>
+                                  </DropdownMenuItem>
+                                ))}
+                                {(order.status === 'pending') && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
+                                          <Trash2 className="h-4 w-4" />
+                                          <span className="ml-2">Supprimer</span>
+                                        </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Supprimer la commande</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Êtes-vous sûr de vouloir supprimer la commande <strong>{order.number}</strong> ?
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleDelete(order.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                            Supprimer
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Create Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nouvelle commande client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Client *</Label>
+                <Select value={formClientId} onValueChange={setFormClientId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Date de livraison souhaitée</Label>
+                <Input type="date" value={formDeliveryDate} onChange={(e) => setFormDeliveryDate(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Lignes</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Ajouter
+                </Button>
+              </div>
+              <div className="rounded border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[220px]">Produit</TableHead>
+                      <TableHead className="w-[80px]">Qté</TableHead>
+                      <TableHead className="w-[100px]">P.U. HT</TableHead>
+                      <TableHead className="w-[80px]">TVA %</TableHead>
+                      <TableHead className="w-[100px] text-right">Total HT</TableHead>
+                      <TableHead className="w-[40px]" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {formLines.map((line, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>
+                          <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Produit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>{p.reference} - {p.designation}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" min="0.01" step="1" value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)} className="w-full" />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateLine(idx, 'unitPrice', parseFloat(e.target.value) || 0)} className="w-full" />
+                        </TableCell>
+                        <TableCell>
+                          <Select value={String(line.tvaRate)} onValueChange={(v) => updateLine(idx, 'tvaRate', parseFloat(v))}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">0%</SelectItem>
+                              <SelectItem value="2.1">2,1%</SelectItem>
+                              <SelectItem value="5.5">5,5%</SelectItem>
+                              <SelectItem value="10">10%</SelectItem>
+                              <SelectItem value="20">20%</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-sm">
+                          {line.productId ? formatCurrency(line.quantity * line.unitPrice) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {formLines.length > 1 && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Notes internes..." rows={2} />
+            </div>
+
+            {/* Totals */}
+            <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(calcFormTotals.totalHT)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(calcFormTotals.totalTVA)}</span></div>
+              <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(calcFormTotals.totalTTC)}</span></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? 'Création...' : 'Créer la commande'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              {selectedOrder?.number}
+              {selectedOrder && (
+                <Badge variant="secondary" className={statusColors[selectedOrder.status]}>
+                  {statusLabels[selectedOrder.status]}
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div><span className="text-muted-foreground">Client</span><p className="font-medium">{selectedOrder.client.name}</p></div>
+                <div><span className="text-muted-foreground">Date</span><p className="font-medium">{format(new Date(selectedOrder.date), 'dd/MM/yyyy', { locale: fr })}</p></div>
+                <div><span className="text-muted-foreground">Livraison</span><p className="font-medium">{selectedOrder.deliveryDate ? format(new Date(selectedOrder.deliveryDate), 'dd/MM/yyyy', { locale: fr }) : 'Non définie'}</p></div>
+                <div><span className="text-muted-foreground">Nb lignes</span><p className="font-medium">{selectedOrder.lines.length}</p></div>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produit</TableHead>
+                    <TableHead className="text-right">Qté</TableHead>
+                    <TableHead className="text-right">Qté préparée</TableHead>
+                    <TableHead className="text-right">P.U. HT</TableHead>
+                    <TableHead className="text-right">Total HT</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedOrder.lines.map((line) => (
+                    <TableRow key={line.id || line.productId}>
+                      <TableCell className="font-medium">{line.product?.reference} - {line.product?.designation}</TableCell>
+                      <TableCell className="text-right">{line.quantity}</TableCell>
+                      <TableCell className="text-right">{line.quantityPrepared || 0}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(line.totalHT || 0)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {selectedOrder.notes && (
+                <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {selectedOrder.notes}</div>
+              )}
+
+              <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(selectedOrder.totalHT)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(selectedOrder.totalTVA)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(selectedOrder.totalTTC)}</span></div>
+              </div>
+
+              <DialogFooter>
+                {getStatusActions(selectedOrder).map((action) => (
+                  <Button
+                    key={action.action}
+                    variant={action.action === 'create_invoice' ? 'default' : 'outline'}
+                    onClick={() => {
+                      executeAction(selectedOrder, action.action)
+                      setDetailOpen(false)
+                    }}
+                  >
+                    {action.icon}
+                    <span className="ml-2">{action.label}</span>
+                  </Button>
+                ))}
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
