@@ -18,6 +18,14 @@ import {
   SheetTitle
 } from '@/components/ui/sheet'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import {
   LayoutDashboard,
   Users,
   Package,
@@ -275,49 +283,6 @@ function SidebarContent() {
         </nav>
       </ScrollArea>
 
-      {/* User section */}
-      <div className="border-t border-border p-3 shrink-0">
-        {sidebarOpen && user ? (
-          <div className="space-y-1">
-            <button
-              onClick={() => setCurrentView('profile')}
-              className="flex items-center gap-3 w-full rounded-md px-1 py-1.5 hover:bg-accent transition-colors text-left"
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                  {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{roleLabels[user.role] || user.role}</p>
-              </div>
-            </button>
-            <div className="flex gap-1">
-              <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs" onClick={() => setCurrentView('profile')}>
-                Mon Profil
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={logout}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1">
-            <Button variant="ghost" size="icon" className="w-full" onClick={() => setCurrentView('profile')} title="Mon Profil">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">
-                  {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-            <Button variant="ghost" size="icon" className="w-full" onClick={logout}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
-
       {/* Version footer */}
       <div className="border-t border-border px-4 py-2 shrink-0">
         {sidebarOpen ? (
@@ -368,8 +333,8 @@ export function ERPSidebar() {
 }
 
 export function ERPHeader() {
-  const { user } = useAuthStore()
-  const { currentView, sidebarOpen, toggleSidebar } = useNavStore()
+  const { user, logout } = useAuthStore()
+  const { currentView, sidebarOpen, toggleSidebar, setCurrentView } = useNavStore()
 
   const viewLabels: Record<ViewId, string> = {
     'dashboard': 'Tableau de bord',
@@ -414,14 +379,39 @@ export function ERPHeader() {
       <h1 className="font-semibold text-lg">{viewLabels[currentView] || currentView}</h1>
       <div className="flex-1" />
       {user && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Avatar className="h-7 w-7">
-            <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
-              {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <span className="hidden sm:inline">{user.name}</span>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 rounded-full px-1 py-1 pr-3 hover:bg-accent transition-colors outline-none">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                  {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="hidden sm:flex flex-col items-start">
+                <span className="text-sm font-medium leading-tight">{user.name}</span>
+                <span className="text-[11px] text-muted-foreground leading-tight">{roleLabels[user.role] || user.role}</span>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{user.name}</p>
+                <p className="text-xs text-muted-foreground leading-none">{user.email}</p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setCurrentView('profile')} className="cursor-pointer">
+              <UserCog className="mr-2 h-4 w-4" />
+              Mon Profil
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 focus:text-red-600">
+              <LogOut className="mr-2 h-4 w-4" />
+              Déconnexion
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
     </header>
   )
