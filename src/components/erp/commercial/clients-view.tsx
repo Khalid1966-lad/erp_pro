@@ -18,7 +18,6 @@ import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
@@ -651,15 +650,15 @@ function ClientListView({
         <Button
           variant={statusFilter === null && typeFilter === null && categorieFilter === null ? 'default' : 'outline'}
           size="sm"
-          onClick={() => { onStatusFilter(null); setTypeFilter(null); onCategorieFilter(null) }}
+          onClick={() => { onStatusFilter(null); onTypeFilter(null); onCategorieFilter(null) }}
         >
           Tous
         </Button>
         {/* Type filters */}
-        <Button variant={typeFilter === "SOCIETE" ? "default" : "outline"} size="sm" onClick={() => setTypeFilter(typeFilter === "SOCIETE" ? null : "SOCIETE")}>Societe</Button>
-        <Button variant={typeFilter === "REVENDEUR" ? "default" : "outline"} size="sm" onClick={() => setTypeFilter(typeFilter === "REVENDEUR" ? null : "REVENDEUR")}>Revendeur</Button>
-        <Button variant={typeFilter === "PARTICULIER" ? "default" : "outline"} size="sm" onClick={() => setTypeFilter(typeFilter === "PARTICULIER" ? null : "PARTICULIER")}>Particulier</Button>
-        <Button variant={typeFilter === "AUTRES" ? "default" : "outline"} size="sm" onClick={() => setTypeFilter(typeFilter === "AUTRES" ? null : "AUTRES")}>Autres</Button>
+        <Button variant={typeFilter === "SOCIETE" ? "default" : "outline"} size="sm" onClick={() => onTypeFilter(typeFilter === "SOCIETE" ? null : "SOCIETE")}>Société</Button>
+        <Button variant={typeFilter === "REVENDEUR" ? "default" : "outline"} size="sm" onClick={() => onTypeFilter(typeFilter === "REVENDEUR" ? null : "REVENDEUR")}>Revendeur</Button>
+        <Button variant={typeFilter === "PARTICULIER" ? "default" : "outline"} size="sm" onClick={() => onTypeFilter(typeFilter === "PARTICULIER" ? null : "PARTICULIER")}>Particulier</Button>
+        <Button variant={typeFilter === "AUTRES" ? "default" : "outline"} size="sm" onClick={() => onTypeFilter(typeFilter === "AUTRES" ? null : "AUTRES")}>Autres</Button>
         <Separator orientation="vertical" className="h-8 mx-1 hidden sm:block" />
         <Select value={categorieFilter ?? ''} onValueChange={(v) => onCategorieFilter(v === '__all__' ? null : v)}>
           <SelectTrigger className="w-auto h-8 text-sm">
@@ -674,11 +673,13 @@ function ClientListView({
         </Select>
       </div>
 
-      {/* Table — scrollable */}
-      <Card className="overflow-hidden">
-        <ScrollArea className="max-h-[calc(100vh-320px)]">
+      {/* Table — scrollable with native scrollbar */}
+      <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto overflow-y-auto"
+            style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '300px' }}
+          >
             <Table>
               <TableHeader>
                 <TableRow>
@@ -801,7 +802,6 @@ function ClientListView({
             </Table>
           </div>
         </CardContent>
-        </ScrollArea>
       </Card>
     </div>
   )
