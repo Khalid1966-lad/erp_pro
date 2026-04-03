@@ -13,10 +13,13 @@ import { Switch } from '@/components/ui/switch'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info } from 'lucide-react'
+import { Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload, ImageIcon, X, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores'
+import { cn } from '@/lib/utils'
 import { APP_VERSION, APP_NAME, BUILD_DATE } from '@/lib/version'
 import { toast } from 'sonner'
+import Image from 'next/image'
+import { useRef } from 'react'
 
 interface Setting {
   key: string
@@ -61,7 +64,6 @@ const settingGroups: SettingGroup[] = [
       { key: 'company_email', label: 'Email', type: 'text', placeholder: 'contact@gema-erp.com' },
       { key: 'company_siret', label: 'SIRET', type: 'text', placeholder: 'XXX XXX XXX XXXXX' },
       { key: 'company_tva_number', label: 'N° TVA Intracommunautaire', type: 'text', placeholder: 'MA XX XXXXXXXXX' },
-      { key: 'company_logo_url', label: 'URL du logo', type: 'text', placeholder: 'https://...' },
     ]
   },
   {
@@ -141,6 +143,171 @@ const settingGroups: SettingGroup[] = [
     ]
   }
 ]
+
+// ─── Logo Upload Card ───
+function LogoUploadCard() {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [currentLogo, setCurrentLogo] = useState<string | null>(null)
+  const [dragActive, setDragActive] = useState(false)
+
+  useEffect(() => {
+    // Check if custom logo exists
+    fetch('/api/logo')
+      .then(r => {
+        if (r.ok) setCurrentLogo('/api/logo')
+        else setCurrentLogo(null)
+      })
+      .catch(() => setCurrentLogo(null))
+  }, [])
+
+  const uploadFile = async (file: File) => {
+    const allowedTypes = ['image/avif', 'image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Type non supporté', { description: 'Utilisez PNG, JPEG, WebP, AVIF ou SVG.' })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Fichier trop volumineux', { description: 'Taille maximale : 5 Mo' })
+      return
+    }
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('logo', file)
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
+        body: formData,
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur de téléchargement')
+      }
+
+      setCurrentLogo('/api/logo')
+      toast.success('Logo mis à jour', {
+        description: data.compressionRatio > 0
+          ? `Compressé : ${data.compressionRatio}% réduit (${(data.size / 1024).toFixed(1)} Ko)`
+          : `Enregistré (${(data.size / 1024).toFixed(1)} Ko)`,
+      })
+
+      // Bust cache by adding timestamp
+      const img = new Image()
+      img.src = `/api/logo?t=${Date.now()}`
+    } catch (err: any) {
+      toast.error('Erreur', { description: err.message })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragActive(false)
+    const file = e.dataTransfer.files[0]
+    if (file) uploadFile(file)
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <div className="text-muted-foreground"><ImageIcon className="h-5 w-5" /></div>
+          <div>
+            <CardTitle className="text-base">Logo de l&apos;entreprise</CardTitle>
+            <CardDescription className="text-sm">
+              Ce logo apparaît sur les documents, factures et devis
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row gap-6 items-start">
+          {/* Preview */}
+          <div className="w-32 h-32 bg-muted rounded-xl border-2 border-dashed border-border flex items-center justify-center shrink-0 overflow-hidden relative">
+            {currentLogo ? (
+              <Image
+                src={currentLogo}
+                alt="Logo entreprise"
+                fill
+                className="object-contain p-2"
+                unoptimized
+              />
+            ) : (
+              <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+            )}
+          </div>
+
+          {/* Upload area */}
+          <div className="flex-1 space-y-3 w-full">
+            <div
+              className={cn(
+                'border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer',
+                dragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+              )}
+              onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/avif,image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) uploadFile(file)
+                  e.target.value = ''
+                }}
+              />
+              {uploading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Compression en cours...</span>
+                </div>
+              ) : (
+                <>
+                  <Upload className="h-8 w-8 mx-auto text-muted-foreground/60 mb-2" />
+                  <p className="text-sm font-medium">
+                    Glissez-déposez votre logo ici
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ou cliquez pour parcourir — PNG, JPEG, WebP, AVIF, SVG (max 5 Mo)
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-2">
+                    L&apos;image est automatiquement compressée en AVIF haute qualité
+                  </p>
+                </>
+              )}
+            </div>
+            {currentLogo && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => {
+                  setCurrentLogo(null)
+                  toast.info('Le logo par défaut sera utilisé')
+                }}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Réinitialiser le logo par défaut
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function SettingsView() {
   const [settingsMap, setSettingsMap] = useState<Record<string, string>>({})
@@ -234,6 +401,9 @@ export default function SettingsView() {
           </div>
         )}
       </div>
+
+      {/* Logo upload */}
+      {isAdmin && <LogoUploadCard />}
 
       {/* Settings Groups */}
       {settingGroups.map((group) => (

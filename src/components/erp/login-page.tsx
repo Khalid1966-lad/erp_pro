@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Factory, Eye, EyeOff, Loader2, Info } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Info } from 'lucide-react'
 import { APP_VERSION } from '@/lib/version'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -41,8 +42,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <Card className="w-full max-w-md shadow-lg border-slate-200">
         <CardHeader className="text-center space-y-3">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
-            <Factory className="w-9 h-9 text-primary-foreground" />
+          <div className="mx-auto w-20 h-20 relative">
+            <Image
+              src="/logo.avif"
+              alt="GEMA ERP PRO"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold tracking-tight">GEMA ERP PRO</CardTitle>

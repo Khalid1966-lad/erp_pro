@@ -47,7 +47,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
-import { useState } from 'react'
+import Image from 'next/image'
+import { useState, useEffect } from 'react'
 
 interface NavItem {
   id: ViewId
@@ -143,6 +144,38 @@ const roleLabels: Record<string, string> = {
   direction: 'Direction'
 }
 
+// ─── Logo component: uses custom uploaded logo if set, else default ───
+function SidebarLogo() {
+  const { sidebarOpen } = useNavStore()
+  const [logoSrc, setLogoSrc] = useState('/logo.avif')
+
+  useEffect(() => {
+    // Check if a custom logo was uploaded (stored in settings as company_logo_url)
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => {
+        if (data.settingsMap?.company_logo_url) {
+          setLogoSrc(data.settingsMap.company_logo_url)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const size = sidebarOpen ? 'w-8 h-8' : 'w-8 h-8'
+
+  return (
+    <div className={cn('relative shrink-0', size)}>
+      <Image
+        src={logoSrc}
+        alt="GEMA ERP PRO"
+        fill
+        className="object-contain"
+        unoptimized={logoSrc.startsWith('/api/')}
+      />
+    </div>
+  )
+}
+
 function SidebarContent() {
   const { user, logout } = useAuthStore()
   const { currentView, setCurrentView, sidebarOpen } = useNavStore()
@@ -160,12 +193,10 @@ function SidebarContent() {
   return (
     <div className="flex flex-col h-full bg-card border-r border-border">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-14 border-b border-border shrink-0">
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
-          <Factory className="w-5 h-5 text-primary-foreground" />
-        </div>
+      <div className="flex items-center gap-3 px-3 h-14 border-b border-border shrink-0">
+        <SidebarLogo />
         {sidebarOpen && (
-          <span className="font-bold text-lg tracking-tight">GEMA ERP PRO</span>
+          <span className="font-bold text-base tracking-tight truncate">GEMA ERP PRO</span>
         )}
       </div>
 
