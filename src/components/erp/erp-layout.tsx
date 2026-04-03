@@ -48,7 +48,7 @@ import {
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 import Image from 'next/image'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface NavItem {
   id: ViewId
