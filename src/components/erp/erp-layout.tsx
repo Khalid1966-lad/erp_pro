@@ -147,7 +147,7 @@ const roleLabels: Record<string, string> = {
 // ─── Logo component: uses custom uploaded logo if set, else default ───
 function SidebarLogo() {
   const { sidebarOpen } = useNavStore()
-  const [logoSrc, setLogoSrc] = useState('/logo.svg')
+  const [logoSrc, setLogoSrc] = useState('/logo.png')
 
   useEffect(() => {
     // Check if a custom logo was uploaded (stored in settings as company_logo_url)
