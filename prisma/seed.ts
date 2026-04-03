@@ -1,7 +1,13 @@
 import { PrismaClient } from '@prisma/client'
 import { createHash } from 'crypto'
 
-const db = new PrismaClient()
+const db = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DIRECT_URL || process.env.DATABASE_URL,
+    },
+  },
+})
 
 function hashPassword(password: string): string {
   return createHash('sha256').update(password + (process.env.PASSWORD_SALT || 'erp-salt')).digest('hex')
