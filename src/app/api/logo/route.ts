@@ -1,14 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
-import { existsSync } from 'fs'
+import { existsSync, readdirSync } from 'fs'
 import path from 'path'
 
 // Serve the custom company logo from disk
 export async function GET() {
   try {
-    const logoPath = path.join(process.cwd(), 'upload', 'company-logo.avif')
+    const uploadDir = path.join(process.cwd(), 'upload')
 
-    if (!existsSync(logoPath)) {
+    // Try multiple extensions in priority order
+    const extensions = ['avif', 'png', 'webp', 'jpg', 'jpeg', 'svg']
+    let logoPath: string | null = null
+    let contentType = ''
+
+    for (const ext of extensions) {
+      const candidate = path.join(uploadDir, `company-logo.${ext}`)
+      if (existsSync(candidate)) {
+        logoPath = candidate
+        const mimeMap: Record<string, string> = {
+          avif: 'image/avif',
+          png: 'image/png',
+          webp: 'image/webp',
+          jpg: 'image/jpeg',
+          jpeg: 'image/jpeg',
+          svg: 'image/svg+xml',
+        }
+        contentType = mimeMap[ext] || 'application/octet-stream'
+        break
+      }
+    }
+
+    if (!logoPath) {
       return NextResponse.json({ error: 'Aucun logo personnalisé' }, { status: 404 })
     }
 
@@ -17,7 +39,7 @@ export async function GET() {
     return new NextResponse(buffer, {
       status: 200,
       headers: {
-        'Content-Type': 'image/avif',
+        'Content-Type': contentType,
         'Cache-Control': 'public, max-age=86400',
         'Content-Length': String(buffer.length),
       },

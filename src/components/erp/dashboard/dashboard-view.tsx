@@ -807,7 +807,7 @@ export default function DashboardView() {
         {loading ? (
           <TableSkeleton />
         ) : (
-          <Card>
+          <Card className="h-full overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -822,7 +822,7 @@ export default function DashboardView() {
                 Produits sous le seuil minimum de stock
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-hidden">
               {data!.lowStockProducts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                   <Package className="mb-2 h-8 w-8" />
@@ -895,7 +895,7 @@ export default function DashboardView() {
         {loading ? (
           <TableSkeleton />
         ) : (
-          <Card>
+          <Card className="h-full overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
@@ -905,7 +905,7 @@ export default function DashboardView() {
                 Dernières actions effectuées
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-hidden">
               {data!.recentActivity.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                   <Clock className="mb-2 h-8 w-8" />
@@ -923,7 +923,7 @@ export default function DashboardView() {
                           <CircleDot className="h-3 w-3 text-muted-foreground" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm leading-tight">
+                          <p className="text-sm leading-tight break-words">
                             <span className="font-medium">
                               {activity.user?.name || 'Système'}
                             </span>
@@ -934,7 +934,7 @@ export default function DashboardView() {
                             {` `}
                             <Badge
                               variant="secondary"
-                              className="mx-1 text-[10px] px-1.5 py-0"
+                              className="mx-1 text-[10px] px-1.5 py-0 max-w-[140px] truncate align-middle"
                             >
                               {activity.entity}
                             </Badge>

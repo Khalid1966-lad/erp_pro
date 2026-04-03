@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { api } from '@/lib/api'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -36,9 +36,15 @@ import {
   Users, Plus, Search, Edit, Trash2, ArrowLeft, ArrowUpDown,
   Building2, Phone, Mail, MapPin, Calendar, TrendingUp,
   ChevronLeft, ChevronRight, RefreshCw, Eye, Minus, GripVertical,
-  AlertTriangle, FileText, Receipt, ShoppingCart, UserPlus, UserMinus
+  AlertTriangle, FileText, Receipt, ShoppingCart, UserPlus, UserMinus,
+  FileSpreadsheet, Download, Upload, CheckCircle2, XCircle, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/lib/stores'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+} from '@/components/ui/dialog'
+import { Progress } from '@/components/ui/progress'
 
 import {
   clientFormSchema,
@@ -326,6 +332,12 @@ export default function ClientsView() {
 // ═══════════════════════════════════════════════════════════════
 //  LIST VIEW
 // ═══════════════════════════════════════════════════════════════
+interface ImportResult {
+  imported: number
+  skipped: number
+  errors: Array<{ row: number; reason: string }>
+}
+
 interface ClientListViewProps {
   clients: Client[]
   total: number
@@ -355,6 +367,98 @@ function ClientListView({
   onSearch, onStatusFilter, onCategorieFilter, onSort, onPage,
   onCreate, onEdit, onDetail, onDelete, onRefresh,
 }: ClientListViewProps) {
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'admin'
+
+  // ─── Import state ───
+  const [importOpen, setImportOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState(0)
+  const [importResult, setImportResult] = useState<ImportResult | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const { token } = useAuthStore.getState()
+      const res = await fetch('/api/clients/import', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Erreur de téléchargement')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'clients-template.xlsx'
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Modèle téléchargé', { description: 'Le fichier clients-template.xlsx a été téléchargé.' })
+    } catch (err) {
+      toast.error('Erreur', { description: 'Impossible de télécharger le modèle.' })
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImportFile(file)
+      setImportResult(null)
+    }
+  }
+
+  const handleImport = async () => {
+    if (!importFile) return
+    try {
+      setImporting(true)
+      setImportProgress(10)
+      setImportResult(null)
+
+      const { token } = useAuthStore.getState()
+      const formData = new FormData()
+      formData.append('file', importFile)
+
+      setImportProgress(30)
+
+      const res = await fetch('/api/clients/import', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+
+      setImportProgress(80)
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Erreur serveur' }))
+        throw new Error(data.error || 'Erreur serveur')
+      }
+
+      const result: ImportResult = await res.json()
+      setImportProgress(100)
+      setImportResult(result)
+
+      if (result.imported > 0) {
+        toast.success(`${result.imported} client(s) importé(s)`, {
+          description: result.skipped > 0 ? `${result.skipped} ligne(s) ignorée(s)` : undefined,
+        })
+      }
+
+      // Refresh the list
+      onRefresh()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur lors de l'import"
+      toast.error("Erreur d'import", { description: msg })
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleCloseImport = () => {
+    setImportOpen(false)
+    setImportFile(null)
+    setImportResult(null)
+    setImportProgress(0)
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -364,16 +468,171 @@ function ClientListView({
           <h2 className="text-lg font-semibold">Clients</h2>
           <Badge variant="secondary">{total}</Badge>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={onRefresh}>
             <RefreshCw className="h-4 w-4" />
           </Button>
+          {isAdmin && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
+                <Download className="h-4 w-4 mr-1" />
+                Télécharger modèle
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                <FileSpreadsheet className="h-4 w-4 mr-1" />
+                Importer Excel
+              </Button>
+            </>
+          )}
           <Button onClick={onCreate} size="sm">
             <Plus className="h-4 w-4 mr-1" />
             Nouveau client
           </Button>
         </div>
       </div>
+
+      {/* Import Dialog */}
+      <Dialog open={importOpen} onOpenChange={(open) => { if (!open) handleCloseImport(); else setImportOpen(true) }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Importer des clients depuis Excel
+            </DialogTitle>
+            <DialogDescription>
+              Importez un fichier Excel (.xlsx) avec les données clients. Les champs requis sont marqués d&apos;un astérisque dans le modèle.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* File selection area */}
+            {!importFile && !importResult && (
+              <div
+                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-sm font-medium">Cliquez pour sélectionner un fichier Excel</p>
+                <p className="text-xs text-muted-foreground mt-1">.xlsx uniquement</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+              </div>
+            )}
+
+            {/* File info display */}
+            {importFile && !importResult && (
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-emerald-100 text-emerald-700">
+                    <FileSpreadsheet className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{importFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(importFile.size / 1024).toFixed(1)} Ko
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => { setImportFile(null); setImportResult(null) }}
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Progress indicator */}
+            {importing && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Import en cours...
+                </div>
+                <Progress value={importProgress} className="h-2" />
+              </div>
+            )}
+
+            {/* Import result summary */}
+            {importResult && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    <div>
+                      <p className="text-lg font-semibold text-emerald-700">{importResult.imported}</p>
+                      <p className="text-xs text-emerald-600">Importé(s)</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                    <XCircle className="h-5 w-5 text-amber-600" />
+                    <div>
+                      <p className="text-lg font-semibold text-amber-700">{importResult.skipped}</p>
+                      <p className="text-xs text-amber-600">Ignoré(s)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error details */}
+                {importResult.errors.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-destructive">
+                      Détails des erreurs ({importResult.errors.length})
+                    </p>
+                    <div className="max-h-48 overflow-y-auto rounded-lg border p-2 space-y-1">
+                      {importResult.errors.map((err, i) => (
+                        <div key={i} className="text-xs flex gap-2">
+                          <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0">
+                            L{err.row}
+                          </Badge>
+                          <span className="text-muted-foreground">{err.reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            {!importResult ? (
+              <>
+                <Button variant="outline" onClick={handleCloseImport} disabled={importing}>
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleImport}
+                  disabled={!importFile || importing}
+                >
+                  {importing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Importation...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-1" />
+                      Importer
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleCloseImport}>
+                Fermer
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Search */}
       <div className="relative">

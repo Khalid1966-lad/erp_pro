@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, unlink, readdir } from 'fs/promises'
 import path from 'path'
 import { getUser } from '@/lib/auth'
 import { db } from '@/lib/db'
@@ -40,12 +40,15 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Try to compress with sharp (available in the project)
+    // Ensure upload directory exists
+    const uploadDir = path.join(process.cwd(), 'upload')
+    await mkdir(uploadDir, { recursive: true })
+
+    // Convert to AVIF using sharp (always available in the project)
     let finalBuffer: Buffer
     let finalExt = 'avif'
 
     try {
-      // Dynamic import to avoid issues if sharp isn't available
       const sharp = (await import('sharp')).default
 
       finalBuffer = await sharp(buffer)
@@ -55,30 +58,45 @@ export async function POST(req: NextRequest) {
         })
         .avif({
           quality: 85,
-          effort: 6, // compression effort (0-9)
+          effort: 6,
           chromaSubsampling: '4:2:0',
         })
         .toBuffer()
-    } catch {
-      // Sharp not available or format not supported — save as-is
-      finalBuffer = buffer
-
-      // Determine extension from original type
-      const extMap: Record<string, string> = {
-        'image/png': 'png',
-        'image/jpeg': 'jpg',
-        'image/webp': 'webp',
-        'image/svg+xml': 'svg',
-        'image/avif': 'avif',
+    } catch (sharpErr) {
+      console.error('Sharp processing failed, saving as PNG fallback:', sharpErr)
+      // Fallback: convert to PNG instead
+      try {
+        const sharp = (await import('sharp')).default
+        finalBuffer = await sharp(buffer)
+          .resize(400, 400, {
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+          })
+          .png({ quality: 100 })
+          .toBuffer()
+        finalExt = 'png'
+      } catch {
+        // Sharp completely unavailable, save original
+        finalBuffer = buffer
+        const extMap: Record<string, string> = {
+          'image/png': 'png',
+          'image/jpeg': 'jpg',
+          'image/webp': 'webp',
+          'image/svg+xml': 'svg',
+          'image/avif': 'avif',
+        }
+        finalExt = extMap[file.type] || 'png'
       }
-      finalExt = extMap[file.type] || 'png'
     }
 
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), 'upload')
-    await mkdir(uploadDir, { recursive: true })
+    // Clean up any old company-logo files before saving new one
+    const validExts = ['avif', 'png', 'webp', 'jpg', 'jpeg', 'svg']
+    for (const ext of validExts) {
+      const oldPath = path.join(uploadDir, `company-logo.${ext}`)
+      try { await unlink(oldPath) } catch { /* file doesn't exist, ignore */ }
+    }
 
-    // Save to disk
+    // Save new logo to disk
     const logoPath = path.join(uploadDir, `company-logo.${finalExt}`)
     await writeFile(logoPath, finalBuffer)
 

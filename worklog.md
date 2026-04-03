@@ -187,3 +187,60 @@ Enhance Commandes (Sales Orders) module with two creation modes: manual product 
 - All includes now return `quote` relation
 - **Lint:** `bun run lint` passes with 0 errors.
 
+---
+## Task ID: 3 - client-excel-import
+### Work Task
+Build a client Excel import feature for the GEMA ERP PRO project: API route with POST (import) and GET (template download), and frontend import UI with dialog, progress, and result summary in the clients list view.
+
+### Work Summary
+
+**1. Package:**
+- Installed `xlsx` npm package for Excel parsing and generation
+
+**2. API Route (`src/app/api/clients/import/route.ts`):**
+
+**GET — Download Excel Template:**
+- Admin-only auth check via `getUser(req)`
+- Generates a `.xlsx` file with 27 French column headers matching all import fields
+- Includes 2 pre-filled example data rows with realistic Moroccan company data (GEMA Industries, Atlas Distribution)
+- Proper column widths for readability
+- Returns binary buffer with `Content-Disposition: attachment; filename=clients-template.xlsx`
+
+**POST — Import Clients from Excel:**
+- Admin-only auth check
+- Accepts `FormData` with `file` field
+- Validates file extension (.xlsx/.xls)
+- Parses Excel using `xlsx` library (`XLSX.read`, `sheet_to_json`)
+- Maps French column headers to internal field names via `COLUMN_MAP`
+- Required fields validation: `raisonSociale`, `ice`, `ville`, `email`
+- Batch duplicate ICE check (single DB query before processing)
+- Skips in-file duplicates by tracking newly created ICEs
+- Per-row enum validation for: formeJuridique, statut, categorie, modeReglementPrefere, tauxTva, regimeFiscal, langueCommunication
+- Email format validation (primary + secondary)
+- Priorite range validation (1-5), seuilCredit numeric validation
+- Auto-populates legacy fields from new fields (name←raisonSociale, address←adresse, city←ville, postalCode←codePostal, phone←telephone, creditLimit←seuilCredit, paymentTerms←conditionsPaiement)
+- Creates clients via Prisma with `createdBy` tracking
+- Audit log entry per imported client (`action: 'import'`)
+- Returns JSON summary: `{ imported, skipped, errors: [{row, reason}] }`
+
+**3. Frontend (`src/components/erp/commercial/clients-view.tsx`):**
+- Added imports: `FileSpreadsheet`, `Download`, `Upload`, `CheckCircle2`, `XCircle`, `Loader2` icons; `useAuthStore`, `Dialog*` components, `Progress` component; `useRef`
+- Added `ImportResult` interface
+- Admin-only "Télécharger modèle" button (triggers template download via fetch + blob URL)
+- Admin-only "Importer Excel" button (opens import dialog)
+- Import dialog features:
+  - Drag/click file upload area with `.xlsx` accept filter
+  - File info card (name, size, remove button) after selection
+  - Progress bar with spinner during import
+  - Result summary with green (imported) and amber (skipped) stat cards
+  - Scrollable error details list with row numbers and reasons
+  - Cancel/Import buttons during upload, Close button after result
+  - Auto-refreshes client list after successful import
+- All state properly reset on dialog close
+
+**4. Column Mapping (French → English):**
+27 columns: Raison Sociale *, ICE *, Ville *, Email *, Nom Commercial, Forme Juridique, Adresse, Code Postal, Téléphone, GSM, Email Secondaire, Site Web, Conditions Paiement, Mode Règlement, Taux TVA, Régime Fiscal, Statut, Catégorie, Priorité, Langue Communication, Patente, CNSS, Identifiant Fiscal, Registre Commerce, Ville RC, Seuil Crédit, Commentaires
+
+**Lint:** `npm run lint` passes with 0 errors.
+**Dev server:** Compiles successfully, no runtime errors.
+
