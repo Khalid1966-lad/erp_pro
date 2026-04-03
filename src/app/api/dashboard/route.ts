@@ -30,7 +30,6 @@ export async function GET(req: NextRequest) {
     for (let i = 11; i >= 0; i--) {
       const d = new Date()
       d.setMonth(d.getMonth() - i)
-      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })
 
       const monthRevenue = validatedInvoices
@@ -93,23 +92,22 @@ export async function GET(req: NextRequest) {
       if (key in quotesByStatus) quotesByStatus[key] = item._count.id
     })
 
-    // Low stock products
-    const lowStockProducts = await db.product.findMany({
-      where: {
-        isActive: true,
-        currentStock: { lte: db.product.fields.minStock },
-      },
+    // Low stock products — fetch all active products and filter in JS
+    // (avoids cross-column comparison issues with PgBouncer)
+    const lowStockProductsRaw = await db.product.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         reference: true,
         designation: true,
         currentStock: true,
         minStock: true,
-        unit: true,
       },
       orderBy: { currentStock: 'asc' },
-      take: 20,
     })
+    const lowStockProducts = lowStockProductsRaw
+      .filter((p) => p.currentStock <= p.minStock)
+      .slice(0, 20)
 
     // Work orders by status
     const workOrdersByStatusRaw = await db.workOrder.groupBy({
@@ -138,10 +136,6 @@ export async function GET(req: NextRequest) {
     })
 
     // Total stock value
-    const stockValueResult = await db.product.aggregate({
-      where: { isActive: true },
-      _sum: false,
-    })
     const allProducts = await db.product.findMany({
       where: { isActive: true },
       select: { currentStock: true, averageCost: true },
@@ -172,14 +166,6 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     })
 
-    // Additional KPIs
-    const totalClients = await db.client.count()
-    const totalSuppliers = await db.supplier.count()
-    const totalProducts = await db.product.count({ where: { isActive: true } })
-    const pendingPurchaseOrders = await db.purchaseOrder.count({
-      where: { status: { in: ['draft', 'sent'] } },
-    })
-
     return NextResponse.json({
       revenueByMonth,
       totalRevenue: Math.round(totalRevenue * 100) / 100,
@@ -195,14 +181,12 @@ export async function GET(req: NextRequest) {
       cashBalance: cashBalanceResult._sum.balance || 0,
       bankBalance: bankBalanceResult._sum.balance || 0,
       recentActivity,
-      // Extra KPIs
-      totalClients,
-      totalSuppliers,
-      totalProducts,
-      pendingPurchaseOrders,
     })
   } catch (error) {
     console.error('Dashboard error:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown' },
+      { status: 500 }
+    )
   }
 }

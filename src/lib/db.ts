@@ -5,14 +5,8 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  const databaseUrl = process.env.DATABASE_URL
-  if (!databaseUrl || (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://'))) {
-    throw new Error(
-      `Invalid DATABASE_URL: must start with postgresql:// or postgres://. Got: ${databaseUrl ? databaseUrl.substring(0, 20) + '...' : 'undefined'}`
-    )
-  }
   return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error'] : [],
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   })
 }
 
