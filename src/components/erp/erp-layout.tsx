@@ -170,7 +170,7 @@ function SidebarContent() {
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 py-2">
+      <ScrollArea className="flex-1 min-h-0 py-2">
         <nav className="space-y-1 px-2">
           {navigation.map((group) => {
             const isCollapsed = collapsedGroups.has(group.title)
@@ -277,7 +277,7 @@ export function ERPSidebar() {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          'hidden md:flex flex-col h-screen sticky top-0 border-r border-border bg-card transition-all duration-200 shrink-0',
+          'hidden md:flex flex-col h-screen sticky top-0 border-r border-border bg-card transition-all duration-200 shrink-0 overflow-hidden',
           sidebarOpen ? 'w-64' : 'w-16'
         )}
       >
@@ -295,7 +295,7 @@ export function ERPSidebar() {
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" className="w-64 p-0 overflow-hidden">
           <SheetTitle className="sr-only">Navigation GEMA ERP PRO</SheetTitle>
           <SidebarContent />
         </SheetContent>

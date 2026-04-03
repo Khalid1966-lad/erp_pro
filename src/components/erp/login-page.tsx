@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Factory, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Factory, Eye, EyeOff, Loader2, Info } from 'lucide-react'
+import { APP_VERSION } from '@/lib/version'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -91,12 +92,58 @@ export default function LoginPage() {
               Se connecter
             </Button>
           </form>
-          <div className="mt-6 p-3 bg-muted rounded-lg text-xs text-muted-foreground">
-            <p className="font-medium mb-1">Comptes de démonstration :</p>
-            <p>Admin: admin@proerp.com / admin123</p>
-            <p>Commercial: commercial@proerp.com / pass123</p>
-            <p>Magasinier: magasinier@proerp.com / pass123</p>
-            <p>Production: production@proerp.com / pass123</p>
+          <div className="mt-6 space-y-3">
+            <div className="p-3 bg-muted rounded-lg text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 font-medium mb-1.5">
+                <Info className="h-3 w-3" />
+                Comptes de démonstration
+              </div>
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full hover:text-foreground transition-colors"
+                  onClick={() => { setEmail('admin@gema-erp.com'); setPassword('admin123') }}
+                >
+                  <span>Admin</span>
+                  <span className="font-mono text-[10px] opacity-70">admin@gema-erp.com</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full hover:text-foreground transition-colors"
+                  onClick={() => { setEmail('commercial@gema-erp.com'); setPassword('pass123') }}
+                >
+                  <span>Commercial</span>
+                  <span className="font-mono text-[10px] opacity-70">commercial@gema-erp.com</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full hover:text-foreground transition-colors"
+                  onClick={() => { setEmail('magasinier@gema-erp.com'); setPassword('pass123') }}
+                >
+                  <span>Magasinier</span>
+                  <span className="font-mono text-[10px] opacity-70">magasinier@gema-erp.com</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full hover:text-foreground transition-colors"
+                  onClick={() => { setEmail('production@gema-erp.com'); setPassword('pass123') }}
+                >
+                  <span>Production</span>
+                  <span className="font-mono text-[10px] opacity-70">production@gema-erp.com</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full hover:text-foreground transition-colors"
+                  onClick={() => { setEmail('acheteur@gema-erp.com'); setPassword('pass123') }}
+                >
+                  <span>Acheteur</span>
+                  <span className="font-mono text-[10px] opacity-70">acheteur@gema-erp.com</span>
+                </button>
+              </div>
+            </div>
+            <p className="text-center text-[10px] text-muted-foreground">
+              GEMA ERP PRO v{APP_VERSION}
+            </p>
           </div>
         </CardContent>
       </Card>
