@@ -148,3 +148,42 @@ Build the complete backend for the Moroccan client management module: Prisma sch
 **Lint:** `npm run lint` passes with 0 errors.
 **Database:** Schema pushed with `db push --force-reset`, seed completed successfully.
 
+---
+## Task ID: 4 - logo-transparent-favicon
+### Work Task
+Make the app logo background transparent and configure it as the favicon.
+
+### Work Summary
+- **SVG Logo transparency**: Removed dark rectangle background from `/public/logo.svg`. Changed letter fill to dark color (#1a1a2e) visible on light backgrounds.
+- **Favicon generation**: Generated `favicon-32.png` (32x32) and `apple-touch-icon.png` (180x180) from transparent SVG using sharp-cli.
+- **Layout metadata**: Updated `src/app/layout.tsx` icons config for PNG favicon and Apple touch icon.
+- **Login page**: Updated to reference `/logo.svg` instead of `/logo.avif`.
+- **Sidebar**: Updated SidebarLogo default to `/logo.svg`.
+- **Lint:** `bun run lint` passes with 0 errors.
+
+---
+## Task ID: 5 - commandes-quote-import
+### Work Task
+Enhance Commandes (Sales Orders) module with two creation modes: manual product entry and import from accepted quotes (devis). Only accepted quotes importable. When creating an order for a client, all accepted quotes appear in popup.
+
+### Work Summary
+**Frontend (`sales-orders-view.tsx`):**
+- Complete rewrite (~955 lines) with quote import functionality
+- "Importer un devis accepté" button appears when client selected (emerald-themed)
+- Fetches `GET /api/quotes?clientId=xxx&status=accepted`
+- Quote import dialog shows each accepted quote as card with number, date, lines, total TTC, product references
+- On selection: form pre-filled with quote lines (product, qty, price, TVA, discount)
+- Green info banner confirms imported quote; badge shown with clear option
+- Client change auto-clears quote import
+- Order list shows quote reference under number if linked
+- Order detail shows blue banner "Créée depuis le devis DEV-XXXX"
+- Added discount column to line items table
+
+**Backend (`/api/sales-orders/route.ts`):**
+- Added `quoteId` and `discount` to Zod schemas
+- Validation: quote must exist, be accepted, match client
+- POST stores `quoteId` on created order
+- Total calculation accounts for line-level discount
+- All includes now return `quote` relation
+- **Lint:** `bun run lint` passes with 0 errors.
+

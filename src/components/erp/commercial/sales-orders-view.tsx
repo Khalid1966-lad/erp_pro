@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
-  Receipt, CheckCircle, XCircle, ArrowRight
+  Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -43,6 +43,7 @@ interface SalesOrderLine {
   tvaRate: number
   totalHT?: number
   quantityPrepared?: number
+  discount?: number
   product?: { id: string; reference: string; designation: string }
 }
 
@@ -58,10 +59,38 @@ interface SalesOrder {
   totalTTC: number
   client: { id: string; name: string }
   lines: SalesOrderLine[]
+  quoteId?: string | null
+  quote?: { id: string; number: string } | null
 }
 
 interface Client { id: string; name: string }
 interface Product { id: string; reference: string; designation: string; priceHT: number; tvaRate: number }
+
+interface QuoteLine {
+  id?: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  tvaRate: number
+  discount?: number
+  totalHT?: number
+  product?: { id: string; reference: string; designation: string }
+}
+
+interface AcceptedQuote {
+  id: string
+  number: string
+  date: string
+  validUntil: string
+  totalHT: number
+  totalTVA: number
+  totalTTC: number
+  discountRate: number
+  shippingCost: number
+  notes: string | null
+  client: { id: string; name: string }
+  lines: QuoteLine[]
+}
 
 const statusLabels: Record<string, string> = {
   pending: 'En attente',
@@ -107,6 +136,13 @@ export default function SalesOrdersView() {
   const [formDeliveryDate, setFormDeliveryDate] = useState('')
   const [formNotes, setFormNotes] = useState('')
   const [formLines, setFormLines] = useState<SalesOrderLine[]>([emptyLine()])
+  const [formQuoteId, setFormQuoteId] = useState<string | null>(null)
+  const [formQuoteNumber, setFormQuoteNumber] = useState<string | null>(null)
+
+  // Quote import state
+  const [quoteImportOpen, setQuoteImportOpen] = useState(false)
+  const [acceptedQuotes, setAcceptedQuotes] = useState<AcceptedQuote[]>([])
+  const [loadingQuotes, setLoadingQuotes] = useState(false)
 
   const fetchOrders = async () => {
     try {
@@ -149,7 +185,8 @@ export default function SalesOrdersView() {
     let totalTVA = 0
     for (const line of formLines) {
       if (!line.productId) continue
-      const lineHT = line.quantity * line.unitPrice
+      const discountMultiplier = 1 - ((line.discount || 0) / 100)
+      const lineHT = line.quantity * line.unitPrice * discountMultiplier
       const lineTVA = lineHT * (line.tvaRate / 100)
       totalHT += lineHT
       totalTVA += lineTVA
@@ -165,12 +202,75 @@ export default function SalesOrdersView() {
     setFormDeliveryDate(in7.toISOString().slice(0, 10))
     setFormNotes('')
     setFormLines([emptyLine()])
+    setFormQuoteId(null)
+    setFormQuoteNumber(null)
     setDialogOpen(true)
   }
 
   const openDetail = (order: SalesOrder) => {
     setSelectedOrder(order)
     setDetailOpen(true)
+  }
+
+  // Fetch accepted quotes for the selected client
+  const fetchAcceptedQuotes = async (clientId: string) => {
+    try {
+      setLoadingQuotes(true)
+      const params = new URLSearchParams()
+      params.set('clientId', clientId)
+      params.set('status', 'accepted')
+      const data = await api.get<{ quotes: AcceptedQuote[]; total: number }>(`/quotes?${params.toString()}`)
+      setAcceptedQuotes(data.quotes || [])
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error(msg || 'Erreur chargement des devis')
+      setAcceptedQuotes([])
+    } finally {
+      setLoadingQuotes(false)
+    }
+  }
+
+  // Open quote import popup
+  const openQuoteImport = async () => {
+    if (!formClientId) return
+    setQuoteImportOpen(true)
+    await fetchAcceptedQuotes(formClientId)
+  }
+
+  // Select a quote and pre-fill the form
+  const selectQuote = (quote: AcceptedQuote) => {
+    const importedLines: SalesOrderLine[] = quote.lines.map(line => ({
+      productId: line.productId,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      tvaRate: line.tvaRate,
+      discount: line.discount || 0,
+      product: line.product
+    }))
+
+    // If quote has no lines, add an empty line
+    if (importedLines.length === 0) {
+      importedLines.push(emptyLine())
+    }
+
+    setFormLines(importedLines)
+    setFormQuoteId(quote.id)
+    setFormQuoteNumber(quote.number)
+
+    // Pre-fill notes if they exist
+    if (quote.notes && !formNotes) {
+      setFormNotes(quote.notes)
+    }
+
+    setQuoteImportOpen(false)
+    toast.success(`Devis ${quote.number} importé avec ${quote.lines.length} ligne(s)`)
+  }
+
+  // Clear imported quote data
+  const clearQuoteImport = () => {
+    setFormQuoteId(null)
+    setFormQuoteNumber(null)
+    setFormLines([emptyLine()])
   }
 
   const handleStatusChange = async (order: SalesOrder, newStatus: string) => {
@@ -235,11 +335,13 @@ export default function SalesOrdersView() {
         clientId: formClientId,
         deliveryDate,
         notes: formNotes || undefined,
+        quoteId: formQuoteId || undefined,
         lines: validLines.map(l => ({
           productId: l.productId,
           quantity: l.quantity,
           unitPrice: l.unitPrice,
-          tvaRate: l.tvaRate
+          tvaRate: l.tvaRate,
+          discount: l.discount || 0
         }))
       })
       toast.success('Commande créée')
@@ -392,7 +494,17 @@ export default function SalesOrdersView() {
                 ) : (
                   orders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-mono font-medium">{order.number}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-mono font-medium">{order.number}</span>
+                          {order.quoteId && order.quote && (
+                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <FileText className="h-3 w-3" />
+                              {order.quote.number}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{order.client.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
                         {format(new Date(order.date), 'dd/MM/yyyy', { locale: fr })}
@@ -472,16 +584,27 @@ export default function SalesOrdersView() {
       </Card>
 
       {/* Create Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        setDialogOpen(open)
+        if (!open) {
+          setFormQuoteId(null)
+          setFormQuoteNumber(null)
+        }
+      }}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nouvelle commande client</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Client selection + Import button */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Client *</Label>
-                <Select value={formClientId} onValueChange={setFormClientId}>
+                <Select value={formClientId} onValueChange={(val) => {
+                  setFormClientId(val)
+                  // Reset quote import when client changes
+                  clearQuoteImport()
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un client" />
                   </SelectTrigger>
@@ -498,75 +621,135 @@ export default function SalesOrdersView() {
               </div>
             </div>
 
+            {/* Import from quote button */}
+            {formClientId && (
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={openQuoteImport}
+                  className="text-emerald-700 border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                >
+                  <FileDown className="h-4 w-4 mr-1.5" />
+                  Importer un devis accepté
+                </Button>
+                {formQuoteId && formQuoteNumber && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 gap-1">
+                      <FileText className="h-3 w-3" />
+                      Importé de {formQuoteNumber}
+                    </Badge>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearQuoteImport}
+                      className="text-muted-foreground hover:text-destructive h-7 px-2"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Quote import info banner */}
+            {formQuoteId && formQuoteNumber && (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
+                  <span>
+                    Cette commande sera créée depuis le devis <strong>{formQuoteNumber}</strong>.
+                    Les lignes ont été importées automatiquement. Vous pouvez les modifier si nécessaire.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Line items */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Lignes</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addLine}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Ajouter
-                </Button>
+                <div className="flex items-center gap-2">
+                  {formQuoteId && formLines.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {formLines.filter(l => l.productId).length} ligne(s) importée(s)
+                    </span>
+                  )}
+                  <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Ajouter
+                  </Button>
+                </div>
               </div>
               <div className="rounded border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[220px]">Produit</TableHead>
-                      <TableHead className="w-[80px]">Qté</TableHead>
-                      <TableHead className="w-[100px]">P.U. HT</TableHead>
-                      <TableHead className="w-[80px]">TVA %</TableHead>
-                      <TableHead className="w-[100px] text-right">Total HT</TableHead>
-                      <TableHead className="w-[40px]" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {formLines.map((line, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>
-                          <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Produit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>{p.reference} - {p.designation}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Input type="number" min="0.01" step="1" value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)} className="w-full" />
-                        </TableCell>
-                        <TableCell>
-                          <Input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateLine(idx, 'unitPrice', parseFloat(e.target.value) || 0)} className="w-full" />
-                        </TableCell>
-                        <TableCell>
-                          <Select value={String(line.tvaRate)} onValueChange={(v) => updateLine(idx, 'tvaRate', parseFloat(v))}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0">0%</SelectItem>
-                              <SelectItem value="2.1">2,1%</SelectItem>
-                              <SelectItem value="5.5">5,5%</SelectItem>
-                              <SelectItem value="10">10%</SelectItem>
-                              <SelectItem value="20">20%</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="text-right font-medium text-sm">
-                          {line.productId ? formatCurrency(line.quantity * line.unitPrice) : '—'}
-                        </TableCell>
-                        <TableCell>
-                          {formLines.length > 1 && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </TableCell>
+                <div className="max-h-[300px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[220px]">Produit</TableHead>
+                        <TableHead className="w-[80px]">Qté</TableHead>
+                        <TableHead className="w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="w-[80px]">TVA %</TableHead>
+                        <TableHead className="w-[80px]">Remise %</TableHead>
+                        <TableHead className="w-[100px] text-right">Total HT</TableHead>
+                        <TableHead className="w-[40px]" />
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {formLines.map((line, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>
+                            <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Produit" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {products.map((p) => (
+                                  <SelectItem key={p.id} value={p.id}>{p.reference} - {p.designation}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input type="number" min="0.01" step="1" value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)} className="w-full" />
+                          </TableCell>
+                          <TableCell>
+                            <Input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateLine(idx, 'unitPrice', parseFloat(e.target.value) || 0)} className="w-full" />
+                          </TableCell>
+                          <TableCell>
+                            <Select value={String(line.tvaRate)} onValueChange={(v) => updateLine(idx, 'tvaRate', parseFloat(v))}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">0%</SelectItem>
+                                <SelectItem value="2.1">2,1%</SelectItem>
+                                <SelectItem value="5.5">5,5%</SelectItem>
+                                <SelectItem value="10">10%</SelectItem>
+                                <SelectItem value="20">20%</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input type="number" min="0" max="100" step="1" value={line.discount || 0} onChange={(e) => updateLine(idx, 'discount', parseFloat(e.target.value) || 0)} className="w-full" />
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-sm">
+                            {line.productId ? formatCurrency(line.quantity * line.unitPrice * (1 - ((line.discount || 0) / 100))) : '—'}
+                          </TableCell>
+                          <TableCell>
+                            {formLines.length > 1 && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
 
@@ -591,11 +774,97 @@ export default function SalesOrdersView() {
         </DialogContent>
       </Dialog>
 
+      {/* Quote Import Selection Dialog */}
+      <Dialog open={quoteImportOpen} onOpenChange={setQuoteImportOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileDown className="h-5 w-5 text-emerald-600" />
+              Importer un devis accepté
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Sélectionnez un devis accepté pour pré-remplir les lignes de la commande.
+              Seuls les devis avec le statut &quot;Accepté&quot; sont disponibles.
+            </p>
+
+            {loadingQuotes ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Chargement des devis...</span>
+              </div>
+            ) : acceptedQuotes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  Aucun devis accepté trouvé pour ce client.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Seuls les devis ayant le statut &quot;Accepté&quot; peuvent être importés.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {acceptedQuotes.map((quote) => (
+                  <Card key={quote.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-semibold">{quote.number}</span>
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              Accepté
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Date : </span>
+                              <span>{format(new Date(quote.date), 'dd/MM/yyyy', { locale: fr })}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Lignes : </span>
+                              <span>{quote.lines.length}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Total TTC : </span>
+                              <span className="font-semibold">{formatCurrency(quote.totalTTC)}</span>
+                            </div>
+                          </div>
+                          {quote.lines.length > 0 && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Produits : {quote.lines.map(l => l.product?.reference || '—').join(', ')}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => selectQuote(quote)}
+                          className="shrink-0"
+                        >
+                          <ArrowRight className="h-4 w-4 mr-1" />
+                          Sélectionner
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuoteImportOpen(false)}>
+              Annuler
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
               <ShoppingCart className="h-5 w-5" />
               {selectedOrder?.number}
               {selectedOrder && (
@@ -607,6 +876,19 @@ export default function SalesOrdersView() {
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
+              {/* Quote origin badge */}
+              {selectedOrder.quoteId && selectedOrder.quote && (
+                <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-600 shrink-0" />
+                    <span>
+                      Cette commande a été créée depuis le devis{' '}
+                      <span className="font-semibold">{selectedOrder.quote.number}</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div><span className="text-muted-foreground">Client</span><p className="font-medium">{selectedOrder.client.name}</p></div>
                 <div><span className="text-muted-foreground">Date</span><p className="font-medium">{format(new Date(selectedOrder.date), 'dd/MM/yyyy', { locale: fr })}</p></div>
@@ -614,28 +896,30 @@ export default function SalesOrdersView() {
                 <div><span className="text-muted-foreground">Nb lignes</span><p className="font-medium">{selectedOrder.lines.length}</p></div>
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Produit</TableHead>
-                    <TableHead className="text-right">Qté</TableHead>
-                    <TableHead className="text-right">Qté préparée</TableHead>
-                    <TableHead className="text-right">P.U. HT</TableHead>
-                    <TableHead className="text-right">Total HT</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedOrder.lines.map((line) => (
-                    <TableRow key={line.id || line.productId}>
-                      <TableCell className="font-medium">{line.product?.reference} - {line.product?.designation}</TableCell>
-                      <TableCell className="text-right">{line.quantity}</TableCell>
-                      <TableCell className="text-right">{line.quantityPrepared || 0}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(line.totalHT || 0)}</TableCell>
+              <div className="max-h-[300px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Produit</TableHead>
+                      <TableHead className="text-right">Qté</TableHead>
+                      <TableHead className="text-right">Qté préparée</TableHead>
+                      <TableHead className="text-right">P.U. HT</TableHead>
+                      <TableHead className="text-right">Total HT</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedOrder.lines.map((line) => (
+                      <TableRow key={line.id || line.productId}>
+                        <TableCell className="font-medium">{line.product?.reference} - {line.product?.designation}</TableCell>
+                        <TableCell className="text-right">{line.quantity}</TableCell>
+                        <TableCell className="text-right">{line.quantityPrepared || 0}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(line.totalHT || 0)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {selectedOrder.notes && (
                 <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {selectedOrder.notes}</div>

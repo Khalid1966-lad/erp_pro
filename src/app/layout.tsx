@@ -17,7 +17,11 @@ export const metadata: Metadata = {
   title: "GEMA ERP PRO - ERP de Production — Maroc",
   description: "Système ERP complet pour la gestion de production industrielle au Maroc. Commercial, Achats, Stock, Production, Finance.",
   icons: {
-    icon: "/logo.svg",
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
 };
 

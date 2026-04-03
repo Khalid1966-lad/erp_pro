@@ -44,7 +44,7 @@ export default function LoginPage() {
         <CardHeader className="text-center space-y-3">
           <div className="mx-auto w-20 h-20 relative">
             <Image
-              src="/logo.avif"
+              src="/logo.svg"
               alt="GEMA ERP PRO"
               fill
               className="object-contain"

@@ -8,10 +8,12 @@ const salesOrderLineSchema = z.object({
   quantity: z.number().min(0.01),
   unitPrice: z.number().min(0),
   tvaRate: z.number().default(20),
+  discount: z.number().default(0),
 })
 
 const salesOrderSchema = z.object({
   clientId: z.string(),
+  quoteId: z.string().optional(),
   status: z.enum(['pending', 'confirmed', 'in_preparation', 'prepared', 'partially_delivered', 'delivered', 'cancelled']).optional(),
   deliveryDate: z.string().datetime().optional().nullable(),
   notes: z.string().optional(),
@@ -57,6 +59,7 @@ export async function GET(req: NextRequest) {
           client: { select: { id: true, name: true } },
           lines: { include: { product: { select: { id: true, reference: true, designation: true } } } },
           preparationOrders: true,
+          quote: { select: { id: true, number: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
@@ -93,6 +96,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Au moins une ligne requise' }, { status: 400 })
     }
 
+    // If creating from a quote, verify quote exists and is accepted
+    if (data.quoteId) {
+      const quote = await db.quote.findUnique({ where: { id: data.quoteId } })
+      if (!quote) {
+        return NextResponse.json({ error: 'Devis introuvable' }, { status: 404 })
+      }
+      if (quote.status !== 'accepted') {
+        return NextResponse.json({ error: 'Le devis doit être accepté pour créer une commande' }, { status: 400 })
+      }
+      if (quote.clientId !== data.clientId) {
+        return NextResponse.json({ error: 'Le devis ne correspond pas au client sélectionné' }, { status: 400 })
+      }
+    }
+
     const productIds = data.lines.map((l) => l.productId)
     const products = await db.product.findMany({ where: { id: { in: productIds } } })
     if (products.length !== productIds.length) {
@@ -103,7 +120,8 @@ export async function POST(req: NextRequest) {
     let totalTVA = 0
 
     const linesData = data.lines.map((line) => {
-      const lineHT = line.quantity * line.unitPrice
+      const discountMultiplier = 1 - ((line.discount || 0) / 100)
+      const lineHT = line.quantity * line.unitPrice * discountMultiplier
       const lineTVA = lineHT * (line.tvaRate / 100)
       totalHT += lineHT
       totalTVA += lineTVA
@@ -122,6 +140,7 @@ export async function POST(req: NextRequest) {
       data: {
         number,
         clientId: data.clientId,
+        quoteId: data.quoteId || null,
         status: data.status || 'pending',
         deliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
         notes: data.notes,
@@ -133,6 +152,7 @@ export async function POST(req: NextRequest) {
       include: {
         client: true,
         lines: { include: { product: true } },
+        quote: { select: { id: true, number: true } },
       },
     })
 
@@ -165,7 +185,7 @@ export async function PUT(req: NextRequest) {
 
     const existing = await db.salesOrder.findUnique({
       where: { id },
-      include: { lines: { include: { product: true } }, client: true },
+      include: { lines: { include: { product: true } }, client: true, quote: true },
     })
     if (!existing) {
       return NextResponse.json({ error: 'Bon de commande introuvable' }, { status: 404 })
@@ -258,6 +278,7 @@ export async function PUT(req: NextRequest) {
         client: true,
         lines: { include: { product: true } },
         preparationOrders: true,
+        quote: { select: { id: true, number: true } },
       },
     })
 
