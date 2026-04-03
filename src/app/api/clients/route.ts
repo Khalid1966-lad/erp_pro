@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
     const categorie = searchParams.get('categorie')
     const formeJuridique = searchParams.get('formeJuridique')
     const ville = searchParams.get('ville')
+    const typeSociete = searchParams.get('typeSociete')
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
 
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
     if (statut) where.statut = statut as Prisma.EnumStatutClientFilter
     if (categorie) where.categorie = categorie as Prisma.EnumCategorieClientFilter
     if (formeJuridique) where.formeJuridique = formeJuridique as Prisma.EnumFormeJuridiqueFilter
+    if (typeSociete) where.typeSociete = typeSociete
     if (ville) where.ville = { contains: ville, mode: 'insensitive' }
 
     // Build orderBy
@@ -75,6 +77,7 @@ export async function GET(req: NextRequest) {
           gsm: true,
           ville: true,
           formeJuridique: true,
+          typeSociete: true,
           statut: true,
           categorie: true,
           balance: true,

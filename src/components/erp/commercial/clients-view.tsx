@@ -82,6 +82,10 @@ interface Client {
   paymentTerms: string | null
   notes: string | null
   balance: number
+  typeSociete: string
+  statut: string
+  categorie: string
+  ice: string
   createdAt: string
   updatedAt: string
 }
@@ -108,7 +112,13 @@ const statusLabelMap: Record<string, string> = {
   client_privilegie: 'Client privilégié',
 }
 
-const itemsPerPage = 10
+const typeSocieteColorMap: Record<string, string> = {
+  SOCIETE: 'bg-blue-100 text-blue-800 border-blue-200',
+  REVENDEUR: 'bg-amber-100 text-amber-800 border-amber-200',
+  PARTICULIER: 'bg-purple-100 text-purple-800 border-purple-200',
+  AUTRES: 'bg-gray-100 text-gray-700 border-gray-200',
+}
+
 
 // ───────────────────── Loading Skeleton ─────────────────────
 function ListSkeleton() {
@@ -128,14 +138,12 @@ function ListSkeleton() {
           <Skeleton key={i} className="h-8 w-24" />
         ))}
       </div>
-      <Card>
-        <CardContent className="p-0">
-          <div className="space-y-3 p-4">
-            {Array.from({ length: itemsPerPage }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        </CardContent>
+      <Card className="overflow-hidden">
+        <div className="space-y-3 p-4">
+          {Array.from({ length: 15 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
       </Card>
     </div>
   )
@@ -186,28 +194,25 @@ function InfoRow({ label, value }: { label: string; value?: string | number | nu
 export default function ClientsView() {
   const [subView, setSubView] = useState<SubView>('list')
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [clients, setClients] = useState<Client[]>([])
+  const [allClients, setAllClients] = useState<Client[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [categorieFilter, setCategorieFilter] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [sortField, setSortField] = useState<string>('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [page, setPage] = useState(1)
   const [saving, setSaving] = useState(false)
 
-  // ─── Fetch Clients ───
+  // ─── Fetch ALL Clients (no pagination, scrollable) ───
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(itemsPerPage),
-      })
+      const params = new URLSearchParams({ limit: '1000' })
       if (search) params.set('search', search)
       const res = await api.get<{ clients: Client[]; total: number }>(`/clients?${params}`)
-      setClients(res.clients || [])
+      setAllClients(res.clients || [])
       setTotal(res.total || 0)
     } catch (err) {
       console.error('Erreur chargement clients:', err)
@@ -215,7 +220,7 @@ export default function ClientsView() {
     } finally {
       setLoading(false)
     }
-  }, [page, search])
+  }, [search])
 
   useEffect(() => {
     if (subView === 'list') {
@@ -225,21 +230,17 @@ export default function ClientsView() {
 
   // ─── Filtered + sorted (client-side for status/categorie filters) ───
   const filteredClients = useMemo(() => {
-    let result = [...clients]
-    if (statusFilter) {
-      // Backend doesn't support status filter, but we keep UI ready
-      // result = result.filter(c => c.statut === statusFilter)
-    }
-    if (categorieFilter) {
-      // result = result.filter(c => c.categorie === categorieFilter)
-    }
+    let result = [...allClients]
+    if (statusFilter) result = result.filter(c => c.statut === statusFilter)
+    if (categorieFilter) result = result.filter(c => c.categorie === categorieFilter)
+    if (typeFilter) result = result.filter(c => c.typeSociete === typeFilter)
     result.sort((a, b) => {
       const aVal = String(a[sortField as keyof Client] ?? '')
       const bVal = String(b[sortField as keyof Client] ?? '')
       return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
     })
     return result
-  }, [clients, statusFilter, categorieFilter, sortField, sortDir])
+  }, [allClients, statusFilter, categorieFilter, typeFilter, sortField, sortDir])
 
   const toggleSort = (field: string) => {
     if (sortField === field) {
@@ -250,7 +251,7 @@ export default function ClientsView() {
     }
   }
 
-  const totalPages = Math.ceil(total / itemsPerPage)
+
 
   // ─── Navigation helpers ───
   const goToCreate = () => {
@@ -306,19 +307,19 @@ export default function ClientsView() {
         <ClientListView
           clients={filteredClients}
           total={total}
-          page={page}
-          totalPages={totalPages}
+          filteredCount={filteredClients.length}
           loading={loading}
           search={search}
           statusFilter={statusFilter}
           categorieFilter={categorieFilter}
+          typeFilter={typeFilter}
           sortField={sortField}
           sortDir={sortDir}
           onSearch={setSearch}
           onStatusFilter={setStatusFilter}
           onCategorieFilter={setCategorieFilter}
+          onTypeFilter={setTypeFilter}
           onSort={toggleSort}
-          onPage={setPage}
           onCreate={goToCreate}
           onEdit={goToEdit}
           onDetail={goToDetail}
@@ -341,19 +342,19 @@ interface ImportResult {
 interface ClientListViewProps {
   clients: Client[]
   total: number
-  page: number
-  totalPages: number
+  filteredCount: number
   loading: boolean
   search: string
   statusFilter: string | null
   categorieFilter: string | null
+  typeFilter: string | null
   sortField: string
   sortDir: 'asc' | 'desc'
   onSearch: (v: string) => void
   onStatusFilter: (v: string | null) => void
   onCategorieFilter: (v: string | null) => void
+  onTypeFilter: (v: string | null) => void
   onSort: (field: string) => void
-  onPage: (p: number) => void
   onCreate: () => void
   onEdit: (c: Client) => void
   onDetail: (c: Client) => void
@@ -362,9 +363,9 @@ interface ClientListViewProps {
 }
 
 function ClientListView({
-  clients, total, page, totalPages, loading, search,
-  statusFilter, categorieFilter, sortField, sortDir,
-  onSearch, onStatusFilter, onCategorieFilter, onSort, onPage,
+  clients, total, filteredCount, loading, search,
+  statusFilter, categorieFilter, typeFilter, sortField, sortDir,
+  onSearch, onStatusFilter, onCategorieFilter, onTypeFilter, onSort,
   onCreate, onEdit, onDetail, onDelete, onRefresh,
 }: ClientListViewProps) {
   const { user } = useAuthStore()
@@ -466,7 +467,7 @@ function ClientListView({
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Clients</h2>
-          <Badge variant="secondary">{total}</Badge>
+          <Badge variant="secondary">{filteredCount}{filteredCount !== total ? `/${total}` : ''}</Badge>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={onRefresh}>
@@ -640,39 +641,27 @@ function ClientListView({
         <Input
           placeholder="Rechercher par raison sociale, ICE, ville, email ou téléphone..."
           value={search}
-          onChange={(e) => { onSearch(e.target.value); onPage(1) }}
+          onChange={(e) => onSearch(e.target.value)}
           className="pl-9"
         />
       </div>
 
-      {/* Status Filter Buttons */}
+      {/* Filter Buttons */}
       <div className="flex flex-wrap gap-2">
         <Button
-          variant={statusFilter === null ? 'default' : 'outline'}
+          variant={statusFilter === null && typeFilter === null && categorieFilter === null ? 'default' : 'outline'}
           size="sm"
-          onClick={() => { onStatusFilter(null); onPage(1) }}
+          onClick={() => { onStatusFilter(null); setTypeFilter(null); onCategorieFilter(null) }}
         >
           Tous
         </Button>
-        {clientStatusOptions.map((s) => (
-          <Button
-            key={s.value}
-            variant={statusFilter === s.value ? 'default' : 'outline'}
-            size="sm"
-            className={statusFilter === s.value ? s.color : ''}
-            onClick={() => {
-              onStatusFilter(statusFilter === s.value ? null : s.value)
-              onPage(1)
-            }}
-          >
-            {s.label}
-          </Button>
-        ))}
+        {/* Type filters */}
+        <Button variant={typeFilter === "SOCIETE" ? "default" : "outline"} size="sm" onClick={() => setTypeFilter(typeFilter === "SOCIETE" ? null : "SOCIETE")}>Societe</Button>
+        <Button variant={typeFilter === "REVENDEUR" ? "default" : "outline"} size="sm" onClick={() => setTypeFilter(typeFilter === "REVENDEUR" ? null : "REVENDEUR")}>Revendeur</Button>
+        <Button variant={typeFilter === "PARTICULIER" ? "default" : "outline"} size="sm" onClick={() => setTypeFilter(typeFilter === "PARTICULIER" ? null : "PARTICULIER")}>Particulier</Button>
+        <Button variant={typeFilter === "AUTRES" ? "default" : "outline"} size="sm" onClick={() => setTypeFilter(typeFilter === "AUTRES" ? null : "AUTRES")}>Autres</Button>
         <Separator orientation="vertical" className="h-8 mx-1 hidden sm:block" />
-        <Select
-          value={categorieFilter ?? ''}
-          onValueChange={(v) => { onCategorieFilter(v || null); onPage(1) }}
-        >
+        <Select value={categorieFilter ?? ''} onValueChange={(v) => onCategorieFilter(v === '__all__' ? null : v)}>
           <SelectTrigger className="w-auto h-8 text-sm">
             <SelectValue placeholder="Catégorie..." />
           </SelectTrigger>
@@ -685,8 +674,9 @@ function ClientListView({
         </Select>
       </div>
 
-      {/* Table */}
-      <Card>
+      {/* Table — scrollable */}
+      <Card className="overflow-hidden">
+        <ScrollArea className="max-h-[calc(100vh-320px)]">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -701,6 +691,7 @@ function ClientListView({
                       <ArrowUpDown className="h-3 w-3" />
                     </div>
                   </TableHead>
+                  <TableHead className="hidden md:table-cell">Type</TableHead>
                   <TableHead className="hidden md:table-cell">ICE</TableHead>
                   <TableHead className="hidden lg:table-cell" onClick={() => onSort('city')}>
                     <div className="flex items-center gap-1 cursor-pointer select-none">
@@ -743,8 +734,13 @@ function ClientListView({
                       onClick={() => onDetail(client)}
                     >
                       <TableCell className="font-medium">{client.name}</TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge variant="outline" className={typeSocieteColorMap[client.typeSociete] || ''}>
+                          {client.typeSociete || '—'}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground font-mono text-xs">
-                        {client.siret || '—'}
+                        {client.ice || client.siret || '—'}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground">
                         {client.city || '—'}
@@ -756,7 +752,7 @@ function ClientListView({
                         {client.email || '—'}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <StatusBadge status="actif" />
+                        <StatusBadge status={client.statut || 'prospect'} />
                       </TableCell>
                       <TableCell className="text-right font-medium hidden lg:table-cell">
                         <span className={client.balance > 0 ? 'text-red-600' : 'text-green-600'}>
@@ -805,57 +801,8 @@ function ClientListView({
             </Table>
           </div>
         </CardContent>
+        </ScrollArea>
       </Card>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {(page - 1) * itemsPerPage + 1}–{Math.min(page * itemsPerPage, total)} sur {total}
-          </span>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPage(page - 1)}
-              disabled={page <= 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-              let pageNum: number
-              if (totalPages <= 5) {
-                pageNum = i + 1
-              } else if (page <= 3) {
-                pageNum = i + 1
-              } else if (page >= totalPages - 2) {
-                pageNum = totalPages - 4 + i
-              } else {
-                pageNum = page - 2 + i
-              }
-              return (
-                <Button
-                  key={pageNum}
-                  variant={page === pageNum ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => onPage(pageNum)}
-                  className="w-9"
-                >
-                  {pageNum}
-                </Button>
-              )
-            })}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPage(page + 1)}
-              disabled={page >= totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

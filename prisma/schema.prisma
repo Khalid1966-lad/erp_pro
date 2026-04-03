@@ -199,6 +199,7 @@ model Client {
   statutPaiement          StatutPaiement?
 
   // 6. Statut et relation client
+  typeSociete             String          @default("SOCIETE")  // SOCIETE, REVENDEUR, PARTICULIER, AUTRES
   statut                  StatutClient    @default(prospect)
   categorie               CategorieClient @default(PME)
   priorite                Int             @default(3)
