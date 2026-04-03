@@ -17,104 +17,61 @@ Fix three API bugs related to missing database transactions (race conditions) an
 
 #### Bug 2: Reception processing lacks transaction
 **File:** `src/app/api/receptions/route.ts`
-**Problem:** The reception processing loop performed multiple independent DB operations (update PO line, create stock movement, update product stock/avg cost, update PO status, create reception record) without transactional guarantees. A failure mid-loop would leave the database in an inconsistent state.
-**Fix Applied:** Wrapped the entire processing block in `db.$transaction(async (tx) => { ... })` interactive transaction. All operations (PO line updates, stock movements, product stock updates, PO status determination, reception creation) now execute atomically. Validation errors within the loop throw exceptions that trigger automatic rollback.
+**Problem:** The reception processing loop performed multiple independent DB operations without transactional guarantees.
+**Fix Applied:** Wrapped the entire processing block in `db.$transaction(async (tx) => { ... })` interactive transaction.
 
 #### Bug 3: Payment doesn't update actual cash/bank balances for `client_payment`
 **File:** `src/app/api/finance/payments/route.ts`
-**Problem:** When processing a `client_payment`, the code created accounting entries and updated the client balance, but never updated the actual `CashRegister` or `BankAccount` balance. This meant financial account balances were out of sync with reality.
-**Fix Applied:**
-- Added balance update logic for `client_payment` type based on payment method:
-  - `cash` → finds active `CashRegister` and increments balance
-  - `bank_transfer` / `check` / `card` → finds active `BankAccount` and increments balance
-- Wrapped the entire payment creation flow (payment record, accounting entries, financial account balance updates, client balance update, invoice status update) in `db.$transaction(async (tx) => { ... })` for atomicity.
-
-#### Lint Check
-All changes pass ESLint with no errors.
+**Problem:** When processing a `client_payment`, the code never updated actual `CashRegister` or `BankAccount` balance.
+**Fix Applied:** Added balance update logic for `client_payment` based on payment method, wrapped in `db.$transaction()`.
 
 ---
 ## Task ID: 8 - UI/UX Fixes (Toast Notifications & Toast System Config)
 ### Work Task
-Fix missing toast notifications in clients-view and products-view, migrate login-page from legacy toast system to sonner, and fix broken timing/limit constants in use-toast.ts.
+Fix missing toast notifications, migrate login-page from legacy toast system to sonner, and fix broken timing/limit constants.
 
 ### Work Summary
-
-#### Fix 1: Missing toast notifications in clients-view.tsx
-**File:** `src/components/erp/commercial/clients-view.tsx`
-**Changes:**
-- Added `import { toast } from 'sonner'`
-- `fetchClients` catch: added `toast.error('Erreur de chargement', { description: 'Impossible de charger la liste des clients.' })`
-- `handleSave` catch: added `toast.error('Erreur de sauvegarde', { description: 'Impossible de sauvegarder le client.' })`
-- `handleSave` success: added `toast.success('Client modifié', ...)` on update and `toast.success('Client créé', ...)` on create
-- `handleDelete` catch: added `toast.error('Erreur de suppression', { description: 'Impossible de supprimer le client.' })`
-- `handleDelete` success: added `toast.success('Client supprimé', { description: 'Le client a été supprimé avec succès.' })`
-
-#### Fix 2: Missing toast notifications in products-view.tsx
-**File:** `src/components/erp/commercial/products-view.tsx`
-**Changes:**
-- Added `import { toast } from 'sonner'`
-- `fetchProducts` catch: added `toast.error('Erreur de chargement', { description: 'Impossible de charger la liste des produits.' })`
-- `handleSave` catch: added `toast.error('Erreur de sauvegarde', { description: 'Impossible de sauvegarder le produit.' })`
-- `handleSave` success: added `toast.success('Produit modifié', ...)` on update and `toast.success('Produit créé', ...)` on create
-- `handleDelete` catch: added `toast.error('Erreur de suppression', { description: 'Impossible de supprimer le produit.' })`
-- `handleDelete` success: added `toast.success('Produit supprimé', { description: 'Le produit a été supprimé avec succès.' })`
-
-#### Fix 3: Login page migrated from old toast to sonner
-**File:** `src/components/erp/login-page.tsx`
-**Changes:**
-- Removed `import { ToastAction } from '@/components/ui/toast'` (unused)
-- Removed `import { useToast } from '@/hooks/use-toast'` (unused)
-- Added `import { toast } from 'sonner'`
-- Removed `const { toast } = useToast()` hook call
-- Replaced success toast from `toast({ title: 'Connexion réussie', description: ... })` to `toast.success('Connexion réussie', { description: ... })`
-- Replaced error toast from `toast({ title: 'Erreur de connexion', description: msg, variant: 'destructive', action: <ToastAction ...> })` to `toast.error('Erreur de connexion', { description: msg })`
-
-#### Fix 4 & 5: use-toast.ts broken timing and limit
-**File:** `src/hooks/use-toast.ts`
-**Changes:**
-- `TOAST_LIMIT`: changed from `1` to `5` (allows up to 5 simultaneous toasts)
-- `TOAST_REMOVE_DELAY`: changed from `1000000` (~16.6 minutes) to `5000` (5 seconds, proper auto-dismiss)
-
-#### Lint Check
-All changes pass ESLint with no errors.
+- Added sonner toast notifications to clients-view and products-view
+- Migrated login-page from `useToast` to `sonner`
+- Fixed `TOAST_REMOVE_DELAY` (1000000 → 5000) and `TOAST_LIMIT` (1 → 5)
 
 ---
 ## Task ID: 9 - Code Quality Fixes (Type Safety & Schema Improvements)
 ### Work Task
-Fix `any` type usage across three commercial view components, add missing `status` field to work order step schema, and improve API error response handling to check content-type before parsing.
+Fix `any` type usage, add missing status field to work order step schema, and improve API error handling.
+
+### Work Summary
+- Changed all `catch (err: any)` to `catch (err: unknown)` in 3 views (15+ occurrences)
+- Added `status` field to `stepSchema` in work-orders route
+- Improved API error handling with Content-Type check before JSON parsing
+
+---
+## Task ID: vercel-neon-config - Vercel + Neon PostgreSQL Deployment Configuration
+### Work Task
+Configure the ProERP project for deployment on Vercel with Neon PostgreSQL database.
 
 ### Work Summary
 
-#### Fix 1: `any` type usage in quotes-view.tsx
-**File:** `src/components/erp/commercial/quotes-view.tsx`
-**Changes:**
-- All 5 `catch (err: any)` blocks changed to `catch (err: unknown)` with type narrowing: `const msg = err instanceof Error ? err.message : 'Erreur'`
-- `updateLine` function parameter `value: any` changed to `value: string | number`
+#### 1. Prisma Schema: SQLite → PostgreSQL
+**File:** `prisma/schema.prisma`
+- Changed `provider` from `"sqlite"` to `"postgresql"`
+- Added `directUrl = env("DIRECT_URL")` for Prisma migrations (bypasses connection pooling)
 
-#### Fix 2: `any` type usage in sales-orders-view.tsx
-**File:** `src/components/erp/commercial/sales-orders-view.tsx`
-**Changes:**
-- All 6 `catch (err: any)` blocks changed to `catch (err: unknown)` with proper type narrowing
-- `updateLine` function parameter `value: any` changed to `value: string | number`
+#### 2. package.json: Vercel Build Scripts
+**File:** `package.json`
+- `postinstall`: Added `"prisma generate"` (Vercel runs this automatically)
+- `build`: Changed to `"prisma generate && next build"`
+- `start`: Simplified to `"next start"`
+- Added `"db:migrate:deploy": "prisma migrate deploy"` for production migrations
 
-#### Fix 3: `any` type usage in credit-notes-view.tsx
-**File:** `src/components/erp/commercial/credit-notes-view.tsx`
-**Changes:**
-- All 4 `catch (err: any)` blocks changed to `catch (err: unknown)` with proper type narrowing
-- `updateLine` function parameter `value: any` changed to `value: string | number`
+#### 3. next.config.ts: Removed Standalone Output
+**File:** `next.config.ts`
+- Removed `output: "standalone"` (Vercel handles this automatically)
 
-#### Fix 4: Work orders stepSchema missing status field
-**File:** `src/app/api/production/work-orders/route.ts`
-**Changes:**
-- Added `status: z.enum(['pending', 'in_progress', 'completed', 'skipped']).optional()` to `stepSchema` object
-- This allows the `update_step` action to properly parse and apply step status changes
-
-#### Fix 5: API error response handling improvement
-**File:** `src/lib/api.ts`
-**Changes:**
-- Replaced the old error handling (unconditional `res.json()` parse) with a content-type check
-- Now checks `res.headers.get('content-type')` for `application/json` before attempting to parse the response body
-- Falls back to a generic `Erreur ${res.status}` message for non-JSON responses, preventing JSON parse errors on HTML error pages
-
-#### Lint Check
-All changes pass ESLint with no errors.
+#### 4. .env.example Created
+**File:** `.env.example`
+Documents 4 required environment variables:
+- `DATABASE_URL` — Neon with connection pooling (`?pgbouncer=true`)
+- `DIRECT_URL` — Neon direct connection for migrations
+- `JWT_SECRET` — Strong random string for JWT signing
+- `PASSWORD_SALT` — Strong random string for password hashing
