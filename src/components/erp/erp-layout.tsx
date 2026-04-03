@@ -46,6 +46,7 @@ import {
   ChevronDown
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { APP_VERSION } from '@/lib/version'
 import { useState } from 'react'
 
 interface NavItem {
@@ -251,6 +252,17 @@ function SidebarContent() {
           <Button variant="ghost" size="icon" className="w-full" onClick={logout}>
             <LogOut className="h-4 w-4" />
           </Button>
+        )}
+      </div>
+
+      {/* Version footer */}
+      <div className="border-t border-border px-4 py-2 shrink-0">
+        {sidebarOpen ? (
+          <p className="text-[10px] text-muted-foreground text-center">
+            GEMA ERP PRO v{APP_VERSION}
+          </p>
+        ) : (
+          <p className="text-[9px] text-muted-foreground text-center leading-none">v{APP_VERSION}</p>
         )}
       </div>
     </div>

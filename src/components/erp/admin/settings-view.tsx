@@ -13,8 +13,9 @@ import { Switch } from '@/components/ui/switch'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Settings, Building2, Calculator, Briefcase, Save, RotateCcw } from 'lucide-react'
+import { Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores'
+import { APP_VERSION, APP_NAME, BUILD_DATE } from '@/lib/version'
 import { toast } from 'sonner'
 
 interface Setting {
@@ -326,6 +327,35 @@ export default function SettingsView() {
           </CardContent>
         </Card>
       ))}
+
+      {/* À propos */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="text-muted-foreground"><Info className="h-5 w-5" /></div>
+            <div>
+              <CardTitle className="text-base">À propos</CardTitle>
+              <CardDescription className="text-sm">Informations sur l&apos;application</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Application</p>
+              <p className="text-sm font-semibold">{APP_NAME}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Version</p>
+              <p className="text-sm font-semibold">v{APP_VERSION}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Date de build</p>
+              <p className="text-sm font-semibold">{BUILD_DATE}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Save bar (bottom sticky) */}
       {isAdmin && hasChanges && (
