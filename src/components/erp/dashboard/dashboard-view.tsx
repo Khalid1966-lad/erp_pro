@@ -178,7 +178,7 @@ const ACTIVITY_ICONS: Record<string, string> = {
 function formatCurrency(value: number): string {
   return value.toLocaleString('fr-FR', {
     style: 'currency',
-    currency: 'EUR',
+    currency: 'MAD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })

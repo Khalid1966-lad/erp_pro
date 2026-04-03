@@ -164,7 +164,7 @@ function SidebarContent() {
           <Factory className="w-5 h-5 text-primary-foreground" />
         </div>
         {sidebarOpen && (
-          <span className="font-bold text-lg tracking-tight">ProERP</span>
+          <span className="font-bold text-lg tracking-tight">GEMA ERP PRO</span>
         )}
       </div>
 
@@ -284,7 +284,7 @@ export function ERPSidebar() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
-          <SheetTitle className="sr-only">Navigation ProERP</SheetTitle>
+          <SheetTitle className="sr-only">Navigation GEMA ERP PRO</SheetTitle>
           <SidebarContent />
         </SheetContent>
       </Sheet>

@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ProERP - Gestion de Production Industrielle",
-  description: "Système ERP complet pour la gestion de production industrielle. Commercial, Achats, Stock, Production, Finance.",
+  title: "GEMA ERP PRO - ERP de Production — Maroc",
+  description: "Système ERP complet pour la gestion de production industrielle au Maroc. Commercial, Achats, Stock, Production, Finance.",
   icons: {
     icon: "/logo.svg",
   },

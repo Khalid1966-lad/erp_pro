@@ -9,7 +9,7 @@ const supplierSchema = z.object({
   address: z.string().optional(),
   city: z.string().optional(),
   postalCode: z.string().optional(),
-  country: z.string().default('France'),
+  country: z.string().default('Maroc'),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   deliveryDelay: z.number().default(7),

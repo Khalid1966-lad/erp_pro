@@ -37,29 +37,235 @@ model AuditLog {
   createdAt   DateTime @default(now())
 }
 
+// ═══════════════════════════════════════════════════════════════
+// GEMA ERP PRO - ENUMS CLIENTS (Maroc)
+// ═══════════════════════════════════════════════════════════════
+
+enum FormeJuridique {
+  SARL
+  SA
+  SNC
+  SARLAU
+  Autre
+}
+
+enum LangueCommunication {
+  francais
+  arabe
+  anglais
+}
+
+enum ModeReglement {
+  virement
+  cheque
+  effet
+  especes
+}
+
+enum Incoterm {
+  EXW
+  FCA
+  DAP
+  autre
+}
+
+enum TauxTVA {
+  taux_20
+  taux_10
+  taux_7
+  taux_0
+  exonere
+  autoliquidation
+}
+
+enum ModeFacturation {
+  electronique
+  papier
+}
+
+enum RegimeFiscal {
+  IS
+  IR
+  reel_simplifie
+  reel_normal
+}
+
+enum StatutClient {
+  actif
+  inactif
+  prospect
+  client_risque
+  client_privilegie
+}
+
+enum CategorieClient {
+  grand_compte
+  PME
+  particulier
+  revendeur
+  export
+}
+
+enum ContactType {
+  principal
+  commercial
+  comptable
+  technique
+  expedition
+}
+
+enum StatutPaiement {
+  paye
+  impaye
+  partiel
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GEMA ERP PRO - GESTION DES CLIENTS (Maroc)
+// ═══════════════════════════════════════════════════════════════
+
 // ============ COMMERCIAL (SALES) ============
 
 model Client {
-  id                  String    @id @default(cuid())
-  name                String
-  siret               String?
-  address             String?
-  city                String?
-  postalCode          String?
-  country             String    @default("France")
-  phone               String?
-  email               String?
-  creditLimit         Float     @default(0)
-  paymentTerms        String    @default("30 jours")
-  notes               String?
-  balance             Float     @default(0)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                      String          @id @default(cuid())
 
-  quotes              Quote[]
-  salesOrders         SalesOrder[]
-  invoices            Invoice[]
-  creditNotes         CreditNote[]
+  // Legacy fields (kept for backward compatibility with existing frontend)
+  name                    String?
+  siret                   String?
+  address                 String?         // alias → adresse
+  city                    String?         // alias → ville
+  postalCode              String?         // alias → codePostal
+  phone                   String?         // alias → telephone
+  country                 String          @default("Maroc")
+  creditLimit             Float           @default(0)
+  paymentTerms            String          @default("30 jours")
+  notes                   String?
+  balance                 Float           @default(0)
+
+  // 1. Identité légale (normes Maroc)
+  raisonSociale           String?
+  nomCommercial           String?
+  ice                     String          @unique
+  patente                 String?
+  cnss                    String?
+  identifiantFiscal       String?
+  registreCommerce       String?
+  villeRC                 String?
+  formeJuridique          FormeJuridique  @default(SARL)
+  dateCreation            DateTime?
+
+  // 2. Coordonnées
+  adresse                 String?
+  codePostal              String?
+  ville                   String?
+  provincePrefecture      String?
+  telephone               String?
+  gsm                     String?
+  email                   String?
+  emailSecondaire         String?
+  siteWeb                 String?
+  langueCommunication     LangueCommunication @default(francais)
+
+  // 3. Paramètres commerciaux
+  conditionsPaiement      String          @default("30 jours")
+  modeReglementPrefere    ModeReglement   @default(virement)
+  escompte                Float           @default(0)
+  remisePermanente        Float           @default(0)
+  baremePrix              String?
+  seuilCredit             Float           @default(0)
+  delaiLivraison          Int?
+  transporteurPrefere     String?
+  incoterm                Incoterm?
+
+  // 4. Paramètres fiscaux & comptables
+  tauxTva                 TauxTVA         @default(taux_20)
+  codeComptableClient     String          @default("3421")
+  modeFacturation         ModeFacturation @default(electronique)
+  emailFacturation        String?
+  regimeFiscal            RegimeFiscal    @default(IS)
+
+  // 5. Suivi commercial
+  datePremierAchat        DateTime?
+  dateDernierAchat        DateTime?
+  caTotalHT               Float           @default(0)
+  nbCommandes             Int             @default(0)
+  panierMoyen             Float           @default(0)
+  tauxRetour              Float           @default(0)
+  dernierDevisDate        DateTime?
+  dernierDevisMontant     Float?
+  dernierDevisStatut      String?
+  derniereFactureDate     DateTime?
+  derniereFactureMontant  Float?
+  statutPaiement          StatutPaiement?
+
+  // 6. Statut et relation client
+  statut                  StatutClient    @default(prospect)
+  categorie               CategorieClient @default(PME)
+  priorite                Int             @default(3)
+  origineProspect         String?
+  commentairesInternes    String?
+
+  // 7. Relances et litiges
+  nbImpayes               Int             @default(0)
+  delaiMoyenPaiement      Int             @default(0)
+  alerteImpaye            Boolean         @default(false)
+  contentieuxNom          String?
+  contentieuxEmail        String?
+  contentieuxTelephone    String?
+  derniereRelanceDate     DateTime?
+  derniereRelanceType     String?
+
+  // 8. Spécificités production
+  certificationsRequises   String?
+  referencesInternes      String?
+  specsTechniquesUrl      String?
+  packagingInstructions   String?
+  planningLivraisonRecurrent String?
+  seuilLotMinimal         Int?
+  frequenceReporting      String?
+
+  // 9. Champs système
+  createdBy               String?
+  updatedBy               String?
+  version                 Int             @default(1)
+  syncId                  String?
+  isDeleted               Boolean         @default(false)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  // Relations
+  contacts                ClientContact[]
+  documents               ClientDocument[]
+  quotes                  Quote[]
+  salesOrders             SalesOrder[]
+  invoices                Invoice[]
+  creditNotes             CreditNote[]
+}
+
+model ClientContact {
+  id              String      @id @default(cuid())
+  clientId        String
+  client          Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type            ContactType @default(principal)
+  nom             String
+  prenom          String
+  fonction        String?
+  telephoneDirect String?
+  email           String?
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model ClientDocument {
+  id          String   @id @default(cuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  nomFichier  String
+  url         String?
+  type        String?
+  taille      Int?
+  createdAt   DateTime @default(now())
 }
 
 enum ProductType {

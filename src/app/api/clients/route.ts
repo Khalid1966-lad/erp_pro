@@ -1,164 +1,203 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
-import { z } from 'zod'
+import { clientCreateSchema } from '@/lib/validations/client'
+import { Prisma } from '@prisma/client'
 
-const clientSchema = z.object({
-  name: z.string().min(1, 'Le nom est requis'),
-  siret: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  postalCode: z.string().optional(),
-  country: z.string().default('France'),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  creditLimit: z.number().default(0),
-  paymentTerms: z.string().default('30 jours'),
-  notes: z.string().optional(),
-})
-
-// GET - List clients
+// GET /api/clients — List with pagination and filters
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
-  if (!hasPermission(auth, 'clients:read')) {
+  if (!hasPermission(auth, 'client:read') && !hasPermission(auth, 'clients:read')) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
   try {
     const { searchParams } = new URL(req.url)
     const search = searchParams.get('search') || ''
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '50')))
+    const statut = searchParams.get('statut')
+    const categorie = searchParams.get('categorie')
+    const formeJuridique = searchParams.get('formeJuridique')
+    const ville = searchParams.get('ville')
+    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortOrder = searchParams.get('sortOrder') || 'desc'
 
-    const where: Record<string, unknown> = {}
+    const where: Prisma.ClientWhereInput = {
+      isDeleted: false,
+    }
+
+    // Search across multiple fields
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { email: { contains: search } },
-        { siret: { contains: search } },
+        { raisonSociale: { contains: search, mode: 'insensitive' } },
+        { nomCommercial: { contains: search, mode: 'insensitive' } },
+        { ice: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { ville: { contains: search, mode: 'insensitive' } },
+        { telephone: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
       ]
+    }
+
+    // Filters
+    if (statut) where.statut = statut as Prisma.EnumStatutClientFilter
+    if (categorie) where.categorie = categorie as Prisma.EnumCategorieClientFilter
+    if (formeJuridique) where.formeJuridique = formeJuridique as Prisma.EnumFormeJuridiqueFilter
+    if (ville) where.ville = { contains: ville, mode: 'insensitive' }
+
+    // Build orderBy
+    const validSortFields = [
+      'createdAt', 'updatedAt', 'raisonSociale', 'ville', 'ice',
+      'caTotalHT', 'nbCommandes', 'balance', 'statut', 'categorie',
+      'name',
+    ]
+    const orderByField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    const orderBy: Prisma.ClientOrderByWithRelationInput = {
+      [orderByField]: sortOrder === 'asc' ? 'asc' : 'desc',
     }
 
     const [clients, total] = await Promise.all([
       db.client.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
+        select: {
+          id: true,
+          name: true,
+          raisonSociale: true,
+          nomCommercial: true,
+          ice: true,
+          email: true,
+          telephone: true,
+          gsm: true,
+          ville: true,
+          formeJuridique: true,
+          statut: true,
+          categorie: true,
+          balance: true,
+          seuilCredit: true,
+          caTotalHT: true,
+          nbCommandes: true,
+          conditionsPaiement: true,
+          alerteImpaye: true,
+          nbImpayes: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       }),
       db.client.count({ where }),
     ])
 
-    return NextResponse.json({ clients, total, page, limit })
+    // Summary stats
+    const stats = await db.client.groupBy({
+      by: ['statut'],
+      where: { isDeleted: false },
+      _count: { id: true },
+    })
+
+    const statutCounts: Record<string, number> = {}
+    for (const s of stats) {
+      statutCounts[s.statut] = s._count.id
+    }
+
+    return NextResponse.json({
+      clients,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      statutCounts,
+    })
   } catch (error) {
     console.error('Clients list error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
 
-// POST - Create client
+// POST /api/clients — Create client
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
-  if (!hasPermission(auth, 'clients:write')) {
+  if (!hasPermission(auth, 'client:create') && !hasPermission(auth, 'clients:write')) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
   try {
     const body = await req.json()
-    const data = clientSchema.parse(body)
+    const data = clientCreateSchema.parse(body)
 
-    const client = await db.client.create({ data })
+    // Check ICE uniqueness
+    const existingIce = await db.client.findUnique({ where: { ice: data.ice } })
+    if (existingIce) {
+      return NextResponse.json(
+        { error: 'Un client avec cet ICE existe déjà', field: 'ice' },
+        { status: 409 }
+      )
+    }
+
+    // Check email uniqueness
+    if (data.email) {
+      const existingEmail = await db.client.findUnique({ where: { email: data.email } })
+      if (existingEmail) {
+        return NextResponse.json(
+          { error: 'Un client avec cet email existe déjà', field: 'email' },
+          { status: 409 }
+        )
+      }
+    }
+
+    // Map date strings to Date objects
+    const createData: Record<string, unknown> = { ...data }
+    if (data.dateCreation) createData.dateCreation = new Date(data.dateCreation)
+
+    // Auto-populate legacy fields from new Moroccan fields
+    if (!createData.name && createData.raisonSociale) {
+      createData.name = createData.raisonSociale
+    }
+    if (!createData.address && createData.adresse) {
+      createData.address = createData.adresse
+    }
+    if (!createData.city && createData.ville) {
+      createData.city = createData.ville
+    }
+    if (!createData.postalCode && createData.codePostal) {
+      createData.postalCode = createData.codePostal
+    }
+    if (!createData.phone && createData.telephone) {
+      createData.phone = createData.telephone
+    }
+    if (!createData.creditLimit && createData.seuilCredit) {
+      createData.creditLimit = createData.seuilCredit
+    }
+    if (!createData.paymentTerms && createData.conditionsPaiement) {
+      createData.paymentTerms = createData.conditionsPaiement
+    }
+
+    const client = await db.client.create({
+      data: {
+        ...createData,
+        createdBy: auth.userId,
+      },
+    })
 
     await auditLog(auth.userId, 'create', 'Client', client.id, null, client)
 
     return NextResponse.json(client, { status: 201 })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Données invalides', details: error.errors }, { status: 400 })
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: 'JSON invalide' }, { status: 400 })
+    }
+    const zodErr = error as { errors?: Array<{ message: string; path: (string | number)[] }> }
+    if (zodErr.errors && zodErr.errors.length > 0) {
+      return NextResponse.json(
+        { error: 'Données invalides', details: zodErr.errors },
+        { status: 400 }
+      )
     }
     console.error('Client create error:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
-  }
-}
-
-// PUT - Update client
-export async function PUT(req: NextRequest) {
-  const auth = await requireAuth(req)
-  if (auth instanceof NextResponse) return auth
-  if (!hasPermission(auth, 'clients:write')) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-  }
-
-  try {
-    const body = await req.json()
-    const { id, ...updateData } = body
-
-    if (!id) {
-      return NextResponse.json({ error: 'ID requis' }, { status: 400 })
-    }
-
-    const existing = await db.client.findUnique({ where: { id } })
-    if (!existing) {
-      return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
-    }
-
-    const data = clientSchema.partial().parse(updateData)
-
-    const client = await db.client.update({ where: { id }, data })
-
-    await auditLog(auth.userId, 'update', 'Client', id, existing, client)
-
-    return NextResponse.json(client)
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Données invalides', details: error.errors }, { status: 400 })
-    }
-    console.error('Client update error:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
-  }
-}
-
-// DELETE - Delete client
-export async function DELETE(req: NextRequest) {
-  const auth = await requireAuth(req)
-  if (auth instanceof NextResponse) return auth
-  if (!hasPermission(auth, 'clients:write')) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-  }
-
-  try {
-    const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-
-    if (!id) {
-      return NextResponse.json({ error: 'ID requis' }, { status: 400 })
-    }
-
-    const existing = await db.client.findUnique({
-      where: { id },
-      include: {
-        quotes: true,
-        salesOrders: true,
-        invoices: true,
-      },
-    })
-
-    if (!existing) {
-      return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
-    }
-
-    if (existing.quotes.length > 0 || existing.salesOrders.length > 0 || existing.invoices.length > 0) {
-      return NextResponse.json({ error: 'Impossible de supprimer un client avec des documents associés' }, { status: 400 })
-    }
-
-    await db.client.delete({ where: { id } })
-    await auditLog(auth.userId, 'delete', 'Client', id, existing, null)
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Client delete error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

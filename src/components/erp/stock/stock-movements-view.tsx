@@ -68,7 +68,7 @@ const originLabels: Record<string, string> = {
 }
 
 const formatCurrency = (n: number) =>
-  n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+  n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 export default function StockMovementsView() {
   const [movements, setMovements] = useState<StockMovement[]>([])

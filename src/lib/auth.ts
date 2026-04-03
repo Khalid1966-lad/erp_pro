@@ -54,14 +54,29 @@ export function hasPermission(user: AuthUser, permission: string): boolean {
   if (user.role === 'admin') return true
 
   const rolePermissions: Record<string, string[]> = {
-    direction: ['dashboard:read', 'reports:read', 'settings:read'],
-    commercial: ['clients:read', 'clients:write', 'products:read', 'quotes:read', 'quotes:write', 'sales_orders:read', 'sales_orders:write', 'invoices:read', 'invoices:write', 'credit_notes:read', 'credit_notes:write'],
-    buyer: ['suppliers:read', 'suppliers:write', 'purchase_orders:read', 'purchase_orders:write', 'receptions:read', 'receptions:write', 'products:read'],
-    storekeeper: ['products:read', 'stock:read', 'stock:write', 'preparations:read', 'preparations:write', 'receptions:read'],
-    prod_manager: ['production:read', 'production:write', 'work_orders:read', 'work_orders:write', 'bom:read', 'bom:write', 'routing:read', 'routing:write', 'workstations:read', 'workstations:write'],
+    direction: ['dashboard:read', 'reports:read', 'settings:read', 'client:read'],
+    commercial: [
+      // New granular permissions
+      'client:read', 'client:create', 'client:edit', 'client:delete',
+      'products:read', 'quotes:read', 'quotes:write',
+      'sales_orders:read', 'sales_orders:write',
+      'invoices:read', 'invoices:write',
+      'credit_notes:read', 'credit_notes:write',
+      // Backward compatibility
+      'clients:read', 'clients:write',
+    ],
+    buyer: ['suppliers:read', 'suppliers:write', 'purchase_orders:read', 'purchase_orders:write', 'receptions:read', 'receptions:write', 'products:read', 'client:read', 'clients:read'],
+    storekeeper: ['products:read', 'stock:read', 'stock:write', 'preparations:read', 'preparations:write', 'receptions:read', 'client:read', 'clients:read'],
+    prod_manager: ['production:read', 'production:write', 'work_orders:read', 'work_orders:write', 'bom:read', 'bom:write', 'routing:read', 'routing:write', 'workstations:read', 'workstations:write', 'client:read', 'clients:read'],
     operator: ['work_orders:read', 'production:read'],
-    accountant: ['invoices:read', 'invoices:write', 'payments:read', 'payments:write', 'accounting:read', 'accounting:write', 'credit_notes:read', 'credit_notes:write', 'bank:read', 'bank:write', 'cash:read', 'cash:write'],
-    cashier: ['cash:read', 'cash:write', 'payments:read', 'payments:write']
+    accountant: [
+      'invoices:read', 'invoices:write', 'payments:read', 'payments:write',
+      'accounting:read', 'accounting:write',
+      'credit_notes:read', 'credit_notes:write',
+      'bank:read', 'bank:write', 'cash:read', 'cash:write',
+      'client:read', 'clients:read',
+    ],
+    cashier: ['cash:read', 'cash:write', 'payments:read', 'payments:write', 'client:read', 'clients:read']
   }
 
   const perms = rolePermissions[user.role] || []

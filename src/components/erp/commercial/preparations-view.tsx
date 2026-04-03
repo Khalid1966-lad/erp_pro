@@ -28,7 +28,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
-const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 interface SalesOrderLine {
   id: string

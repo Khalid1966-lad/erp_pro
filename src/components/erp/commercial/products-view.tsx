@@ -171,7 +171,7 @@ export default function ProductsView() {
     }
   }
 
-  const fmt = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+  const fmt = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
   if (loading) {
     return (

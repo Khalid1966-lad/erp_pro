@@ -114,7 +114,7 @@ const stepStatusColors: Record<StepStatus, string> = {
 }
 
 const formatCurrency = (n: number) =>
-  n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+  n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 export default function WorkOrdersView() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])

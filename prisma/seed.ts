@@ -14,7 +14,7 @@ function hashPassword(password: string): string {
 }
 
 async function main() {
-  console.log('🌱 Seeding ProERP database...\n')
+  console.log('🌱 Seeding GEMA ERP PRO database...\n')
 
   // Clean existing data (in correct order due to relations)
   console.log('🧹 Cleaning existing data...')
@@ -44,6 +44,8 @@ async function main() {
   await db.product.deleteMany()
   await db.workStation.deleteMany()
   await db.supplier.deleteMany()
+  await db.clientDocument.deleteMany()
+  await db.clientContact.deleteMany()
   await db.client.deleteMany()
   await db.auditLog.deleteMany()
   await db.setting.deleteMany()
@@ -55,14 +57,14 @@ async function main() {
   console.log('⚙️  Creating settings...')
   await db.setting.createMany({
     data: [
-      { key: 'company_name', value: 'ProERP Industries SAS' },
+      { key: 'company_name', value: 'GEMA ERP PRO Industries' },
       { key: 'company_address', value: '123 Avenue de l\'Industrie, 69000 Lyon' },
       { key: 'company_phone', value: '+33 4 72 00 00 00' },
-      { key: 'company_email', value: 'contact@proerp-industries.fr' },
+      { key: 'company_email', value: 'contact@gema-erp-industries.ma' },
       { key: 'company_siret', value: '123 456 789 00012' },
       { key: 'company_tva_number', value: 'FR 12 345678901' },
       { key: 'default_tva_rate', value: '20' },
-      { key: 'currency', value: 'EUR' },
+      { key: 'currency', value: 'MAD' },
       { key: 'quote_validity_days', value: '30' },
       { key: 'inventory_valuation_method', value: 'average_cost' },
       { key: 'account_client', value: '411000' },
@@ -80,34 +82,144 @@ async function main() {
   console.log('👤 Creating users...')
   const users = await db.user.createMany({
     data: [
-      { email: 'admin@proerp.com', passwordHash: hashPassword('admin123'), name: 'Admin Principal', role: 'admin', isActive: true },
-      { email: 'commercial@proerp.com', passwordHash: hashPassword('pass123'), name: 'Marie Dupont', role: 'commercial', isActive: true },
-      { email: 'magasinier@proerp.com', passwordHash: hashPassword('pass123'), name: 'Jean Martin', role: 'storekeeper', isActive: true },
-      { email: 'production@proerp.com', passwordHash: hashPassword('pass123'), name: 'Pierre Bernard', role: 'prod_manager', isActive: true },
-      { email: 'acheteur@proerp.com', passwordHash: hashPassword('pass123'), name: 'Sophie Leroy', role: 'buyer', isActive: true },
-      { email: 'comptable@proerp.com', passwordHash: hashPassword('pass123'), name: 'Claire Moreau', role: 'accountant', isActive: true },
-      { email: 'caissier@proerp.com', passwordHash: hashPassword('pass123'), name: 'Luc Petit', role: 'cashier', isActive: true },
-      { email: 'direction@proerp.com', passwordHash: hashPassword('pass123'), name: 'François Dubois', role: 'direction', isActive: true },
-      { email: 'operateur@proerp.com', passwordHash: hashPassword('pass123'), name: 'Thomas Roux', role: 'operator', isActive: true },
+      { email: 'admin@gema-erp.com', passwordHash: hashPassword('admin123'), name: 'Admin Principal', role: 'admin', isActive: true },
+      { email: 'commercial@gema-erp.com', passwordHash: hashPassword('pass123'), name: 'Marie Dupont', role: 'commercial', isActive: true },
+      { email: 'magasinier@gema-erp.com', passwordHash: hashPassword('pass123'), name: 'Jean Martin', role: 'storekeeper', isActive: true },
+      { email: 'production@gema-erp.com', passwordHash: hashPassword('pass123'), name: 'Pierre Bernard', role: 'prod_manager', isActive: true },
+      { email: 'acheteur@gema-erp.com', passwordHash: hashPassword('pass123'), name: 'Sophie Leroy', role: 'buyer', isActive: true },
+      { email: 'comptable@gema-erp.com', passwordHash: hashPassword('pass123'), name: 'Claire Moreau', role: 'accountant', isActive: true },
+      { email: 'caissier@gema-erp.com', passwordHash: hashPassword('pass123'), name: 'Luc Petit', role: 'cashier', isActive: true },
+      { email: 'direction@gema-erp.com', passwordHash: hashPassword('pass123'), name: 'François Dubois', role: 'direction', isActive: true },
+      { email: 'operateur@gema-erp.com', passwordHash: hashPassword('pass123'), name: 'Thomas Roux', role: 'operator', isActive: true },
     ]
   })
 
-  const adminUser = await db.user.findUnique({ where: { email: 'admin@proerp.com' } })
-  const commercialUser = await db.user.findUnique({ where: { email: 'commercial@proerp.com' } })
-  const accountantUser = await db.user.findUnique({ where: { email: 'comptable@proerp.com' } })
-  const storekeeperUser = await db.user.findUnique({ where: { email: 'magasinier@proerp.com' } })
-  const prodManagerUser = await db.user.findUnique({ where: { email: 'production@proerp.com' } })
-  const buyerUser = await db.user.findUnique({ where: { email: 'acheteur@proerp.com' } })
+  const adminUser = await db.user.findUnique({ where: { email: 'admin@gema-erp.com' } })
+  const commercialUser = await db.user.findUnique({ where: { email: 'commercial@gema-erp.com' } })
+  const accountantUser = await db.user.findUnique({ where: { email: 'comptable@gema-erp.com' } })
+  const storekeeperUser = await db.user.findUnique({ where: { email: 'magasinier@gema-erp.com' } })
+  const prodManagerUser = await db.user.findUnique({ where: { email: 'production@gema-erp.com' } })
+  const buyerUser = await db.user.findUnique({ where: { email: 'acheteur@gema-erp.com' } })
 
   // ============ CLIENTS ============
   console.log('🏢 Creating clients...')
   const clients = await Promise.all([
-    db.client.create({ data: { name: 'TechnoMat SA', siret: '321 654 987 00011', address: '45 Rue de la Tech', city: 'Grenoble', postalCode: '38000', phone: '04 76 00 00 01', email: 'contact@technomat.fr', creditLimit: 50000, paymentTerms: '30 jours', balance: 12000, country: 'France' } }),
-    db.client.create({ data: { name: 'MécaPro Industries', siret: '654 321 987 00022', address: '12 Boulevard industriel', city: 'Saint-Étienne', postalCode: '42000', phone: '04 77 00 00 02', email: 'commandes@mecapro.fr', creditLimit: 30000, paymentTerms: '45 jours', balance: 8500, country: 'France' } }),
-    db.client.create({ data: { name: 'AutoParts France', siret: '789 456 123 00033', address: '8 Zone Industrielle Nord', city: 'Villeurbanne', postalCode: '69100', phone: '04 78 00 00 03', email: 'achat@autoparts.fr', creditLimit: 75000, paymentTerms: '30 jours', balance: 0, country: 'France' } }),
-    db.client.create({ data: { name: 'BatiConseil SARL', siret: '147 258 369 00044', address: '23 Rue du Bâtiment', city: 'Lyon', postalCode: '69003', phone: '04 72 00 00 04', email: 'info@baticonseil.fr', creditLimit: 20000, paymentTerms: 'Fin de mois', balance: 3400, country: 'France' } }),
-    db.client.create({ data: { name: 'AluTech GmbH', address: 'Industriestr. 15', city: 'München', postalCode: '80331', country: 'Allemagne', phone: '+49 89 000 001', email: 'order@alutech.de', creditLimit: 100000, paymentTerms: '60 jours', balance: 25000 } }),
-    db.client.create({ data: { name: 'ElecDistrib SA', siret: '963 852 741 00055', address: '56 Avenue des Champs', city: 'Paris', postalCode: '75008', phone: '01 42 00 00 06', email: 'commercial@elecdistrib.fr', creditLimit: 40000, paymentTerms: '30 jours', balance: 0, country: 'France' } }),
+    db.client.create({
+      data: {
+        name: 'TechnoMat SA', siret: '321 654 987 00011',
+        address: '45 Boulevard Zerktouni', city: 'Casablanca', postalCode: '20000', phone: '+212 522 00 00 01',
+        raisonSociale: 'TechnoMat SA', ice: '001234567000011', patente: '12345678', cnss: '98765432',
+        formeJuridique: 'SA', registreCommerce: 'RC-12345', villeRC: 'Casablanca',
+        adresse: '45 Boulevard Zerktouni', ville: 'Casablanca', codePostal: '20000',
+        provincePrefecture: 'Casablanca-Settat',
+        telephone: '+212 522 00 00 01', gsm: '+212 600 00 00 01',
+        email: 'contact@technomat.ma', emailFacturation: 'facturation@technomat.ma',
+        siteWeb: 'www.technomat.ma', langueCommunication: 'francais',
+        conditionsPaiement: '30 jours', modeReglementPrefere: 'virement',
+        seuilCredit: 50000, remisePermanente: 2, categorie: 'grand_compte',
+        statut: 'actif', regimeFiscal: 'IS', tauxTva: 'taux_20',
+        balance: 12000, creditLimit: 50000, paymentTerms: '30 jours',
+        caTotalHT: 320000, nbCommandes: 24, panierMoyen: 13333,
+        datePremierAchat: new Date('2023-03-15'), dateDernierAchat: new Date('2025-01-25'),
+        commentairesInternes: 'Client fidèle, commandes régulières'
+      }
+    }),
+    db.client.create({
+      data: {
+        name: 'MécaPro Industries', siret: '654 321 987 00022',
+        address: '12 Avenue Mohammed V', city: 'Rabat', postalCode: '10000', phone: '+212 537 00 00 02',
+        raisonSociale: 'MécaPro Industries SARL', ice: '002345678000022', patente: '23456789', cnss: '87654321',
+        formeJuridique: 'SARL', registreCommerce: 'RC-23456', villeRC: 'Rabat',
+        adresse: '12 Avenue Mohammed V', ville: 'Rabat', codePostal: '10000',
+        provincePrefecture: 'Rabat-Salé-Kénitra',
+        telephone: '+212 537 00 00 02', gsm: '+212 601 00 00 02',
+        email: 'commandes@mecapro.ma', emailFacturation: 'comptabilite@mecapro.ma',
+        langueCommunication: 'francais',
+        conditionsPaiement: '45 jours', modeReglementPrefere: 'cheque',
+        seuilCredit: 30000, categorie: 'PME',
+        statut: 'actif', regimeFiscal: 'IS', tauxTva: 'taux_20',
+        balance: 8500, creditLimit: 30000, paymentTerms: '45 jours',
+        caTotalHT: 180000, nbCommandes: 15, panierMoyen: 12000,
+        nbImpayes: 1, delaiMoyenPaiement: 52, alerteImpaye: true,
+        datePremierAchat: new Date('2023-06-01'), dateDernierAchat: new Date('2024-12-15')
+      }
+    }),
+    db.client.create({
+      data: {
+        name: 'AutoParts Maroc', siret: '789 456 123 00033',
+        address: '8 Zone Industrielle Nord', city: 'Tanger', postalCode: '90000', phone: '+212 539 00 00 03',
+        raisonSociale: 'AutoParts Maroc SA', ice: '003456789000033', patente: '34567890',
+        formeJuridique: 'SA', registreCommerce: 'RC-34567', villeRC: 'Tanger',
+        adresse: '8 Zone Industrielle Nord', ville: 'Tanger', codePostal: '90000',
+        provincePrefecture: 'Tanger-Tétouan-Al Hoceima',
+        telephone: '+212 539 00 00 03', gsm: '+212 602 00 00 03',
+        email: 'achat@autoparts.ma',
+        langueCommunication: 'francais',
+        conditionsPaiement: '30 jours', modeReglementPrefere: 'virement',
+        seuilCredit: 75000, categorie: 'grand_compte',
+        statut: 'actif', regimeFiscal: 'IS', tauxTva: 'taux_20',
+        balance: 0, creditLimit: 75000, paymentTerms: '30 jours',
+        caTotalHT: 450000, nbCommandes: 32, panierMoyen: 14063,
+        datePremierAchat: new Date('2022-11-01'), dateDernierAchat: new Date('2025-01-20')
+      }
+    }),
+    db.client.create({
+      data: {
+        name: 'BatiConseil SARL', siret: '147 258 369 00044',
+        address: '23 Rue Semlalia', city: 'Marrakech', postalCode: '40000', phone: '+212 524 00 00 04',
+        raisonSociale: 'BatiConseil SARL', ice: '004567890000044', patente: '45678901',
+        formeJuridique: 'SARL', registreCommerce: 'RC-45678', villeRC: 'Marrakech',
+        adresse: '23 Rue Semlalia', ville: 'Marrakech', codePostal: '40000',
+        provincePrefecture: 'Marrakech-Safi',
+        telephone: '+212 524 00 00 04', gsm: '+212 603 00 00 04',
+        email: 'info@baticonseil.ma',
+        langueCommunication: 'francais',
+        conditionsPaiement: 'Fin de mois', modeReglementPrefere: 'effet',
+        seuilCredit: 20000, categorie: 'PME',
+        statut: 'actif', regimeFiscal: 'reel_simplifie', tauxTva: 'taux_20',
+        balance: 3400, creditLimit: 20000, paymentTerms: 'Fin de mois',
+        caTotalHT: 95000, nbCommandes: 8, panierMoyen: 11875,
+        datePremierAchat: new Date('2024-01-10'), dateDernierAchat: new Date('2025-01-05')
+      }
+    }),
+    db.client.create({
+      data: {
+        name: 'AluTech GmbH',
+        address: 'Zone Franche', city: 'Casablanca', postalCode: '20100', phone: '+212 522 00 00 05',
+        raisonSociale: 'AluTech GmbH', ice: '005678901000055',
+        formeJuridique: 'Autre', registreCommerce: 'RC-56789', villeRC: 'Casablanca',
+        adresse: 'Zone Franche', ville: 'Casablanca', codePostal: '20100',
+        provincePrefecture: 'Casablanca-Settat',
+        telephone: '+212 522 00 00 05', gsm: '+212 604 00 00 05',
+        email: 'order@alutech.ma',
+        langueCommunication: 'anglais',
+        conditionsPaiement: '60 jours', modeReglementPrefere: 'virement',
+        seuilCredit: 100000, categorie: 'export',
+        statut: 'actif', regimeFiscal: 'IS', tauxTva: 'exonere',
+        incoterm: 'EXW', delaiLivraison: 14,
+        balance: 25000, creditLimit: 100000, paymentTerms: '60 jours',
+        caTotalHT: 520000, nbCommandes: 18, panierMoyen: 28889,
+        datePremierAchat: new Date('2023-09-01'), dateDernierAchat: new Date('2025-02-01'),
+        commentairesInternes: 'Client export - exonération TVA applicable'
+      }
+    }),
+    db.client.create({
+      data: {
+        name: 'ElecDistrib SA', siret: '963 852 741 00055',
+        address: '56 Avenue Hassan II', city: 'Fès', postalCode: '30000', phone: '+212 535 00 00 06',
+        raisonSociale: 'ElecDistrib SA', ice: '006789012000066', patente: '56789012',
+        formeJuridique: 'SA', registreCommerce: 'RC-67890', villeRC: 'Fès',
+        adresse: '56 Avenue Hassan II', ville: 'Fès', codePostal: '30000',
+        provincePrefecture: 'Fès-Meknès',
+        telephone: '+212 535 00 00 06', gsm: '+212 605 00 00 06',
+        email: 'commercial@elecdistrib.ma',
+        langueCommunication: 'francais',
+        conditionsPaiement: '30 jours', modeReglementPrefere: 'virement',
+        seuilCredit: 40000, categorie: 'revendeur',
+        statut: 'prospect', regimeFiscal: 'IS', tauxTva: 'taux_20',
+        balance: 0, creditLimit: 40000, paymentTerms: '30 jours'
+      }
+    }),
   ])
 
   // ============ SUPPLIERS ============
@@ -728,7 +840,7 @@ async function main() {
   if (adminUser) {
     await db.auditLog.createMany({
       data: [
-        { userId: adminUser.id, action: 'create', entity: 'User', entityId: adminUser.id, newValues: JSON.stringify({ email: 'admin@proerp.com' }) },
+        { userId: adminUser.id, action: 'create', entity: 'User', entityId: adminUser.id, newValues: JSON.stringify({ email: 'admin@gema-erp.com' }) },
         { userId: adminUser.id, action: 'create', entity: 'Client', entityId: clients[0].id, newValues: JSON.stringify({ name: 'TechnoMat SA' }) },
         { userId: adminUser.id, action: 'create', entity: 'Product', entityId: productMap.get('PF-001')?.id, newValues: JSON.stringify({ reference: 'PF-001' }) },
         { userId: commercialUser?.id || adminUser.id, action: 'create', entity: 'Quote', entityId: quotes[0].id, newValues: JSON.stringify({ number: 'DEV-2025-0001' }) },
@@ -754,8 +866,8 @@ async function main() {
   console.log(`  📊 Stock Movements: 7`)
   console.log(`  📒 Accounting Entries: 13`)
   console.log('\n🔐 Login credentials:')
-  console.log('  Admin: admin@proerp.com / admin123')
-  console.log('  Others: {role}@proerp.com / pass123')
+  console.log('  Admin: admin@gema-erp.com / admin123')
+  console.log('  Others: {role}@gema-erp.com / pass123')
 }
 
 main()

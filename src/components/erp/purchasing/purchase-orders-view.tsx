@@ -83,7 +83,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function fmtMoney(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 }
 
 function fmtDate(d: string | null) {

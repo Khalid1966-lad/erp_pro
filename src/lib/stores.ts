@@ -26,7 +26,7 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user })
     }),
     {
-      name: 'erp-auth'
+      name: 'gema-erp-auth'
     }
   )
 )

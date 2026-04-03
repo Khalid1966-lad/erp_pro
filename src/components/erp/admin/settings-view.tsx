@@ -51,15 +51,15 @@ const settingGroups: SettingGroup[] = [
     icon: <Building2 className="h-5 w-5" />,
     category: 'company',
     fields: [
-      { key: 'company_name', label: 'Nom de l\'entreprise', type: 'text', placeholder: 'ProERP SAS' },
+      { key: 'company_name', label: 'Nom de l\'entreprise', type: 'text', placeholder: 'GEMA ERP PRO' },
       { key: 'company_address', label: 'Adresse', type: 'textarea', placeholder: '12 Rue de l\'Industrie' },
       { key: 'company_city', label: 'Ville', type: 'text', placeholder: 'Lyon' },
       { key: 'company_postal_code', label: 'Code postal', type: 'text', placeholder: '69001' },
-      { key: 'company_country', label: 'Pays', type: 'text', placeholder: 'France' },
-      { key: 'company_phone', label: 'Téléphone', type: 'text', placeholder: '+33 4 XX XX XX XX' },
-      { key: 'company_email', label: 'Email', type: 'text', placeholder: 'contact@proerp.fr' },
+      { key: 'company_country', label: 'Pays', type: 'text', placeholder: 'Maroc' },
+      { key: 'company_phone', label: 'Téléphone', type: 'text', placeholder: '+212 5 XX XX XX XX' },
+      { key: 'company_email', label: 'Email', type: 'text', placeholder: 'contact@gema-erp.com' },
       { key: 'company_siret', label: 'SIRET', type: 'text', placeholder: 'XXX XXX XXX XXXXX' },
-      { key: 'company_tva_number', label: 'N° TVA Intracommunautaire', type: 'text', placeholder: 'FR XX XXXXXXXXX' },
+      { key: 'company_tva_number', label: 'N° TVA Intracommunautaire', type: 'text', placeholder: 'MA XX XXXXXXXXX' },
       { key: 'company_logo_url', label: 'URL du logo', type: 'text', placeholder: 'https://...' },
     ]
   },
@@ -72,7 +72,7 @@ const settingGroups: SettingGroup[] = [
       {
         key: 'default_currency', label: 'Devise par défaut', type: 'select',
         options: [
-          { value: 'EUR', label: 'EUR — Euro' },
+          { value: 'MAD', label: 'MAD — Dirham marocain' },
           { value: 'USD', label: 'USD — Dollar US' },
           { value: 'GBP', label: 'GBP — Livre sterling' },
         ]

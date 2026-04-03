@@ -61,13 +61,13 @@ interface SupplierFormData {
 
 const emptyForm: SupplierFormData = {
   name: '', email: '', phone: '', siret: '', address: '', city: '',
-  postalCode: '', country: 'France', deliveryDelay: 7,
+  postalCode: '', country: 'Maroc', deliveryDelay: 7,
   paymentTerms: '30 jours', rating: 3, notes: ''
 }
 
 // ── Helpers ────────────────────────────────────────────
 function formatCurrency(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 }
 
 function Stars({ rating, onChange, size = 'sm' }: { rating: number; onChange?: (r: number) => void; size?: 'sm' | 'md' }) {
@@ -128,7 +128,7 @@ export default function SuppliersView() {
     setForm({
       name: s.name, email: s.email || '', phone: s.phone || '', siret: s.siret || '',
       address: s.address || '', city: s.city || '', postalCode: s.postalCode || '',
-      country: s.country || 'France', deliveryDelay: s.deliveryDelay,
+      country: s.country || 'Maroc', deliveryDelay: s.deliveryDelay,
       paymentTerms: s.paymentTerms, rating: s.rating, notes: s.notes || ''
     })
     setDialogOpen(true)
@@ -234,7 +234,7 @@ export default function SuppliersView() {
                 </div>
                 <div className="space-y-2">
                   <Label>Pays</Label>
-                  <Input value={form.country} onChange={(e) => updateField('country', e.target.value)} placeholder="France" />
+                  <Input value={form.country} onChange={(e) => updateField('country', e.target.value)} placeholder="Maroc" />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -338,7 +338,7 @@ export default function SuppliersView() {
                         </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">
-                        {s.city}{s.postalCode ? ` ${s.postalCode}` : ''}{s.country && s.country !== 'France' ? `, ${s.country}` : ''}
+                        {s.city}{s.postalCode ? ` ${s.postalCode}` : ''}{s.country && s.country !== 'Maroc' ? `, ${s.country}` : ''}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{s.deliveryDelay}j</TableCell>
                       <TableCell className="hidden sm:table-cell">

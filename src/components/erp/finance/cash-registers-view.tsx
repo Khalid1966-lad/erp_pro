@@ -29,7 +29,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 
-const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 interface CashRegister {
   id: string

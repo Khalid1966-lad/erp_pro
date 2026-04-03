@@ -95,7 +95,7 @@ const inventoryStatusColors: Record<string, string> = {
 }
 
 const formatCurrency = (n: number) =>
-  n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+  n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 export default function InventoryView() {
   const [inventories, setInventories] = useState<Inventory[]>([])

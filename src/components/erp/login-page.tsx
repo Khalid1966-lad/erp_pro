@@ -44,9 +44,9 @@ export default function LoginPage() {
             <Factory className="w-9 h-9 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold tracking-tight">ProERP</CardTitle>
+            <CardTitle className="text-2xl font-bold tracking-tight">GEMA ERP PRO</CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
-              Gestion de Production Industrielle
+              ERP de Production — Maroc
             </CardDescription>
           </div>
         </CardHeader>
@@ -57,7 +57,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@proerp.com"
+                placeholder="admin@gema-erp.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
