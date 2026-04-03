@@ -57,6 +57,7 @@ interface NavItem {
   icon: React.ReactNode
   color: string
   permission?: string
+  superAdminOnly?: boolean
 }
 
 interface NavGroup {
@@ -128,7 +129,7 @@ const navigation: NavGroup[] = [
     title: 'Administration',
     icon: <Settings className="h-4 w-4" />,
     items: [
-      { id: 'users', label: 'Utilisateurs', icon: <UserCog className="h-4 w-4" />, color: 'text-emerald-500' },
+      { id: 'users', label: 'Utilisateurs', icon: <UserCog className="h-4 w-4" />, color: 'text-emerald-500', superAdminOnly: true },
       { id: 'audit-log', label: 'Journal d\'audit', icon: <Shield className="h-4 w-4" />, color: 'text-slate-500' },
       { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" />, color: 'text-gray-400' }
     ]
@@ -211,7 +212,7 @@ function SidebarContent() {
             const isCollapsed = collapsedGroups.has(group.title)
             const hasActiveItem = group.items.some((item) => item.id === currentView)
             const visibleItems = group.items.filter((item) => {
-              if (!item.permission) return true
+              if (item.superAdminOnly && user?.role !== 'super_admin' && !user?.isSuperAdmin) return false
               return true
             })
 
@@ -276,24 +277,43 @@ function SidebarContent() {
       {/* User section */}
       <div className="border-t border-border p-3 shrink-0">
         {sidebarOpen && user ? (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
-              <p className="text-xs text-muted-foreground truncate">{roleLabels[user.role] || user.role}</p>
+          <div className="space-y-1">
+            <button
+              onClick={() => setCurrentView('profile')}
+              className="flex items-center gap-3 w-full rounded-md px-1 py-1.5 hover:bg-accent transition-colors text-left"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                  {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{roleLabels[user.role] || user.role}</p>
+              </div>
+            </button>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs" onClick={() => setCurrentView('profile')}>
+                Mon Profil
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={logout}>
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={logout}>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <Button variant="ghost" size="icon" className="w-full" onClick={() => setCurrentView('profile')} title="Mon Profil">
+              <Avatar className="h-6 w-6">
+                <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">
+                  {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+            <Button variant="ghost" size="icon" className="w-full" onClick={logout}>
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
-        ) : (
-          <Button variant="ghost" size="icon" className="w-full" onClick={logout}>
-            <LogOut className="h-4 w-4" />
-          </Button>
         )}
       </div>
 

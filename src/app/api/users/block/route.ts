@@ -2,12 +2,12 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, auditLog } from '@/lib/auth'
 
-// POST /api/users/block — Block or unblock a user
+// POST /api/users/block — Block or unblock a user (super_admin only)
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
-  if (auth.role !== 'admin' && auth.role !== 'super_admin') {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé — super administrateur requis' }, { status: 403 })
   }
 
   try {

@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { requireAuth, auditLog } from '@/lib/auth'
 
-// GET /api/users — List all users (admin/super_admin only)
+// GET /api/users — List all users (super_admin only)
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
-  if (auth.role !== 'admin' && auth.role !== 'super_admin') {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé — super administrateur requis' }, { status: 403 })
   }
 
   try {
@@ -37,12 +37,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/users — Create user (admin/super_admin only)
+// POST /api/users — Create user (super_admin only)
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
-  if (auth.role !== 'admin' && auth.role !== 'super_admin') {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé — super administrateur requis' }, { status: 403 })
   }
 
   try {
@@ -104,12 +104,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT /api/users — Update user (admin/super_admin only)
+// PUT /api/users — Update user (super_admin only)
 export async function PUT(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
-  if (auth.role !== 'admin' && auth.role !== 'super_admin') {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé — super administrateur requis' }, { status: 403 })
   }
 
   try {

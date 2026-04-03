@@ -92,8 +92,7 @@ const roleLabelMap: Record<string, string> = {
 // ═══════════════════════════════════════════════════════════════
 export default function UsersView() {
   const { user: currentUser } = useAuthStore()
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
-  const isSuperAdmin = currentUser?.isSuperAdmin || currentUser?.role === 'super_admin'
+  const isSuperAdmin = currentUser?.role === 'super_admin' || currentUser?.isSuperAdmin
 
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -127,8 +126,8 @@ export default function UsersView() {
   }, [])
 
   useEffect(() => {
-    if (isAdmin) fetchUsers()
-  }, [isAdmin, fetchUsers])
+    if (isSuperAdmin) fetchUsers()
+  }, [isSuperAdmin, fetchUsers])
 
   // ─── Filtered users ───
   const filteredUsers = search
@@ -229,13 +228,13 @@ export default function UsersView() {
   const adminCount = users.filter(u => u.role === 'admin' || u.isSuperAdmin).length
 
   // ─── Not admin guard ───
-  if (!isAdmin) {
+  if (!isSuperAdmin) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center space-y-2">
           <Shield className="h-12 w-12 mx-auto text-muted-foreground" />
           <h3 className="text-lg font-semibold">Accès restreint</h3>
-          <p className="text-sm text-muted-foreground">Seuls les administrateurs peuvent gérer les utilisateurs.</p>
+          <p className="text-sm text-muted-foreground">Seuls les super administrateurs peuvent gérer les utilisateurs.</p>
         </div>
       </div>
     )
@@ -558,11 +557,10 @@ export default function UsersView() {
                 </SelectTrigger>
                 <SelectContent>
                   {ROLE_OPTIONS.map((r) => (
-                    <SelectItem key={r.value} value={r.value} disabled={r.value === 'admin' && !isSuperAdmin}>
+                    <SelectItem key={r.value} value={r.value}>
                       <span className="flex items-center gap-2">
                         <span className={`inline-block w-2 h-2 rounded-full ${r.color.split(' ')[0]}`} />
                         {r.label}
-                        {r.value === 'admin' && !isSuperAdmin && ' (Super Admin uniquement)'}
                       </span>
                     </SelectItem>
                   ))}
@@ -605,7 +603,6 @@ export default function UsersView() {
                 id="edit-name"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                disabled={selectedUser?.isSuperAdmin && !isSuperAdmin}
               />
             </div>
             <div className="space-y-2">
@@ -652,13 +649,13 @@ export default function UsersView() {
             </div>
             <div className="space-y-2">
               <Label>Rôle *</Label>
-              <Select value={formRole} onValueChange={setFormRole} disabled={selectedUser?.isSuperAdmin && !isSuperAdmin}>
+              <Select value={formRole} onValueChange={setFormRole}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {ROLE_OPTIONS.map((r) => (
-                    <SelectItem key={r.value} value={r.value} disabled={r.value === 'admin' && !isSuperAdmin}>
+                    <SelectItem key={r.value} value={r.value}>
                       <span className="flex items-center gap-2">
                         <span className={`inline-block w-2 h-2 rounded-full ${r.color.split(' ')[0]}`} />
                         {r.label}
@@ -667,9 +664,6 @@ export default function UsersView() {
                   ))}
                 </SelectContent>
               </Select>
-              {selectedUser?.isSuperAdmin && (
-                <p className="text-xs text-amber-600">Le rôle Super Admin ne peut pas être modifié.</p>
-              )}
             </div>
           </div>
 
