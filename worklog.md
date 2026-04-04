@@ -651,3 +651,48 @@ Stage Summary:
 - Preparation checks stock availability and suggests procurement actions
 - All lint checks pass, dev server compiles without errors
 - Total files modified/created: ~10 files, ~7260 lines of code
+---
+Task ID: 2
+Agent: main + subagent (full-stack-developer)
+Task: Full commercial flow - Partial deliveries, delivery tracking, invoice grouping
+
+Work Log:
+- Analyzed existing codebase: found that most of the commercial flow was already implemented
+  - Quotes: Full CRUD with status transitions and transform→order action
+  - Sales Orders: Full CRUD with quote import, preparation creation, delivery tracking with progress bars
+  - Preparations: Full UI with stock checking, progress tracking, deficit alerts, purchase/production suggestions
+  - Invoices: Full CRUD with both manual and from-BL modes, multi-BL selection via InvoiceDeliveryNote junction
+- Identified the main gap: Delivery Notes lacked partial delivery support
+  - API was copying ALL lines with full quantities from sales orders
+  - No per-line quantity selection when creating a BL
+  - `quantityDelivered` on SalesOrderLine was not being updated
+
+Changes Made:
+
+1. **Schema** (already existed):
+   - `SalesOrderLine.quantityDelivered Float @default(0)` ✓
+   - `PreparationLine` with stock tracking ✓
+   - `InvoiceDeliveryNote` junction table ✓
+   - `DeliveryNote.plannedDate DateTime?` ✓
+
+2. **API `/api/delivery-notes/route.ts`** - Rewrote:
+   - POST from order now requires `lines: [{ salesOrderLineId, quantity }]` array
+   - Validates each line's quantity against remaining (ordered - delivered)
+   - Auto-calculates totals from selected line quantities
+   - PUT deliver action now increments `quantityDelivered` on SalesOrderLine
+   - Recalculates SO status (partially_delivered / delivered) based on all lines
+
+3. **API `/api/sales-orders/route.ts`** - Added `id` query parameter for single order lookup
+
+4. **UI `delivery-notes-view.tsx`** - Major rewrite by subagent:
+   - Create from Order mode: shows checkbox per line, ordered/delivered/remaining columns, editable quantity per line
+   - Select All checkbox, filters by included lines with qty > 0
+   - Detail view: shows overall delivery progress bar, per-line tracking (ordered, delivered, remaining)
+   - Table: added "Date prévue" column, "% Livré" column with progress bars
+   - DeliveryProgressBar component for visual progress
+
+Stage Summary:
+- Complete commercial flow is now functional: Devis → Commande → Préparation → BL (partiel) → Facture
+- Partial deliveries: user selects quantities per line, system tracks cumulative delivered amounts
+- Multi-BL invoicing: select multiple delivered BLs to generate a single invoice
+- All lint checks pass, dev server running on port 3000

@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Progress } from '@/components/ui/progress'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
@@ -60,6 +62,19 @@ interface SalesOrderOption {
   totalTTC: number
 }
 
+/** Sales order line as returned from the API with delivery tracking */
+interface SalesOrderLineInfo {
+  id: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  tvaRate: number
+  totalHT: number
+  quantityPrepared: number
+  quantityDelivered: number
+  product?: { id: string; reference: string; designation: string }
+}
+
 interface DeliveryNoteLineItem {
   id: string
   productId: string
@@ -98,17 +113,10 @@ interface DeliveryNote {
   salesOrder: {
     id: string
     number: string
-    lines: DeliveryNoteLineItem[]
+    lines: SalesOrderLineInfo[]
   } | null
   client: { id: string; name: string }
   lines: DeliveryNoteLineItem[]
-  salesOrderLinesTracking?: Array<{
-    id: string
-    quantity: number
-    quantityDelivered: number
-    remainingQuantity: number
-    deliveryPercentage: number
-  }>
 }
 
 interface EditableLine {
@@ -150,7 +158,20 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800'
 }
 
-// ─── Delivery percentage badge helper ───
+// ─── Helpers ───
+
+/** Compute overall delivery percentage for a delivery note linked to a sales order */
+function getOrderDeliveryPercentage(note: DeliveryNote): number | null {
+  if (!note.salesOrderId || !note.salesOrder?.lines || note.salesOrder.lines.length === 0) return null
+  let totalQty = 0
+  let totalDelivered = 0
+  for (const line of note.salesOrder.lines) {
+    totalQty += line.quantity
+    totalDelivered += line.quantityDelivered || 0
+  }
+  if (totalQty === 0) return 0
+  return Math.round((totalDelivered / totalQty) * 100)
+}
 
 function DeliveryBadge({ percentage }: { percentage: number }) {
   if (percentage >= 100) {
@@ -160,6 +181,17 @@ function DeliveryBadge({ percentage }: { percentage: number }) {
     return <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">{percentage}%</Badge>
   }
   return <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">0%</Badge>
+}
+
+function DeliveryProgressBar({ percentage }: { percentage: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Progress value={percentage} className="h-2 w-20" />
+      <span className={`text-xs font-medium ${percentage >= 100 ? 'text-green-600' : percentage > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+        {percentage}%
+      </span>
+    </div>
+  )
 }
 
 // ─── Main Component ───
@@ -199,6 +231,7 @@ export default function DeliveryNotesView() {
   // Order lines for partial delivery
   const [orderLinesForDelivery, setOrderLinesForDelivery] = useState<OrderLineWithDelivery[]>([])
   const [deliveryQuantities, setDeliveryQuantities] = useState<Record<string, number>>({})
+  const [includedLines, setIncludedLines] = useState<Record<string, boolean>>({})
   const [loadingOrderLines, setLoadingOrderLines] = useState(false)
 
   // Edit form
@@ -240,6 +273,7 @@ export default function DeliveryNotesView() {
     setEditableLines([])
     setOrderLinesForDelivery([])
     setDeliveryQuantities({})
+    setIncludedLines({})
     setCreateTransporteur('')
     setCreateVehiclePlate('')
     setCreateNotes('')
@@ -252,12 +286,12 @@ export default function DeliveryNotesView() {
 
     try {
       const [prepData, partData, clientsData, productsData] = await Promise.all([
-        api.get<{ salesOrders: SalesOrderOption[] }>('/sales-orders?status=prepared&limit=100'),
-        api.get<{ salesOrders: SalesOrderOption[] }>('/sales-orders?status=partially_delivered&limit=100'),
+        api.get<{ orders: any[] }>('/sales-orders?status=prepared&limit=100'),
+        api.get<{ orders: any[] }>('/sales-orders?status=partially_delivered&limit=100'),
         api.get<{ clients: ClientOption[] }>('/clients?limit=500'),
         api.get<{ products: ProductOption[] }>('/products?limit=500'),
       ])
-      const allOrders = [...(prepData.salesOrders || []), ...(partData.salesOrders || [])]
+      const allOrders = [...(prepData.orders || []), ...(partData.orders || [])]
       setAvailableOrders(allOrders)
       setAvailableClients(clientsData.clients || [])
       setAvailableProducts(productsData.products || [])
@@ -276,42 +310,47 @@ export default function DeliveryNotesView() {
     setLoadingOrderLines(true)
     setOrderLinesForDelivery([])
     setDeliveryQuantities({})
+    setIncludedLines({})
     try {
-      const data = await api.get<{ deliveryNotes: DeliveryNote[] }>(`/delivery-notes?salesOrderId=${orderId}&limit=100`)
-      // Find the sales order from the delivery notes
-      const salesOrder = data.deliveryNotes.find(dn => dn.salesOrderId === orderId)?.salesOrder
-      if (!salesOrder) {
-        // Fetch the sales order directly
-        const orderData = await api.get<{ orders: any[] }>(`/sales-orders?limit=1`) // fallback
+      // Fetch the sales order with its lines directly using the id filter
+      const data = await api.get<{ orders: any[] }>(`/sales-orders?id=${orderId}&limit=1`)
+      const order = data.orders?.[0]
+      if (!order || !order.lines) {
+        toast.error('Impossible de charger les lignes de la commande')
         setLoadingOrderLines(false)
         return
       }
 
-      const lines: OrderLineWithDelivery[] = salesOrder.lines.map((line: any) => {
-        const remaining = Math.max(0, line.quantity - line.quantityDelivered)
-        const pct = line.quantity > 0 ? Math.round((line.quantityDelivered / line.quantity) * 100) : 0
-        return {
-          id: line.id,
-          productId: line.productId,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          tvaRate: line.tvaRate,
-          quantityDelivered: line.quantityDelivered || 0,
-          quantityPrepared: line.quantityPrepared || 0,
-          remaining,
-          deliveryPercentage: pct,
-          product: line.product,
-        }
-      }).filter((l: OrderLineWithDelivery) => l.remaining > 0)
+      const lines: OrderLineWithDelivery[] = order.lines
+        .map((line: any) => {
+          const remaining = Math.max(0, line.quantity - (line.quantityDelivered || 0))
+          const pct = line.quantity > 0 ? Math.round(((line.quantityDelivered || 0) / line.quantity) * 100) : 0
+          return {
+            id: line.id,
+            productId: line.productId,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            tvaRate: line.tvaRate,
+            quantityDelivered: line.quantityDelivered || 0,
+            quantityPrepared: line.quantityPrepared || 0,
+            remaining,
+            deliveryPercentage: pct,
+            product: line.product,
+          }
+        })
+        .filter((l: OrderLineWithDelivery) => l.remaining > 0)
 
       setOrderLinesForDelivery(lines)
 
-      // Default quantities = remaining
+      // Default: all lines included with qty = remaining
       const qtyMap: Record<string, number> = {}
+      const incMap: Record<string, boolean> = {}
       lines.forEach((l: OrderLineWithDelivery) => {
         qtyMap[l.id] = l.remaining
+        incMap[l.id] = true
       })
       setDeliveryQuantities(qtyMap)
+      setIncludedLines(incMap)
     } catch (err: any) {
       toast.error(err.message || 'Erreur chargement lignes')
     } finally {
@@ -326,19 +365,39 @@ export default function DeliveryNotesView() {
     } else {
       setOrderLinesForDelivery([])
       setDeliveryQuantities({})
+      setIncludedLines({})
     }
   }
 
-  // ─── Delivery quantities management ───
+  // ─── Delivery quantities & inclusion management ───
 
   const updateDeliveryQuantity = (lineId: string, value: number) => {
     setDeliveryQuantities((prev) => ({ ...prev, [lineId]: value }))
+  }
+
+  const toggleLineIncluded = (lineId: string, checked: boolean) => {
+    setIncludedLines((prev) => ({ ...prev, [lineId]: checked }))
+    // If unchecking, zero out the quantity
+    if (!checked) {
+      setDeliveryQuantities((prev) => ({ ...prev, [lineId]: 0 }))
+    } else {
+      // Re-checking: restore to remaining
+      const line = orderLinesForDelivery.find((l) => l.id === lineId)
+      if (line) {
+        setDeliveryQuantities((prev) => ({ ...prev, [lineId]: line.remaining }))
+      }
+    }
+  }
+
+  const getSelectedLineCount = () => {
+    return orderLinesForDelivery.filter((l) => includedLines[l.id] && (deliveryQuantities[l.id] || 0) > 0).length
   }
 
   const getOrderDeliveryTotals = () => {
     let totalHT = 0
     let totalTVA = 0
     orderLinesForDelivery.forEach((line) => {
+      if (!includedLines[line.id]) return
       const qty = deliveryQuantities[line.id] || 0
       if (qty > 0) {
         const ht = qty * line.unitPrice
@@ -350,7 +409,7 @@ export default function DeliveryNotesView() {
   }
 
   const hasAnyQuantity = () => {
-    return Object.values(deliveryQuantities).some((q) => q > 0)
+    return orderLinesForDelivery.some((l) => includedLines[l.id] && (deliveryQuantities[l.id] || 0) > 0)
   }
 
   const handleCreate = async () => {
@@ -366,14 +425,14 @@ export default function DeliveryNotesView() {
 
         // Build lines array with selected quantities
         const lines = orderLinesForDelivery
-          .filter((l) => (deliveryQuantities[l.id] || 0) > 0)
+          .filter((l) => includedLines[l.id] && (deliveryQuantities[l.id] || 0) > 0)
           .map((l) => ({
             salesOrderLineId: l.id,
             quantity: deliveryQuantities[l.id],
           }))
 
         if (lines.length === 0) {
-          toast.error('S\u00e9lectionnez au moins une quantit\u00e9 \u00e0 livrer')
+          toast.error('S\u00e9lectionnez au moins une ligne \u00e0 livrer avec une quantit\u00e9 > 0')
           setCreating(false)
           return
         }
@@ -653,7 +712,9 @@ export default function DeliveryNotesView() {
                   <TableHead>Type</TableHead>
                   <TableHead>Commande / Client</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead className="hidden md:table-cell">Transporteur</TableHead>
+                  <TableHead className="hidden md:table-cell">Date pr\u00e9vue</TableHead>
+                  <TableHead className="hidden md:table-cell">% Livr\u00e9</TableHead>
+                  <TableHead className="hidden lg:table-cell">Transporteur</TableHead>
                   <TableHead className="hidden lg:table-cell">Total TTC</TableHead>
                   <TableHead className="text-right w-[120px]">Actions</TableHead>
                 </TableRow>
@@ -661,7 +722,7 @@ export default function DeliveryNotesView() {
               <TableBody>
                 {deliveryNotes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <Truck className="h-10 w-10 text-muted-foreground/30" />
                         <p className="font-medium">Aucun bon de livraison</p>
@@ -672,83 +733,95 @@ export default function DeliveryNotesView() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  deliveryNotes.map((note) => (
-                    <TableRow key={note.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(note)}>
-                      <TableCell>
-                        <div className="flex flex-col gap-0.5">
+                  deliveryNotes.map((note) => {
+                    const deliveryPct = getOrderDeliveryPercentage(note)
+                    return (
+                      <TableRow key={note.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(note)}>
+                        <TableCell>
                           <span className="font-mono font-medium">{note.number}</span>
-                          {note.plannedDate && (
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              <CalendarClock className="h-2.5 w-2.5" />
+                        </TableCell>
+                        <TableCell>
+                          {note.salesOrderId ? (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <Link2 className="h-3 w-3" /> Li\u00e9
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs gap-1 border-dashed">
+                              <Unlink className="h-3 w-3" /> Autonome
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {note.salesOrderId ? (
+                            <div>
+                              <p className="font-mono text-sm">{note.salesOrder?.number}</p>
+                              <p className="text-xs text-muted-foreground">{note.client.name}</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="font-medium">{note.client.name}</p>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={statusColors[note.status] || ''}>
+                            {statusLabels[note.status] || note.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {note.plannedDate ? (
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <CalendarClock className="h-3 w-3" />
                               {format(new Date(note.plannedDate), 'dd/MM/yyyy', { locale: fr })}
                             </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">\u2014</span>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {note.salesOrderId ? (
-                          <Badge variant="outline" className="text-xs gap-1">
-                            <Link2 className="h-3 w-3" /> Li\u00e9
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs gap-1 border-dashed">
-                            <Unlink className="h-3 w-3" /> Autonome
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {note.salesOrderId ? (
-                          <div>
-                            <p className="font-mono text-sm">{note.salesOrder?.number}</p>
-                            <p className="text-xs text-muted-foreground">{note.client.name}</p>
-                          </div>
-                        ) : (
-                          <div>
-                            <p className="font-medium">{note.client.name}</p>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={statusColors[note.status] || ''}>
-                          {statusLabels[note.status] || note.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
-                        {note.transporteur || '\u2014'}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell font-medium">
-                        {formatCurrency(note.totalTTC)}
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(note)} title="D\u00e9tails">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {getActions(note).length > 0 && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {getActions(note).map((action) => (
-                                  <DropdownMenuItem
-                                    key={action.action}
-                                    onClick={() => executeAction(note, action.action)}
-                                    className={action.action === 'delete' ? 'text-destructive focus:text-destructive' : ''}
-                                  >
-                                    {action.icon}
-                                    <span className="ml-2">{action.label}</span>
-                                  </DropdownMenuItem>
-                                ))}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {deliveryPct !== null ? (
+                            <DeliveryProgressBar percentage={deliveryPct} />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">\u2014</span>
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
+                          {note.transporteur || '\u2014'}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell font-medium">
+                          {formatCurrency(note.totalTTC)}
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(note)} title="D\u00e9tails">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {getActions(note).length > 0 && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {getActions(note).map((action) => (
+                                    <DropdownMenuItem
+                                      key={action.action}
+                                      onClick={() => executeAction(note, action.action)}
+                                      className={action.action === 'delete' ? 'text-destructive focus:text-destructive' : ''}
+                                    >
+                                      {action.icon}
+                                      <span className="ml-2">{action.label}</span>
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
@@ -849,7 +922,7 @@ export default function DeliveryNotesView() {
                       <Label className="text-sm font-medium">Lignes \u00e0 livrer</Label>
                       {orderLinesForDelivery.length > 0 && (
                         <span className="text-xs text-muted-foreground">
-                          {orderLinesForDelivery.length} ligne(s) restante(s)
+                          {orderLinesForDelivery.length} ligne(s) restante(s) &middot; {getSelectedLineCount()} s\u00e9lectionn\u00e9e(s)
                         </span>
                       )}
                     </div>
@@ -868,53 +941,80 @@ export default function DeliveryNotesView() {
                       </div>
                     ) : (
                       <div className="rounded-md border">
-                        <div className="max-h-[250px] overflow-y-auto">
+                        <div className="max-h-[280px] overflow-y-auto">
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="w-[30%]">Produit</TableHead>
-                                <TableHead className="text-right w-[12%]">Command\u00e9</TableHead>
-                                <TableHead className="text-right w-[12%]">Livr\u00e9</TableHead>
-                                <TableHead className="text-right w-[12%]">Restant</TableHead>
-                                <TableHead className="text-center w-[10%]">Avanc.</TableHead>
-                                <TableHead className="text-right w-[14%]">Qt\u00e9 BL</TableHead>
+                                <TableHead className="w-[40px]">
+                                  <Checkbox
+                                    checked={orderLinesForDelivery.every((l) => includedLines[l.id])}
+                                    onCheckedChange={(checked) => {
+                                      const val = checked === true
+                                      const newIncluded: Record<string, boolean> = {}
+                                      const newQty: Record<string, number> = {}
+                                      orderLinesForDelivery.forEach((l) => {
+                                        newIncluded[l.id] = val
+                                        newQty[l.id] = val ? l.remaining : 0
+                                      })
+                                      setIncludedLines(newIncluded)
+                                      setDeliveryQuantities(newQty)
+                                    }}
+                                  />
+                                </TableHead>
+                                <TableHead className="w-[28%]">Produit</TableHead>
+                                <TableHead className="text-right w-[10%]">Command\u00e9</TableHead>
+                                <TableHead className="text-right w-[10%]">Livr\u00e9</TableHead>
+                                <TableHead className="text-right w-[10%]">Restant</TableHead>
+                                <TableHead className="text-center w-[12%]">Avancement</TableHead>
+                                <TableHead className="text-right w-[15%]">Qt\u00e9 BL</TableHead>
                                 <TableHead className="text-right w-[15%]">Total HT</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {orderLinesForDelivery.map((line) => (
-                                <TableRow key={line.id}>
-                                  <TableCell className="text-xs">
-                                    <div className="flex items-center gap-1.5">
-                                      <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                      <div className="min-w-0">
-                                        <p className="font-medium truncate">{line.product?.designation}</p>
-                                        <p className="text-muted-foreground font-mono">{line.product?.reference}</p>
+                              {orderLinesForDelivery.map((line) => {
+                                const isIncluded = includedLines[line.id] ?? true
+                                const qty = deliveryQuantities[line.id] ?? 0
+                                return (
+                                  <TableRow key={line.id} className={!isIncluded ? 'opacity-50' : ''}>
+                                    <TableCell>
+                                      <Checkbox
+                                        checked={isIncluded}
+                                        onCheckedChange={(checked) => toggleLineIncluded(line.id, checked === true)}
+                                      />
+                                    </TableCell>
+                                    <TableCell className="text-xs">
+                                      <div className="flex items-center gap-1.5">
+                                        <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                        <div className="min-w-0">
+                                          <p className="font-medium truncate">{line.product?.designation}</p>
+                                          <p className="text-muted-foreground font-mono">{line.product?.reference}</p>
+                                        </div>
                                       </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-right text-sm">{line.quantity}</TableCell>
-                                  <TableCell className="text-right text-sm text-blue-600 font-medium">{line.quantityDelivered}</TableCell>
-                                  <TableCell className="text-right text-sm text-amber-600 font-semibold">{line.remaining}</TableCell>
-                                  <TableCell className="text-center">
-                                    <DeliveryBadge percentage={line.deliveryPercentage} />
-                                  </TableCell>
-                                  <TableCell>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      max={line.remaining}
-                                      step="0.01"
-                                      value={deliveryQuantities[line.id] ?? 0}
-                                      onChange={(e) => updateDeliveryQuantity(line.id, Math.min(parseFloat(e.target.value) || 0, line.remaining))}
-                                      className="h-8 text-right text-sm"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="text-right text-sm font-medium">
-                                    {formatCurrency((deliveryQuantities[line.id] || 0) * line.unitPrice)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                                    </TableCell>
+                                    <TableCell className="text-right text-sm">{line.quantity}</TableCell>
+                                    <TableCell className="text-right text-sm text-blue-600 font-medium">{line.quantityDelivered}</TableCell>
+                                    <TableCell className="text-right text-sm text-amber-600 font-semibold">{line.remaining}</TableCell>
+                                    <TableCell className="text-center">
+                                      <DeliveryProgressBar percentage={line.deliveryPercentage} />
+                                    </TableCell>
+                                    <TableCell>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        max={line.remaining}
+                                        step="0.01"
+                                        value={qty}
+                                        disabled={!isIncluded}
+                                        onChange={(e) => updateDeliveryQuantity(line.id, Math.min(parseFloat(e.target.value) || 0, line.remaining))}
+                                        className="h-8 text-right text-sm"
+                                      />
+                                    </TableCell>
+                                    <TableCell className="text-right text-sm font-medium">
+                                      {isIncluded && qty > 0 ? formatCurrency(qty * line.unitPrice) : <span className="text-muted-foreground">\u2014</span>}
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
                             </TableBody>
                           </Table>
                         </div>
@@ -1327,13 +1427,30 @@ export default function DeliveryNotesView() {
                 </div>
               )}
 
-              {/* ── Delivery Tracking (for linked orders) ── */}
-              {selectedNote.salesOrderId && selectedNote.salesOrderLinesTracking && selectedNote.salesOrderLinesTracking.length > 0 && (
+              {/* ── Overall Delivery Progress (for linked orders) ── */}
+              {selectedNote.salesOrderId && selectedNote.salesOrder?.lines && selectedNote.salesOrder.lines.length > 0 && (
                 <div className="rounded-md border p-4">
-                  <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-blue-600" />
-                    Suivi de livraison par ligne de commande
-                  </h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-blue-600" />
+                      Avancement de livraison de la commande
+                    </h4>
+                    {(() => {
+                      const pct = getOrderDeliveryPercentage(selectedNote)
+                      return pct !== null ? (
+                        <span className={`text-xs font-semibold ${pct >= 100 ? 'text-green-600' : pct > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                          {pct >= 100 ? 'Commande livrée' : `${pct}% livré`}
+                        </span>
+                      ) : null
+                    })()}
+                  </div>
+                  {(() => {
+                    const pct = getOrderDeliveryPercentage(selectedNote)
+                    return pct !== null ? (
+                      <Progress value={pct} className="h-3 mb-4" />
+                    ) : null
+                  })()}
+
                   <div className="max-h-[200px] overflow-y-auto">
                     <Table>
                       <TableHeader>
@@ -1342,28 +1459,38 @@ export default function DeliveryNotesView() {
                           <TableHead className="text-right">Command\u00e9</TableHead>
                           <TableHead className="text-right">Livr\u00e9</TableHead>
                           <TableHead className="text-right">Restant</TableHead>
-                          <TableHead className="text-center">Avancement</TableHead>
+                          <TableHead className="text-center w-[140px]">Avancement</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {selectedNote.salesOrderLinesTracking.map((track) => (
-                          <TableRow key={track.id}>
-                            <TableCell className="text-xs">
-                              {selectedNote.salesOrder?.lines.find(l => l.id === track.id)?.product?.reference} -{' '}
-                              {selectedNote.salesOrder?.lines.find(l => l.id === track.id)?.product?.designation}
-                            </TableCell>
-                            <TableCell className="text-right">{track.quantity}</TableCell>
-                            <TableCell className="text-right text-blue-600 font-medium">{track.quantityDelivered}</TableCell>
-                            <TableCell className="text-right">
-                              <span className={track.remainingQuantity > 0 ? 'text-amber-600 font-semibold' : 'text-green-600'}>
-                                {track.remainingQuantity}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <DeliveryBadge percentage={track.deliveryPercentage} />
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {selectedNote.salesOrder.lines.map((soLine) => {
+                          const delivered = soLine.quantityDelivered || 0
+                          const remaining = Math.max(0, soLine.quantity - delivered)
+                          const pct = soLine.quantity > 0 ? Math.round((delivered / soLine.quantity) * 100) : 0
+                          return (
+                            <TableRow key={soLine.id}>
+                              <TableCell className="text-xs">
+                                <div className="flex items-center gap-1.5">
+                                  <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                  <div className="min-w-0">
+                                    <p className="font-medium truncate">{soLine.product?.designation}</p>
+                                    <p className="text-muted-foreground font-mono">{soLine.product?.reference}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">{soLine.quantity}</TableCell>
+                              <TableCell className="text-right text-blue-600 font-medium">{delivered}</TableCell>
+                              <TableCell className="text-right">
+                                <span className={remaining > 0 ? 'text-amber-600 font-semibold' : 'text-green-600'}>
+                                  {remaining}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <DeliveryProgressBar percentage={pct} />
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -1379,7 +1506,8 @@ export default function DeliveryNotesView() {
                       <TableHead className="text-right">Qt\u00e9 BL</TableHead>
                       {selectedNote.salesOrderId && (
                         <>
-                          <TableHead className="text-right">D\u00e9j\u00e0 livr\u00e9</TableHead>
+                          <TableHead className="text-right">D\u00e9j\u00e0 livr\u00e9 (avant)</TableHead>
+                          <TableHead className="text-right">Total livr\u00e9</TableHead>
                           <TableHead className="text-right">Reste apr\u00e8s</TableHead>
                         </>
                       )}
@@ -1388,42 +1516,54 @@ export default function DeliveryNotesView() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedNote.lines.map((line) => (
-                      <TableRow key={line.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-1.5">
-                            <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm">{line.product?.designation}</p>
-                              <p className="text-xs text-muted-foreground font-mono">{line.product?.reference}</p>
+                    {selectedNote.lines.map((line) => {
+                      // For linked orders, compute the "already delivered before this BL" from the SO line
+                      const previouslyDelivered = line.salesOrderLine
+                        ? Math.max(0, (line.salesOrderLine.quantityDelivered || 0) - line.quantity)
+                        : (line.previouslyDelivered || 0)
+                      const totalDelivered = line.salesOrderLine
+                        ? (line.salesOrderLine.quantityDelivered || 0)
+                        : line.quantity
+                      const remainingAfter = line.salesOrderLine
+                        ? Math.max(0, line.salesOrderLine.quantity - (line.salesOrderLine.quantityDelivered || 0))
+                        : (line.remainingAfterDelivery ?? 0)
+
+                      return (
+                        <TableRow key={line.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-1.5">
+                              <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-sm">{line.product?.designation}</p>
+                                <p className="text-xs text-muted-foreground font-mono">{line.product?.reference}</p>
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">{line.quantity}</TableCell>
-                        {selectedNote.salesOrderId && (
-                          <>
-                            <TableCell className="text-right text-sm">
-                              {line.previouslyDelivered !== undefined && line.previouslyDelivered > 0 ? (
-                                <span className="text-blue-600">{line.previouslyDelivered}</span>
-                              ) : (
-                                <span className="text-muted-foreground">0</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right text-sm">
-                              {line.remainingAfterDelivery !== null && line.remainingAfterDelivery !== undefined ? (
-                                <span className={line.remainingAfterDelivery > 0 ? 'text-amber-600 font-medium' : 'text-green-600 font-medium'}>
-                                  {line.remainingAfterDelivery}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">{line.quantity}</TableCell>
+                          {selectedNote.salesOrderId && (
+                            <>
+                              <TableCell className="text-right text-sm">
+                                {previouslyDelivered > 0 ? (
+                                  <span className="text-blue-600">{previouslyDelivered}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">0</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                <span className="font-medium text-green-700">{totalDelivered}</span>
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                <span className={remainingAfter > 0 ? 'text-amber-600 font-medium' : 'text-green-600 font-medium'}>
+                                  {remainingAfter}
                                 </span>
-                              ) : (
-                                <span className="text-muted-foreground">\u2014</span>
-                              )}
-                            </TableCell>
-                          </>
-                        )}
-                        <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(line.totalHT)}</TableCell>
-                      </TableRow>
-                    ))}
+                              </TableCell>
+                            </>
+                          )}
+                          <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(line.totalHT)}</TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>

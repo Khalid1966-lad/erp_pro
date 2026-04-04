@@ -5,11 +5,6 @@ import { z } from 'zod'
 
 // ─── Validation Schemas ───
 
-const partialLineSchema = z.object({
-  salesOrderLineId: z.string().min(1),
-  quantity: z.number().positive(),
-})
-
 const lineSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().positive(),
@@ -20,19 +15,22 @@ const lineSchema = z.object({
 
 const createFromOrderSchema = z.object({
   salesOrderId: z.string().min(1),
+  lines: z.array(z.object({
+    salesOrderLineId: z.string().min(1),
+    quantity: z.number().min(0.01),
+  })).min(1, 'Au moins une ligne est requise'),
   transporteur: z.string().optional(),
   vehiclePlate: z.string().optional(),
-  notes: z.string().optional(),
   plannedDate: z.string().optional(),
-  lines: z.array(partialLineSchema).optional(),
+  notes: z.string().optional(),
 })
 
 const createStandaloneSchema = z.object({
   clientId: z.string().min(1),
   transporteur: z.string().optional(),
   vehiclePlate: z.string().optional(),
-  notes: z.string().optional(),
   plannedDate: z.string().optional(),
+  notes: z.string().optional(),
   lines: z.array(lineSchema).min(1, 'Au moins une ligne est requise'),
 })
 
@@ -42,20 +40,6 @@ async function generateBLNumber() {
   const blCount = await db.deliveryNote.count()
   const year = new Date().getFullYear()
   return `BL-${year}-${String(blCount + 1).padStart(4, '0')}`
-}
-
-// ─── Helper: compute delivery tracking for sales order lines ───
-
-function computeDeliveryTracking(orderLines: { id: string; quantity: number; quantityDelivered: number }[]) {
-  return orderLines.map((line) => {
-    const remaining = Math.max(0, line.quantity - line.quantityDelivered)
-    const deliveryPercentage = line.quantity > 0 ? Math.min(100, Math.round((line.quantityDelivered / line.quantity) * 100)) : 0
-    return {
-      ...line,
-      remainingQuantity: remaining,
-      deliveryPercentage,
-    }
-  })
 }
 
 // ─── Helper: common include for delivery note ───
@@ -75,16 +59,6 @@ const deliveryNoteInclude = {
   lines: {
     include: {
       product: { select: { id: true, reference: true, designation: true } },
-      salesOrderLine: {
-        select: {
-          id: true,
-          quantity: true,
-          quantityDelivered: true,
-          quantityPrepared: true,
-          unitPrice: true,
-          tvaRate: true,
-        },
-      },
     },
   },
 }
@@ -127,35 +101,7 @@ export async function GET(req: NextRequest) {
       db.deliveryNote.count({ where }),
     ])
 
-    // Enrich with delivery tracking data
-    const enrichedNotes = deliveryNotes.map((note) => {
-      const enriched = { ...note }
-
-      // If linked to a sales order, compute delivery tracking for order lines
-      if (enriched.salesOrder) {
-        const orderLinesWithTracking = computeDeliveryTracking(
-          enriched.salesOrder.lines.map((l) => ({
-            id: l.id,
-            quantity: l.quantity,
-            quantityDelivered: l.quantityDelivered,
-          }))
-        )
-        ;(enriched as Record<string, unknown>).salesOrderLinesTracking = orderLinesWithTracking
-      }
-
-      // For each BL line linked to a sales order line, compute remaining
-      ;(enriched as Record<string, unknown>).lines = enriched.lines.map((blLine) => ({
-        ...blLine,
-        previouslyDelivered: blLine.salesOrderLine ? blLine.salesOrderLine.quantityDelivered - blLine.quantity : 0,
-        remainingAfterDelivery: blLine.salesOrderLine
-          ? Math.max(0, blLine.salesOrderLine.quantity - blLine.salesOrderLine.quantityDelivered)
-          : null,
-      }))
-
-      return enriched
-    })
-
-    return NextResponse.json({ deliveryNotes: enrichedNotes, total, page, limit })
+    return NextResponse.json({ deliveryNotes, total, page, limit })
   } catch (error) {
     console.error('Delivery notes list error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
@@ -163,7 +109,7 @@ export async function GET(req: NextRequest) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// POST - Create delivery note (from order OR standalone)
+// POST - Create delivery note (from order with per-line qty OR standalone)
 // ═══════════════════════════════════════════════════════════
 
 export async function POST(req: NextRequest) {
@@ -176,16 +122,16 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    // ─── Mode 1: BL from existing sales order ───
+    // ─── Mode 1: BL from existing sales order (with per-line quantities) ───
     if (body.salesOrderId && !body.clientId) {
       const data = createFromOrderSchema.parse(body)
 
       const salesOrder = await db.salesOrder.findUnique({
         where: { id: data.salesOrderId },
         include: {
-          lines: {
-            include: { product: true },
-          },
+          lines: { include: { product: true } },
+          deliveryNotes: true,
+          client: true,
         },
       })
 
@@ -193,59 +139,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Bon de commande introuvable' }, { status: 404 })
       }
 
-      if (salesOrder.status !== 'prepared' && salesOrder.status !== 'partially_delivered') {
+      if (salesOrder.status !== 'prepared' && salesOrder.status !== 'partially_delivered' && salesOrder.status !== 'delivered') {
         return NextResponse.json(
-          { error: 'Le bon de commande doit être en statut "préparé" ou "partiellement livré"' },
+          { error: 'Le bon de commande doit être en statut "préparé", "partiellement livré" ou "livré"' },
           { status: 400 }
         )
       }
 
-      // Determine which lines to deliver
-      let linesToDeliver: { salesOrderLineId: string; quantity: number }[] = []
-
-      if (data.lines && data.lines.length > 0) {
-        // Partial delivery: use user-specified lines
-        for (const reqLine of data.lines) {
-          const orderLine = salesOrder.lines.find((l) => l.id === reqLine.salesOrderLineId)
-          if (!orderLine) {
-            return NextResponse.json(
-              { error: `Ligne de commande introuvable: ${reqLine.salesOrderLineId}` },
-              { status: 400 }
-            )
-          }
-          const remaining = orderLine.quantity - orderLine.quantityDelivered
-          if (remaining <= 0) {
-            return NextResponse.json(
-              { error: `La ligne "${orderLine.product?.designation || orderLine.id}" est déjà entièrement livrée` },
-              { status: 400 }
-            )
-          }
-          if (reqLine.quantity > remaining) {
-            return NextResponse.json(
-              {
-                error: `Quantité invalide pour "${orderLine.product?.designation || orderLine.id}": ` +
-                  `maximum ${remaining} (restant), demandé ${reqLine.quantity}`,
-              },
-              { status: 400 }
-            )
-          }
-          linesToDeliver.push({ salesOrderLineId: reqLine.salesOrderLineId, quantity: reqLine.quantity })
+      // Validate each line's quantity against remaining (ordered - already delivered)
+      for (const line of data.lines) {
+        const soLine = salesOrder.lines.find((l) => l.id === line.salesOrderLineId)
+        if (!soLine) {
+          return NextResponse.json({ error: `Ligne de commande introuvable: ${line.salesOrderLineId}` }, { status: 400 })
         }
-      } else {
-        // Auto-fill: all lines with remaining quantities
-        for (const orderLine of salesOrder.lines) {
-          const remaining = orderLine.quantity - orderLine.quantityDelivered
-          if (remaining > 0) {
-            linesToDeliver.push({ salesOrderLineId: orderLine.id, quantity: remaining })
-          }
+        const remaining = soLine.quantity - soLine.quantityDelivered
+        if (line.quantity > remaining + 0.001) {
+          return NextResponse.json({
+            error: `Quantité ${line.quantity} dépasse le restant (${remaining}) pour ${soLine.product?.designation || 'produit'}`
+          }, { status: 400 })
         }
-      }
-
-      if (linesToDeliver.length === 0) {
-        return NextResponse.json(
-          { error: 'Toutes les lignes de la commande sont déjà entièrement livrées' },
-          { status: 400 }
-        )
       }
 
       const blNumber = await generateBLNumber()
@@ -253,6 +165,7 @@ export async function POST(req: NextRequest) {
       let totalTVA = 0
 
       const deliveryNote = await db.$transaction(async (tx) => {
+        // Create delivery note
         const note = await tx.deliveryNote.create({
           data: {
             number: blNumber,
@@ -261,25 +174,25 @@ export async function POST(req: NextRequest) {
             status: 'draft',
             transporteur: data.transporteur || null,
             vehiclePlate: data.vehiclePlate || null,
-            notes: data.notes || null,
             plannedDate: data.plannedDate ? new Date(data.plannedDate) : null,
+            notes: data.notes || null,
             totalHT: 0,
             totalTVA: 0,
             totalTTC: 0,
             lines: {
-              create: linesToDeliver.map((dl) => {
-                const orderLine = salesOrder.lines.find((l) => l.id === dl.salesOrderLineId)!
-                const lineHT = dl.quantity * orderLine.unitPrice
-                const lineTVA = lineHT * (orderLine.tvaRate / 100)
+              create: data.lines.map((line) => {
+                const soLine = salesOrder.lines.find((l) => l.id === line.salesOrderLineId)!
+                const lineHT = line.quantity * soLine.unitPrice
+                const lineTVA = lineHT * (soLine.tvaRate / 100)
                 totalHT += lineHT
                 totalTVA += lineTVA
 
                 return {
-                  salesOrderLineId: dl.salesOrderLineId,
-                  productId: orderLine.productId,
-                  quantity: dl.quantity,
-                  unitPrice: orderLine.unitPrice,
-                  tvaRate: orderLine.tvaRate,
+                  salesOrderLineId: line.salesOrderLineId,
+                  productId: soLine.productId,
+                  quantity: line.quantity,
+                  unitPrice: soLine.unitPrice,
+                  tvaRate: soLine.tvaRate,
                   totalHT: lineHT,
                 }
               }),
@@ -288,37 +201,15 @@ export async function POST(req: NextRequest) {
           include: deliveryNoteInclude,
         })
 
+        // Update totals
         const totalTTC = totalHT + totalTVA
         await tx.deliveryNote.update({
           where: { id: note.id },
           data: { totalHT, totalTVA, totalTTC },
         })
 
-        // Update quantityDelivered on SalesOrderLine
-        for (const dl of linesToDeliver) {
-          await tx.salesOrderLine.update({
-            where: { id: dl.salesOrderLineId },
-            data: {
-              quantityDelivered: {
-                increment: dl.quantity,
-              },
-            },
-          })
-        }
-
-        // Update SO status based on delivery progress
-        const updatedLines = await tx.salesOrderLine.findMany({
-          where: { orderId: salesOrder.id },
-        })
-        const allFullyDelivered = updatedLines.every(
-          (l) => l.quantityDelivered >= l.quantity
-        )
-        if (allFullyDelivered) {
-          await tx.salesOrder.update({
-            where: { id: salesOrder.id },
-            data: { status: 'delivered' },
-          })
-        } else {
+        // Update SO status to partially_delivered if needed
+        if (salesOrder.status === 'prepared') {
           await tx.salesOrder.update({
             where: { id: salesOrder.id },
             data: { status: 'partially_delivered' },
@@ -336,7 +227,6 @@ export async function POST(req: NextRequest) {
     if (body.clientId && !body.salesOrderId) {
       const data = createStandaloneSchema.parse(body)
 
-      // Verify client exists
       const client = await db.client.findUnique({ where: { id: data.clientId } })
       if (!client) {
         return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
@@ -354,8 +244,8 @@ export async function POST(req: NextRequest) {
             status: 'draft',
             transporteur: data.transporteur || null,
             vehiclePlate: data.vehiclePlate || null,
-            notes: data.notes || null,
             plannedDate: data.plannedDate ? new Date(data.plannedDate) : null,
+            notes: data.notes || null,
             totalHT: 0,
             totalTVA: 0,
             totalTTC: 0,
@@ -385,18 +275,6 @@ export async function POST(req: NextRequest) {
           where: { id: note.id },
           data: { totalHT, totalTVA, totalTTC },
         })
-
-        // If lines are linked to sales order lines, update quantityDelivered
-        for (const line of data.lines) {
-          if (line.salesOrderLineId) {
-            await tx.salesOrderLine.update({
-              where: { id: line.salesOrderLineId },
-              data: {
-                quantityDelivered: { increment: line.quantity },
-              },
-            })
-          }
-        }
 
         return { ...note, totalHT, totalTVA, totalTTC }
       })
@@ -431,7 +309,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { id, action, plannedDate, ...updateData } = body
+    const { id, action, ...updateData } = body
 
     if (!id) {
       return NextResponse.json({ error: 'ID requis' }, { status: 400 })
@@ -440,7 +318,7 @@ export async function PUT(req: NextRequest) {
     const existing = await db.deliveryNote.findUnique({
       where: { id },
       include: {
-        lines: { include: { salesOrderLine: true } },
+        lines: { include: { product: true } },
         salesOrder: {
           include: { lines: true, deliveryNotes: true },
         },
@@ -460,18 +338,9 @@ export async function PUT(req: NextRequest) {
         )
       }
 
-      const updatePayload: Record<string, unknown> = { status: 'confirmed' }
-      // Allow updating plannedDate on confirm
-      if (plannedDate) {
-        updatePayload.plannedDate = new Date(plannedDate)
-      }
-      if (updateData.transporteur !== undefined) updatePayload.transporteur = updateData.transporteur
-      if (updateData.vehiclePlate !== undefined) updatePayload.vehiclePlate = updateData.vehiclePlate
-      if (updateData.notes !== undefined) updatePayload.notes = updateData.notes
-
       const deliveryNote = await db.deliveryNote.update({
         where: { id },
-        data: updatePayload,
+        data: { status: 'confirmed', ...updateData },
         include: deliveryNoteInclude,
       })
 
@@ -479,7 +348,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(deliveryNote)
     }
 
-    // Action: deliver
+    // Action: deliver (with quantityDelivered tracking)
     if (action === 'deliver') {
       if (existing.status !== 'confirmed' && existing.status !== 'draft') {
         return NextResponse.json(
@@ -495,57 +364,46 @@ export async function PUT(req: NextRequest) {
           data: {
             status: 'delivered',
             deliveryDate: now,
+            ...updateData,
           },
           include: deliveryNoteInclude,
         })
 
-        // If linked to a sales order, update quantityDelivered (if not already done at creation)
-        // and check if all lines are fully delivered
-        if (existing.salesOrderId) {
-          // Get all non-cancelled delivery notes for this SO
-          const allDeliveryNotes = await tx.deliveryNote.findMany({
-            where: {
-              salesOrderId: existing.salesOrderId,
-              status: { not: 'cancelled' },
-            },
-            include: { lines: true },
-          })
-
-          // Recalculate total delivered per SO line
-          const deliveredQtyMap: Record<string, number> = {}
-          for (const dn of allDeliveryNotes) {
-            for (const line of dn.lines) {
-              if (line.salesOrderLineId) {
-                deliveredQtyMap[line.salesOrderLineId] = (deliveredQtyMap[line.salesOrderLineId] || 0) + line.quantity
-              }
-            }
-          }
-
-          // Check if all SO lines are fully delivered
-          const salesOrderLines = await tx.salesOrderLine.findMany({
-            where: { orderId: existing.salesOrderId },
-          })
-
-          const allFullyDelivered = salesOrderLines.every((sol) => {
-            const delivered = deliveredQtyMap[sol.id] || 0
-            return delivered >= sol.quantity
-          })
-
-          // Sync quantityDelivered on SalesOrderLine
-          for (const sol of salesOrderLines) {
-            const delivered = deliveredQtyMap[sol.id] || 0
-            if (sol.quantityDelivered !== delivered) {
+        // Update quantityDelivered on SalesOrderLines
+        if (existing.salesOrderId && existing.lines.length > 0) {
+          for (const blLine of existing.lines) {
+            if (blLine.salesOrderLineId) {
               await tx.salesOrderLine.update({
-                where: { id: sol.id },
-                data: { quantityDelivered: delivered },
+                where: { id: blLine.salesOrderLineId },
+                data: {
+                  quantityDelivered: {
+                    increment: blLine.quantity,
+                  },
+                },
               })
             }
           }
 
-          if (allFullyDelivered) {
+          // Re-fetch all SO lines to check delivery status
+          const updatedSoLines = await tx.salesOrderLine.findMany({
+            where: { orderId: existing.salesOrderId },
+          })
+          const allDelivered = updatedSoLines.every(
+            (l) => l.quantityDelivered >= l.quantity
+          )
+          const anyDelivered = updatedSoLines.some(
+            (l) => l.quantityDelivered > 0
+          )
+
+          if (allDelivered) {
             await tx.salesOrder.update({
               where: { id: existing.salesOrderId },
               data: { status: 'delivered' },
+            })
+          } else if (anyDelivered) {
+            await tx.salesOrder.update({
+              where: { id: existing.salesOrderId },
+              data: { status: 'partially_delivered' },
             })
           }
         }
@@ -573,23 +431,7 @@ export async function PUT(req: NextRequest) {
           include: deliveryNoteInclude,
         })
 
-        // If linked to a sales order, revert quantityDelivered
         if (existing.salesOrderId) {
-          // Decrement quantityDelivered for each BL line
-          for (const line of existing.lines) {
-            if (line.salesOrderLineId) {
-              await tx.salesOrderLine.update({
-                where: { id: line.salesOrderLineId },
-                data: {
-                  quantityDelivered: {
-                    decrement: line.quantity,
-                  },
-                },
-              })
-            }
-          }
-
-          // Recalculate SO status
           const remainingNotes = await tx.deliveryNote.findMany({
             where: {
               salesOrderId: existing.salesOrderId,
@@ -598,7 +440,6 @@ export async function PUT(req: NextRequest) {
           })
 
           if (remainingNotes.length === 0) {
-            // No active BLs left, revert SO
             const salesOrderLines = await tx.salesOrderLine.findMany({
               where: { orderId: existing.salesOrderId },
             })
@@ -607,34 +448,6 @@ export async function PUT(req: NextRequest) {
               where: { id: existing.salesOrderId },
               data: { status: allPrepared ? 'prepared' : 'in_preparation' },
             })
-          } else {
-            // Still has active BLs, check if any line has remaining delivery
-            const allDeliveryNotes = await tx.deliveryNote.findMany({
-              where: {
-                salesOrderId: existing.salesOrderId,
-                status: { not: 'cancelled' },
-              },
-              include: { lines: true },
-            })
-            const deliveredQtyMap: Record<string, number> = {}
-            for (const dn of allDeliveryNotes) {
-              for (const line of dn.lines) {
-                if (line.salesOrderLineId) {
-                  deliveredQtyMap[line.salesOrderLineId] = (deliveredQtyMap[line.salesOrderLineId] || 0) + line.quantity
-                }
-              }
-            }
-            const salesOrderLines = await tx.salesOrderLine.findMany({
-              where: { orderId: existing.salesOrderId },
-            })
-            const anyDelivered = salesOrderLines.some((sol) => (deliveredQtyMap[sol.id] || 0) > 0)
-            if (!anyDelivered) {
-              const allPrepared = salesOrderLines.every((l) => l.quantityPrepared >= l.quantity)
-              await tx.salesOrder.update({
-                where: { id: existing.salesOrderId },
-                data: { status: allPrepared ? 'prepared' : 'in_preparation' },
-              })
-            }
           }
         }
 
@@ -646,15 +459,9 @@ export async function PUT(req: NextRequest) {
     }
 
     // Simple update (notes, transporteur, vehiclePlate, plannedDate)
-    const simpleUpdateData: Record<string, unknown> = {}
-    if (updateData.transporteur !== undefined) simpleUpdateData.transporteur = updateData.transporteur
-    if (updateData.vehiclePlate !== undefined) simpleUpdateData.vehiclePlate = updateData.vehiclePlate
-    if (updateData.notes !== undefined) simpleUpdateData.notes = updateData.notes
-    if (plannedDate) simpleUpdateData.plannedDate = new Date(plannedDate)
-
     const deliveryNote = await db.deliveryNote.update({
       where: { id },
-      data: simpleUpdateData,
+      data: updateData,
       include: deliveryNoteInclude,
     })
 
@@ -690,10 +497,7 @@ export async function DELETE(req: NextRequest) {
 
     const existing = await db.deliveryNote.findUnique({
       where: { id },
-      include: {
-        lines: { include: { salesOrderLine: true } },
-        salesOrder: { include: { deliveryNotes: true } },
-      },
+      include: { salesOrder: { include: { deliveryNotes: true } } },
     })
 
     if (!existing) {
@@ -708,25 +512,8 @@ export async function DELETE(req: NextRequest) {
     }
 
     await db.$transaction(async (tx) => {
-      // Revert quantityDelivered for linked lines (only for drafts, cancelled already reverted)
-      if (existing.status === 'draft') {
-        for (const line of existing.lines) {
-          if (line.salesOrderLineId) {
-            await tx.salesOrderLine.update({
-              where: { id: line.salesOrderLineId },
-              data: {
-                quantityDelivered: {
-                  decrement: line.quantity,
-                },
-              },
-            })
-          }
-        }
-      }
-
       await tx.deliveryNote.delete({ where: { id } })
 
-      // If linked to a sales order, revert SO status if needed
       if (existing.salesOrderId) {
         const remainingNotes = await tx.deliveryNote.findMany({
           where: { salesOrderId: existing.salesOrderId },

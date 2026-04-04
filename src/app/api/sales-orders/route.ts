@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id') || ''
     const status = searchParams.get('status') || ''
     const clientId = searchParams.get('clientId') || ''
     const search = searchParams.get('search') || ''
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
 
     const where: Record<string, unknown> = {}
+    if (id) where.id = id
     if (status) where.status = status
     if (clientId) where.clientId = clientId
     if (search) {
