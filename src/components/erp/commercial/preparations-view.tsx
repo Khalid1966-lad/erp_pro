@@ -1,28 +1,36 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
 } from '@/components/ui/dialog'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  ClipboardList, MoreVertical, Play, CheckCircle, XCircle, Eye, Trash2, Package
+  ClipboardList, MoreVertical, Play, CheckCircle, XCircle, Eye, Trash2, Package,
+  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -30,15 +38,44 @@ import { fr } from 'date-fns/locale'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
-interface SalesOrderLine {
+// ═══════════════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════════════
+
+interface ProductInfo {
+  id: string
+  reference: string
+  designation: string
+  currentStock: number
+  productType: string
+  unit: string
+}
+
+interface PrepLine {
+  id: string
+  preparationOrderId: string
+  salesOrderLineId: string
+  productId: string
+  product: ProductInfo
+  quantityRequested: number
+  quantityPrepared: number
+  stockAvailable: number
+  deficit: number
+  hasDeficit: boolean
+  suggestion: { action: string; target: string } | null
+  notes: string | null
+}
+
+interface SalesOrderLineInfo {
   id: string
   productId: string
   quantity: number
   unitPrice: number
   tvaRate: number
-  totalHT?: number
-  quantityPrepared?: number
-  product?: { id: string; reference: string; designation: string }
+  totalHT: number
+  quantityPrepared: number
+  quantityDelivered: number
+  product?: ProductInfo
 }
 
 interface Preparation {
@@ -47,187 +84,406 @@ interface Preparation {
   status: string
   completedAt: string | null
   notes: string | null
+  createdAt: string
+  totalLines: number
+  preparedLines: number
+  fullyPreparedLines: number
+  progressPercent: number
+  lines: PrepLine[]
   salesOrder: {
     id: string
     number: string
+    status: string
     client: { id: string; name: string }
-    lines: SalesOrderLine[]
+    lines: SalesOrderLineInfo[]
   }
 }
 
-interface ValidateLine {
-  salesOrderLineId: string
-  preparedQuantity: number
+interface SalesOrderOption {
+  id: string
+  number: string
+  status: string
+  client: { id: string; name: string }
+  lines: Array<{
+    id: string
+    productId: string
+    quantity: number
+    quantityPrepared: number
+    product: ProductInfo
+  }>
 }
+
+interface StockCheckResult {
+  preparationId: string
+  preparationNumber: string
+  status: string
+  totalLines: number
+  deficitLines: number
+  lines: Array<{
+    id: string
+    productId: string
+    productReference: string
+    productDesignation: string
+    productType: string
+    productTypeLabel: string
+    unit: string
+    stockAvailable: number
+    stockAvailableAtCreation: number
+    quantityRequested: number
+    quantityPrepared: number
+    deficit: number
+    hasDeficit: boolean
+    suggestion: { action: string; target: string } | null
+  }>
+}
+
+// ═══════════════════════════════════════════════════════
+// Constants
+// ═══════════════════════════════════════════════════════
 
 const statusLabels: Record<string, string> = {
   pending: 'En attente',
   in_progress: 'En cours',
   completed: 'Terminée',
-  cancelled: 'Annulée'
+  cancelled: 'Annulée',
 }
 
 const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  in_progress: 'bg-blue-100 text-blue-800',
-  completed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800'
+  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  in_progress: 'bg-blue-100 text-blue-800 border-blue-200',
+  completed: 'bg-green-100 text-green-800 border-green-200',
+  cancelled: 'bg-red-100 text-red-800 border-red-200',
 }
 
+const productTypeLabels: Record<string, string> = {
+  raw_material: 'Matière première',
+  semi_finished: 'Semi-fini',
+  finished: 'Produit fini',
+}
+
+const productTypeColors: Record<string, string> = {
+  raw_material: 'bg-amber-100 text-amber-800',
+  semi_finished: 'bg-purple-100 text-purple-800',
+  finished: 'bg-emerald-100 text-emerald-800',
+}
+
+// ═══════════════════════════════════════════════════════
+// Progress Badge Component
+// ═══════════════════════════════════════════════════════
+
+function ProgressBadge({ percent }: { percent: number }) {
+  const color =
+    percent >= 100
+      ? 'text-green-700 bg-green-50'
+      : percent > 0
+        ? 'text-amber-700 bg-amber-50'
+        : 'text-gray-500 bg-gray-50'
+  return (
+    <Badge variant="outline" className={`font-mono text-xs ${color}`}>
+      {percent}%
+    </Badge>
+  )
+}
+
+// ═══════════════════════════════════════════════════════
+// Main Component
+// ═══════════════════════════════════════════════════════
+
 export default function PreparationsView() {
+  // ── State ──
   const [preparations, setPreparations] = useState<Preparation[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [validateOpen, setValidateOpen] = useState(false)
-  const [detailOpen, setDetailOpen] = useState(false)
-  const [selectedPrep, setSelectedPrep] = useState<Preparation | null>(null)
-  const [validateLines, setValidateLines] = useState<ValidateLine[]>([])
-  const [validateNotes, setValidateNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const fetchPreparations = async () => {
+  // Create dialog
+  const [createOpen, setCreateOpen] = useState(false)
+  const [salesOrders, setSalesOrders] = useState<SalesOrderOption[]>([])
+  const [selectedOrderId, setSelectedOrderId] = useState<string>('')
+  const [createPreview, setCreatePreview] = useState<SalesOrderOption | null>(null)
+  const [createNotes, setCreateNotes] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  // Detail dialog
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [selectedPrep, setSelectedPrep] = useState<Preparation | null>(null)
+  const [stockCheckData, setStockCheckData] = useState<StockCheckResult | null>(null)
+  const [loadingStockCheck, setLoadingStockCheck] = useState(false)
+
+  // Delete confirmation
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // ── Fetch preparations ──
+  const fetchPreparations = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
-      const data = await api.get<{ preparations: Preparation[]; total: number }>(`/preparations?${params.toString()}`)
+      const data = await api.get<{ preparations: Preparation[]; total: number }>(
+        `/preparations?${params.toString()}`,
+      )
       setPreparations(data.preparations)
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur chargement préparations')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur chargement préparations'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
 
   useEffect(() => {
     fetchPreparations()
-  }, [statusFilter])
+  }, [fetchPreparations])
 
-  const openDetail = (prep: Preparation) => {
-    setSelectedPrep(prep)
-    setDetailOpen(true)
-  }
-
-  const openValidate = (prep: Preparation) => {
-    setSelectedPrep(prep)
-    setValidateLines(
-      prep.salesOrder.lines.map((line) => ({
-        salesOrderLineId: line.id,
-        preparedQuantity: (line.quantityPrepared || 0)
-      }))
-    )
-    setValidateNotes('')
-    setValidateOpen(true)
-  }
-
-  const handleStart = async (prep: Preparation) => {
+  // ── Fetch sales orders for create dialog ──
+  const fetchSalesOrders = useCallback(async () => {
     try {
-      await api.put('/preparations', { id: prep.id, action: 'start' })
-      toast.success(`Préparation ${prep.number} démarrée`)
+      const data = await api.get<{ salesOrders: SalesOrderOption[] }>(
+        '/sales-orders?status=confirmed&status=in_preparation&limit=100',
+      )
+      // Filter to get only confirmed and in_preparation
+      const filtered = data.salesOrders.filter(
+        (so) => so.status === 'confirmed' || so.status === 'in_preparation',
+      )
+      setSalesOrders(filtered)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur chargement commandes'
+      toast.error(message)
+    }
+  }, [])
+
+  // ── Open create dialog ──
+  const openCreate = async () => {
+    setSelectedOrderId('')
+    setCreatePreview(null)
+    setCreateNotes('')
+    setCreateOpen(true)
+    await fetchSalesOrders()
+  }
+
+  // ── Select order for create preview ──
+  const handleSelectOrder = (orderId: string) => {
+    setSelectedOrderId(orderId)
+    const order = salesOrders.find((so) => so.id === orderId)
+    setCreatePreview(order || null)
+  }
+
+  // ── Create preparation ──
+  const handleCreate = async () => {
+    if (!selectedOrderId) {
+      toast.error('Veuillez sélectionner une commande')
+      return
+    }
+    try {
+      setCreating(true)
+      const result = await api.post<Preparation>('/preparations', {
+        salesOrderId: selectedOrderId,
+        notes: createNotes || undefined,
+      })
+      toast.success(`Préparation ${result.number} créée avec succès`)
+      setCreateOpen(false)
       fetchPreparations()
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur')
+      // Open detail of created prep
+      setSelectedPrep(result as unknown as Preparation)
+      setDetailOpen(true)
+      fetchStockCheck(result.id)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur création'
+      toast.error(message)
+    } finally {
+      setCreating(false)
     }
   }
 
+  // ── Fetch stock check for a preparation ──
+  const fetchStockCheck = async (prepId: string) => {
+    try {
+      setLoadingStockCheck(true)
+      const data = await api.get<StockCheckResult>(`/preparations?id=${prepId}&stockCheck=true`)
+      setStockCheckData(data)
+    } catch (err: unknown) {
+      console.error('Stock check error:', err)
+    } finally {
+      setLoadingStockCheck(false)
+    }
+  }
+
+  // ── Open detail dialog ──
+  const openDetail = (prep: Preparation) => {
+    setSelectedPrep(prep)
+    setDetailOpen(true)
+    fetchStockCheck(prep.id)
+  }
+
+  // ── Start preparation ──
+  const handleStart = async (id: string) => {
+    try {
+      await api.put('/preparations', { id, action: 'start' })
+      toast.success('Préparation démarrée')
+      fetchPreparations()
+      if (selectedPrep?.id === id) {
+        setSelectedPrep((prev) => prev ? { ...prev, status: 'in_progress' } : prev)
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur'
+      toast.error(message)
+    }
+  }
+
+  // ── Cancel preparation ──
+  const handleCancel = async (id: string) => {
+    try {
+      await api.put('/preparations', { id, action: 'cancel' })
+      toast.success('Préparation annulée')
+      setDetailOpen(false)
+      setSelectedPrep(null)
+      fetchPreparations()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur annulation'
+      toast.error(message)
+    }
+  }
+
+  // ── Delete preparation ──
+  const handleDelete = async () => {
+    if (!deleteId) return
+    try {
+      await api.delete(`/preparations?id=${deleteId}`)
+      toast.success('Préparation supprimée')
+      setDeleteId(null)
+      fetchPreparations()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur suppression'
+      toast.error(message)
+    }
+  }
+
+  // ── Update line quantity ──
+  const handleUpdateLine = async (lineId: string, quantityPrepared: number) => {
+    if (!selectedPrep) return
+    try {
+      await api.put('/preparations', {
+        id: selectedPrep.id,
+        action: 'updateLine',
+        lineId,
+        quantityPrepared,
+      })
+      // Update local state
+      setSelectedPrep((prev) => {
+        if (!prev) return prev
+        const updatedLines = prev.lines.map((l) =>
+          l.id === lineId ? { ...l, quantityPrepared } : l,
+        )
+        const fullyPreparedLines = updatedLines.filter(
+          (l) => l.quantityPrepared >= l.quantityRequested,
+        ).length
+        const progressPercent =
+          prev.totalLines > 0 ? Math.round((fullyPreparedLines / prev.totalLines) * 100) : 0
+        return {
+          ...prev,
+          lines: updatedLines,
+          fullyPreparedLines,
+          progressPercent,
+        }
+      })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur mise à jour'
+      toast.error(message)
+    }
+  }
+
+  // ── Validate preparation ──
   const handleValidate = async () => {
     if (!selectedPrep) return
-    const hasQuantity = validateLines.some((l) => l.preparedQuantity > 0)
-    if (!hasQuantity) {
-      toast.error('Veuillez indiquer au moins une quantité préparée')
+    const hasZeroLines = selectedPrep.lines.every((l) => l.quantityPrepared <= 0)
+    if (hasZeroLines) {
+      toast.error('Au moins une ligne doit avoir une quantité préparée')
       return
     }
 
     try {
       setSaving(true)
-      await api.put('/preparations', {
+      const result = await api.put<Preparation>('/preparations', {
         id: selectedPrep.id,
         action: 'validate',
-        lines: validateLines,
-        notes: validateNotes || undefined
+        notes: selectedPrep.notes || undefined,
       })
-      toast.success(`Préparation ${selectedPrep.number} validée`)
-      setValidateOpen(false)
+
+      // Show warnings if any
+      if ('warnings' in result && Array.isArray((result as Record<string, unknown>).warnings) && (result as Record<string, unknown[]>).warnings.length > 0) {
+        const warnings = (result as Record<string, unknown[]>).warnings as Array<{ productDesignation: string; deficit: number }>
+        toast.warning(
+          `Préparation validée avec ${warnings.length} avertissement(s) de stock`,
+          { description: warnings.map((w) => `${w.productDesignation}: déficit ${w.deficit}`).join(', ') },
+        )
+      } else {
+        toast.success(`Préparation ${selectedPrep.number} validée avec succès`)
+      }
+
+      setDetailOpen(false)
+      setSelectedPrep(null)
       fetchPreparations()
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur validation')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur validation'
+      toast.error(message)
     } finally {
       setSaving(false)
     }
   }
 
-  const handleCancel = async (id: string) => {
-    try {
-      await api.put('/preparations', { id, action: 'cancel' })
-      toast.success('Préparation annulée')
-      fetchPreparations()
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur annulation')
-    }
+  // ── Navigate to purchase orders or work orders ──
+  const navigateTo = (target: string) => {
+    window.dispatchEvent(
+      new CustomEvent('erp:navigate', { detail: { target } }),
+    )
   }
 
-  const handleDelete = async (id: string) => {
-    try {
-      await api.delete(`/preparations?id=${id}`)
-      toast.success('Préparation supprimée')
-      fetchPreparations()
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur suppression')
-    }
-  }
-
-  const getActions = (prep: Preparation) => {
-    const actions: { label: string; icon: React.ReactNode; action: string }[] = []
-    switch (prep.status) {
-      case 'pending':
-        actions.push({ label: 'Démarrer', icon: <Play className="h-4 w-4" />, action: 'start' })
-        actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancel' })
-        break
-      case 'in_progress':
-        actions.push({ label: 'Valider', icon: <CheckCircle className="h-4 w-4" />, action: 'validate' })
-        actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancel' })
-        break
-    }
-    return actions
-  }
-
-  const executeAction = async (prep: Preparation, action: string) => {
-    switch (action) {
-      case 'start':
-        await handleStart(prep)
-        break
-      case 'validate':
-        openValidate(prep)
-        break
-      case 'cancel':
-        await handleCancel(prep.id)
-        break
-    }
-  }
+  // ═══════════════════════════════════════════════════════
+  // Render
+  // ═══════════════════════════════════════════════════════
 
   if (loading) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-32" />
         </div>
-        <Card><CardContent className="p-4"><div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div></CardContent></Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Préparations</h2>
+          <h2 className="text-lg font-semibold">Préparations de commande</h2>
           <Badge variant="secondary">{preparations.length}</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchPreparations}>
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Actualiser
+          </Button>
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-1" />
+            Nouvelle préparation
+          </Button>
         </div>
       </div>
 
-      {/* Filter */}
+      {/* ── Filters ── */}
       <div className="flex flex-col sm:flex-row gap-3">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
@@ -243,7 +499,7 @@ export default function PreparationsView() {
         </Select>
       </div>
 
-      {/* Table */}
+      {/* ── Table ── */}
       <Card>
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-y-auto">
@@ -254,8 +510,8 @@ export default function PreparationsView() {
                   <TableHead>Commande</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead className="hidden md:table-cell">Nb articles</TableHead>
-                  <TableHead className="hidden lg:table-cell">Complétée le</TableHead>
+                  <TableHead>Progression</TableHead>
+                  <TableHead className="hidden md:table-cell">Créée le</TableHead>
                   <TableHead className="text-right w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -263,12 +519,18 @@ export default function PreparationsView() {
                 {preparations.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      {statusFilter !== 'all' ? 'Aucune préparation trouvée.' : 'Aucune préparation enregistrée.'}
+                      {statusFilter !== 'all'
+                        ? 'Aucune préparation trouvée pour ce statut.'
+                        : 'Aucune préparation enregistrée.'}
                     </TableCell>
                   </TableRow>
                 ) : (
                   preparations.map((prep) => (
-                    <TableRow key={prep.id}>
+                    <TableRow
+                      key={prep.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => openDetail(prep)}
+                    >
                       <TableCell className="font-mono font-medium">{prep.number}</TableCell>
                       <TableCell className="font-mono text-sm">{prep.salesOrder.number}</TableCell>
                       <TableCell>{prep.salesOrder.client.name}</TableCell>
@@ -277,18 +539,21 @@ export default function PreparationsView() {
                           {statusLabels[prep.status] || prep.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">
-                        {prep.salesOrder.lines.length} article(s)
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          <Progress value={prep.progressPercent} className="h-2 flex-1" />
+                          <ProgressBadge percent={prep.progressPercent} />
+                        </div>
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell text-muted-foreground">
-                        {prep.completedAt ? format(new Date(prep.completedAt), 'dd/MM/yyyy HH:mm', { locale: fr }) : '—'}
+                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                        {format(new Date(prep.createdAt), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(prep)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {getActions(prep).length > 0 && (
+                          {(prep.status === 'pending' || prep.status === 'in_progress' || prep.status === 'cancelled') && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -296,20 +561,39 @@ export default function PreparationsView() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {getActions(prep).map((action) => (
-                                  <DropdownMenuItem key={action.action} onClick={() => executeAction(prep, action.action)}>
-                                    {action.icon}
-                                    <span className="ml-2">{action.label}</span>
-                                  </DropdownMenuItem>
-                                ))}
-                                {(prep.status === 'pending' || prep.status === 'cancelled') && (
+                                {prep.status === 'pending' && (
                                   <>
-                                    <DropdownMenuContent />
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(prep.id)}>
-                                      <Trash2 className="h-4 w-4" />
-                                      <span className="ml-2">Supprimer</span>
+                                    <DropdownMenuItem onClick={() => handleStart(prep.id)}>
+                                      <Play className="h-4 w-4 mr-2" />
+                                      Démarrer
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleCancel(prep.id)}>
+                                      <XCircle className="h-4 w-4 mr-2" />
+                                      Annuler
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => setDeleteId(prep.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Supprimer
                                     </DropdownMenuItem>
                                   </>
+                                )}
+                                {prep.status === 'in_progress' && (
+                                  <DropdownMenuItem onClick={() => handleCancel(prep.id)}>
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Annuler
+                                  </DropdownMenuItem>
+                                )}
+                                {prep.status === 'cancelled' && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => setDeleteId(prep.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Supprimer
+                                  </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -325,11 +609,186 @@ export default function PreparationsView() {
         </CardContent>
       </Card>
 
-      {/* Detail Dialog */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* ═══════════════════════════════════════════════════
+          Create Dialog
+          ═══════════════════════════════════════════════════ */}
+      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) { setCreatePreview(null); setSelectedOrderId('') } }}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Nouvelle préparation de commande
+            </DialogTitle>
+            <DialogDescription>
+              Sélectionnez une commande confirmée pour créer un bon de préparation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Sales order selector */}
+            <div className="space-y-2">
+              <Label>Commande</Label>
+              <Select value={selectedOrderId} onValueChange={handleSelectOrder}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une commande..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {salesOrders.length === 0 ? (
+                    <SelectItem value="__none" disabled>
+                      Aucune commande disponible
+                    </SelectItem>
+                  ) : (
+                    salesOrders.map((so) => (
+                      <SelectItem key={so.id} value={so.id}>
+                        {so.number} — {so.client.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Preview */}
+            {createPreview && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                    {createPreview.status === 'confirmed' ? 'Confirmée' : 'En préparation'}
+                  </Badge>
+                  <span className="text-muted-foreground">
+                    {createPreview.client.name}
+                  </span>
+                </div>
+
+                <div className="rounded border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Commandé</TableHead>
+                        <TableHead className="text-right">Déjà préparé</TableHead>
+                        <TableHead className="text-right">À préparer</TableHead>
+                        <TableHead className="text-right">Stock</TableHead>
+                        <TableHead className="text-center">Disponibilité</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {createPreview.lines
+                        .filter((l) => l.quantity - (l.quantityPrepared || 0) > 0)
+                        .map((line) => {
+                          const toPrepare = line.quantity - (line.quantityPrepared || 0)
+                          const hasStock = line.product.currentStock >= toPrepare
+                          const deficit = Math.max(0, toPrepare - line.product.currentStock)
+                          return (
+                            <TableRow key={line.id}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  <div>
+                                    <div className="font-mono text-xs text-muted-foreground">
+                                      {line.product.reference}
+                                    </div>
+                                    <div>{line.product.designation}</div>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={`text-xs ${productTypeColors[line.product.productType] || ''}`}>
+                                  {productTypeLabels[line.product.productType] || line.product.productType}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">{line.quantity}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {line.quantityPrepared || 0}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">{toPrepare}</TableCell>
+                              <TableCell className="text-right">
+                                <span className={hasStock ? 'text-green-600' : 'text-red-600'}>
+                                  {line.product.currentStock}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {hasStock ? (
+                                  <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    OK
+                                  </Badge>
+                                ) : (
+                                  <div className="flex flex-col items-center gap-1">
+                                    <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">
+                                      <AlertTriangle className="h-3 w-3 mr-1" />
+                                      -{deficit}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {line.product.productType === 'raw_material'
+                                        ? 'Achat fournisseur'
+                                        : 'Production interne'}
+                                    </span>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {createPreview.lines.some(
+                  (l) => l.quantity - (l.quantityPrepared || 0) > 0 &&
+                    l.product.currentStock < (l.quantity - (l.quantityPrepared || 0)),
+                ) && (
+                  <Alert variant="destructive" className="bg-amber-50 text-amber-800 border-amber-200">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Certains produits ont un stock insuffisant. Vous pouvez créer la préparation
+                      mais les quantités devront être ajustées avant validation.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    value={createNotes}
+                    onChange={(e) => setCreateNotes(e.target.value)}
+                    placeholder="Notes sur la préparation..."
+                    rows={2}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreate} disabled={!selectedOrderId || creating}>
+              {creating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Création...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Créer la préparation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════════════════════════════════════
+          Detail Dialog
+          ═══════════════════════════════════════════════════ */}
+      <Dialog open={detailOpen} onOpenChange={(open) => { setDetailOpen(open); if (!open) { setSelectedPrep(null); setStockCheckData(null) } }}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
               <ClipboardList className="h-5 w-5" />
               {selectedPrep?.number}
               {selectedPrep && (
@@ -338,10 +797,17 @@ export default function PreparationsView() {
                 </Badge>
               )}
             </DialogTitle>
+            {selectedPrep && (
+              <DialogDescription>
+                Commande {selectedPrep.salesOrder.number} — {selectedPrep.salesOrder.client.name}
+              </DialogDescription>
+            )}
           </DialogHeader>
+
           {selectedPrep && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="space-y-6">
+              {/* ── Info grid ── */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Commande</span>
                   <p className="font-mono font-medium">{selectedPrep.salesOrder.number}</p>
@@ -350,121 +816,343 @@ export default function PreparationsView() {
                   <span className="text-muted-foreground">Client</span>
                   <p className="font-medium">{selectedPrep.salesOrder.client.name}</p>
                 </div>
+                <div>
+                  <span className="text-muted-foreground">Créée le</span>
+                  <p className="font-medium">
+                    {format(new Date(selectedPrep.createdAt), 'dd/MM/yyyy HH:mm', { locale: fr })}
+                  </p>
+                </div>
                 {selectedPrep.completedAt && (
                   <div>
                     <span className="text-muted-foreground">Complétée le</span>
-                    <p className="font-medium">{format(new Date(selectedPrep.completedAt), 'dd/MM/yyyy HH:mm', { locale: fr })}</p>
+                    <p className="font-medium">
+                      {format(new Date(selectedPrep.completedAt), 'dd/MM/yyyy HH:mm', { locale: fr })}
+                    </p>
                   </div>
                 )}
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Produit</TableHead>
-                    <TableHead className="text-right">Qté commandée</TableHead>
-                    <TableHead className="text-right">Qté préparée</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedPrep.salesOrder.lines.map((line) => (
-                    <TableRow key={line.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                          {line.product?.reference} - {line.product?.designation}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">{line.quantity}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={((line.quantityPrepared || 0) >= line.quantity) ? 'default' : 'secondary'}>
-                          {line.quantityPrepared || 0} / {line.quantity}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {/* ── Overall progress ── */}
+              <Card className="bg-muted/30">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Progression globale</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {selectedPrep.fullyPreparedLines}/{selectedPrep.totalLines} lignes
+                      </span>
+                      <ProgressBadge percent={selectedPrep.progressPercent} />
+                    </div>
+                  </div>
+                  <Progress
+                    value={selectedPrep.progressPercent}
+                    className="h-3"
+                  />
+                </CardContent>
+              </Card>
 
-              {selectedPrep.notes && (
-                <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {selectedPrep.notes}</div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Validate Dialog */}
-      <Dialog open={validateOpen} onOpenChange={setValidateOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Valider la préparation {selectedPrep?.number}
-            </DialogTitle>
-          </DialogHeader>
-          {selectedPrep && (
-            <div className="space-y-4">
-              <div className="text-sm">
-                <span className="text-muted-foreground">Commande :</span>{' '}
-                <span className="font-mono font-medium">{selectedPrep.salesOrder.number}</span>
-                {' — '}
-                <span className="font-medium">{selectedPrep.salesOrder.client.name}</span>
-              </div>
-
-              <div className="rounded border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Produit</TableHead>
-                      <TableHead className="text-right">Qté commandée</TableHead>
-                      <TableHead className="w-[120px]">Qté préparée</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedPrep.salesOrder.lines.map((line, idx) => {
-                      const remainingQty = line.quantity - (line.quantityPrepared || 0)
-                      return (
-                        <TableRow key={line.id}>
-                          <TableCell className="font-medium">
-                            {line.product?.reference} - {line.product?.designation}
-                          </TableCell>
-                          <TableCell className="text-right">{remainingQty}</TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min={0}
-                              max={remainingQty}
-                              step={1}
-                              value={validateLines[idx]?.preparedQuantity || 0}
-                              onChange={(e) => {
-                                const updated = [...validateLines]
-                                updated[idx] = { ...updated[idx], preparedQuantity: Math.min(parseFloat(e.target.value) || 0, remainingQty) }
-                                setValidateLines(updated)
-                              }}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-
+              {/* ── Lines table ── */}
               <div className="space-y-2">
-                <Label>Notes</Label>
-                <Textarea value={validateNotes} onChange={(e) => setValidateNotes(e.target.value)} placeholder="Notes sur la préparation..." rows={2} />
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Articles à préparer
+                </h3>
+                <div className="rounded border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="hidden sm:table-cell">Type</TableHead>
+                        <TableHead className="text-right">Demandé</TableHead>
+                        <TableHead className="text-right hidden sm:table-cell">Stock (création)</TableHead>
+                        <TableHead className="text-right">Stock actuel</TableHead>
+                        {selectedPrep.status === 'in_progress' && (
+                          <TableHead className="w-[130px]">Préparé</TableHead>
+                        )}
+                        {selectedPrep.status === 'completed' && (
+                          <TableHead className="text-right">Préparé</TableHead>
+                        )}
+                        <TableHead className="text-center">État</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedPrep.lines.map((line) => {
+                        const isFullyPrepared = line.quantityPrepared >= line.quantityRequested
+                        const hasDeficitNow = line.quantityRequested > line.product.currentStock
+                        return (
+                          <TableRow key={line.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <div>
+                                  <div className="font-mono text-xs text-muted-foreground">
+                                    {line.product.reference}
+                                  </div>
+                                  <div className="font-medium">{line.product.designation}</div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              <Badge variant="secondary" className={`text-xs ${productTypeColors[line.product.productType]}`}>
+                                {productTypeLabels[line.product.productType]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {line.quantityRequested}
+                            </TableCell>
+                            <TableCell className="text-right hidden sm:table-cell text-muted-foreground">
+                              {line.stockAvailable}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={hasDeficitNow ? 'text-red-600 font-medium' : 'text-green-600'}>
+                                {line.product.currentStock}
+                              </span>
+                            </TableCell>
+                            {selectedPrep.status === 'in_progress' && (
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={line.quantityRequested}
+                                  step={1}
+                                  value={line.quantityPrepared}
+                                  onChange={(e) => {
+                                    const val = Math.min(
+                                      parseFloat(e.target.value) || 0,
+                                      line.quantityRequested,
+                                    )
+                                    handleUpdateLine(line.id, val)
+                                  }}
+                                  className="h-8 text-right font-mono"
+                                />
+                              </TableCell>
+                            )}
+                            {selectedPrep.status === 'completed' && (
+                              <TableCell className="text-right">
+                                <Badge
+                                  variant="secondary"
+                                  className={
+                                    isFullyPrepared
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-amber-100 text-amber-800'
+                                  }
+                                >
+                                  {line.quantityPrepared}
+                                </Badge>
+                              </TableCell>
+                            )}
+                            <TableCell className="text-center">
+                              {selectedPrep.status === 'completed' ? (
+                                isFullyPrepared ? (
+                                  <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
+                                ) : (
+                                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">
+                                    Partiel
+                                  </Badge>
+                                )
+                              ) : selectedPrep.status === 'in_progress' ? (
+                                isFullyPrepared ? (
+                                  <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
+                                ) : line.quantityPrepared > 0 ? (
+                                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">
+                                    {line.quantityPrepared}/{line.quantityRequested}
+                                  </Badge>
+                                ) : hasDeficitNow ? (
+                                  <AlertTriangle className="h-4 w-4 text-red-500 mx-auto" />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-full border-2 border-gray-300 mx-auto" />
+                                )
+                              ) : hasDeficitNow ? (
+                                <AlertTriangle className="h-4 w-4 text-red-500 mx-auto" />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full border-2 border-gray-300 mx-auto" />
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* ── Stock alerts ── */}
+              {!loadingStockCheck && stockCheckData && stockCheckData.deficitLines > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold flex items-center gap-2 text-red-700">
+                    <AlertTriangle className="h-4 w-4" />
+                    Alertes de stock ({stockCheckData.deficitLines} produit(s) en déficit)
+                  </h3>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {stockCheckData.lines
+                      .filter((l) => l.hasDeficit)
+                      .map((alertLine) => (
+                        <Card key={alertLine.id} className="border-red-200 bg-red-50/50">
+                          <CardContent className="p-4 space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="font-medium text-sm">
+                                  {alertLine.productReference} — {alertLine.productDesignation}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge
+                                    variant="secondary"
+                                    className={`text-xs ${productTypeColors[alertLine.productType]}`}
+                                  >
+                                    {alertLine.productTypeLabel}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Badge variant="secondary" className="bg-red-100 text-red-800 font-mono">
+                                -{alertLine.deficit}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p>
+                                Stock actuel : <span className="text-red-600 font-medium">{alertLine.stockAvailable}</span>
+                                {' / '}
+                                Demandé : <span className="font-medium">{alertLine.quantityRequested}</span>
+                              </p>
+                            </div>
+                            {alertLine.suggestion && (
+                              <div className="flex items-center gap-2">
+                                {alertLine.productType === 'raw_material' ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="bg-white border-amber-300 text-amber-700 hover:bg-amber-50"
+                                    onClick={() => navigateTo('purchase-orders')}
+                                  >
+                                    <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
+                                    Commander auprès d&apos;un fournisseur
+                                    <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
+                                    onClick={() => navigateTo('work-orders')}
+                                  >
+                                    <Factory className="h-3.5 w-3.5 mr-1.5" />
+                                    Lancer une production
+                                    <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {loadingStockCheck && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+                  <span className="text-sm text-muted-foreground">Vérification du stock...</span>
+                </div>
+              )}
+
+              {/* ── Notes ── */}
+              {selectedPrep.notes && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Notes :</span>{' '}
+                  {selectedPrep.notes}
+                </div>
+              )}
+
+              <Separator />
+
+              {/* ── Action buttons ── */}
+              <div className="flex items-center justify-end gap-2">
+                {selectedPrep.status === 'pending' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleCancel(selectedPrep.id)}
+                    >
+                      <XCircle className="h-4 w-4 mr-1.5" />
+                      Annuler
+                    </Button>
+                    <Button onClick={() => handleStart(selectedPrep.id)}>
+                      <Play className="h-4 w-4 mr-1.5" />
+                      Démarrer la préparation
+                    </Button>
+                  </>
+                )}
+                {selectedPrep.status === 'in_progress' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleCancel(selectedPrep.id)}
+                    >
+                      <XCircle className="h-4 w-4 mr-1.5" />
+                      Annuler
+                    </Button>
+                    <Button
+                      onClick={handleValidate}
+                      disabled={saving || selectedPrep.lines.every((l) => l.quantityPrepared <= 0)}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                          Validation...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-1.5" />
+                          Valider la préparation
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
+                {selectedPrep.status === 'completed' && (
+                  <div className="flex items-center gap-2 text-sm text-green-700">
+                    <CheckCircle className="h-4 w-4" />
+                    Préparation terminée
+                  </div>
+                )}
+                {selectedPrep.status === 'cancelled' && (
+                  <div className="flex items-center gap-2 text-sm text-red-600">
+                    <XCircle className="h-4 w-4" />
+                    Préparation annulée
+                  </div>
+                )}
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setValidateOpen(false)}>Annuler</Button>
-            <Button onClick={handleValidate} disabled={saving}>
-              {saving ? 'Validation...' : 'Valider la préparation'}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ═══════════════════════════════════════════════════
+          Delete Confirmation
+          ═══════════════════════════════════════════════════ */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer la préparation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette préparation ? Cette action est irréversible.
+              Les lignes de préparation seront supprimées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -308,6 +308,7 @@ model Product {
   stockMovements    StockMovement[]
   routingSteps      RoutingStep[]
   deliveryNoteLines DeliveryNoteLine[]
+  preparationLines  PreparationLine[]
 }
 
 enum QuoteStatus {
@@ -386,18 +387,20 @@ model SalesOrder {
 }
 
 model SalesOrderLine {
-  id              String      @id @default(cuid())
-  orderId         String
-  order           SalesOrder  @relation(fields: [orderId], references: [id])
-  productId       String
-  product         Product     @relation(fields: [productId], references: [id])
-  quantity        Float
-  unitPrice       Float
-  tvaRate         Float
-  totalHT         Float
-  quantityPrepared Float       @default(0)
+  id                String      @id @default(cuid())
+  orderId           String
+  order             SalesOrder  @relation(fields: [orderId], references: [id])
+  productId         String
+  product           Product     @relation(fields: [productId], references: [id])
+  quantity          Float
+  unitPrice         Float
+  tvaRate           Float
+  totalHT           Float
+  quantityPrepared  Float       @default(0)
+  quantityDelivered Float       @default(0)
 
   deliveryNoteLines DeliveryNoteLine[]
+  preparationLines  PreparationLine[]
 }
 
 enum PreparationStatus {
@@ -417,6 +420,8 @@ model PreparationOrder {
   notes         String?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+
+  lines         PreparationLine[]
 }
 
 enum DeliveryNoteStatus {
@@ -435,6 +440,7 @@ model DeliveryNote {
   client          Client              @relation(fields: [clientId], references: [id])
   status          DeliveryNoteStatus  @default(draft)
   date            DateTime            @default(now())
+  plannedDate     DateTime?
   deliveryDate    DateTime?
   transporteur    String?
   vehiclePlate    String?
@@ -446,6 +452,7 @@ model DeliveryNote {
   updatedAt       DateTime            @updatedAt
 
   lines           DeliveryNoteLine[]
+  invoices        InvoiceDeliveryNote[]
 }
 
 model DeliveryNoteLine {
@@ -491,9 +498,10 @@ model Invoice {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  lines         InvoiceLine[]
-  creditNotes   CreditNote[]
-  payments      Payment[]
+  lines           InvoiceLine[]
+  creditNotes     CreditNote[]
+  payments        Payment[]
+  deliveryNotes   InvoiceDeliveryNote[]
 }
 
 model InvoiceLine {
@@ -544,6 +552,34 @@ model CreditNoteLine {
   unitPrice     Float
   tvaRate       Float
   totalHT       Float
+}
+
+// ============ PREPARATION LINES ============
+
+model PreparationLine {
+  id                String            @id @default(cuid())
+  preparationOrderId String
+  preparationOrder  PreparationOrder  @relation(fields: [preparationOrderId], references: [id], onDelete: Cascade)
+  salesOrderLineId  String
+  salesOrderLine    SalesOrderLine    @relation(fields: [salesOrderLineId], references: [id])
+  productId         String
+  product           Product           @relation(fields: [productId], references: [id])
+  quantityRequested Float
+  quantityPrepared  Float             @default(0)
+  stockAvailable    Float             @default(0)
+  notes             String?
+}
+
+// ============ INVOICE-DELIVERY NOTE JUNCTION ============
+
+model InvoiceDeliveryNote {
+  id              String        @id @default(cuid())
+  invoiceId       String
+  invoice         Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  deliveryNoteId  String
+  deliveryNote    DeliveryNote  @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceId, deliveryNoteId])
 }
 
 // ============ PURCHASING ============

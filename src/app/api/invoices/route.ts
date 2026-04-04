@@ -20,6 +20,15 @@ const invoiceSchema = z.object({
   lines: z.array(invoiceLineSchema).min(1, 'Au moins une ligne requise'),
 })
 
+const invoiceFromBLSchema = z.object({
+  clientId: z.string(),
+  deliveryNoteIds: z.array(z.string()).min(1, 'Au moins un BL requis'),
+  dueDate: z.string().datetime(),
+  discountRate: z.number().default(0),
+  shippingCost: z.number().default(0),
+  notes: z.string().optional(),
+})
+
 async function generateInvoiceNumber(): Promise<string> {
   const count = await db.invoice.count()
   const year = new Date().getFullYear()
@@ -27,7 +36,7 @@ async function generateInvoiceNumber(): Promise<string> {
   return `FAC-${year}${month}-${String(count + 1).padStart(4, '0')}`
 }
 
-// GET - List invoices
+// GET - List invoices (enhanced with deliveryNotes relation)
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -62,6 +71,21 @@ export async function GET(req: NextRequest) {
           lines: { include: { product: { select: { id: true, reference: true, designation: true } } } },
           payments: true,
           creditNotes: true,
+          deliveryNotes: {
+            include: {
+              deliveryNote: {
+                select: {
+                  id: true,
+                  number: true,
+                  date: true,
+                  totalHT: true,
+                  totalTVA: true,
+                  totalTTC: true,
+                  status: true,
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
@@ -77,7 +101,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Create invoice
+// POST - Create invoice (manual OR from delivery notes)
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -87,6 +111,181 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
+
+    // ─── Mode 2: Invoice from delivery notes ───
+    if (body.deliveryNoteIds && Array.isArray(body.deliveryNoteIds) && body.deliveryNoteIds.length > 0) {
+      const data = invoiceFromBLSchema.parse(body)
+
+      // Fetch all delivery notes with lines and products
+      const deliveryNotes = await db.deliveryNote.findMany({
+        where: { id: { in: data.deliveryNoteIds } },
+        include: {
+          client: true,
+          salesOrder: { select: { id: true, number: true } },
+          lines: {
+            include: { product: { select: { id: true, reference: true, designation: true } } },
+          },
+        },
+      })
+
+      if (deliveryNotes.length !== data.deliveryNoteIds.length) {
+        const foundIds = new Set(deliveryNotes.map((dn) => dn.id))
+        const missing = data.deliveryNoteIds.filter((id) => !foundIds.has(id))
+        return NextResponse.json(
+          { error: `Bons de livraison introuvables: ${missing.join(', ')}` },
+          { status: 404 }
+        )
+      }
+
+      // Verify all BLs belong to the same client
+      const clientIds = new Set(deliveryNotes.map((dn) => dn.clientId))
+      if (clientIds.size > 1) {
+        return NextResponse.json(
+          { error: 'Tous les bons de livraison doivent appartenir au même client' },
+          { status: 400 }
+        )
+      }
+
+      // Verify client exists
+      const clientId = [...clientIds][0]
+      const client = await db.client.findUnique({ where: { id: clientId } })
+      if (!client) {
+        return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
+      }
+
+      // Only allow invoicing of delivered or confirmed BLs
+      const invalidBLs = deliveryNotes.filter(
+        (dn) => dn.status !== 'delivered' && dn.status !== 'confirmed'
+      )
+      if (invalidBLs.length > 0) {
+        return NextResponse.json(
+          {
+            error: `Seuls les BL livrés ou confirmés peuvent être facturés. BL non facturables: ${invalidBLs.map((dn) => dn.number).join(', ')}`,
+          },
+          { status: 400 }
+        )
+      }
+
+      // Check that none are already invoiced
+      const existingLinks = await db.invoiceDeliveryNote.findMany({
+        where: { deliveryNoteId: { in: data.deliveryNoteIds } },
+      })
+      const alreadyInvoicedIds = new Set(existingLinks.map((l) => l.deliveryNoteId))
+      const duplicates = data.deliveryNoteIds.filter((id) => alreadyInvoicedIds.has(id))
+      if (duplicates.length > 0) {
+        const dupNumbers = deliveryNotes
+          .filter((dn) => duplicates.includes(dn.id))
+          .map((dn) => dn.number)
+        return NextResponse.json(
+          { error: `BL déjà facturés: ${dupNumbers.join(', ')}` },
+          { status: 400 }
+        )
+      }
+
+      // Aggregate all BL lines into invoice lines
+      let totalHT = 0
+      let totalTVA = 0
+
+      const linesData: {
+        productId: string
+        quantity: number
+        unitPrice: number
+        tvaRate: number
+        totalHT: number
+        deliveryNoteId: string
+      }[] = []
+
+      for (const dn of deliveryNotes) {
+        for (const line of dn.lines) {
+          const lineHT = line.quantity * line.unitPrice
+          const lineTVA = lineHT * (line.tvaRate / 100)
+          totalHT += lineHT
+          totalTVA += lineTVA
+          linesData.push({
+            productId: line.productId,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            tvaRate: line.tvaRate,
+            totalHT: lineHT,
+            deliveryNoteId: dn.id,
+          })
+        }
+      }
+
+      const discountRate = data.discountRate || 0
+      const shippingCost = data.shippingCost || 0
+      const discountedHT = totalHT * (1 - discountRate / 100)
+      const finalTotalHT = discountedHT + shippingCost
+      const finalTotalTVA = totalTVA * (1 - discountRate / 100)
+      const finalTotalTTC = finalTotalHT + finalTotalTVA
+
+      // Determine salesOrderId: if all BLs share the same SO
+      const salesOrderIds = deliveryNotes
+        .map((dn) => dn.salesOrderId)
+        .filter((id): id is string => id !== null)
+      const uniqueSOIds = new Set(salesOrderIds)
+      const salesOrderId = uniqueSOIds.size === 1 ? [...uniqueSOIds][0] : null
+
+      const number = await generateInvoiceNumber()
+
+      const invoice = await db.$transaction(async (tx) => {
+        const inv = await tx.invoice.create({
+          data: {
+            number,
+            clientId,
+            salesOrderId,
+            status: 'draft',
+            dueDate: new Date(data.dueDate),
+            discountRate,
+            shippingCost,
+            notes: data.notes || null,
+            totalHT: finalTotalHT,
+            totalTVA: finalTotalTVA,
+            totalTTC: finalTotalTTC,
+            lines: {
+              create: linesData.map((l) => ({
+                productId: l.productId,
+                quantity: l.quantity,
+                unitPrice: l.unitPrice,
+                tvaRate: l.tvaRate,
+                totalHT: l.totalHT,
+              })),
+            },
+            deliveryNotes: {
+              create: data.deliveryNoteIds.map((dnId) => ({
+                deliveryNoteId: dnId,
+              })),
+            },
+          },
+          include: {
+            client: true,
+            lines: { include: { product: true } },
+            deliveryNotes: {
+              include: {
+                deliveryNote: {
+                  select: {
+                    id: true,
+                    number: true,
+                    date: true,
+                    totalHT: true,
+                    totalTVA: true,
+                    totalTTC: true,
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+        })
+
+        return inv
+      })
+
+      await auditLog(auth.userId, 'create', 'Invoice', invoice.id, null, invoice)
+      return NextResponse.json(invoice, { status: 201 })
+    }
+
+    // ─── Mode 1: Standard manual invoice ───
     const data = invoiceSchema.parse(body)
 
     const client = await db.client.findUnique({ where: { id: data.clientId } })
@@ -141,6 +340,21 @@ export async function POST(req: NextRequest) {
       include: {
         client: true,
         lines: { include: { product: true } },
+        deliveryNotes: {
+          include: {
+            deliveryNote: {
+              select: {
+                id: true,
+                number: true,
+                date: true,
+                totalHT: true,
+                totalTVA: true,
+                totalTTC: true,
+                status: true,
+              },
+            },
+          },
+        },
       },
     })
 
@@ -239,6 +453,21 @@ export async function PUT(req: NextRequest) {
         include: {
           client: true,
           lines: { include: { product: true } },
+          deliveryNotes: {
+            include: {
+              deliveryNote: {
+                select: {
+                  id: true,
+                  number: true,
+                  date: true,
+                  totalHT: true,
+                  totalTVA: true,
+                  totalTTC: true,
+                  status: true,
+                },
+              },
+            },
+          },
         },
       })
 
@@ -254,7 +483,25 @@ export async function PUT(req: NextRequest) {
       const invoice = await db.invoice.update({
         where: { id },
         data: { status: 'sent' },
-        include: { client: true, lines: { include: { product: true } } },
+        include: {
+          client: true,
+          lines: { include: { product: true } },
+          deliveryNotes: {
+            include: {
+              deliveryNote: {
+                select: {
+                  id: true,
+                  number: true,
+                  date: true,
+                  totalHT: true,
+                  totalTVA: true,
+                  totalTTC: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
       })
       await auditLog(auth.userId, 'send', 'Invoice', id, existing, invoice)
       return NextResponse.json(invoice)
@@ -265,7 +512,25 @@ export async function PUT(req: NextRequest) {
       const invoice = await db.invoice.update({
         where: { id },
         data: { status: 'paid', paymentDate: new Date() },
-        include: { client: true, lines: { include: { product: true } } },
+        include: {
+          client: true,
+          lines: { include: { product: true } },
+          deliveryNotes: {
+            include: {
+              deliveryNote: {
+                select: {
+                  id: true,
+                  number: true,
+                  date: true,
+                  totalHT: true,
+                  totalTVA: true,
+                  totalTTC: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
       })
       await auditLog(auth.userId, 'pay', 'Invoice', id, existing, invoice)
       return NextResponse.json(invoice)
@@ -323,7 +588,25 @@ export async function PUT(req: NextRequest) {
       const invoice = await db.invoice.update({
         where: { id },
         data: { status: 'cancelled' },
-        include: { client: true, lines: { include: { product: true } } },
+        include: {
+          client: true,
+          lines: { include: { product: true } },
+          deliveryNotes: {
+            include: {
+              deliveryNote: {
+                select: {
+                  id: true,
+                  number: true,
+                  date: true,
+                  totalHT: true,
+                  totalTVA: true,
+                  totalTTC: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
       })
       await auditLog(auth.userId, 'cancel', 'Invoice', id, existing, invoice)
       return NextResponse.json(invoice)
@@ -336,6 +619,21 @@ export async function PUT(req: NextRequest) {
       include: {
         client: true,
         lines: { include: { product: true } },
+        deliveryNotes: {
+          include: {
+            deliveryNote: {
+              select: {
+                id: true,
+                number: true,
+                date: true,
+                totalHT: true,
+                totalTVA: true,
+                totalTTC: true,
+                status: true,
+              },
+            },
+          },
+        },
       },
     })
 
@@ -379,6 +677,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Impossible de supprimer une facture avec des paiements ou avoirs' }, { status: 400 })
     }
 
+    // Delete junction records first, then lines, then invoice
+    await db.invoiceDeliveryNote.deleteMany({ where: { invoiceId: id } })
     await db.invoiceLine.deleteMany({ where: { invoiceId: id } })
     await db.invoice.delete({ where: { id } })
     await auditLog(auth.userId, 'delete', 'Invoice', id, existing, null)

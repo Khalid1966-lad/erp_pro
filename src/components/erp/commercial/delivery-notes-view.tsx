@@ -22,7 +22,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart
+  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart, CalendarClock, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -69,6 +69,16 @@ interface DeliveryNoteLineItem {
   totalHT: number
   salesOrderLineId?: string
   product?: { id: string; reference: string; designation: string }
+  salesOrderLine?: {
+    id: string
+    quantity: number
+    quantityDelivered: number
+    quantityPrepared: number
+    unitPrice: number
+    tvaRate: number
+  } | null
+  previouslyDelivered?: number
+  remainingAfterDelivery?: number | null
 }
 
 interface DeliveryNote {
@@ -76,6 +86,7 @@ interface DeliveryNote {
   number: string
   status: string
   date: string
+  plannedDate: string | null
   deliveryDate: string | null
   transporteur: string | null
   vehiclePlate: string | null
@@ -91,6 +102,13 @@ interface DeliveryNote {
   } | null
   client: { id: string; name: string }
   lines: DeliveryNoteLineItem[]
+  salesOrderLinesTracking?: Array<{
+    id: string
+    quantity: number
+    quantityDelivered: number
+    remainingQuantity: number
+    deliveryPercentage: number
+  }>
 }
 
 interface EditableLine {
@@ -99,6 +117,21 @@ interface EditableLine {
   quantity: number
   unitPrice: number
   tvaRate: number
+}
+
+// ─── Order line for partial delivery ───
+
+interface OrderLineWithDelivery {
+  id: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  tvaRate: number
+  quantityDelivered: number
+  quantityPrepared: number
+  remaining: number
+  deliveryPercentage: number
+  product?: { id: string; reference: string; designation: string }
 }
 
 // ─── Status Config ───
@@ -115,6 +148,18 @@ const statusColors: Record<string, string> = {
   confirmed: 'bg-blue-100 text-blue-800',
   delivered: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800'
+}
+
+// ─── Delivery percentage badge helper ───
+
+function DeliveryBadge({ percentage }: { percentage: number }) {
+  if (percentage >= 100) {
+    return <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">100%</Badge>
+  }
+  if (percentage > 0) {
+    return <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">{percentage}%</Badge>
+  }
+  return <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">0%</Badge>
 }
 
 // ─── Main Component ───
@@ -145,15 +190,22 @@ export default function DeliveryNotesView() {
   const [createTransporteur, setCreateTransporteur] = useState('')
   const [createVehiclePlate, setCreateVehiclePlate] = useState('')
   const [createNotes, setCreateNotes] = useState('')
+  const [createPlannedDate, setCreatePlannedDate] = useState('')
   const [creating, setCreating] = useState(false)
   const [loadingOrders, setLoadingOrders] = useState(false)
   const [loadingClients, setLoadingClients] = useState(false)
   const [loadingProducts, setLoadingProducts] = useState(false)
 
+  // Order lines for partial delivery
+  const [orderLinesForDelivery, setOrderLinesForDelivery] = useState<OrderLineWithDelivery[]>([])
+  const [deliveryQuantities, setDeliveryQuantities] = useState<Record<string, number>>({})
+  const [loadingOrderLines, setLoadingOrderLines] = useState(false)
+
   // Edit form
   const [editTransporteur, setEditTransporteur] = useState('')
   const [editVehiclePlate, setEditVehiclePlate] = useState('')
   const [editNotes, setEditNotes] = useState('')
+  const [editPlannedDate, setEditPlannedDate] = useState('')
   const [saving, setSaving] = useState(false)
 
   // ─── Fetch ───
@@ -186,9 +238,12 @@ export default function DeliveryNotesView() {
     setSelectedOrderId('')
     setSelectedClientId('')
     setEditableLines([])
+    setOrderLinesForDelivery([])
+    setDeliveryQuantities({})
     setCreateTransporteur('')
     setCreateVehiclePlate('')
     setCreateNotes('')
+    setCreatePlannedDate('')
 
     // Fetch available data in parallel
     setLoadingOrders(true)
@@ -215,6 +270,89 @@ export default function DeliveryNotesView() {
     }
   }
 
+  // ─── Fetch order lines for partial delivery ───
+
+  const fetchOrderLinesForDelivery = async (orderId: string) => {
+    setLoadingOrderLines(true)
+    setOrderLinesForDelivery([])
+    setDeliveryQuantities({})
+    try {
+      const data = await api.get<{ deliveryNotes: DeliveryNote[] }>(`/delivery-notes?salesOrderId=${orderId}&limit=100`)
+      // Find the sales order from the delivery notes
+      const salesOrder = data.deliveryNotes.find(dn => dn.salesOrderId === orderId)?.salesOrder
+      if (!salesOrder) {
+        // Fetch the sales order directly
+        const orderData = await api.get<{ orders: any[] }>(`/sales-orders?limit=1`) // fallback
+        setLoadingOrderLines(false)
+        return
+      }
+
+      const lines: OrderLineWithDelivery[] = salesOrder.lines.map((line: any) => {
+        const remaining = Math.max(0, line.quantity - line.quantityDelivered)
+        const pct = line.quantity > 0 ? Math.round((line.quantityDelivered / line.quantity) * 100) : 0
+        return {
+          id: line.id,
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          tvaRate: line.tvaRate,
+          quantityDelivered: line.quantityDelivered || 0,
+          quantityPrepared: line.quantityPrepared || 0,
+          remaining,
+          deliveryPercentage: pct,
+          product: line.product,
+        }
+      }).filter((l: OrderLineWithDelivery) => l.remaining > 0)
+
+      setOrderLinesForDelivery(lines)
+
+      // Default quantities = remaining
+      const qtyMap: Record<string, number> = {}
+      lines.forEach((l: OrderLineWithDelivery) => {
+        qtyMap[l.id] = l.remaining
+      })
+      setDeliveryQuantities(qtyMap)
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur chargement lignes')
+    } finally {
+      setLoadingOrderLines(false)
+    }
+  }
+
+  const handleOrderSelect = (orderId: string) => {
+    setSelectedOrderId(orderId)
+    if (orderId) {
+      fetchOrderLinesForDelivery(orderId)
+    } else {
+      setOrderLinesForDelivery([])
+      setDeliveryQuantities({})
+    }
+  }
+
+  // ─── Delivery quantities management ───
+
+  const updateDeliveryQuantity = (lineId: string, value: number) => {
+    setDeliveryQuantities((prev) => ({ ...prev, [lineId]: value }))
+  }
+
+  const getOrderDeliveryTotals = () => {
+    let totalHT = 0
+    let totalTVA = 0
+    orderLinesForDelivery.forEach((line) => {
+      const qty = deliveryQuantities[line.id] || 0
+      if (qty > 0) {
+        const ht = qty * line.unitPrice
+        totalHT += ht
+        totalTVA += ht * (line.tvaRate / 100)
+      }
+    })
+    return { totalHT, totalTVA, totalTTC: totalHT + totalTVA }
+  }
+
+  const hasAnyQuantity = () => {
+    return Object.values(deliveryQuantities).some((q) => q > 0)
+  }
+
   const handleCreate = async () => {
     try {
       setCreating(true)
@@ -225,11 +363,28 @@ export default function DeliveryNotesView() {
           setCreating(false)
           return
         }
+
+        // Build lines array with selected quantities
+        const lines = orderLinesForDelivery
+          .filter((l) => (deliveryQuantities[l.id] || 0) > 0)
+          .map((l) => ({
+            salesOrderLineId: l.id,
+            quantity: deliveryQuantities[l.id],
+          }))
+
+        if (lines.length === 0) {
+          toast.error('S\u00e9lectionnez au moins une quantit\u00e9 \u00e0 livrer')
+          setCreating(false)
+          return
+        }
+
         await api.post('/delivery-notes', {
           salesOrderId: selectedOrderId,
           transporteur: createTransporteur || undefined,
           vehiclePlate: createVehiclePlate || undefined,
           notes: createNotes || undefined,
+          plannedDate: createPlannedDate || undefined,
+          lines,
         })
       } else {
         // Standalone mode
@@ -248,6 +403,7 @@ export default function DeliveryNotesView() {
           transporteur: createTransporteur || undefined,
           vehiclePlate: createVehiclePlate || undefined,
           notes: createNotes || undefined,
+          plannedDate: createPlannedDate || undefined,
           lines: editableLines.map((l) => ({
             productId: l.productId,
             quantity: l.quantity,
@@ -292,7 +448,6 @@ export default function DeliveryNotesView() {
         if (l.tempId !== tempId) return l
         const updated = { ...l, [field]: value }
 
-        // When product changes, auto-fill price and tvaRate
         if (field === 'productId' && typeof value === 'string') {
           const prod = availableProducts.find((p) => p.id === value)
           if (prod) {
@@ -327,6 +482,7 @@ export default function DeliveryNotesView() {
     setEditTransporteur(note.transporteur || '')
     setEditVehiclePlate(note.vehiclePlate || '')
     setEditNotes(note.notes || '')
+    setEditPlannedDate(note.plannedDate ? format(new Date(note.plannedDate), 'yyyy-MM-dd') : '')
     setEditOpen(true)
   }
 
@@ -339,6 +495,7 @@ export default function DeliveryNotesView() {
         transporteur: editTransporteur || null,
         vehiclePlate: editVehiclePlate || null,
         notes: editNotes || null,
+        plannedDate: editPlannedDate || undefined,
       })
       toast.success(`BL ${selectedNote.number} modifi\u00e9`)
       setEditOpen(false)
@@ -517,7 +674,17 @@ export default function DeliveryNotesView() {
                 ) : (
                   deliveryNotes.map((note) => (
                     <TableRow key={note.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(note)}>
-                      <TableCell className="font-mono font-medium">{note.number}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-mono font-medium">{note.number}</span>
+                          {note.plannedDate && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <CalendarClock className="h-2.5 w-2.5" />
+                              {format(new Date(note.plannedDate), 'dd/MM/yyyy', { locale: fr })}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {note.salesOrderId ? (
                           <Badge variant="outline" className="text-xs gap-1">
@@ -593,7 +760,7 @@ export default function DeliveryNotesView() {
       {/* CREATE DIALOG                                        */}
       {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
@@ -642,35 +809,137 @@ export default function DeliveryNotesView() {
               </div>
             </div>
 
-            {/* ── Mode: With Sales Order ── */}
+            {/* ── Mode: With Sales Order (Partial Delivery) ── */}
             {createMode === 'order' && (
-              <div className="space-y-2">
-                <Label>Commande client <span className="text-destructive">*</span></Label>
-                {loadingOrders ? (
-                  <Skeleton className="h-10 w-full" />
-                ) : availableOrders.length === 0 ? (
-                  <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-                    Aucune commande pr\u00e9par\u00e9e disponible.<br />
-                    Veuillez d&apos;abord pr\u00e9parer une commande ou utilisez le mode &quot;Sans commande&quot;.
-                  </div>
-                ) : (
-                  <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="S\u00e9lectionner une commande..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableOrders.map((order) => (
-                        <SelectItem key={order.id} value={order.id}>
-                          <div className="flex flex-col">
-                            <span className="font-mono text-sm">{order.number} - {order.client.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatCurrency(order.totalTTC)}
-                            </span>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Commande client <span className="text-destructive">*</span></Label>
+                  {loadingOrders ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : availableOrders.length === 0 ? (
+                    <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+                      Aucune commande pr\u00e9par\u00e9e disponible.<br />
+                      Veuillez d&apos;abord pr\u00e9parer une commande ou utilisez le mode &quot;Sans commande&quot;.
+                    </div>
+                  ) : (
+                    <Select value={selectedOrderId} onValueChange={handleOrderSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="S\u00e9lectionner une commande..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableOrders.map((order) => (
+                          <SelectItem key={order.id} value={order.id}>
+                            <div className="flex flex-col">
+                              <span className="font-mono text-sm">{order.number} - {order.client.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatCurrency(order.totalTTC)}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {/* Order Lines with Delivery Tracking */}
+                {selectedOrderId && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Lignes \u00e0 livrer</Label>
+                      {orderLinesForDelivery.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {orderLinesForDelivery.length} ligne(s) restante(s)
+                        </span>
+                      )}
+                    </div>
+
+                    {loadingOrderLines ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+                        <span className="text-sm text-muted-foreground">Chargement des lignes...</span>
+                      </div>
+                    ) : orderLinesForDelivery.length === 0 ? (
+                      <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4" />
+                          <span>Cette commande est d\u00e9j\u00e0 enti\u00e8rement livr\u00e9e.</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-md border">
+                        <div className="max-h-[250px] overflow-y-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[30%]">Produit</TableHead>
+                                <TableHead className="text-right w-[12%]">Command\u00e9</TableHead>
+                                <TableHead className="text-right w-[12%]">Livr\u00e9</TableHead>
+                                <TableHead className="text-right w-[12%]">Restant</TableHead>
+                                <TableHead className="text-center w-[10%]">Avanc.</TableHead>
+                                <TableHead className="text-right w-[14%]">Qt\u00e9 BL</TableHead>
+                                <TableHead className="text-right w-[15%]">Total HT</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {orderLinesForDelivery.map((line) => (
+                                <TableRow key={line.id}>
+                                  <TableCell className="text-xs">
+                                    <div className="flex items-center gap-1.5">
+                                      <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                      <div className="min-w-0">
+                                        <p className="font-medium truncate">{line.product?.designation}</p>
+                                        <p className="text-muted-foreground font-mono">{line.product?.reference}</p>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm">{line.quantity}</TableCell>
+                                  <TableCell className="text-right text-sm text-blue-600 font-medium">{line.quantityDelivered}</TableCell>
+                                  <TableCell className="text-right text-sm text-amber-600 font-semibold">{line.remaining}</TableCell>
+                                  <TableCell className="text-center">
+                                    <DeliveryBadge percentage={line.deliveryPercentage} />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max={line.remaining}
+                                      step="0.01"
+                                      value={deliveryQuantities[line.id] ?? 0}
+                                      onChange={(e) => updateDeliveryQuantity(line.id, Math.min(parseFloat(e.target.value) || 0, line.remaining))}
+                                      className="h-8 text-right text-sm"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm font-medium">
+                                    {formatCurrency((deliveryQuantities[line.id] || 0) * line.unitPrice)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                        {/* Totals */}
+                        {hasAnyQuantity() && (
+                          <div className="flex justify-end p-3 border-t bg-muted/30">
+                            <div className="w-64 space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Total HT</span>
+                                <span className="font-medium">{formatCurrency(getOrderDeliveryTotals().totalHT)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Total TVA</span>
+                                <span className="font-medium">{formatCurrency(getOrderDeliveryTotals().totalTVA)}</span>
+                              </div>
+                              <div className="flex justify-between border-t pt-1 font-semibold text-base">
+                                <span>Total TTC</span>
+                                <span>{formatCurrency(getOrderDeliveryTotals().totalTTC)}</span>
+                              </div>
+                            </div>
                           </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -831,6 +1100,20 @@ export default function DeliveryNotesView() {
               </>
             )}
 
+            {/* Planned Date */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5" />
+                Date pr\u00e9vue de livraison
+              </Label>
+              <Input
+                type="date"
+                value={createPlannedDate}
+                onChange={(e) => setCreatePlannedDate(e.target.value)}
+                placeholder="Date pr\u00e9vue..."
+              />
+            </div>
+
             {/* Transporteur */}
             <div className="space-y-2">
               <Label>Transporteur</Label>
@@ -869,7 +1152,7 @@ export default function DeliveryNotesView() {
               onClick={handleCreate}
               disabled={
                 creating ||
-                (createMode === 'order' && !selectedOrderId) ||
+                (createMode === 'order' && (!selectedOrderId || !hasAnyQuantity())) ||
                 (createMode === 'standalone' && (!selectedClientId || editableLines.length === 0))
               }
             >
@@ -920,6 +1203,18 @@ export default function DeliveryNotesView() {
             </div>
 
             <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5" />
+                Date pr\u00e9vue de livraison
+              </Label>
+              <Input
+                type="date"
+                value={editPlannedDate}
+                onChange={(e) => setEditPlannedDate(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label>Transporteur</Label>
               <Input
                 value={editTransporteur}
@@ -960,9 +1255,9 @@ export default function DeliveryNotesView() {
       {/* DETAIL DIALOG                                        */}
       {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
               <Truck className="h-5 w-5" />
               {selectedNote?.number}
               {selectedNote && (
@@ -998,81 +1293,144 @@ export default function DeliveryNotesView() {
                   <p className="font-medium">{selectedNote.client.name}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Transporteur</span>
-                  <p className="font-medium">{selectedNote.transporteur || '\u2014'}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Immatriculation</span>
-                  <p className="font-medium">{selectedNote.vehiclePlate || '\u2014'}</p>
-                </div>
-                <div>
                   <span className="text-muted-foreground">Date de cr\u00e9ation</span>
-                  <p className="font-medium">
-                    {format(new Date(selectedNote.date), 'dd/MM/yyyy', { locale: fr })}
-                  </p>
+                  <p className="font-medium">{format(new Date(selectedNote.date), 'dd/MM/yyyy', { locale: fr })}</p>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Date de livraison</span>
-                  <p className="font-medium">
-                    {selectedNote.deliveryDate
-                      ? format(new Date(selectedNote.deliveryDate), 'dd/MM/yyyy \u00e0 HH:mm', { locale: fr })
-                      : '\u2014'}
-                  </p>
-                </div>
+                {selectedNote.plannedDate && (
+                  <div>
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <CalendarClock className="h-3 w-3" /> Date pr\u00e9vue
+                    </span>
+                    <p className="font-medium">{format(new Date(selectedNote.plannedDate), 'dd/MM/yyyy', { locale: fr })}</p>
+                  </div>
+                )}
+                {selectedNote.deliveryDate && (
+                  <div>
+                    <span className="text-muted-foreground">Date de livraison</span>
+                    <p className="font-medium">{format(new Date(selectedNote.deliveryDate), 'dd/MM/yyyy', { locale: fr })}</p>
+                  </div>
+                )}
               </div>
 
-              {/* Lines Table */}
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Articles livr\u00e9s</h4>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Produit</TableHead>
-                        <TableHead className="text-right">Qt\u00e9</TableHead>
-                        <TableHead className="text-right">P.U. HT</TableHead>
-                        <TableHead className="text-right">TVA</TableHead>
-                        <TableHead className="text-right">Total HT</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedNote.lines && selectedNote.lines.length > 0
-                        ? selectedNote.lines.map((line) => (
-                            <TableRow key={line.id}>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-2">
-                                  <Package className="h-4 w-4 text-muted-foreground" />
-                                  {line.product?.reference} - {line.product?.designation}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">{line.quantity}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
-                              <TableCell className="text-right">{line.tvaRate}%</TableCell>
-                              <TableCell className="text-right">{formatCurrency(line.totalHT)}</TableCell>
-                            </TableRow>
-                          ))
-                        : selectedNote.salesOrder?.lines?.map((line) => (
-                            <TableRow key={line.id}>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-2">
-                                  <Package className="h-4 w-4 text-muted-foreground" />
-                                  {line.product?.reference} - {line.product?.designation}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">{line.quantity}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
-                              <TableCell className="text-right">{line.tvaRate}%</TableCell>
-                              <TableCell className="text-right">{formatCurrency(line.totalHT)}</TableCell>
-                            </TableRow>
-                          ))}
-                    </TableBody>
-                  </Table>
+              {selectedNote.transporteur && (
+                <div className="rounded-md bg-muted/50 p-3 text-sm grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-muted-foreground">Transporteur</span>
+                    <p className="font-medium">{selectedNote.transporteur}</p>
+                  </div>
+                  {selectedNote.vehiclePlate && (
+                    <div>
+                      <span className="text-muted-foreground">Immatriculation</span>
+                      <p className="font-medium">{selectedNote.vehiclePlate}</p>
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* ── Delivery Tracking (for linked orders) ── */}
+              {selectedNote.salesOrderId && selectedNote.salesOrderLinesTracking && selectedNote.salesOrderLinesTracking.length > 0 && (
+                <div className="rounded-md border p-4">
+                  <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-blue-600" />
+                    Suivi de livraison par ligne de commande
+                  </h4>
+                  <div className="max-h-[200px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produit</TableHead>
+                          <TableHead className="text-right">Command\u00e9</TableHead>
+                          <TableHead className="text-right">Livr\u00e9</TableHead>
+                          <TableHead className="text-right">Restant</TableHead>
+                          <TableHead className="text-center">Avancement</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedNote.salesOrderLinesTracking.map((track) => (
+                          <TableRow key={track.id}>
+                            <TableCell className="text-xs">
+                              {selectedNote.salesOrder?.lines.find(l => l.id === track.id)?.product?.reference} -{' '}
+                              {selectedNote.salesOrder?.lines.find(l => l.id === track.id)?.product?.designation}
+                            </TableCell>
+                            <TableCell className="text-right">{track.quantity}</TableCell>
+                            <TableCell className="text-right text-blue-600 font-medium">{track.quantityDelivered}</TableCell>
+                            <TableCell className="text-right">
+                              <span className={track.remainingQuantity > 0 ? 'text-amber-600 font-semibold' : 'text-green-600'}>
+                                {track.remainingQuantity}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <DeliveryBadge percentage={track.deliveryPercentage} />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {/* Lines table */}
+              <div className="max-h-[300px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Produit</TableHead>
+                      <TableHead className="text-right">Qt\u00e9 BL</TableHead>
+                      {selectedNote.salesOrderId && (
+                        <>
+                          <TableHead className="text-right">D\u00e9j\u00e0 livr\u00e9</TableHead>
+                          <TableHead className="text-right">Reste apr\u00e8s</TableHead>
+                        </>
+                      )}
+                      <TableHead className="text-right">P.U. HT</TableHead>
+                      <TableHead className="text-right">Total HT</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedNote.lines.map((line) => (
+                      <TableRow key={line.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-1.5">
+                            <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm">{line.product?.designation}</p>
+                              <p className="text-xs text-muted-foreground font-mono">{line.product?.reference}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">{line.quantity}</TableCell>
+                        {selectedNote.salesOrderId && (
+                          <>
+                            <TableCell className="text-right text-sm">
+                              {line.previouslyDelivered !== undefined && line.previouslyDelivered > 0 ? (
+                                <span className="text-blue-600">{line.previouslyDelivered}</span>
+                              ) : (
+                                <span className="text-muted-foreground">0</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right text-sm">
+                              {line.remainingAfterDelivery !== null && line.remainingAfterDelivery !== undefined ? (
+                                <span className={line.remainingAfterDelivery > 0 ? 'text-amber-600 font-medium' : 'text-green-600 font-medium'}>
+                                  {line.remainingAfterDelivery}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">\u2014</span>
+                              )}
+                            </TableCell>
+                          </>
+                        )}
+                        <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(line.totalHT)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
 
               {/* Totals */}
               <div className="flex justify-end">
-                <div className="w-64 space-y-2 text-sm">
+                <div className="w-72 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total HT</span>
                     <span className="font-medium">{formatCurrency(selectedNote.totalHT)}</span>
@@ -1081,46 +1439,47 @@ export default function DeliveryNotesView() {
                     <span className="text-muted-foreground">Total TVA</span>
                     <span className="font-medium">{formatCurrency(selectedNote.totalTVA)}</span>
                   </div>
-                  <div className="flex justify-between border-t pt-2 font-semibold text-base">
+                  <div className="flex justify-between text-base font-bold border-t pt-2">
                     <span>Total TTC</span>
                     <span>{formatCurrency(selectedNote.totalTTC)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Notes */}
               {selectedNote.notes && (
-                <div className="text-sm">
+                <div className="rounded-md bg-muted/50 p-3 text-sm">
                   <div className="flex items-start gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <div>
-                      <span className="text-muted-foreground">Notes : </span>
-                      <span>{selectedNote.notes}</span>
-                    </div>
+                    <FileText className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <span>{selectedNote.notes}</span>
                   </div>
                 </div>
               )}
 
-              {/* Actions in detail */}
-              <div className="flex flex-wrap justify-end gap-2 pt-2 border-t">
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2">
                 {selectedNote.status === 'draft' && (
                   <>
-                    <Button variant="outline" className="gap-2" onClick={() => { setDetailOpen(false); openEditDialog(selectedNote) }}>
-                      <Pencil className="h-4 w-4" /> Modifier
+                    <Button variant="outline" size="sm" onClick={() => { setDetailOpen(false); openEditDialog(selectedNote) }}>
+                      <Pencil className="h-4 w-4 mr-1" /> Modifier
                     </Button>
-                    <Button className="gap-2" onClick={() => { setDetailOpen(false); handleConfirm(selectedNote) }}>
-                      <CheckCircle className="h-4 w-4" /> Confirmer
+                    <Button size="sm" onClick={() => { setDetailOpen(false); handleConfirm(selectedNote) }}>
+                      <CheckCircle className="h-4 w-4 mr-1" /> Confirmer
                     </Button>
                   </>
                 )}
+                {(selectedNote.status === 'draft' || selectedNote.status === 'confirmed') && (
+                  <Button size="sm" variant="destructive" onClick={() => { setDetailOpen(false); handleCancel(selectedNote.id) }}>
+                    <XCircle className="h-4 w-4 mr-1" /> Annuler
+                  </Button>
+                )}
                 {selectedNote.status === 'confirmed' && (
-                  <Button className="gap-2" onClick={() => { setDetailOpen(false); handleDeliver(selectedNote) }}>
-                    <Truck className="h-4 w-4" /> Marquer comme livr\u00e9
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => { setDetailOpen(false); handleDeliver(selectedNote) }}>
+                    <Truck className="h-4 w-4 mr-1" /> Marquer livr\u00e9
                   </Button>
                 )}
                 {(selectedNote.status === 'draft' || selectedNote.status === 'cancelled') && (
-                  <Button variant="destructive" className="gap-2" onClick={() => { setDetailOpen(false); confirmDelete(selectedNote.id) }}>
-                    <Trash2 className="h-4 w-4" /> Supprimer
+                  <Button size="sm" variant="destructive" onClick={() => { setDetailOpen(false); confirmDelete(selectedNote.id) }}>
+                    <Trash2 className="h-4 w-4 mr-1" /> Supprimer
                   </Button>
                 )}
               </div>
@@ -1130,17 +1489,14 @@ export default function DeliveryNotesView() {
       </Dialog>
 
       {/* ═══════════════════════════════════════════════════════ */}
-      {/* DELETE CONFIRM DIALOG                                 */}
+      {/* DELETE DIALOG                                        */}
       {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              Supprimer le bon de livraison
-            </DialogTitle>
+            <DialogTitle>Supprimer le bon de livraison</DialogTitle>
             <DialogDescription>
-              Cette action est irr\u00e9versible. \u00cates-vous s\u00fbr de vouloir supprimer ce bon de livraison ?
+              \u00cates-vous s\u00fbr de vouloir supprimer ce bon de livraison ? Cette action est irr\u00e9versible.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

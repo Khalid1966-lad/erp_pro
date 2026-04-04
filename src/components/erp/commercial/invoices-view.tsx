@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   Receipt, Plus, Search, MoreVertical, Eye, Send, CheckCircle,
-  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw
+  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -43,6 +44,20 @@ interface InvoiceLine {
   tvaRate: number
   totalHT?: number
   product?: { id: string; reference: string; designation: string }
+}
+
+interface InvoiceDeliveryNoteRel {
+  id: string
+  deliveryNoteId: string
+  deliveryNote: {
+    id: string
+    number: string
+    date: string
+    totalHT: number
+    totalTVA: number
+    totalTTC: number
+    status: string
+  }
 }
 
 interface Invoice {
@@ -63,10 +78,32 @@ interface Invoice {
   lines: InvoiceLine[]
   payments: { id: string; amount: number; date: string; method: string }[]
   creditNotes: { id: string; number: string; totalTTC: number }[]
+  deliveryNotes: InvoiceDeliveryNoteRel[]
 }
 
 interface Client { id: string; name: string }
 interface Product { id: string; reference: string; designation: string; priceHT: number; tvaRate: number }
+
+interface UninvoicedBL {
+  id: string
+  number: string
+  status: string
+  date: string
+  deliveryDate: string | null
+  totalHT: number
+  totalTVA: number
+  totalTTC: number
+  salesOrder: { id: string; number: string } | null
+  client: { id: string; name: string }
+  lines: {
+    id: string
+    quantity: number
+    unitPrice: number
+    tvaRate: number
+    totalHT: number
+    product: { id: string; reference: string; designation: string }
+  }[]
+}
 
 const statusLabels: Record<string, string> = {
   draft: 'Brouillon',
@@ -93,6 +130,8 @@ const emptyLine = (): InvoiceLine => ({
   tvaRate: 20
 })
 
+type CreateMode = 'manual' | 'from_bl'
+
 export default function InvoicesView() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -105,13 +144,26 @@ export default function InvoicesView() {
   const [clients, setClients] = useState<Client[]>([])
   const [products, setProducts] = useState<Product[]>([])
 
-  // Form state
+  // Create mode
+  const [createMode, setCreateMode] = useState<CreateMode>('manual')
+
+  // Form state (manual mode)
   const [formClientId, setFormClientId] = useState('')
   const [formDueDate, setFormDueDate] = useState('')
   const [formDiscountRate, setFormDiscountRate] = useState('0')
   const [formShippingCost, setFormShippingCost] = useState('0')
   const [formNotes, setFormNotes] = useState('')
   const [formLines, setFormLines] = useState<InvoiceLine[]>([emptyLine()])
+
+  // BL mode state
+  const [blClientId, setBlClientId] = useState('')
+  const [uninvoicedBLs, setUninvoicedBLs] = useState<UninvoicedBL[]>([])
+  const [selectedBLIds, setSelectedBLIds] = useState<string[]>([])
+  const [loadingBLs, setLoadingBLs] = useState(false)
+  const [blDueDate, setBlDueDate] = useState('')
+  const [blDiscountRate, setBlDiscountRate] = useState('0')
+  const [blShippingCost, setBlShippingCost] = useState('0')
+  const [blNotes, setBlNotes] = useState('')
 
   const fetchInvoices = async () => {
     try {
@@ -148,6 +200,7 @@ export default function InvoicesView() {
 
   const handleSearch = () => fetchInvoices()
 
+  // ─── Manual mode totals ───
   const calcFormTotals = useMemo(() => {
     let totalHT = 0
     let totalTVA = 0
@@ -166,16 +219,49 @@ export default function InvoicesView() {
     return { totalHT: finalHT, totalTVA: finalTVA, totalTTC: finalHT + finalTVA }
   }, [formLines, formDiscountRate, formShippingCost])
 
+  // ─── BL mode totals ───
+  const blSelectedBLs = useMemo(
+    () => uninvoicedBLs.filter((bl) => selectedBLIds.includes(bl.id)),
+    [uninvoicedBLs, selectedBLIds]
+  )
+
+  const blFormTotals = useMemo(() => {
+    let totalHT = 0
+    let totalTVA = 0
+    for (const bl of blSelectedBLs) {
+      totalHT += bl.totalHT
+      totalTVA += bl.totalTVA
+    }
+    const discountRate = parseFloat(blDiscountRate) || 0
+    const shippingCost = parseFloat(blShippingCost) || 0
+    const discountedHT = totalHT * (1 - discountRate / 100)
+    const finalHT = discountedHT + shippingCost
+    const finalTVA = totalTVA * (1 - discountRate / 100)
+    return { totalHT: finalHT, totalTVA: finalTVA, totalTTC: finalHT + finalTVA }
+  }, [blSelectedBLs, blDiscountRate, blShippingCost])
+
+  // ─── Open create dialog ───
   const openCreate = () => {
     setSelectedInvoice(null)
+    setCreateMode('manual')
+    // Reset manual form
     setFormClientId('')
     const in30 = new Date()
     in30.setDate(in30.getDate() + 30)
-    setFormDueDate(in30.toISOString().slice(0, 10))
+    const dateStr = in30.toISOString().slice(0, 10)
+    setFormDueDate(dateStr)
     setFormDiscountRate('0')
     setFormShippingCost('0')
     setFormNotes('')
     setFormLines([emptyLine()])
+    // Reset BL form
+    setBlClientId('')
+    setUninvoicedBLs([])
+    setSelectedBLIds([])
+    setBlDueDate(dateStr)
+    setBlDiscountRate('0')
+    setBlShippingCost('0')
+    setBlNotes('')
     setDialogOpen(true)
   }
 
@@ -183,6 +269,31 @@ export default function InvoicesView() {
     setSelectedInvoice(invoice)
     setDetailOpen(true)
   }
+
+  // ─── Fetch uninvoiced BLs when BL client changes ───
+  useEffect(() => {
+    if (createMode !== 'from_bl' || !blClientId || !dialogOpen) {
+      setUninvoicedBLs([])
+      setSelectedBLIds([])
+      return
+    }
+    const fetchBLs = async () => {
+      try {
+        setLoadingBLs(true)
+        const data = await api.get<{ deliveryNotes: UninvoicedBL[] }>(
+          `/invoices/uninvoiced-bls?clientId=${blClientId}`
+        )
+        setUninvoicedBLs(data.deliveryNotes || [])
+        setSelectedBLIds([])
+      } catch (err: any) {
+        toast.error(err.message || 'Erreur chargement BLs')
+        setUninvoicedBLs([])
+      } finally {
+        setLoadingBLs(false)
+      }
+    }
+    fetchBLs()
+  }, [blClientId, createMode, dialogOpen])
 
   const handleAction = async (invoice: Invoice, action: string) => {
     try {
@@ -210,7 +321,8 @@ export default function InvoicesView() {
     }
   }
 
-  const handleSave = async () => {
+  // ─── Save manual invoice ───
+  const handleSaveManual = async () => {
     if (!formClientId) {
       toast.error('Veuillez sélectionner un client')
       return
@@ -221,7 +333,7 @@ export default function InvoicesView() {
       return
     }
     if (!formDueDate) {
-      toast.error('Veuillez indiquer une date d\'échéance')
+      toast.error("Veuillez indiquer une date d'échéance")
       return
     }
 
@@ -251,6 +363,42 @@ export default function InvoicesView() {
     }
   }
 
+  // ─── Save invoice from BLs ───
+  const handleSaveFromBL = async () => {
+    if (!blClientId) {
+      toast.error('Veuillez sélectionner un client')
+      return
+    }
+    if (selectedBLIds.length === 0) {
+      toast.error('Veuillez sélectionner au moins un bon de livraison')
+      return
+    }
+    if (!blDueDate) {
+      toast.error("Veuillez indiquer une date d'échéance")
+      return
+    }
+
+    try {
+      setSaving(true)
+      const dueDateISO = new Date(blDueDate + 'T23:59:59.000Z').toISOString()
+      await api.post('/invoices', {
+        clientId: blClientId,
+        deliveryNoteIds: selectedBLIds,
+        dueDate: dueDateISO,
+        discountRate: parseFloat(blDiscountRate) || 0,
+        shippingCost: parseFloat(blShippingCost) || 0,
+        notes: blNotes || undefined,
+      })
+      toast.success(`Facture créée depuis ${selectedBLIds.length} BL(s)`)
+      setDialogOpen(false)
+      fetchInvoices()
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur création')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const addLine = () => setFormLines([...formLines, emptyLine()])
   const removeLine = (idx: number) => setFormLines(formLines.filter((_, i) => i !== idx))
   const updateLine = (idx: number, field: keyof InvoiceLine, value: any) => {
@@ -264,6 +412,20 @@ export default function InvoicesView() {
       }
     }
     setFormLines(updated)
+  }
+
+  const toggleBL = (blId: string) => {
+    setSelectedBLIds((prev) =>
+      prev.includes(blId) ? prev.filter((id) => id !== blId) : [...prev, blId]
+    )
+  }
+
+  const toggleAllBLs = () => {
+    if (selectedBLIds.length === uninvoicedBLs.length) {
+      setSelectedBLIds([])
+    } else {
+      setSelectedBLIds(uninvoicedBLs.map((bl) => bl.id))
+    }
   }
 
   const getActions = (invoice: Invoice) => {
@@ -373,9 +535,17 @@ export default function InvoicesView() {
                       <TableCell>
                         <div>
                           <span className="font-medium">{invoice.client.name}</span>
-                          {invoice.salesOrder && (
-                            <p className="text-xs text-muted-foreground">BC {invoice.salesOrder.number}</p>
-                          )}
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {invoice.salesOrder && (
+                              <span className="text-xs text-muted-foreground">BC {invoice.salesOrder.number}</span>
+                            )}
+                            {invoice.deliveryNotes && invoice.deliveryNotes.length > 0 && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-medium bg-amber-50 text-amber-700 border-amber-200">
+                                <Truck className="h-2.5 w-2.5 mr-0.5" />
+                                {invoice.deliveryNotes.length} BL
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
@@ -462,126 +632,350 @@ export default function InvoicesView() {
             <DialogTitle>Nouvelle facture</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Client *</Label>
-                <Select value={formClientId} onValueChange={setFormClientId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Date d&apos;échéance *</Label>
-                <Input type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
-              </div>
+            {/* Mode Toggle */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={createMode === 'manual' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setCreateMode('manual')}
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                Manuelle
+              </Button>
+              <Button
+                type="button"
+                variant={createMode === 'from_bl' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setCreateMode('from_bl')}
+              >
+                <Truck className="h-4 w-4 mr-1" />
+                Depuis BL
+              </Button>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Lignes</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addLine}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Ajouter
-                </Button>
-              </div>
-              <div className="rounded border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[220px]">Produit</TableHead>
-                      <TableHead className="w-[80px]">Qté</TableHead>
-                      <TableHead className="w-[100px]">P.U. HT</TableHead>
-                      <TableHead className="w-[80px]">TVA %</TableHead>
-                      <TableHead className="w-[100px] text-right">Total HT</TableHead>
-                      <TableHead className="w-[40px]" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {formLines.map((line, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>
-                          <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Produit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>{p.reference} - {p.designation}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Input type="number" min="0.01" step="1" value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)} className="w-full" />
-                        </TableCell>
-                        <TableCell>
-                          <Input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateLine(idx, 'unitPrice', parseFloat(e.target.value) || 0)} className="w-full" />
-                        </TableCell>
-                        <TableCell>
-                          <Select value={String(line.tvaRate)} onValueChange={(v) => updateLine(idx, 'tvaRate', parseFloat(v))}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0">0%</SelectItem>
-                              <SelectItem value="2.1">2,1%</SelectItem>
-                              <SelectItem value="5.5">5,5%</SelectItem>
-                              <SelectItem value="10">10%</SelectItem>
-                              <SelectItem value="20">20%</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="text-right font-medium text-sm">
-                          {line.productId ? formatCurrency(line.quantity * line.unitPrice) : '—'}
-                        </TableCell>
-                        <TableCell>
-                          {formLines.length > 1 && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+            {/* ═══ MANUAL MODE ═══ */}
+            {createMode === 'manual' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Client *</Label>
+                    <Select value={formClientId} onValueChange={setFormClientId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date d&apos;échéance *</Label>
+                    <Input type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Lignes</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ajouter
+                    </Button>
+                  </div>
+                  <div className="rounded border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[220px]">Produit</TableHead>
+                          <TableHead className="w-[80px]">Qté</TableHead>
+                          <TableHead className="w-[100px]">P.U. HT</TableHead>
+                          <TableHead className="w-[80px]">TVA %</TableHead>
+                          <TableHead className="w-[100px] text-right">Total HT</TableHead>
+                          <TableHead className="w-[40px]" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {formLines.map((line, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>
+                              <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Produit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {products.map((p) => (
+                                    <SelectItem key={p.id} value={p.id}>{p.reference} - {p.designation}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Input type="number" min="0.01" step="1" value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)} className="w-full" />
+                            </TableCell>
+                            <TableCell>
+                              <Input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateLine(idx, 'unitPrice', parseFloat(e.target.value) || 0)} className="w-full" />
+                            </TableCell>
+                            <TableCell>
+                              <Select value={String(line.tvaRate)} onValueChange={(v) => updateLine(idx, 'tvaRate', parseFloat(v))}>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0">0%</SelectItem>
+                                  <SelectItem value="7">7%</SelectItem>
+                                  <SelectItem value="10">10%</SelectItem>
+                                  <SelectItem value="14">14%</SelectItem>
+                                  <SelectItem value="20">20%</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="text-right font-medium text-sm">
+                              {line.productId ? formatCurrency(line.quantity * line.unitPrice) : '—'}
+                            </TableCell>
+                            <TableCell>
+                              {formLines.length > 1 && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Remise globale (%)</Label>
+                    <Input type="number" min="0" max="100" step="1" value={formDiscountRate} onChange={(e) => setFormDiscountRate(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Frais de port (MAD)</Label>
+                    <Input type="number" min="0" step="0.01" value={formShippingCost} onChange={(e) => setFormShippingCost(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Notes internes..." rows={2} />
+                </div>
+
+                {/* Totals */}
+                <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(calcFormTotals.totalHT)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(calcFormTotals.totalTVA)}</span></div>
+                  <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(calcFormTotals.totalTTC)}</span></div>
+                </div>
+              </>
+            )}
+
+            {/* ═══ FROM BL MODE ═══ */}
+            {createMode === 'from_bl' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Client *</Label>
+                    <Select value={blClientId} onValueChange={(v) => {
+                      setBlClientId(v)
+                      setFormClientId(v) // sync for reference
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date d&apos;échéance *</Label>
+                    <Input type="date" value={blDueDate} onChange={(e) => setBlDueDate(e.target.value)} />
+                  </div>
+                </div>
+
+                {/* BL Selection */}
+                {blClientId && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-1">
+                        <Truck className="h-4 w-4" />
+                        Bons de livraison disponibles
+                      </Label>
+                      {uninvoicedBLs.length > 0 && (
+                        <Button type="button" variant="ghost" size="sm" onClick={toggleAllBLs}>
+                          {selectedBLIds.length === uninvoicedBLs.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                        </Button>
+                      )}
+                    </div>
+
+                    {loadingBLs ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                      </div>
+                    ) : uninvoicedBLs.length === 0 ? (
+                      <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
+                        <Truck className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        Aucun BL livré ou confirmé disponible pour ce client.
+                      </div>
+                    ) : (
+                      <div className="rounded border max-h-[240px] overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[40px]">
+                                <Checkbox
+                                  checked={selectedBLIds.length === uninvoicedBLs.length && uninvoicedBLs.length > 0}
+                                  onCheckedChange={toggleAllBLs}
+                                />
+                              </TableHead>
+                              <TableHead>N° BL</TableHead>
+                              <TableHead className="hidden md:table-cell">Date</TableHead>
+                              <TableHead className="hidden md:table-cell">Commande</TableHead>
+                              <TableHead className="text-right">Nb articles</TableHead>
+                              <TableHead className="text-right">Total TTC</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {uninvoicedBLs.map((bl) => (
+                              <TableRow
+                                key={bl.id}
+                                className={selectedBLIds.includes(bl.id) ? 'bg-amber-50/50' : 'cursor-pointer'}
+                                onClick={() => toggleBL(bl.id)}
+                              >
+                                <TableCell onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    checked={selectedBLIds.includes(bl.id)}
+                                    onCheckedChange={() => toggleBL(bl.id)}
+                                  />
+                                </TableCell>
+                                <TableCell className="font-mono font-medium text-sm">{bl.number}</TableCell>
+                                <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                                  {format(new Date(bl.date), 'dd/MM/yyyy', { locale: fr })}
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                                  {bl.salesOrder ? (
+                                    <span className="font-mono">{bl.salesOrder.number}</span>
+                                  ) : (
+                                    <span className="italic">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right text-sm">{bl.lines.length}</TableCell>
+                                <TableCell className="text-right font-medium text-sm">{formatCurrency(bl.totalTTC)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+
+                    {/* Selected BLs summary */}
+                    {selectedBLIds.length > 0 && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-1.5 text-sm">
+                        <p className="font-medium text-amber-800">
+                          {selectedBLIds.length} BL sélectionné{selectedBLIds.length > 1 ? 's' : ''} :
+                        </p>
+                        <div className="space-y-1">
+                          {blSelectedBLs.map((bl) => (
+                            <div key={bl.id} className="flex items-center justify-between text-amber-700">
+                              <span className="font-mono text-xs">{bl.number}</span>
+                              <span className="text-xs">{formatCurrency(bl.totalTTC)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!blClientId && (
+                  <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
+                    <Truck className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    Sélectionnez un client pour voir les BLs disponibles.
+                  </div>
+                )}
+
+                {/* BL aggregated lines preview */}
+                {selectedBLIds.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Aperçu des lignes</Label>
+                    <div className="rounded border max-h-[200px] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Produit</TableHead>
+                            <TableHead className="text-right">Qté</TableHead>
+                            <TableHead className="text-right">P.U. HT</TableHead>
+                            <TableHead className="text-right">TVA</TableHead>
+                            <TableHead className="text-right">Total HT</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {blSelectedBLs.flatMap((bl) =>
+                            bl.lines.map((line) => (
+                              <TableRow key={`${bl.id}-${line.id}`}>
+                                <TableCell className="text-sm">
+                                  {line.product.reference} - {line.product.designation}
+                                </TableCell>
+                                <TableCell className="text-right text-sm">{line.quantity}</TableCell>
+                                <TableCell className="text-right text-sm">{formatCurrency(line.unitPrice)}</TableCell>
+                                <TableCell className="text-right text-sm">{line.tvaRate}%</TableCell>
+                                <TableCell className="text-right font-medium text-sm">{formatCurrency(line.totalHT)}</TableCell>
+                              </TableRow>
+                            ))
                           )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Remise globale (%)</Label>
-                <Input type="number" min="0" max="100" step="1" value={formDiscountRate} onChange={(e) => setFormDiscountRate(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Frais de port (€)</Label>
-                <Input type="number" min="0" step="0.01" value={formShippingCost} onChange={(e) => setFormShippingCost(e.target.value)} />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Remise globale (%)</Label>
+                    <Input type="number" min="0" max="100" step="1" value={blDiscountRate} onChange={(e) => setBlDiscountRate(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Frais de port (MAD)</Label>
+                    <Input type="number" min="0" step="0.01" value={blShippingCost} onChange={(e) => setBlShippingCost(e.target.value)} />
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Notes internes..." rows={2} />
-            </div>
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea value={blNotes} onChange={(e) => setBlNotes(e.target.value)} placeholder="Notes internes..." rows={2} />
+                </div>
 
-            {/* Totals */}
-            <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(calcFormTotals.totalHT)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(calcFormTotals.totalTVA)}</span></div>
-              <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(calcFormTotals.totalTTC)}</span></div>
-            </div>
+                {/* BL Totals */}
+                <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
+                  {selectedBLIds.length > 0 && (
+                    <div className="flex justify-between"><span className="text-muted-foreground">Sous-total BLs</span><span>{formatCurrency(blSelectedBLs.reduce((a, b) => a + b.totalHT, 0))}</span></div>
+                  )}
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(blFormTotals.totalHT)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(blFormTotals.totalTVA)}</span></div>
+                  <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(blFormTotals.totalTTC)}</span></div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Création...' : 'Créer la facture'}
-            </Button>
+            {createMode === 'manual' ? (
+              <Button onClick={handleSaveManual} disabled={saving}>
+                {saving ? 'Création...' : 'Créer la facture'}
+              </Button>
+            ) : (
+              <Button onClick={handleSaveFromBL} disabled={saving || selectedBLIds.length === 0}>
+                {saving ? 'Création...' : `Créer la facture (${selectedBLIds.length} BL)`}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -596,6 +990,12 @@ export default function InvoicesView() {
               {selectedInvoice && (
                 <Badge variant="secondary" className={statusColors[selectedInvoice.status]}>
                   {statusLabels[selectedInvoice.status]}
+                </Badge>
+              )}
+              {selectedInvoice && selectedInvoice.deliveryNotes.length > 0 && (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                  <Truck className="h-3 w-3 mr-1" />
+                  {selectedInvoice.deliveryNotes.length} BL
                 </Badge>
               )}
             </DialogTitle>
@@ -619,6 +1019,45 @@ export default function InvoicesView() {
                 <div className="text-sm">
                   <span className="text-muted-foreground">Commande associée :</span>{' '}
                   <span className="font-mono font-medium">{selectedInvoice.salesOrder.number}</span>
+                </div>
+              )}
+
+              {/* Linked BLs section */}
+              {selectedInvoice.deliveryNotes.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold flex items-center gap-1">
+                    <Truck className="h-4 w-4 text-amber-600" /> Bons de livraison facturés
+                  </h4>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-amber-100/50">
+                          <TableHead>N° BL</TableHead>
+                          <TableHead className="hidden md:table-cell">Date</TableHead>
+                          <TableHead className="hidden md:table-cell">Statut</TableHead>
+                          <TableHead className="text-right">Total TTC</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedInvoice.deliveryNotes.map((rel) => (
+                          <TableRow key={rel.id}>
+                            <TableCell className="font-mono font-medium text-sm">{rel.deliveryNote.number}</TableCell>
+                            <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                              {format(new Date(rel.deliveryNote.date), 'dd/MM/yyyy', { locale: fr })}
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              <Badge variant="secondary" className={
+                                rel.deliveryNote.status === 'delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                              }>
+                                {rel.deliveryNote.status === 'delivered' ? 'Livré' : 'Confirmé'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-medium text-sm">{formatCurrency(rel.deliveryNote.totalTTC)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
 

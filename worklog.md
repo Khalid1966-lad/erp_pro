@@ -376,3 +376,278 @@ Stage Summary:
 - Full CRUD: Create (2 modes), Edit, Detail view, Delete, Status transitions
 - Schema: `salesOrderId String?` on DeliveryNote, `salesOrderLineId String?` on DeliveryNoteLine
 - No PostgreSQL-specific features used, SQLite compatible locally
+
+---
+## Task ID: 3 - smart-deliveries-sales-tracking
+### Work Task
+Phase 2: Implement smart partial deliveries with quantityDelivered tracking on SalesOrderLine, plannedDate support, delivery percentage calculations, and sales order delivery tracking UI with progress bars and "Create BL" navigation.
+
+### Work Summary
+
+**Part A: Rewrite `src/app/api/delivery-notes/route.ts`:**
+
+1. **Partial delivery support (POST from order)**:
+   - Added `partialLineSchema` with `salesOrderLineId` (required) and `quantity` (positive)
+   - `createFromOrderSchema` now accepts optional `lines` array for partial delivery
+   - If `lines` provided: validates each line's quantity <= remaining (quantity - quantityDelivered)
+   - If `lines` NOT provided: backward compatible — auto-fills all order lines with remaining quantities
+   - Only includes lines where remaining > 0
+
+2. **Track quantityDelivered (POST)**:
+   - On BL creation from order: `tx.salesOrderLine.update` increments `quantityDelivered` by BL line quantity
+   - On standalone BL creation: also increments `quantityDelivered` if lines have `salesOrderLineId`
+   - SO status updated: checks if all lines fully delivered → `delivered`, else `partially_delivered`
+
+3. **Track quantityDelivered (PUT deliver)**:
+   - On deliver action: recalculates total delivered per SO line across all non-cancelled BLs
+   - Syncs `quantityDelivered` on each `SalesOrderLine` to ensure consistency
+   - Updates SO status to `delivered` if all lines fully delivered
+
+4. **Track quantityDelivered (PUT cancel)**:
+   - On cancel: decrements `quantityDelivered` on each BL line's `salesOrderLineId`
+   - Rechecks remaining active BLs and recalculates SO status
+   - Reverts to `prepared`/`in_preparation` if no deliveries remain
+
+5. **Track quantityDelivered (DELETE)**:
+   - On delete of draft: decrements `quantityDelivered` on each linked BL line
+   - Does NOT double-decrement on cancelled notes (already reverted)
+
+6. **plannedDate support**:
+   - POST: accepts `plannedDate` string, converts to Date
+   - PUT simple update: accepts `plannedDate` for update
+   - PUT confirm: also accepts `plannedDate`
+   - GET response includes `plannedDate` in enriched notes
+
+7. **GET enrichment**:
+   - Added `computeDeliveryTracking()` helper: calculates `remainingQuantity` and `deliveryPercentage` per SO line
+   - Response enriched with `salesOrderLinesTracking` array (for linked orders)
+   - Each BL line enriched with `previouslyDelivered` (quantityDelivered - this BL quantity) and `remainingAfterDelivery`
+
+**Part B: Update `src/components/erp/commercial/delivery-notes-view.tsx`:**
+
+1. **Partial delivery UI (order mode)**:
+   - After selecting a sales order, fetches order lines with delivery tracking via delivery-notes API
+   - Shows table with: Product (ref + designation), Commandé, Livré, Restant, Avancement (%), Qty BL (editable input), Total HT
+   - Filters to only show lines where remaining > 0
+   - Default quantity = remaining; max enforced via `Math.min()`
+   - Shows green banner "Cette commande est déjà entièrement livrée" when no remaining lines
+   - Totals (HT, TVA, TTC) recalculate based on selected quantities
+   - Create button disabled until at least one quantity is entered
+
+2. **plannedDate field**:
+   - Added to create dialog with CalendarClock icon
+   - Added to edit dialog
+   - Displayed in table rows and detail dialog
+
+3. **Detail dialog enhancements**:
+   - "Suivi de livraison par ligne de commande" section for linked orders
+   - Shows overall delivery tracking table per SO line: ordered, delivered, remaining, progress percentage badge
+   - BL lines table shows: Qty BL, Déjà livré, Reste après delivery (for linked orders)
+   - Action buttons moved inside detail dialog footer for better UX
+   - Delete confirmation dialog added
+
+4. **New interfaces**: `OrderLineWithDelivery`, `DeliveryBadge` helper component
+
+**Part C: Update `src/components/erp/commercial/sales-orders-view.tsx`:**
+
+1. **Delivery Tracking section in detail dialog**:
+   - Shows "Suivi de livraison" section for orders with status: `prepared`, `partially_delivered`, `delivered`
+   - Overall progress bar with percentage (green ≥100%, amber 1-99%, gray 0%)
+   - Per-line delivery table: Commandé, Préparé, Livré, Restant, % (with color-coded badges)
+   - `quantityDelivered` added to `SalesOrderLine` interface
+
+2. **"Créer BL" action button**:
+   - Added to `prepared` and `partially_delivered` order status actions
+   - Dispatches `CustomEvent('erp:navigate-delivery-notes', { detail: { salesOrderId } })` for cross-module navigation
+
+3. **New icon imports**: `Truck`, `Package` from lucide-react
+
+**Lint:** `npm run lint` passes with 0 errors.
+
+---
+## Task ID: 4 - invoicing-from-delivery-notes
+### Work Task
+Phase 3: Implement "Facturer depuis BL" (Invoice from delivery notes) feature in the GEMA ERP PRO invoicing module. This includes: backend API changes for creating invoices from delivery notes with junction table support, a new endpoint for fetching uninvoiced BLs, and comprehensive frontend UI with mode toggle, BL selection, and invoice list/detail enhancements.
+
+### Work Summary
+
+**Part A: Backend — `src/app/api/invoices/route.ts`:**
+
+1. **POST — New creation mode from delivery notes (`deliveryNoteIds` array)**:
+   - Added `invoiceFromBLSchema` Zod validation (clientId, deliveryNoteIds[], dueDate, discountRate, shippingCost, notes)
+   - Detects BL creation mode when body contains `deliveryNoteIds` array
+   - Validates all BLs exist and belong to the same client
+   - Only allows invoicing of BLs with status `delivered` or `confirmed`
+   - Checks that none of the BLs are already linked to another invoice via `InvoiceDeliveryNote`
+   - Aggregates all BL lines into invoice lines (keeps separate per BL line)
+   - Creates `InvoiceDeliveryNote` junction records linking invoice to each BL
+   - Sets `salesOrderId` if all BLs share the same sales order (null otherwise)
+   - Calculates totals (HT, TVA, TTC) with discount and shipping cost support
+   - Uses `db.$transaction` for atomic creation
+   - Returns created invoice with all relations including `deliveryNotes` junction
+
+2. **GET — Enhanced listing with `deliveryNotes` relation**:
+   - Added `deliveryNotes` include to all query results (list, create, update, validate, send, pay, cancel)
+   - Each `deliveryNotes` entry includes the full `deliveryNote` object with: id, number, date, totalHT, totalTVA, totalTTC, status
+
+3. **DELETE — Cleanup of junction records**:
+   - Added `db.invoiceDeliveryNote.deleteMany({ where: { invoiceId: id } })` before deleting invoice lines and invoice
+
+**Part B: New API — `src/app/api/invoices/uninvoiced-bls/route.ts`:**
+
+- **GET**: Takes `clientId` query parameter
+- Returns all delivery notes for that client with status `delivered` or `confirmed` that are NOT linked to any invoice
+- Cross-references with `InvoiceDeliveryNote` table to filter out already-invoiced BLs
+- Includes BL lines (with products), salesOrder, and client relations
+- Auth: requires either `invoices:read` or `delivery_notes:read` permission
+
+**Part C: Frontend — `src/components/erp/commercial/invoices-view.tsx`:**
+
+1. **Create Mode Toggle**:
+   - Two buttons: "Manuelle" (FileText icon) and "Depuis BL" (Truck icon)
+   - State managed via `createMode: 'manual' | 'from_bl'`
+
+2. **"Depuis BL" Mode UI**:
+   - Client selector (same dropdown as manual mode)
+   - After client selection: fetches uninvoiced BLs via `GET /api/invoices/uninvoiced-bls?clientId=X`
+   - BL selection table with: checkbox, N° BL, Date, Commande (if linked), Nb articles, Total TTC
+   - "Tout sélectionner / Tout désélectionner" toggle button
+   - Clickable rows for easy selection, amber highlight for selected BLs
+   - Empty state: dashed border with Truck icon when no BLs available
+   - Selected BLs summary card (amber-themed): lists each BL number with its total
+   - Aggregated lines preview table: all BL lines shown with product, qty, price, TVA, total
+   - Discount, shipping cost, notes fields (same as manual mode)
+   - Running totals: Sous-total BLs, Total HT, TVA, TTC
+   - Create button: "Créer la facture (N BL)" — disabled when 0 BLs selected
+
+3. **Invoice List Enhancement**:
+   - "N BL" amber badge (outline variant) shown in the Client column when invoice has linked BLs
+   - Badge includes Truck icon for visual clarity
+   - BL badge appears alongside sales order reference if both exist
+
+4. **Invoice Detail Dialog Enhancement**:
+   - "Bons de livraison facturés" section with Truck icon header
+   - Amber-bordered table showing linked BLs: N° BL, Date, Statut (Livré/Confirmé badge), Total TTC
+   - BL count badge also shown in dialog title
+
+5. **New Types/Interfaces**:
+   - `InvoiceDeliveryNoteRel`: junction record with nested deliveryNote
+   - `UninvoicedBL`: full BL with lines, products, salesOrder, client
+   - Invoice interface updated with `deliveryNotes: InvoiceDeliveryNoteRel[]`
+
+6. **UX Improvements**:
+   - Moroccan TVA rates in manual mode (0%, 7%, 10%, 14%, 20%)
+   - Currency label fixed from "€" to "MAD" in shipping cost labels
+   - Loading skeletons for BL fetch
+   - Responsive table hiding (md:table-cell for date/commande columns)
+
+**Files modified:**
+- `src/app/api/invoices/route.ts` (rewritten ~380 lines)
+- `src/components/erp/commercial/invoices-view.tsx` (rewritten ~720 lines)
+
+**Files created:**
+- `src/app/api/invoices/uninvoiced-bls/route.ts` (~60 lines)
+
+**Lint:** `npm run lint` passes with 0 errors.
+**Dev server:** Compiles successfully, no runtime errors.
+
+---
+## Task ID: 5 - preparation-management-stock-check
+### Work Task
+Phase 4: Full Preparation Management with Stock Check. Rewrite the preparations API route with PreparationLine creation, stock validation, stock check endpoint, and line quantity updates. Rewrite the preparations frontend view with comprehensive UI including list view with progress bars, create dialog with stock preview, detail dialog with editable quantities and stock alerts.
+
+### Work Summary
+
+**Part A: Backend — `src/app/api/preparations/route.ts` (complete rewrite ~470 lines):**
+
+1. **GET — List preparations (enhanced)**:
+   - Includes `lines` with full `product` data (id, reference, designation, currentStock, productType, unit)
+   - Includes `salesOrder` with `client` (id, name) and `lines` with products
+   - Filters: `status`, `salesOrderId`, pagination (`page`, `limit`)
+   - Response enriched with `totalLines`, `preparedLines`, `fullyPreparedLines`, `progressPercent` per preparation
+   - Each line enriched with `deficit`, `hasDeficit`, `suggestion` based on product type
+
+2. **GET — Stock check endpoint** (`?stockCheck=true&id=xxx`):
+   - Returns per-line: stockAvailable (current), stockAvailableAtCreation, deficit, hasDeficit
+   - Includes productType, productTypeLabel, suggestion (action + target)
+   - Suggestions: `raw_material` → "Commander auprès d'un fournisseur" / `semi_finished|finished` → "Lancer une production"
+   - Returns aggregate: totalLines, deficitLines count
+
+3. **POST — Create preparation (enhanced)**:
+   - Takes `salesOrderId` + optional `notes`
+   - Fetches SO with lines and products
+   - Validates SO status is `confirmed` or `in_preparation`
+   - Checks no active (pending/in_progress) preparation exists for the SO
+   - Creates `PreparationLine` records for each SO line where `quantityRequested > 0`
+   - `quantityRequested` = SO line quantity - SO line quantityPrepared
+   - `stockAvailable` = product.currentStock at creation time
+   - Skips fully prepared lines; returns error if all lines are fully prepared
+   - Updates SO status to `in_preparation` if it was `confirmed`
+   - Uses `db.$transaction` for atomicity
+   - Returns preparation with all lines and product data
+
+4. **PUT — `start` action**: Only `pending` preparations can be started, sets status to `in_progress`
+
+5. **PUT — `validate` action**:
+   - Only `in_progress` preparations can be validated
+   - Validates each line: `quantityPrepared` <= `quantityRequested`
+   - Stock check: blocks if `quantityPrepared` > `product.currentStock` with error details
+   - On success (within transaction): increments SOLine.quantityPrepared, creates StockMovement, decrements product stock, sets completed, updates SO status
+
+6. **PUT — `updateLine` action**: Updates individual PreparationLine.quantityPrepared for `in_progress` status
+
+7. **PUT — `cancel` action**: Prevents cancellation of completed preparations, reverts SO status
+
+8. **DELETE — Delete preparation**: Only pending/cancelled, cascade deletes lines, reverts SO status
+
+**Part B: Frontend — `src/components/erp/commercial/preparations-view.tsx` (complete rewrite ~680 lines):**
+
+1. **List view**: Header with icon/badge, status filter, table with Progress bars + ProgressBadge, clickable rows, action dropdowns
+2. **Create dialog**: Sales order selector, preview table with stock availability (green OK / red deficit badges), deficit suggestions, amber alert, notes
+3. **Detail dialog**: Info grid, overall progress card, lines table with editable quantities, product type badges, state indicators, stock alerts with action buttons (purchase-orders / work-orders navigation)
+4. **Delete confirmation**: AlertDialog with destructive styling
+5. **Cross-module navigation**: CustomEvent dispatch to purchase-orders and work-orders modules
+
+**Files modified:**
+- `src/app/api/preparations/route.ts` (rewritten ~470 lines)
+- `src/components/erp/commercial/preparations-view.tsx` (rewritten ~680 lines)
+
+**Lint:** `npm run lint` passes with 0 errors.
+---
+Task ID: main-phase1-2-3-4
+Agent: main (orchestrator) + 3 subagents
+Task: Implement full commercial flow overhaul (4 phases)
+
+Work Log:
+- PHASE 1: Schema changes applied and pushed
+  - Added `quantityDelivered Float @default(0)` to SalesOrderLine
+  - Added `plannedDate DateTime?` to DeliveryNote
+  - Created `PreparationLine` model (preparationOrderId, salesOrderLineId, productId, quantityRequested, quantityPrepared, stockAvailable, notes)
+  - Created `InvoiceDeliveryNote` junction model (invoiceId, deliveryNoteId with unique constraint)
+  - Added `lines PreparationLine[]` to PreparationOrder
+  - Added `invoices InvoiceDeliveryNote[]` to DeliveryNote
+  - Added `deliveryNotes InvoiceDeliveryNote[]` to Invoice
+  - Added `preparationLines PreparationLine[]` to Product
+  - db push + generate successful
+
+- PHASE 2 (subagent 2d53797e): Smart Deliveries + Sales Order tracking
+  - Rewrote delivery-notes API: partial delivery support, quantityDelivered tracking, plannedDate, delivery percentage calculation
+  - Rewrote delivery-notes-view: partial delivery UI with qty ordered/delivered/remaining columns, editable "Qty BL" input, delivery tracking in detail
+  - Updated sales-orders-view: delivery tracking section with progress bars, "Créer BL" button
+
+- PHASE 3 (subagent 680adf03): Invoicing from Delivery Notes
+  - Enhanced invoice API: POST with deliveryNoteIds mode, creates InvoiceDeliveryNote junction records, GET includes deliveryNotes relation
+  - Created new endpoint: /api/invoices/uninvoiced-bls/route.ts (returns BLs not yet invoiced for a client)
+  - Rewrote invoices-view: mode toggle (Manuelle / Depuis BL), client selector → uninvoiced BLs table with checkboxes → create invoice, "N BL" badges in list, detail shows linked BLs
+
+- PHASE 4 (subagent cda0c89b): Full Preparation Management
+  - Rewrote preparations API: creates PreparationLine records, stock check with deficit analysis, stock validation on validate action, stock movements
+  - Rewrote preparations-view: list with progress bars, create dialog with stock availability preview (green OK / red deficit), detail with editable quantities and stock alert cards suggesting purchase/production
+
+Stage Summary:
+- Complete commercial flow: Devis → Commande → Préparation → Livraison → Facturation
+- Partial delivery support with quantity tracking per order line
+- Invoice can group multiple delivery notes from same client
+- Preparation checks stock availability and suggests procurement actions
+- All lint checks pass, dev server compiles without errors
+- Total files modified/created: ~10 files, ~7260 lines of code

@@ -27,7 +27,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
-  Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2
+  Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2,
+  Truck, Package
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -43,6 +44,7 @@ interface SalesOrderLine {
   tvaRate: number
   totalHT?: number
   quantityPrepared?: number
+  quantityDelivered?: number
   discount?: number
   product?: { id: string; reference: string; designation: string }
 }
@@ -385,9 +387,11 @@ export default function SalesOrdersView() {
         actions.push({ label: 'Marquer préparé', icon: <CheckCircle className="h-4 w-4" />, action: 'prepared' })
         break
       case 'prepared':
+        actions.push({ label: 'Créer BL', icon: <Truck className="h-4 w-4" />, action: 'create_delivery' })
         actions.push({ label: 'Marquer livré', icon: <CheckCircle className="h-4 w-4" />, action: 'delivered' })
         break
       case 'partially_delivered':
+        actions.push({ label: 'Créer BL', icon: <Truck className="h-4 w-4" />, action: 'create_delivery' })
         actions.push({ label: 'Marquer livré', icon: <CheckCircle className="h-4 w-4" />, action: 'delivered' })
         break
       case 'delivered':
@@ -397,10 +401,23 @@ export default function SalesOrdersView() {
     return actions
   }
 
+  // ─── Delivery tracking helpers ───
+
+  const handleCreateDelivery = (order: SalesOrder) => {
+    toast.info(`Redirection vers la création d'un BL pour ${order.number}`)
+    // Dispatch a custom event that the parent page can listen to
+    window.dispatchEvent(new CustomEvent('erp:navigate-delivery-notes', {
+      detail: { salesOrderId: order.id }
+    }))
+  }
+
   const executeAction = async (order: SalesOrder, action: string) => {
     switch (action) {
       case 'create_preparation':
         await handleCreatePreparation(order)
+        break
+      case 'create_delivery':
+        handleCreateDelivery(order)
         break
       case 'create_invoice':
         await handleCreateInvoice(order)
@@ -895,6 +912,97 @@ export default function SalesOrdersView() {
                 <div><span className="text-muted-foreground">Livraison</span><p className="font-medium">{selectedOrder.deliveryDate ? format(new Date(selectedOrder.deliveryDate), 'dd/MM/yyyy', { locale: fr }) : 'Non définie'}</p></div>
                 <div><span className="text-muted-foreground">Nb lignes</span><p className="font-medium">{selectedOrder.lines.length}</p></div>
               </div>
+
+              {/* ── Delivery Tracking Section ── */}
+              {(selectedOrder.status === 'partially_delivered' || selectedOrder.status === 'delivered' || selectedOrder.status === 'prepared') && (
+                <div className="rounded-md border p-4 space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-blue-600" />
+                    Suivi de livraison
+                  </h4>
+                  {/* Overall delivery progress bar */}
+                  {(() => {
+                    const totalOrdered = selectedOrder.lines.reduce((s, l) => s + l.quantity, 0)
+                    const totalDelivered = selectedOrder.lines.reduce((s, l) => s + (l.quantityDelivered || 0), 0)
+                    const overallPct = totalOrdered > 0 ? Math.min(100, Math.round((totalDelivered / totalOrdered) * 100)) : 0
+                    return (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Avancement global</span>
+                          <span className="font-semibold">
+                            <span className={overallPct >= 100 ? 'text-green-600' : overallPct > 0 ? 'text-amber-600' : 'text-gray-500'}>
+                              {totalDelivered} / {totalOrdered} ({overallPct}%)
+                            </span>
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${overallPct >= 100 ? 'bg-green-500' : overallPct > 0 ? 'bg-amber-500' : 'bg-gray-300'}`}
+                            style={{ width: `${overallPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })()}
+                  {/* Per-line delivery table */}
+                  <div className="max-h-[250px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produit</TableHead>
+                          <TableHead className="text-right">Commandé</TableHead>
+                          <TableHead className="text-right">Préparé</TableHead>
+                          <TableHead className="text-right">Livré</TableHead>
+                          <TableHead className="text-right">Restant</TableHead>
+                          <TableHead className="text-center">%</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedOrder.lines.map((line) => {
+                          const delivered = line.quantityDelivered || 0
+                          const remaining = Math.max(0, line.quantity - delivered)
+                          const pct = line.quantity > 0 ? Math.min(100, Math.round((delivered / line.quantity) * 100)) : 0
+                          return (
+                            <TableRow key={line.id || line.productId}>
+                              <TableCell className="font-medium text-sm">
+                                <div className="flex items-center gap-1.5">
+                                  <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                  <div className="min-w-0">
+                                    <p className="truncate">{line.product?.designation}</p>
+                                    <p className="text-[11px] text-muted-foreground font-mono">{line.product?.reference}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">{line.quantity}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">{line.quantityPrepared || 0}</TableCell>
+                              <TableCell className="text-right">
+                                <span className={delivered > 0 ? 'text-blue-600 font-medium' : ''}>{delivered}</span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className={remaining > 0 ? 'text-amber-600 font-semibold' : 'text-green-600'}>{remaining}</span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge
+                                  variant="secondary"
+                                  className={`text-xs ${
+                                    pct >= 100
+                                      ? 'bg-green-100 text-green-800'
+                                      : pct > 0
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : 'bg-gray-100 text-gray-600'
+                                  }`}
+                                >
+                                  {pct}%
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
 
               <div className="max-h-[300px] overflow-y-auto">
                 <Table>
