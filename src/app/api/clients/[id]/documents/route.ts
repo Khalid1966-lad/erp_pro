@@ -27,7 +27,7 @@ export async function GET(
 
     const documents = await db.clientDocument.findMany({
       where: { clientId: id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     })
 
     return NextResponse.json(documents)

@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
       db.deliveryNote.findMany({
         where,
         include: deliveryNoteInclude,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

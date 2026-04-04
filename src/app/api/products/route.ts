@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     const [products, total] = await Promise.all([
       db.product.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

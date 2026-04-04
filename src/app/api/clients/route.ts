@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const ville = searchParams.get('ville')
     const typeSociete = searchParams.get('typeSociete')
     const sortBy = searchParams.get('sortBy') || 'createdAt'
-    const sortOrder = searchParams.get('sortOrder') || 'desc'
+    const sortOrder = searchParams.get('sortOrder') || 'asc'
 
     const where: Prisma.ClientWhereInput = {
       isDeleted: false,

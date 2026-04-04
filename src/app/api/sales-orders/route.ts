@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
           preparationOrders: true,
           quote: { select: { id: true, number: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

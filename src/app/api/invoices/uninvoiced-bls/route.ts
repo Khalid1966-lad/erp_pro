@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         salesOrder: { select: { id: true, number: true } },
         client: { select: { id: true, name: true } },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { date: 'asc' },
     })
 
     // Get all delivery note IDs that are already linked to an invoice

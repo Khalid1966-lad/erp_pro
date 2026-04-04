@@ -22,7 +22,7 @@ export async function GET(
       where: { id, isDeleted: false },
       include: {
         contacts: { orderBy: { type: 'asc' } },
-        documents: { orderBy: { createdAt: 'desc' } },
+        documents: { orderBy: { createdAt: 'asc' } },
         _count: {
           select: {
             quotes: true,

@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
         include: {
           _count: { select: { purchaseOrders: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

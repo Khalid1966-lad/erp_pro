@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
           client: { select: { id: true, name: true } },
           lines: { include: { product: { select: { id: true, reference: true, designation: true } } } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

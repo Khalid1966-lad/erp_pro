@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
           include: {
             bankAccount: { select: { id: true, name: true, iban: true } },
           },
-          orderBy: { date: 'desc' },
+          orderBy: { date: 'asc' },
           skip: (page - 1) * limit,
           take: limit,
         }),

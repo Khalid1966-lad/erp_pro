@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
       include: {
         user: { select: { id: true, name: true, email: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     })
 
     return NextResponse.json({

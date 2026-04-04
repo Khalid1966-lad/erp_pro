@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
           invoice: { select: { id: true, number: true } },
           lines: { include: { product: { select: { id: true, reference: true, designation: true } } } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

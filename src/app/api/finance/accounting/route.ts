@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     const [entries, total] = await Promise.all([
       db.accountingEntry.findMany({
         where,
-        orderBy: { date: 'desc' },
+        orderBy: { date: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

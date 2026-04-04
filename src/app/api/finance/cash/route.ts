@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
           include: {
             cashRegister: { select: { id: true, name: true } },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
           skip: (page - 1) * limit,
           take: limit,
         }),
