@@ -197,19 +197,43 @@ export default function ClientsView() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const searchRef = useRef<string>('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [categorieFilter, setCategorieFilter] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [sortField, setSortField] = useState<string>('createdAt')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [saving, setSaving] = useState(false)
+
+  // Debounced search handler
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)          // Update input immediately (keeps focus)
+    searchRef.current = value
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      fetchClientsBySearch(value)
+    }, 300)
+  }, [])
+
+  const fetchClientsBySearch = useCallback(async (searchTerm: string) => {
+    try {
+      const params = new URLSearchParams({ limit: '1000' })
+      if (searchTerm) params.set('search', searchTerm)
+      const res = await api.get<{ clients: Client[]; total: number }>(`/clients?${params}`)
+      setAllClients(res.clients || [])
+      setTotal(res.total || 0)
+    } catch (err) {
+      console.error('Erreur chargement clients:', err)
+    }
+  }, [])
 
   // ─── Fetch ALL Clients (no pagination, scrollable) ───
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams({ limit: '1000' })
-      if (search) params.set('search', search)
+      if (searchRef.current) params.set('search', searchRef.current)
       const res = await api.get<{ clients: Client[]; total: number }>(`/clients?${params}`)
       setAllClients(res.clients || [])
       setTotal(res.total || 0)
@@ -219,11 +243,14 @@ export default function ClientsView() {
     } finally {
       setLoading(false)
     }
-  }, [search])
+  }, [])
 
   useEffect(() => {
     if (subView === 'list') {
       fetchClients()
+    }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   }, [subView, fetchClients])
 
@@ -314,7 +341,7 @@ export default function ClientsView() {
           typeFilter={typeFilter}
           sortField={sortField}
           sortDir={sortDir}
-          onSearch={setSearch}
+          onSearch={handleSearch}
           onStatusFilter={setStatusFilter}
           onCategorieFilter={setCategorieFilter}
           onTypeFilter={setTypeFilter}
