@@ -244,3 +244,106 @@ Build a client Excel import feature for the GEMA ERP PRO project: API route with
 **Lint:** `npm run lint` passes with 0 errors.
 **Dev server:** Compiles successfully, no runtime errors.
 
+---
+## Task ID: 2-b - frontend-delivery-notes-view
+### Work Task
+Create the frontend view for Bons de Livraison (Delivery Notes) at `src/components/erp/commercial/delivery-notes-view.tsx`, following the exact patterns of `preparations-view.tsx`.
+
+### Work Summary
+**File created:** `src/components/erp/commercial/delivery-notes-view.tsx` (~270 lines)
+
+**Component: `DeliveryNotesView`** (default export, 'use client')
+
+**Features implemented:**
+1. **Header** — Truck icon from lucide-react, title "Bons de Livraison", count Badge showing total delivery notes.
+
+2. **Status Filter** — Select dropdown with options: Tous, Brouillon, Confirmé, Livré, Annulé. Filters the API call via `?status=...&page=1`.
+
+3. **Table** — 7 columns:
+   - Numéro (font-mono, e.g. BL-2025-0001)
+   - Commande (linked sales order number, font-mono)
+   - Client
+   - Statut (colored Badge: yellow/blue/green/red)
+   - Nb articles (hidden on mobile via `hidden md:table-cell`)
+   - Date de livraison (hidden on lg via `hidden lg:table-cell`, formatted dd/MM/yyyy with `fr` locale)
+   - Actions (Eye button for detail, DropdownMenu for status actions)
+
+4. **Status Labels & Colors**:
+   - `draft` → "Brouillon" (bg-yellow-100 text-yellow-800)
+   - `confirmed` → "Confirmé" (bg-blue-100 text-blue-800)
+   - `delivered` → "Livré" (bg-green-100 text-green-800)
+   - `cancelled` → "Annulé" (bg-red-100 text-red-800)
+
+5. **Detail Dialog** (sm:max-w-3xl):
+   - Header with Truck icon, number, status badge
+   - Info grid: Commande, Client, Transporteur (conditional), Immatriculation (conditional), Date de livraison
+   - Lines table: Produit (ref + designation with Package icon), Qté, P.U. HT, Total HT
+   - Totals section: Total HT, Total TVA, Total TTC (right-aligned, with border-top)
+   - Notes section with FileText icon (conditional)
+   - Currency formatting with `formatCurrency` (MAD, fr-FR locale)
+
+6. **Actions via DropdownMenu**:
+   - `draft`: Confirmer (CheckCircle icon → PUT action: 'confirm'), Annuler (XCircle icon → PUT action: 'cancel'), Supprimer (Trash2, destructive)
+   - `confirmed`: Livrer (Truck icon → PUT action: 'deliver'), Annuler, Supprimer not available
+   - `delivered` / `cancelled`: no dropdown actions
+   - Delete only available for `draft` and `cancelled` statuses
+
+7. **API Integration**:
+   - `GET /delivery-notes?status=...&page=1` → `{ deliveryNotes, total }`
+   - `PUT /delivery-notes` with `{ id, action: 'confirm'|'deliver'|'cancel' }`
+   - `DELETE /delivery-notes?id=...`
+
+8. **UX**: Loading skeleton state, empty state messages (contextual based on filter), toast notifications on all actions, scrollable table (max-h-500px), responsive design.
+
+9. **Interfaces**: `DeliveryNoteLine`, `DeliveryNote` with nested `salesOrder.lines` and `client` relations.
+
+**shadcn/ui components used**: Button, Card, CardContent, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Skeleton.
+
+**Lint:** `npm run lint` passes with 0 errors.
+
+---
+## Task ID: 2-a - delivery-notes-backend
+### Work Task
+Add DeliveryNote and DeliveryNoteLine Prisma models, update existing model relations, create full CRUD API route for delivery notes (Bons de Livraison), and push schema to database.
+
+### Work Summary
+
+**1. Prisma Schema (`prisma/schema.prisma`):**
+- Added `DeliveryNoteStatus` enum: `draft`, `confirmed`, `delivered`, `cancelled`
+- Added `DeliveryNote` model with fields: id, number (unique), salesOrderId, clientId, status, date, deliveryDate, transporteur, vehiclePlate, notes, totalHT, totalTVA, totalTTC, timestamps, and `lines` relation
+- Added `DeliveryNoteLine` model with fields: id, deliveryNoteId (cascade delete), salesOrderLineId, productId, quantity, unitPrice, tvaRate, totalHT
+- Added `deliveryNotes DeliveryNote[]` relation to `SalesOrder` model
+- Added `deliveryNotes DeliveryNote[]` relation to `Client` model
+- Added `deliveryNoteLines DeliveryNoteLine[]` relation to `Product` model
+- Fixed datasource provider from `postgresql` to `sqlite` (matching actual SQLite database)
+
+**2. Database (`bun run db:push --force-reset`):**
+- Schema pushed successfully to SQLite
+- Database re-seeded with all existing data (6 clients, 17 products, 5 quotes, 3 sales orders, etc.)
+- `DIRECT_URL` added to `.env` for compatibility
+
+**3. API Route (`src/app/api/delivery-notes/route.ts`):**
+- **GET** — List delivery notes with filters (status, clientId, salesOrderId, page, limit). Includes salesOrder (with client + lines + products), client, and lines (with products).
+- **POST** — Create delivery note from a sales order. Validates SO is in `prepared` or `partially_delivered` status. Generates sequential number `BL-{year}-{0001}`. Creates DeliveryNoteLine records from SalesOrderLines. Calculates totalHT, totalTVA, totalTTC. Updates SO status to `partially_delivered`. Uses Zod validation with optional fields: transporteur, vehiclePlate, notes.
+- **PUT** — Actions:
+  - `confirm`: Changes status from draft to confirmed
+  - `deliver`: Changes status to delivered, sets deliveryDate to now, checks if all delivery notes for the SO are delivered → updates SO to `delivered`
+  - `cancel`: Cancels non-delivered notes, reverts SO status if no active delivery notes remain
+  - Simple update for notes/transporteur/vehiclePlate
+- **DELETE** — Only allows deletion of `draft` or `cancelled` delivery notes. On deletion, checks remaining delivery notes for the SO and reverts SO status accordingly.
+
+**4. Auth Permissions (`src/lib/auth.ts`):**
+- Added `delivery_notes:read` to: direction, commercial, storekeeper
+- Added `delivery_notes:write` to: commercial, storekeeper
+- Admin and super_admin retain all permissions
+
+**5. Pattern Consistency:**
+- API route follows exact same patterns as `preparations/route.ts` and `receptions/route.ts`
+- Uses `requireAuth`, `hasPermission`, `auditLog` from `@/lib/auth`
+- Uses `db` from `@/lib/db`
+- All error messages in French
+- Proper transaction usage for data integrity
+
+**Lint:** `npm run lint` passes with 0 errors.
+
+

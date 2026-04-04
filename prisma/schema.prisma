@@ -246,6 +246,7 @@ model Client {
   salesOrders             SalesOrder[]
   invoices                Invoice[]
   creditNotes             CreditNote[]
+  deliveryNotes           DeliveryNote[]
 }
 
 model ClientContact {
@@ -307,6 +308,7 @@ model Product {
   purchaseOrderLines PurchaseOrderLine[]
   stockMovements    StockMovement[]
   routingSteps      RoutingStep[]
+  deliveryNoteLines DeliveryNoteLine[]
 }
 
 enum QuoteStatus {
@@ -381,6 +383,7 @@ model SalesOrder {
   lines         SalesOrderLine[]
   invoices      Invoice[]
   preparationOrders PreparationOrder[]
+  deliveryNotes  DeliveryNote[]
 }
 
 model SalesOrderLine {
@@ -413,6 +416,48 @@ model PreparationOrder {
   notes         String?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+}
+
+enum DeliveryNoteStatus {
+  draft
+  confirmed
+  delivered
+  cancelled
+}
+
+model DeliveryNote {
+  id              String              @id @default(cuid())
+  number          String              @unique
+  salesOrderId    String
+  salesOrder      SalesOrder          @relation(fields: [salesOrderId], references: [id])
+  clientId        String
+  client          Client              @relation(fields: [clientId], references: [id])
+  status          DeliveryNoteStatus  @default(draft)
+  date            DateTime            @default(now())
+  deliveryDate    DateTime?
+  transporteur    String?
+  vehiclePlate    String?
+  notes           String?
+  totalHT         Float               @default(0)
+  totalTVA        Float               @default(0)
+  totalTTC        Float               @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  lines           DeliveryNoteLine[]
+}
+
+model DeliveryNoteLine {
+  id              String        @id @default(cuid())
+  deliveryNoteId  String
+  deliveryNote    DeliveryNote  @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+  salesOrderLineId String
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  quantity        Float
+  unitPrice       Float
+  tvaRate         Float
+  totalHT         Float
 }
 
 enum InvoiceStatus {

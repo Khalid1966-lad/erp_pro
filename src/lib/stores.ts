@@ -41,6 +41,7 @@ export type ViewId =
   | 'preparations'
   | 'invoices'
   | 'credit-notes'
+  | 'delivery-notes'
   | 'suppliers'
   | 'purchase-orders'
   | 'receptions'

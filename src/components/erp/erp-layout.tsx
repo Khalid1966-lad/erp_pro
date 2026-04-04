@@ -37,6 +37,7 @@ import {
   Truck,
   Warehouse,
   ArrowDownToLine,
+  FileOutput,
   Box,
   AlertTriangle,
   Cog,
@@ -91,6 +92,7 @@ const navigation: NavGroup[] = [
       { id: 'quotes', label: 'Devis', icon: <FileText className="h-4 w-4" />, color: 'text-cyan-500', permission: 'quotes:read' },
       { id: 'sales-orders', label: 'Commandes', icon: <ShoppingCart className="h-4 w-4" />, color: 'text-emerald-500', permission: 'sales_orders:read' },
       { id: 'preparations', label: 'Préparations', icon: <ClipboardList className="h-4 w-4" />, color: 'text-blue-500', permission: 'preparations:read' },
+      { id: 'delivery-notes', label: 'Bons de livraison', icon: <Truck className="h-4 w-4" />, color: 'text-teal-600', permission: 'delivery_notes:read' },
       { id: 'invoices', label: 'Factures', icon: <Receipt className="h-4 w-4" />, color: 'text-rose-500', permission: 'invoices:read' },
       { id: 'credit-notes', label: 'Avoirs', icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500', permission: 'credit_notes:read' }
     ]
@@ -345,6 +347,7 @@ export function ERPHeader() {
     'preparations': 'Préparations',
     'invoices': 'Factures',
     'credit-notes': 'Avoirs',
+    'delivery-notes': 'Bons de livraison',
     'suppliers': 'Fournisseurs',
     'purchase-orders': 'Commandes fournisseur',
     'receptions': 'Réceptions',

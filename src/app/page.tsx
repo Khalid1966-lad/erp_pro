@@ -15,6 +15,7 @@ const SalesOrdersView = dynamic(() => import('@/components/erp/commercial/sales-
 const PreparationsView = dynamic(() => import('@/components/erp/commercial/preparations-view'), { ssr: false })
 const InvoicesView = dynamic(() => import('@/components/erp/commercial/invoices-view'), { ssr: false })
 const CreditNotesView = dynamic(() => import('@/components/erp/commercial/credit-notes-view'), { ssr: false })
+const DeliveryNotesView = dynamic(() => import('@/components/erp/commercial/delivery-notes-view'), { ssr: false })
 const SuppliersView = dynamic(() => import('@/components/erp/purchasing/suppliers-view'), { ssr: false })
 const PurchaseOrdersView = dynamic(() => import('@/components/erp/purchasing/purchase-orders-view'), { ssr: false })
 const ReceptionsView = dynamic(() => import('@/components/erp/purchasing/receptions-view'), { ssr: false })
@@ -47,6 +48,7 @@ function ViewRouter() {
     case 'preparations': return <PreparationsView />
     case 'invoices': return <InvoicesView />
     case 'credit-notes': return <CreditNotesView />
+    case 'delivery-notes': return <DeliveryNotesView />
     case 'suppliers': return <SuppliersView />
     case 'purchase-orders': return <PurchaseOrdersView />
     case 'receptions': return <ReceptionsView />
