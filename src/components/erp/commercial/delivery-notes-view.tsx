@@ -146,9 +146,9 @@ interface OrderLineWithDelivery {
 
 const statusLabels: Record<string, string> = {
   draft: 'Brouillon',
-  confirmed: 'Confirm\u00e9',
-  delivered: 'Livr\u00e9',
-  cancelled: 'Annul\u00e9'
+  confirmed: 'Confirmé',
+  delivered: 'Livré',
+  cancelled: 'Annulé'
 }
 
 const statusColors: Record<string, string> = {
@@ -296,7 +296,7 @@ export default function DeliveryNotesView() {
       setAvailableClients(clientsData.clients || [])
       setAvailableProducts(productsData.products || [])
     } catch (err: any) {
-      toast.error(err.message || 'Erreur chargement des donn\u00e9es')
+      toast.error(err.message || 'Erreur chargement des données')
     } finally {
       setLoadingOrders(false)
       setLoadingClients(false)
@@ -418,7 +418,7 @@ export default function DeliveryNotesView() {
 
       if (createMode === 'order') {
         if (!selectedOrderId) {
-          toast.error('Veuillez s\u00e9lectionner une commande')
+          toast.error('Veuillez sélectionner une commande')
           setCreating(false)
           return
         }
@@ -432,7 +432,7 @@ export default function DeliveryNotesView() {
           }))
 
         if (lines.length === 0) {
-          toast.error('S\u00e9lectionnez au moins une ligne \u00e0 livrer avec une quantit\u00e9 > 0')
+          toast.error('Sélectionnez au moins une ligne à livrer avec une quantité > 0')
           setCreating(false)
           return
         }
@@ -448,7 +448,7 @@ export default function DeliveryNotesView() {
       } else {
         // Standalone mode
         if (!selectedClientId) {
-          toast.error('Veuillez s\u00e9lectionner un client')
+          toast.error('Veuillez sélectionner un client')
           setCreating(false)
           return
         }
@@ -472,11 +472,11 @@ export default function DeliveryNotesView() {
         })
       }
 
-      toast.success('Bon de livraison cr\u00e9\u00e9 avec succ\u00e8s')
+      toast.success('Bon de livraison créé avec succès')
       setCreateOpen(false)
       fetchDeliveryNotes()
     } catch (err: any) {
-      toast.error(err.message || 'Erreur cr\u00e9ation')
+      toast.error(err.message || 'Erreur création')
     } finally {
       setCreating(false)
     }
@@ -534,7 +534,7 @@ export default function DeliveryNotesView() {
 
   const openEditDialog = (note: DeliveryNote) => {
     if (note.status !== 'draft') {
-      toast.error('Seul un brouillon peut \u00eatre modifi\u00e9')
+      toast.error('Seul un brouillon peut être modifié')
       return
     }
     setSelectedNote(note)
@@ -556,7 +556,7 @@ export default function DeliveryNotesView() {
         notes: editNotes || null,
         plannedDate: editPlannedDate || undefined,
       })
-      toast.success(`BL ${selectedNote.number} modifi\u00e9`)
+      toast.success(`BL ${selectedNote.number} modifié`)
       setEditOpen(false)
       fetchDeliveryNotes()
     } catch (err: any) {
@@ -571,7 +571,7 @@ export default function DeliveryNotesView() {
   const handleConfirm = async (note: DeliveryNote) => {
     try {
       await api.put('/delivery-notes', { id: note.id, action: 'confirm' })
-      toast.success(`BL ${note.number} confirm\u00e9`)
+      toast.success(`BL ${note.number} confirmé`)
       fetchDeliveryNotes()
     } catch (err: any) {
       toast.error(err.message || 'Erreur confirmation')
@@ -581,7 +581,7 @@ export default function DeliveryNotesView() {
   const handleDeliver = async (note: DeliveryNote) => {
     try {
       await api.put('/delivery-notes', { id: note.id, action: 'deliver' })
-      toast.success(`BL ${note.number} marqu\u00e9 comme livr\u00e9`)
+      toast.success(`BL ${note.number} marqué comme livré`)
       fetchDeliveryNotes()
     } catch (err: any) {
       toast.error(err.message || 'Erreur livraison')
@@ -591,7 +591,7 @@ export default function DeliveryNotesView() {
   const handleCancel = async (id: string) => {
     try {
       await api.put('/delivery-notes', { id, action: 'cancel' })
-      toast.success('BL annul\u00e9')
+      toast.success('BL annulé')
       fetchDeliveryNotes()
     } catch (err: any) {
       toast.error(err.message || 'Erreur annulation')
@@ -609,7 +609,7 @@ export default function DeliveryNotesView() {
     if (!deleteId) return
     try {
       await api.delete(`/delivery-notes?id=${deleteId}`)
-      toast.success('BL supprim\u00e9')
+      toast.success('BL supprimé')
       setDeleteOpen(false)
       setDeleteId(null)
       if (detailOpen) setDetailOpen(false)
@@ -694,9 +694,9 @@ export default function DeliveryNotesView() {
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
             <SelectItem value="draft">Brouillon</SelectItem>
-            <SelectItem value="confirmed">Confirm\u00e9</SelectItem>
-            <SelectItem value="delivered">Livr\u00e9</SelectItem>
-            <SelectItem value="cancelled">Annul\u00e9</SelectItem>
+            <SelectItem value="confirmed">Confirmé</SelectItem>
+            <SelectItem value="delivered">Livré</SelectItem>
+            <SelectItem value="cancelled">Annulé</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -708,12 +708,12 @@ export default function DeliveryNotesView() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Num\u00e9ro</TableHead>
+                  <TableHead>Numéro</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Commande / Client</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead className="hidden md:table-cell">Date pr\u00e9vue</TableHead>
-                  <TableHead className="hidden md:table-cell">% Livr\u00e9</TableHead>
+                  <TableHead className="hidden md:table-cell">Date prévue</TableHead>
+                  <TableHead className="hidden md:table-cell">% Livré</TableHead>
                   <TableHead className="hidden lg:table-cell">Transporteur</TableHead>
                   <TableHead className="hidden lg:table-cell">Total TTC</TableHead>
                   <TableHead className="text-right w-[120px]">Actions</TableHead>
@@ -727,7 +727,7 @@ export default function DeliveryNotesView() {
                         <Truck className="h-10 w-10 text-muted-foreground/30" />
                         <p className="font-medium">Aucun bon de livraison</p>
                         <p className="text-sm">
-                          Cliquez sur &quot;Nouveau bon de livraison&quot; pour en cr\u00e9er un.
+                          Cliquez sur &quot;Nouveau bon de livraison&quot; pour en créer un.
                         </p>
                       </div>
                     </TableCell>
@@ -743,7 +743,7 @@ export default function DeliveryNotesView() {
                         <TableCell>
                           {note.salesOrderId ? (
                             <Badge variant="outline" className="text-xs gap-1">
-                              <Link2 className="h-3 w-3" /> Li\u00e9
+                              <Link2 className="h-3 w-3" /> Lié
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-xs gap-1 border-dashed">
@@ -775,25 +775,25 @@ export default function DeliveryNotesView() {
                               {format(new Date(note.plannedDate), 'dd/MM/yyyy', { locale: fr })}
                             </span>
                           ) : (
-                            <span className="text-sm text-muted-foreground">\u2014</span>
+                            <span className="text-sm text-muted-foreground">—</span>
                           )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {deliveryPct !== null ? (
                             <DeliveryProgressBar percentage={deliveryPct} />
                           ) : (
-                            <span className="text-xs text-muted-foreground">\u2014</span>
+                            <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
-                          {note.transporteur || '\u2014'}
+                          {note.transporteur || '—'}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell font-medium">
                           {formatCurrency(note.totalTTC)}
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(note)} title="D\u00e9tails">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(note)} title="Détails">
                               <Eye className="h-4 w-4" />
                             </Button>
                             {getActions(note).length > 0 && (
@@ -840,7 +840,7 @@ export default function DeliveryNotesView() {
               Nouveau bon de livraison
             </DialogTitle>
             <DialogDescription>
-              Cr\u00e9ez un bon de livraison li\u00e9 \u00e0 une commande ou un BL autonome.
+              Créez un bon de livraison lié à une commande ou un BL autonome.
             </DialogDescription>
           </DialogHeader>
 
@@ -861,7 +861,7 @@ export default function DeliveryNotesView() {
                   <ShoppingCart className={`h-5 w-5 ${createMode === 'order' ? 'text-primary' : 'text-muted-foreground'}`} />
                   <div>
                     <p className="font-medium text-sm">Avec commande</p>
-                    <p className="text-xs text-muted-foreground">Lier \u00e0 un bon de commande existant</p>
+                    <p className="text-xs text-muted-foreground">Lier à un bon de commande existant</p>
                   </div>
                 </button>
                 <button
@@ -876,7 +876,7 @@ export default function DeliveryNotesView() {
                   <Package className={`h-5 w-5 ${createMode === 'standalone' ? 'text-primary' : 'text-muted-foreground'}`} />
                   <div>
                     <p className="font-medium text-sm">Sans commande</p>
-                    <p className="text-xs text-muted-foreground">BL autonome (s\u00e9lection manuelle)</p>
+                    <p className="text-xs text-muted-foreground">BL autonome (sélection manuelle)</p>
                   </div>
                 </button>
               </div>
@@ -891,13 +891,13 @@ export default function DeliveryNotesView() {
                     <Skeleton className="h-10 w-full" />
                   ) : availableOrders.length === 0 ? (
                     <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-                      Aucune commande pr\u00e9par\u00e9e disponible.<br />
-                      Veuillez d&apos;abord pr\u00e9parer une commande ou utilisez le mode &quot;Sans commande&quot;.
+                      Aucune commande préparée disponible.<br />
+                      Veuillez d&apos;abord préparer une commande ou utilisez le mode &quot;Sans commande&quot;.
                     </div>
                   ) : (
                     <Select value={selectedOrderId} onValueChange={handleOrderSelect}>
                       <SelectTrigger>
-                        <SelectValue placeholder="S\u00e9lectionner une commande..." />
+                        <SelectValue placeholder="Sélectionner une commande..." />
                       </SelectTrigger>
                       <SelectContent>
                         {availableOrders.map((order) => (
@@ -919,10 +919,10 @@ export default function DeliveryNotesView() {
                 {selectedOrderId && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Lignes \u00e0 livrer</Label>
+                      <Label className="text-sm font-medium">Lignes à livrer</Label>
                       {orderLinesForDelivery.length > 0 && (
                         <span className="text-xs text-muted-foreground">
-                          {orderLinesForDelivery.length} ligne(s) restante(s) &middot; {getSelectedLineCount()} s\u00e9lectionn\u00e9e(s)
+                          {orderLinesForDelivery.length} ligne(s) restante(s) &middot; {getSelectedLineCount()} sélectionnée(s)
                         </span>
                       )}
                     </div>
@@ -936,7 +936,7 @@ export default function DeliveryNotesView() {
                       <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4" />
-                          <span>Cette commande est d\u00e9j\u00e0 enti\u00e8rement livr\u00e9e.</span>
+                          <span>Cette commande est déjà entièrement livrée.</span>
                         </div>
                       </div>
                     ) : (
@@ -962,11 +962,11 @@ export default function DeliveryNotesView() {
                                   />
                                 </TableHead>
                                 <TableHead className="w-[28%]">Produit</TableHead>
-                                <TableHead className="text-right w-[10%]">Command\u00e9</TableHead>
-                                <TableHead className="text-right w-[10%]">Livr\u00e9</TableHead>
+                                <TableHead className="text-right w-[10%]">Commandé</TableHead>
+                                <TableHead className="text-right w-[10%]">Livré</TableHead>
                                 <TableHead className="text-right w-[10%]">Restant</TableHead>
                                 <TableHead className="text-center w-[12%]">Avancement</TableHead>
-                                <TableHead className="text-right w-[15%]">Qt\u00e9 BL</TableHead>
+                                <TableHead className="text-right w-[15%]">Qté BL</TableHead>
                                 <TableHead className="text-right w-[15%]">Total HT</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -1010,7 +1010,7 @@ export default function DeliveryNotesView() {
                                       />
                                     </TableCell>
                                     <TableCell className="text-right text-sm font-medium">
-                                      {isIncluded && qty > 0 ? formatCurrency(qty * line.unitPrice) : <span className="text-muted-foreground">\u2014</span>}
+                                      {isIncluded && qty > 0 ? formatCurrency(qty * line.unitPrice) : <span className="text-muted-foreground">—</span>}
                                     </TableCell>
                                   </TableRow>
                                 )
@@ -1055,7 +1055,7 @@ export default function DeliveryNotesView() {
                   ) : (
                     <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="S\u00e9lectionner un client..." />
+                        <SelectValue placeholder="Sélectionner un client..." />
                       </SelectTrigger>
                       <SelectContent>
                         {availableClients.map((c) => (
@@ -1094,7 +1094,7 @@ export default function DeliveryNotesView() {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-[40%]">Produit</TableHead>
-                            <TableHead className="w-[15%] text-right">Qt\u00e9</TableHead>
+                            <TableHead className="w-[15%] text-right">Qté</TableHead>
                             <TableHead className="w-[20%] text-right">P.U. HT</TableHead>
                             <TableHead className="w-[15%] text-right">TVA %</TableHead>
                             <TableHead className="w-[15%] text-right">Total HT</TableHead>
@@ -1204,13 +1204,13 @@ export default function DeliveryNotesView() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
                 <CalendarClock className="h-3.5 w-3.5" />
-                Date pr\u00e9vue de livraison
+                Date prévue de livraison
               </Label>
               <Input
                 type="date"
                 value={createPlannedDate}
                 onChange={(e) => setCreatePlannedDate(e.target.value)}
-                placeholder="Date pr\u00e9vue..."
+                placeholder="Date prévue..."
               />
             </div>
 
@@ -1226,7 +1226,7 @@ export default function DeliveryNotesView() {
 
             {/* Vehicle Plate */}
             <div className="space-y-2">
-              <Label>Immatriculation v\u00e9hicule</Label>
+              <Label>Immatriculation véhicule</Label>
               <Input
                 value={createVehiclePlate}
                 onChange={(e) => setCreateVehiclePlate(e.target.value)}
@@ -1256,7 +1256,7 @@ export default function DeliveryNotesView() {
                 (createMode === 'standalone' && (!selectedClientId || editableLines.length === 0))
               }
             >
-              {creating ? 'Cr\u00e9ation...' : 'Cr\u00e9er le BL'}
+              {creating ? 'Création...' : 'Créer le BL'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1283,7 +1283,7 @@ export default function DeliveryNotesView() {
                   <span className="text-muted-foreground">Type</span>
                   <p className="font-medium">
                     {selectedNote?.salesOrderId ? (
-                      <span className="flex items-center gap-1"><Link2 className="h-3.5 w-3.5" /> Li\u00e9 \u00e0 une commande</span>
+                      <span className="flex items-center gap-1"><Link2 className="h-3.5 w-3.5" /> Lié à une commande</span>
                     ) : (
                       <span className="flex items-center gap-1"><Unlink className="h-3.5 w-3.5" /> BL autonome</span>
                     )}
@@ -1305,7 +1305,7 @@ export default function DeliveryNotesView() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
                 <CalendarClock className="h-3.5 w-3.5" />
-                Date pr\u00e9vue de livraison
+                Date prévue de livraison
               </Label>
               <Input
                 type="date"
@@ -1324,7 +1324,7 @@ export default function DeliveryNotesView() {
             </div>
 
             <div className="space-y-2">
-              <Label>Immatriculation v\u00e9hicule</Label>
+              <Label>Immatriculation véhicule</Label>
               <Input
                 value={editVehiclePlate}
                 onChange={(e) => setEditVehiclePlate(e.target.value)}
@@ -1379,7 +1379,7 @@ export default function DeliveryNotesView() {
                 <div>
                   <span className="text-muted-foreground">Type</span>
                   <p className="font-medium">
-                    {selectedNote.salesOrderId ? 'Li\u00e9 \u00e0 une commande' : 'BL autonome (sans commande)'}
+                    {selectedNote.salesOrderId ? 'Lié à une commande' : 'BL autonome (sans commande)'}
                   </p>
                 </div>
                 {selectedNote.salesOrderId && (
@@ -1393,13 +1393,13 @@ export default function DeliveryNotesView() {
                   <p className="font-medium">{selectedNote.client.name}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Date de cr\u00e9ation</span>
+                  <span className="text-muted-foreground">Date de création</span>
                   <p className="font-medium">{format(new Date(selectedNote.date), 'dd/MM/yyyy', { locale: fr })}</p>
                 </div>
                 {selectedNote.plannedDate && (
                   <div>
                     <span className="text-muted-foreground flex items-center gap-1">
-                      <CalendarClock className="h-3 w-3" /> Date pr\u00e9vue
+                      <CalendarClock className="h-3 w-3" /> Date prévue
                     </span>
                     <p className="font-medium">{format(new Date(selectedNote.plannedDate), 'dd/MM/yyyy', { locale: fr })}</p>
                   </div>
@@ -1456,8 +1456,8 @@ export default function DeliveryNotesView() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Produit</TableHead>
-                          <TableHead className="text-right">Command\u00e9</TableHead>
-                          <TableHead className="text-right">Livr\u00e9</TableHead>
+                          <TableHead className="text-right">Commandé</TableHead>
+                          <TableHead className="text-right">Livré</TableHead>
                           <TableHead className="text-right">Restant</TableHead>
                           <TableHead className="text-center w-[140px]">Avancement</TableHead>
                         </TableRow>
@@ -1503,12 +1503,12 @@ export default function DeliveryNotesView() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Produit</TableHead>
-                      <TableHead className="text-right">Qt\u00e9 BL</TableHead>
+                      <TableHead className="text-right">Qté BL</TableHead>
                       {selectedNote.salesOrderId && (
                         <>
-                          <TableHead className="text-right">D\u00e9j\u00e0 livr\u00e9 (avant)</TableHead>
-                          <TableHead className="text-right">Total livr\u00e9</TableHead>
-                          <TableHead className="text-right">Reste apr\u00e8s</TableHead>
+                          <TableHead className="text-right">Déjà livré (avant)</TableHead>
+                          <TableHead className="text-right">Total livré</TableHead>
+                          <TableHead className="text-right">Reste après</TableHead>
                         </>
                       )}
                       <TableHead className="text-right">P.U. HT</TableHead>
@@ -1614,7 +1614,7 @@ export default function DeliveryNotesView() {
                 )}
                 {selectedNote.status === 'confirmed' && (
                   <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => { setDetailOpen(false); handleDeliver(selectedNote) }}>
-                    <Truck className="h-4 w-4 mr-1" /> Marquer livr\u00e9
+                    <Truck className="h-4 w-4 mr-1" /> Marquer livré
                   </Button>
                 )}
                 {(selectedNote.status === 'draft' || selectedNote.status === 'cancelled') && (
@@ -1636,7 +1636,7 @@ export default function DeliveryNotesView() {
           <DialogHeader>
             <DialogTitle>Supprimer le bon de livraison</DialogTitle>
             <DialogDescription>
-              \u00cates-vous s\u00fbr de vouloir supprimer ce bon de livraison ? Cette action est irr\u00e9versible.
+              Êtes-vous sûr de vouloir supprimer ce bon de livraison ? Cette action est irréversible.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
