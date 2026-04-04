@@ -202,7 +202,7 @@ export default function ClientsView() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [categorieFilter, setCategorieFilter] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
-  const [sortField, setSortField] = useState<string>('createdAt')
+  const [sortField, setSortField] = useState<string>('raisonSociale')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [saving, setSaving] = useState(false)
 

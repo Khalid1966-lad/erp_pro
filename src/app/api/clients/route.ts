@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const formeJuridique = searchParams.get('formeJuridique')
     const ville = searchParams.get('ville')
     const typeSociete = searchParams.get('typeSociete')
-    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortBy = searchParams.get('sortBy') || 'raisonSociale'
     const sortOrder = searchParams.get('sortOrder') || 'asc'
 
     const where: Prisma.ClientWhereInput = {
