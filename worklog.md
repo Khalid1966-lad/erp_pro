@@ -347,3 +347,32 @@ Add DeliveryNote and DeliveryNoteLine Prisma models, update existing model relat
 **Lint:** `npm run lint` passes with 0 errors.
 
 
+---
+Task ID: 1
+Agent: main
+Task: Support standalone delivery notes (BL without sales order) + full CRUD UI
+
+Work Log:
+- Modified Prisma schema: made `salesOrderId` optional on `DeliveryNote` and `salesOrderLineId` optional on `DeliveryNoteLine`
+- Added reverse relation `deliveryNoteLines` on `SalesOrderLine`
+- Pushed schema to SQLite database with `bun run db:push`
+- Rewrote `/api/delivery-notes` API to support two creation modes:
+  - Mode 1 (from order): requires `salesOrderId`, auto-fills lines from SO lines
+  - Mode 2 (standalone): requires `clientId` + `lines[]` array with manual product selection
+- Updated GET to support `standalone=true/false` filter
+- Updated all status actions (confirm/deliver/cancel) to handle optional salesOrderId gracefully
+- Completely rewrote `delivery-notes-view.tsx` with:
+  - Mode toggle in create dialog: "Avec commande" vs "Sans commande"
+  - Standalone mode: client selector + manual product line editor with add/remove/edit
+  - Line editor: product dropdown, quantity, unit price, TVA rate, auto-calculated totals
+  - Grand totals (HT, TVA, TTC) displayed in real-time
+  - Type badges in table: "Lié" (linked) vs "Autonome" (standalone)
+  - Full detail view showing type, all info, lines table with TVA column
+  - Edit dialog for drafts, delete confirmation, status transition actions
+- Lint passes cleanly
+
+Stage Summary:
+- BL module now supports both linked and standalone delivery notes
+- Full CRUD: Create (2 modes), Edit, Detail view, Delete, Status transitions
+- Schema: `salesOrderId String?` on DeliveryNote, `salesOrderLineId String?` on DeliveryNoteLine
+- No PostgreSQL-specific features used, SQLite compatible locally

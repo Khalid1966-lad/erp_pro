@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider  = "sqlite"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 // ============ AUTH & RBAC ============
@@ -397,6 +396,8 @@ model SalesOrderLine {
   tvaRate         Float
   totalHT         Float
   quantityPrepared Float       @default(0)
+
+  deliveryNoteLines DeliveryNoteLine[]
 }
 
 enum PreparationStatus {
@@ -428,8 +429,8 @@ enum DeliveryNoteStatus {
 model DeliveryNote {
   id              String              @id @default(cuid())
   number          String              @unique
-  salesOrderId    String
-  salesOrder      SalesOrder          @relation(fields: [salesOrderId], references: [id])
+  salesOrderId    String?
+  salesOrder      SalesOrder?          @relation(fields: [salesOrderId], references: [id])
   clientId        String
   client          Client              @relation(fields: [clientId], references: [id])
   status          DeliveryNoteStatus  @default(draft)
@@ -451,7 +452,8 @@ model DeliveryNoteLine {
   id              String        @id @default(cuid())
   deliveryNoteId  String
   deliveryNote    DeliveryNote  @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
-  salesOrderLineId String
+  salesOrderLineId String?
+  salesOrderLine  SalesOrderLine? @relation(fields: [salesOrderLineId], references: [id])
   productId       String
   product         Product       @relation(fields: [productId], references: [id])
   quantity        Float

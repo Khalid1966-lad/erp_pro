@@ -3,14 +3,64 @@ import { db } from '@/lib/db'
 import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
 import { z } from 'zod'
 
-const createDeliveryNoteSchema = z.object({
+// ─── Validation Schemas ───
+
+const lineSchema = z.object({
+  productId: z.string().min(1),
+  quantity: z.number().positive(),
+  unitPrice: z.number().min(0),
+  tvaRate: z.number().min(0),
+  salesOrderLineId: z.string().optional(),
+})
+
+const createFromOrderSchema = z.object({
   salesOrderId: z.string().min(1),
   transporteur: z.string().optional(),
   vehiclePlate: z.string().optional(),
   notes: z.string().optional(),
 })
 
-// GET - List delivery notes
+const createStandaloneSchema = z.object({
+  clientId: z.string().min(1),
+  transporteur: z.string().optional(),
+  vehiclePlate: z.string().optional(),
+  notes: z.string().optional(),
+  lines: z.array(lineSchema).min(1, 'Au moins une ligne est requise'),
+})
+
+// ─── Helper: generate BL number ───
+
+async function generateBLNumber() {
+  const blCount = await db.deliveryNote.count()
+  const year = new Date().getFullYear()
+  return `BL-${year}-${String(blCount + 1).padStart(4, '0')}`
+}
+
+// ─── Helper: common include for delivery note ───
+
+const deliveryNoteInclude = {
+  salesOrder: {
+    include: {
+      client: { select: { id: true, name: true, raisonSociale: true } },
+      lines: {
+        include: {
+          product: { select: { id: true, reference: true, designation: true } },
+        },
+      },
+    },
+  },
+  client: { select: { id: true, name: true, raisonSociale: true } },
+  lines: {
+    include: {
+      product: { select: { id: true, reference: true, designation: true } },
+    },
+  },
+}
+
+// ═══════════════════════════════════════════════════════════
+// GET - List / detail delivery notes
+// ═══════════════════════════════════════════════════════════
+
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -23,6 +73,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status') || ''
     const clientId = searchParams.get('clientId') || ''
     const salesOrderId = searchParams.get('salesOrderId') || ''
+    const standalone = searchParams.get('standalone') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
 
@@ -30,28 +81,13 @@ export async function GET(req: NextRequest) {
     if (status) where.status = status
     if (clientId) where.clientId = clientId
     if (salesOrderId) where.salesOrderId = salesOrderId
+    if (standalone === 'true') where.salesOrderId = null
+    if (standalone === 'false') where.salesOrderId = { not: null }
 
     const [deliveryNotes, total] = await Promise.all([
       db.deliveryNote.findMany({
         where,
-        include: {
-          salesOrder: {
-            include: {
-              client: { select: { id: true, name: true, raisonSociale: true } },
-              lines: {
-                include: {
-                  product: { select: { id: true, reference: true, designation: true } },
-                },
-              },
-            },
-          },
-          client: { select: { id: true, name: true, raisonSociale: true } },
-          lines: {
-            include: {
-              product: { select: { id: true, reference: true, designation: true } },
-            },
-          },
-        },
+        include: deliveryNoteInclude,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -66,7 +102,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Create delivery note from a sales order
+// ═══════════════════════════════════════════════════════════
+// POST - Create delivery note (from order OR standalone)
+// ═══════════════════════════════════════════════════════════
+
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -76,108 +115,149 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const data = createDeliveryNoteSchema.parse(body)
 
-    // Fetch the sales order with lines and product details
-    const salesOrder = await db.salesOrder.findUnique({
-      where: { id: data.salesOrderId },
-      include: {
-        lines: { include: { product: true } },
-        deliveryNotes: true,
-      },
-    })
+    // ─── Mode 1: BL from existing sales order ───
+    if (body.salesOrderId && !body.clientId) {
+      const data = createFromOrderSchema.parse(body)
 
-    if (!salesOrder) {
-      return NextResponse.json({ error: 'Bon de commande introuvable' }, { status: 404 })
-    }
-
-    // SO must be in 'prepared' or 'partially_delivered' status
-    if (salesOrder.status !== 'prepared' && salesOrder.status !== 'partially_delivered') {
-      return NextResponse.json(
-        { error: 'Le bon de commande doit être en statut "préparé" ou "partiellement livré"' },
-        { status: 400 }
-      )
-    }
-
-    // Generate BL number
-    const blCount = await db.deliveryNote.count()
-    const year = new Date().getFullYear()
-    const blNumber = `BL-${year}-${String(blCount + 1).padStart(4, '0')}`
-
-    // Calculate totals
-    let totalHT = 0
-    let totalTVA = 0
-
-    // Create delivery note with lines from SO lines
-    const deliveryNote = await db.$transaction(async (tx) => {
-      const note = await tx.deliveryNote.create({
-        data: {
-          number: blNumber,
-          salesOrderId: salesOrder.id,
-          clientId: salesOrder.clientId,
-          status: 'draft',
-          transporteur: data.transporteur || null,
-          vehiclePlate: data.vehiclePlate || null,
-          notes: data.notes || null,
-          totalHT: 0,
-          totalTVA: 0,
-          totalTTC: 0,
-          lines: {
-            create: salesOrder.lines.map((line) => {
-              const lineHT = line.quantity * line.unitPrice
-              const lineTVA = lineHT * (line.tvaRate / 100)
-              totalHT += lineHT
-              totalTVA += lineTVA
-
-              return {
-                salesOrderLineId: line.id,
-                productId: line.productId,
-                quantity: line.quantity,
-                unitPrice: line.unitPrice,
-                tvaRate: line.tvaRate,
-                totalHT: lineHT,
-              }
-            }),
-          },
-        },
+      const salesOrder = await db.salesOrder.findUnique({
+        where: { id: data.salesOrderId },
         include: {
-          salesOrder: {
-            include: {
-              client: { select: { id: true, name: true, raisonSociale: true } },
-              lines: {
-                include: {
-                  product: { select: { id: true, reference: true, designation: true } },
-                },
-              },
-            },
-          },
-          client: { select: { id: true, name: true, raisonSociale: true } },
-          lines: {
-            include: {
-              product: { select: { id: true, reference: true, designation: true } },
-            },
-          },
+          lines: { include: { product: true } },
         },
       })
 
-      // Update totals on the delivery note
-      const totalTTC = totalHT + totalTVA
-      await tx.deliveryNote.update({
-        where: { id: note.id },
-        data: { totalHT, totalTVA, totalTTC },
+      if (!salesOrder) {
+        return NextResponse.json({ error: 'Bon de commande introuvable' }, { status: 404 })
+      }
+
+      if (salesOrder.status !== 'prepared' && salesOrder.status !== 'partially_delivered') {
+        return NextResponse.json(
+          { error: 'Le bon de commande doit être en statut "préparé" ou "partiellement livré"' },
+          { status: 400 }
+        )
+      }
+
+      const blNumber = await generateBLNumber()
+      let totalHT = 0
+      let totalTVA = 0
+
+      const deliveryNote = await db.$transaction(async (tx) => {
+        const note = await tx.deliveryNote.create({
+          data: {
+            number: blNumber,
+            salesOrderId: salesOrder.id,
+            clientId: salesOrder.clientId,
+            status: 'draft',
+            transporteur: data.transporteur || null,
+            vehiclePlate: data.vehiclePlate || null,
+            notes: data.notes || null,
+            totalHT: 0,
+            totalTVA: 0,
+            totalTTC: 0,
+            lines: {
+              create: salesOrder.lines.map((line) => {
+                const lineHT = line.quantity * line.unitPrice
+                const lineTVA = lineHT * (line.tvaRate / 100)
+                totalHT += lineHT
+                totalTVA += lineTVA
+
+                return {
+                  salesOrderLineId: line.id,
+                  productId: line.productId,
+                  quantity: line.quantity,
+                  unitPrice: line.unitPrice,
+                  tvaRate: line.tvaRate,
+                  totalHT: lineHT,
+                }
+              }),
+            },
+          },
+          include: deliveryNoteInclude,
+        })
+
+        const totalTTC = totalHT + totalTVA
+        await tx.deliveryNote.update({
+          where: { id: note.id },
+          data: { totalHT, totalTVA, totalTTC },
+        })
+
+        await tx.salesOrder.update({
+          where: { id: salesOrder.id },
+          data: { status: 'partially_delivered' },
+        })
+
+        return { ...note, totalHT, totalTVA, totalTTC }
       })
 
-      // Update SO status to 'partially_delivered'
-      await tx.salesOrder.update({
-        where: { id: salesOrder.id },
-        data: { status: 'partially_delivered' },
+      await auditLog(auth.userId, 'create', 'DeliveryNote', deliveryNote.id, null, deliveryNote)
+      return NextResponse.json(deliveryNote, { status: 201 })
+    }
+
+    // ─── Mode 2: Standalone BL (no sales order) ───
+    if (body.clientId && !body.salesOrderId) {
+      const data = createStandaloneSchema.parse(body)
+
+      // Verify client exists
+      const client = await db.client.findUnique({ where: { id: data.clientId } })
+      if (!client) {
+        return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
+      }
+
+      const blNumber = await generateBLNumber()
+      let totalHT = 0
+      let totalTVA = 0
+
+      const deliveryNote = await db.$transaction(async (tx) => {
+        const note = await tx.deliveryNote.create({
+          data: {
+            number: blNumber,
+            clientId: data.clientId,
+            status: 'draft',
+            transporteur: data.transporteur || null,
+            vehiclePlate: data.vehiclePlate || null,
+            notes: data.notes || null,
+            totalHT: 0,
+            totalTVA: 0,
+            totalTTC: 0,
+            lines: {
+              create: data.lines.map((line) => {
+                const lineHT = line.quantity * line.unitPrice
+                const lineTVA = lineHT * (line.tvaRate / 100)
+                totalHT += lineHT
+                totalTVA += lineTVA
+
+                return {
+                  salesOrderLineId: line.salesOrderLineId || null,
+                  productId: line.productId,
+                  quantity: line.quantity,
+                  unitPrice: line.unitPrice,
+                  tvaRate: line.tvaRate,
+                  totalHT: lineHT,
+                }
+              }),
+            },
+          },
+          include: deliveryNoteInclude,
+        })
+
+        const totalTTC = totalHT + totalTVA
+        await tx.deliveryNote.update({
+          where: { id: note.id },
+          data: { totalHT, totalTVA, totalTTC },
+        })
+
+        return { ...note, totalHT, totalTVA, totalTTC }
       })
 
-      return { ...note, totalHT, totalTVA, totalTTC }
-    })
+      await auditLog(auth.userId, 'create', 'DeliveryNote', deliveryNote.id, null, deliveryNote)
+      return NextResponse.json(deliveryNote, { status: 201 })
+    }
 
-    await auditLog(auth.userId, 'create', 'DeliveryNote', deliveryNote.id, null, deliveryNote)
-    return NextResponse.json(deliveryNote, { status: 201 })
+    return NextResponse.json(
+      { error: 'Fournissez soit salesOrderId soit clientId avec des lignes' },
+      { status: 400 }
+    )
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Données invalides', details: error.errors }, { status: 400 })
@@ -187,7 +267,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
 // PUT - Actions: confirm, deliver, cancel + simple update
+// ═══════════════════════════════════════════════════════════
+
 export async function PUT(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -228,16 +311,7 @@ export async function PUT(req: NextRequest) {
       const deliveryNote = await db.deliveryNote.update({
         where: { id },
         data: { status: 'confirmed', ...updateData },
-        include: {
-          salesOrder: {
-            include: {
-              client: { select: { id: true, name: true, raisonSociale: true } },
-              lines: { include: { product: true } },
-            },
-          },
-          client: { select: { id: true, name: true, raisonSociale: true } },
-          lines: { include: { product: true } },
-        },
+        include: deliveryNoteInclude,
       })
 
       await auditLog(auth.userId, 'confirm', 'DeliveryNote', id, existing, deliveryNote)
@@ -262,31 +336,24 @@ export async function PUT(req: NextRequest) {
             deliveryDate: now,
             ...updateData,
           },
-          include: {
-            salesOrder: {
-              include: {
-                client: { select: { id: true, name: true, raisonSociale: true } },
-                lines: { include: { product: true } },
-              },
-            },
-            client: { select: { id: true, name: true, raisonSociale: true } },
-            lines: { include: { product: true } },
-          },
+          include: deliveryNoteInclude,
         })
 
-        // Check if all delivery notes for this SO are delivered
-        const allDeliveryNotes = await tx.deliveryNote.findMany({
-          where: { salesOrderId: existing.salesOrderId },
-        })
-
-        const nonCancelledNotes = allDeliveryNotes.filter((dn) => dn.status !== 'cancelled')
-        const allDelivered = nonCancelledNotes.every((dn) => dn.status === 'delivered')
-
-        if (allDelivered) {
-          await tx.salesOrder.update({
-            where: { id: existing.salesOrderId },
-            data: { status: 'delivered' },
+        // If linked to a sales order, check if all delivery notes are delivered
+        if (existing.salesOrderId) {
+          const allDeliveryNotes = await tx.deliveryNote.findMany({
+            where: { salesOrderId: existing.salesOrderId },
           })
+
+          const nonCancelledNotes = allDeliveryNotes.filter((dn) => dn.status !== 'cancelled')
+          const allDelivered = nonCancelledNotes.every((dn) => dn.status === 'delivered')
+
+          if (allDelivered) {
+            await tx.salesOrder.update({
+              where: { id: existing.salesOrderId },
+              data: { status: 'delivered' },
+            })
+          }
         }
 
         return delivered
@@ -309,37 +376,28 @@ export async function PUT(req: NextRequest) {
         const cancelled = await tx.deliveryNote.update({
           where: { id },
           data: { status: 'cancelled' },
-          include: {
-            salesOrder: {
-              include: {
-                client: { select: { id: true, name: true, raisonSociale: true } },
-                lines: { include: { product: true } },
-              },
+          include: deliveryNoteInclude,
+        })
+
+        // If linked to a sales order, revert SO status if needed
+        if (existing.salesOrderId) {
+          const remainingNotes = await tx.deliveryNote.findMany({
+            where: {
+              salesOrderId: existing.salesOrderId,
+              status: { notIn: ['cancelled'] },
             },
-            client: { select: { id: true, name: true, raisonSociale: true } },
-            lines: { include: { product: true } },
-          },
-        })
-
-        // Check remaining non-cancelled delivery notes for this SO
-        const remainingNotes = await tx.deliveryNote.findMany({
-          where: {
-            salesOrderId: existing.salesOrderId,
-            status: { notIn: ['cancelled'] },
-          },
-        })
-
-        // If no more active delivery notes, revert SO status based on preparation state
-        if (remainingNotes.length === 0) {
-          // Check if SO was fully prepared
-          const salesOrderLines = await tx.salesOrderLine.findMany({
-            where: { orderId: existing.salesOrderId },
           })
-          const allPrepared = salesOrderLines.every((l) => l.quantityPrepared >= l.quantity)
-          await tx.salesOrder.update({
-            where: { id: existing.salesOrderId },
-            data: { status: allPrepared ? 'prepared' : 'in_preparation' },
-          })
+
+          if (remainingNotes.length === 0) {
+            const salesOrderLines = await tx.salesOrderLine.findMany({
+              where: { orderId: existing.salesOrderId },
+            })
+            const allPrepared = salesOrderLines.every((l) => l.quantityPrepared >= l.quantity)
+            await tx.salesOrder.update({
+              where: { id: existing.salesOrderId },
+              data: { status: allPrepared ? 'prepared' : 'in_preparation' },
+            })
+          }
         }
 
         return cancelled
@@ -353,16 +411,7 @@ export async function PUT(req: NextRequest) {
     const deliveryNote = await db.deliveryNote.update({
       where: { id },
       data: updateData,
-      include: {
-        salesOrder: {
-          include: {
-            client: { select: { id: true, name: true, raisonSociale: true } },
-            lines: { include: { product: true } },
-          },
-        },
-        client: { select: { id: true, name: true, raisonSociale: true } },
-        lines: { include: { product: true } },
-      },
+      include: deliveryNoteInclude,
     })
 
     await auditLog(auth.userId, 'update', 'DeliveryNote', id, existing, deliveryNote)
@@ -376,7 +425,10 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE - Delete draft/cancelled delivery notes only
+// ═══════════════════════════════════════════════════════════
+// DELETE - Delete draft/cancelled delivery notes
+// ═══════════════════════════════════════════════════════════
+
 export async function DELETE(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -411,21 +463,22 @@ export async function DELETE(req: NextRequest) {
     await db.$transaction(async (tx) => {
       await tx.deliveryNote.delete({ where: { id } })
 
-      // Check remaining delivery notes for the SO after deletion
-      const remainingNotes = await tx.deliveryNote.findMany({
-        where: { salesOrderId: existing.salesOrderId },
-      })
+      // If linked to a sales order, revert SO status if needed
+      if (existing.salesOrderId) {
+        const remainingNotes = await tx.deliveryNote.findMany({
+          where: { salesOrderId: existing.salesOrderId },
+        })
 
-      if (remainingNotes.length === 0) {
-        // Revert SO status based on preparation
-        const salesOrderLines = await tx.salesOrderLine.findMany({
-          where: { orderId: existing.salesOrderId },
-        })
-        const allPrepared = salesOrderLines.every((l) => l.quantityPrepared >= l.quantity)
-        await tx.salesOrder.update({
-          where: { id: existing.salesOrderId },
-          data: { status: allPrepared ? 'prepared' : 'in_preparation' },
-        })
+        if (remainingNotes.length === 0) {
+          const salesOrderLines = await tx.salesOrderLine.findMany({
+            where: { orderId: existing.salesOrderId },
+          })
+          const allPrepared = salesOrderLines.every((l) => l.quantityPrepared >= l.quantity)
+          await tx.salesOrder.update({
+            where: { id: existing.salesOrderId },
+            data: { status: allPrepared ? 'prepared' : 'in_preparation' },
+          })
+        }
       }
     })
 

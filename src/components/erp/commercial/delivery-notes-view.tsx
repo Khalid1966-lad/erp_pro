@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -22,15 +22,34 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil
+  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+// ─── Helpers ───
+
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 // ─── Interfaces ───
+
+interface ClientOption {
+  id: string
+  name: string
+  raisonSociale: string | null
+  ville: string | null
+}
+
+interface ProductOption {
+  id: string
+  reference: string
+  designation: string
+  priceHT: number
+  tvaRate: number
+  unit: string
+  currentStock: number
+}
 
 interface SalesOrderOption {
   id: string
@@ -41,7 +60,7 @@ interface SalesOrderOption {
   totalTTC: number
 }
 
-interface DeliveryNoteLine {
+interface DeliveryNoteLineItem {
   id: string
   productId: string
   quantity: number
@@ -64,12 +83,22 @@ interface DeliveryNote {
   totalHT: number
   totalTVA: number
   totalTTC: number
+  salesOrderId: string | null
   salesOrder: {
     id: string
     number: string
-    lines: DeliveryNoteLine[]
-  }
+    lines: DeliveryNoteLineItem[]
+  } | null
   client: { id: string; name: string }
+  lines: DeliveryNoteLineItem[]
+}
+
+interface EditableLine {
+  tempId: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  tvaRate: number
 }
 
 // ─── Status Config ───
@@ -105,14 +134,21 @@ export default function DeliveryNotesView() {
   const [selectedNote, setSelectedNote] = useState<DeliveryNote | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  // Create form
+  // Create form - mode: 'order' | 'standalone'
+  const [createMode, setCreateMode] = useState<'order' | 'standalone'>('order')
   const [availableOrders, setAvailableOrders] = useState<SalesOrderOption[]>([])
   const [selectedOrderId, setSelectedOrderId] = useState<string>('')
+  const [availableClients, setAvailableClients] = useState<ClientOption[]>([])
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [availableProducts, setAvailableProducts] = useState<ProductOption[]>([])
+  const [editableLines, setEditableLines] = useState<EditableLine[]>([])
   const [createTransporteur, setCreateTransporteur] = useState('')
   const [createVehiclePlate, setCreateVehiclePlate] = useState('')
   const [createNotes, setCreateNotes] = useState('')
   const [creating, setCreating] = useState(false)
   const [loadingOrders, setLoadingOrders] = useState(false)
+  const [loadingClients, setLoadingClients] = useState(false)
+  const [loadingProducts, setLoadingProducts] = useState(false)
 
   // Edit form
   const [editTransporteur, setEditTransporteur] = useState('')
@@ -122,11 +158,12 @@ export default function DeliveryNotesView() {
 
   // ─── Fetch ───
 
-  const fetchDeliveryNotes = async () => {
+  const fetchDeliveryNotes = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
       params.set('page', '1')
+      params.set('limit', '100')
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
       const data = await api.get<{ deliveryNotes: DeliveryNote[]; total: number }>(`/delivery-notes?${params.toString()}`)
       setDeliveryNotes(data.deliveryNotes)
@@ -135,48 +172,91 @@ export default function DeliveryNotesView() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
 
   useEffect(() => {
     fetchDeliveryNotes()
-  }, [statusFilter])
+  }, [fetchDeliveryNotes])
 
   // ─── Create BL ───
 
   const openCreateDialog = async () => {
     setCreateOpen(true)
+    setCreateMode('order')
     setSelectedOrderId('')
+    setSelectedClientId('')
+    setEditableLines([])
     setCreateTransporteur('')
     setCreateVehiclePlate('')
     setCreateNotes('')
+
+    // Fetch available data in parallel
+    setLoadingOrders(true)
+    setLoadingClients(true)
+    setLoadingProducts(true)
+
     try {
-      setLoadingOrders(true)
-      const [prepData, partData] = await Promise.all([
+      const [prepData, partData, clientsData, productsData] = await Promise.all([
         api.get<{ salesOrders: SalesOrderOption[] }>('/sales-orders?status=prepared&limit=100'),
         api.get<{ salesOrders: SalesOrderOption[] }>('/sales-orders?status=partially_delivered&limit=100'),
+        api.get<{ clients: ClientOption[] }>('/clients?limit=500'),
+        api.get<{ products: ProductOption[] }>('/products?limit=500'),
       ])
-      const all = [...(prepData.salesOrders || []), ...(partData.salesOrders || [])]
-      setAvailableOrders(all)
+      const allOrders = [...(prepData.salesOrders || []), ...(partData.salesOrders || [])]
+      setAvailableOrders(allOrders)
+      setAvailableClients(clientsData.clients || [])
+      setAvailableProducts(productsData.products || [])
     } catch (err: any) {
-      toast.error(err.message || 'Erreur chargement commandes')
+      toast.error(err.message || 'Erreur chargement des donn\u00e9es')
     } finally {
       setLoadingOrders(false)
+      setLoadingClients(false)
+      setLoadingProducts(false)
     }
   }
 
   const handleCreate = async () => {
-    if (!selectedOrderId) {
-      toast.error('Veuillez s\u00e9lectionner une commande')
-      return
-    }
     try {
       setCreating(true)
-      await api.post('/delivery-notes', {
-        salesOrderId: selectedOrderId,
-        transporteur: createTransporteur || undefined,
-        vehiclePlate: createVehiclePlate || undefined,
-        notes: createNotes || undefined,
-      })
+
+      if (createMode === 'order') {
+        if (!selectedOrderId) {
+          toast.error('Veuillez s\u00e9lectionner une commande')
+          setCreating(false)
+          return
+        }
+        await api.post('/delivery-notes', {
+          salesOrderId: selectedOrderId,
+          transporteur: createTransporteur || undefined,
+          vehiclePlate: createVehiclePlate || undefined,
+          notes: createNotes || undefined,
+        })
+      } else {
+        // Standalone mode
+        if (!selectedClientId) {
+          toast.error('Veuillez s\u00e9lectionner un client')
+          setCreating(false)
+          return
+        }
+        if (editableLines.length === 0) {
+          toast.error('Ajoutez au moins une ligne de produit')
+          setCreating(false)
+          return
+        }
+        await api.post('/delivery-notes', {
+          clientId: selectedClientId,
+          transporteur: createTransporteur || undefined,
+          vehiclePlate: createVehiclePlate || undefined,
+          notes: createNotes || undefined,
+          lines: editableLines.map((l) => ({
+            productId: l.productId,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            tvaRate: l.tvaRate,
+          })),
+        })
+      }
+
       toast.success('Bon de livraison cr\u00e9\u00e9 avec succ\u00e8s')
       setCreateOpen(false)
       fetchDeliveryNotes()
@@ -186,6 +266,55 @@ export default function DeliveryNotesView() {
       setCreating(false)
     }
   }
+
+  // ─── Editable Lines Management (Standalone Mode) ───
+
+  const addEditableLine = () => {
+    setEditableLines([
+      ...editableLines,
+      {
+        tempId: `temp-${Date.now()}`,
+        productId: '',
+        quantity: 1,
+        unitPrice: 0,
+        tvaRate: 20,
+      },
+    ])
+  }
+
+  const removeEditableLine = (tempId: string) => {
+    setEditableLines(editableLines.filter((l) => l.tempId !== tempId))
+  }
+
+  const updateEditableLine = (tempId: string, field: keyof EditableLine, value: string | number) => {
+    setEditableLines(
+      editableLines.map((l) => {
+        if (l.tempId !== tempId) return l
+        const updated = { ...l, [field]: value }
+
+        // When product changes, auto-fill price and tvaRate
+        if (field === 'productId' && typeof value === 'string') {
+          const prod = availableProducts.find((p) => p.id === value)
+          if (prod) {
+            updated.unitPrice = prod.priceHT
+            updated.tvaRate = prod.tvaRate
+          }
+        }
+        return updated
+      })
+    )
+  }
+
+  const getEditableLineTotalHT = (line: EditableLine) => line.quantity * line.unitPrice
+
+  const getEditableLineTotalTTC = (line: EditableLine) => {
+    const ht = line.quantity * line.unitPrice
+    return ht * (1 + line.tvaRate / 100)
+  }
+
+  const getGrandTotalHT = () => editableLines.reduce((sum, l) => sum + getEditableLineTotalHT(l), 0)
+  const getGrandTotalTVA = () => editableLines.reduce((sum, l) => sum + getEditableLineTotalHT(l) * (l.tvaRate / 100), 0)
+  const getGrandTotalTTC = () => editableLines.reduce((sum, l) => sum + getEditableLineTotalTTC(l), 0)
 
   // ─── Edit BL ───
 
@@ -364,11 +493,11 @@ export default function DeliveryNotesView() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Num\u00e9ro</TableHead>
-                  <TableHead>Commande</TableHead>
-                  <TableHead>Client</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Commande / Client</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="hidden md:table-cell">Transporteur</TableHead>
-                  <TableHead className="hidden lg:table-cell">Date livraison</TableHead>
+                  <TableHead className="hidden lg:table-cell">Total TTC</TableHead>
                   <TableHead className="text-right w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -380,9 +509,7 @@ export default function DeliveryNotesView() {
                         <Truck className="h-10 w-10 text-muted-foreground/30" />
                         <p className="font-medium">Aucun bon de livraison</p>
                         <p className="text-sm">
-                          {statusFilter !== 'all'
-                            ? 'Aucun BL trouv\u00e9 pour ce statut.'
-                            : 'Cliquez sur "Nouveau bon de livraison" pour en cr\u00e9er un.'}
+                          Cliquez sur &quot;Nouveau bon de livraison&quot; pour en cr\u00e9er un.
                         </p>
                       </div>
                     </TableCell>
@@ -391,8 +518,29 @@ export default function DeliveryNotesView() {
                   deliveryNotes.map((note) => (
                     <TableRow key={note.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(note)}>
                       <TableCell className="font-mono font-medium">{note.number}</TableCell>
-                      <TableCell className="font-mono text-sm">{note.salesOrder.number}</TableCell>
-                      <TableCell>{note.client.name}</TableCell>
+                      <TableCell>
+                        {note.salesOrderId ? (
+                          <Badge variant="outline" className="text-xs gap-1">
+                            <Link2 className="h-3 w-3" /> Li\u00e9
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs gap-1 border-dashed">
+                            <Unlink className="h-3 w-3" /> Autonome
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {note.salesOrderId ? (
+                          <div>
+                            <p className="font-mono text-sm">{note.salesOrder?.number}</p>
+                            <p className="text-xs text-muted-foreground">{note.client.name}</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="font-medium">{note.client.name}</p>
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={statusColors[note.status] || ''}>
                           {statusLabels[note.status] || note.status}
@@ -401,10 +549,8 @@ export default function DeliveryNotesView() {
                       <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                         {note.transporteur || '\u2014'}
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell text-muted-foreground">
-                        {note.deliveryDate
-                          ? format(new Date(note.deliveryDate), 'dd/MM/yyyy', { locale: fr })
-                          : '\u2014'}
+                      <TableCell className="hidden lg:table-cell font-medium">
+                        {formatCurrency(note.totalTTC)}
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
@@ -443,49 +589,247 @@ export default function DeliveryNotesView() {
         </CardContent>
       </Card>
 
-      {/* ═══ CREATE DIALOG ═══ */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* CREATE DIALOG                                        */}
+      {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
               Nouveau bon de livraison
             </DialogTitle>
             <DialogDescription>
-              S\u00e9lectionnez une commande pr\u00e9par\u00e9e pour cr\u00e9er un bon de livraison.
+              Cr\u00e9ez un bon de livraison li\u00e9 \u00e0 une commande ou un BL autonome.
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4">
-            {/* Select Sales Order */}
+            {/* Mode Toggle */}
             <div className="space-y-2">
-              <Label>Commande client *</Label>
-              {loadingOrders ? (
-                <Skeleton className="h-10 w-full" />
-              ) : availableOrders.length === 0 ? (
-                <div className="rounded-md border p-4 text-center text-sm text-muted-foreground">
-                  Aucune commande pr\u00e9par\u00e9e disponible.<br />
-                  Veuillez d&apos;abord pr\u00e9parer une commande.
-                </div>
-              ) : (
-                <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="S\u00e9lectionner une commande..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableOrders.map((order) => (
-                      <SelectItem key={order.id} value={order.id}>
-                        <div className="flex flex-col">
-                          <span className="font-mono text-sm">{order.number} - {order.client.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatCurrency(order.totalTTC)}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Label>Type de bon de livraison</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCreateMode('order')}
+                  className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all ${
+                    createMode === 'order'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <ShoppingCart className={`h-5 w-5 ${createMode === 'order' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div>
+                    <p className="font-medium text-sm">Avec commande</p>
+                    <p className="text-xs text-muted-foreground">Lier \u00e0 un bon de commande existant</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateMode('standalone')}
+                  className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all ${
+                    createMode === 'standalone'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <Package className={`h-5 w-5 ${createMode === 'standalone' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div>
+                    <p className="font-medium text-sm">Sans commande</p>
+                    <p className="text-xs text-muted-foreground">BL autonome (s\u00e9lection manuelle)</p>
+                  </div>
+                </button>
+              </div>
             </div>
+
+            {/* ── Mode: With Sales Order ── */}
+            {createMode === 'order' && (
+              <div className="space-y-2">
+                <Label>Commande client <span className="text-destructive">*</span></Label>
+                {loadingOrders ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : availableOrders.length === 0 ? (
+                  <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+                    Aucune commande pr\u00e9par\u00e9e disponible.<br />
+                    Veuillez d&apos;abord pr\u00e9parer une commande ou utilisez le mode &quot;Sans commande&quot;.
+                  </div>
+                ) : (
+                  <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="S\u00e9lectionner une commande..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableOrders.map((order) => (
+                        <SelectItem key={order.id} value={order.id}>
+                          <div className="flex flex-col">
+                            <span className="font-mono text-sm">{order.number} - {order.client.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatCurrency(order.totalTTC)}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
+            {/* ── Mode: Standalone (No Sales Order) ── */}
+            {createMode === 'standalone' && (
+              <>
+                {/* Client Select */}
+                <div className="space-y-2">
+                  <Label>Client <span className="text-destructive">*</span></Label>
+                  {loadingClients ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="S\u00e9lectionner un client..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableClients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            <div className="flex flex-col">
+                              <span className="text-sm">{c.raisonSociale || c.name}</span>
+                              {c.ville && (
+                                <span className="text-xs text-muted-foreground">{c.ville}</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {/* Product Lines */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Articles <span className="text-destructive">*</span></Label>
+                    <Button type="button" variant="outline" size="sm" className="gap-1" onClick={addEditableLine}>
+                      <Plus className="h-3.5 w-3.5" /> Ajouter un article
+                    </Button>
+                  </div>
+
+                  {loadingProducts ? (
+                    <Skeleton className="h-20 w-full" />
+                  ) : editableLines.length === 0 ? (
+                    <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                      Cliquez sur &quot;Ajouter un article&quot; pour commencer.
+                    </div>
+                  ) : (
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[40%]">Produit</TableHead>
+                            <TableHead className="w-[15%] text-right">Qt\u00e9</TableHead>
+                            <TableHead className="w-[20%] text-right">P.U. HT</TableHead>
+                            <TableHead className="w-[15%] text-right">TVA %</TableHead>
+                            <TableHead className="w-[15%] text-right">Total HT</TableHead>
+                            <TableHead className="w-[40px]" />
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {editableLines.map((line) => (
+                            <TableRow key={line.tempId}>
+                              <TableCell>
+                                <Select
+                                  value={line.productId}
+                                  onValueChange={(val) => updateEditableLine(line.tempId, 'productId', val)}
+                                >
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Produit..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableProducts.map((p) => (
+                                      <SelectItem key={p.id} value={p.id}>
+                                        <span className="text-xs">{p.reference} - {p.designation}</span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min="0.01"
+                                  step="0.01"
+                                  value={line.quantity}
+                                  onChange={(e) => updateEditableLine(line.tempId, 'quantity', parseFloat(e.target.value) || 0)}
+                                  className="h-8 text-right text-sm"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={line.unitPrice}
+                                  onChange={(e) => updateEditableLine(line.tempId, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                  className="h-8 text-right text-sm"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={String(line.tvaRate)}
+                                  onValueChange={(val) => updateEditableLine(line.tempId, 'tvaRate', parseFloat(val))}
+                                >
+                                  <SelectTrigger className="h-8 text-xs text-right">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="20">20%</SelectItem>
+                                    <SelectItem value="14">14%</SelectItem>
+                                    <SelectItem value="10">10%</SelectItem>
+                                    <SelectItem value="7">7%</SelectItem>
+                                    <SelectItem value="0">0%</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell className="text-right text-sm font-medium">
+                                {formatCurrency(getEditableLineTotalHT(line))}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  onClick={() => removeEditableLine(line.tempId)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {/* Totals */}
+                      {editableLines.length > 0 && (
+                        <div className="flex justify-end p-3 border-t bg-muted/30">
+                          <div className="w-64 space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Total HT</span>
+                              <span className="font-medium">{formatCurrency(getGrandTotalHT())}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Total TVA</span>
+                              <span className="font-medium">{formatCurrency(getGrandTotalTVA())}</span>
+                            </div>
+                            <div className="flex justify-between border-t pt-1 font-semibold text-base">
+                              <span>Total TTC</span>
+                              <span>{formatCurrency(getGrandTotalTTC())}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Transporteur */}
             <div className="space-y-2">
@@ -518,16 +862,26 @@ export default function DeliveryNotesView() {
               />
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
-            <Button onClick={handleCreate} disabled={creating || !selectedOrderId}>
+            <Button
+              onClick={handleCreate}
+              disabled={
+                creating ||
+                (createMode === 'order' && !selectedOrderId) ||
+                (createMode === 'standalone' && (!selectedClientId || editableLines.length === 0))
+              }
+            >
               {creating ? 'Cr\u00e9ation...' : 'Cr\u00e9er le BL'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ═══ EDIT DIALOG ═══ */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* EDIT DIALOG                                          */}
+      {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -543,9 +897,21 @@ export default function DeliveryNotesView() {
             <div className="rounded-md bg-muted/50 p-3 text-sm">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="text-muted-foreground">Commande</span>
-                  <p className="font-mono font-medium">{selectedNote?.salesOrder.number}</p>
+                  <span className="text-muted-foreground">Type</span>
+                  <p className="font-medium">
+                    {selectedNote?.salesOrderId ? (
+                      <span className="flex items-center gap-1"><Link2 className="h-3.5 w-3.5" /> Li\u00e9 \u00e0 une commande</span>
+                    ) : (
+                      <span className="flex items-center gap-1"><Unlink className="h-3.5 w-3.5" /> BL autonome</span>
+                    )}
+                  </p>
                 </div>
+                {selectedNote?.salesOrderId && (
+                  <div>
+                    <span className="text-muted-foreground">Commande</span>
+                    <p className="font-mono font-medium">{selectedNote?.salesOrder?.number}</p>
+                  </div>
+                )}
                 <div>
                   <span className="text-muted-foreground">Client</span>
                   <p className="font-medium">{selectedNote?.client.name}</p>
@@ -590,7 +956,9 @@ export default function DeliveryNotesView() {
         </DialogContent>
       </Dialog>
 
-      {/* ═══ DETAIL DIALOG ═══ */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* DETAIL DIALOG                                        */}
+      {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -602,16 +970,29 @@ export default function DeliveryNotesView() {
                   {statusLabels[selectedNote.status]}
                 </Badge>
               )}
+              {selectedNote && !selectedNote.salesOrderId && (
+                <Badge variant="outline" className="gap-1 border-dashed text-xs">
+                  <Unlink className="h-3 w-3" /> Autonome
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
           {selectedNote && (
             <div className="space-y-4">
               {/* Info Grid */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Commande</span>
-                  <p className="font-mono font-medium">{selectedNote.salesOrder.number}</p>
+                  <span className="text-muted-foreground">Type</span>
+                  <p className="font-medium">
+                    {selectedNote.salesOrderId ? 'Li\u00e9 \u00e0 une commande' : 'BL autonome (sans commande)'}
+                  </p>
                 </div>
+                {selectedNote.salesOrderId && (
+                  <div>
+                    <span className="text-muted-foreground">Commande</span>
+                    <p className="font-mono font-medium">{selectedNote.salesOrder?.number}</p>
+                  </div>
+                )}
                 <div>
                   <span className="text-muted-foreground">Client</span>
                   <p className="font-medium">{selectedNote.client.name}</p>
@@ -634,52 +1015,60 @@ export default function DeliveryNotesView() {
                   <span className="text-muted-foreground">Date de livraison</span>
                   <p className="font-medium">
                     {selectedNote.deliveryDate
-                      ? format(new Date(selectedNote.deliveryDate), 'dd/MM/yyyy', { locale: fr })
+                      ? format(new Date(selectedNote.deliveryDate), 'dd/MM/yyyy \u00e0 HH:mm', { locale: fr })
                       : '\u2014'}
                   </p>
                 </div>
               </div>
 
               {/* Lines Table */}
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Produit</TableHead>
-                    <TableHead className="text-right">Qt\u00e9</TableHead>
-                    <TableHead className="text-right">P.U. HT</TableHead>
-                    <TableHead className="text-right">Total HT</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedNote.lines && selectedNote.lines.length > 0
-                    ? selectedNote.lines.map((line) => (
-                        <TableRow key={line.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <Package className="h-4 w-4 text-muted-foreground" />
-                              {line.product?.reference} - {line.product?.designation}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">{line.quantity}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(line.totalHT)}</TableCell>
-                        </TableRow>
-                      ))
-                    : selectedNote.salesOrder.lines.map((line) => (
-                        <TableRow key={line.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <Package className="h-4 w-4 text-muted-foreground" />
-                              {line.product?.reference} - {line.product?.designation}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">{line.quantity}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(line.totalHT)}</TableCell>
-                        </TableRow>
-                      ))}
-                </TableBody>
-              </Table>
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Articles livr\u00e9s</h4>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right">Qt\u00e9</TableHead>
+                        <TableHead className="text-right">P.U. HT</TableHead>
+                        <TableHead className="text-right">TVA</TableHead>
+                        <TableHead className="text-right">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedNote.lines && selectedNote.lines.length > 0
+                        ? selectedNote.lines.map((line) => (
+                            <TableRow key={line.id}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-4 w-4 text-muted-foreground" />
+                                  {line.product?.reference} - {line.product?.designation}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">{line.quantity}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                              <TableCell className="text-right">{line.tvaRate}%</TableCell>
+                              <TableCell className="text-right">{formatCurrency(line.totalHT)}</TableCell>
+                            </TableRow>
+                          ))
+                        : selectedNote.salesOrder?.lines?.map((line) => (
+                            <TableRow key={line.id}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-4 w-4 text-muted-foreground" />
+                                  {line.product?.reference} - {line.product?.designation}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">{line.quantity}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                              <TableCell className="text-right">{line.tvaRate}%</TableCell>
+                              <TableCell className="text-right">{formatCurrency(line.totalHT)}</TableCell>
+                            </TableRow>
+                          ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
 
               {/* Totals */}
               <div className="flex justify-end">
@@ -713,7 +1102,7 @@ export default function DeliveryNotesView() {
               )}
 
               {/* Actions in detail */}
-              <div className="flex justify-end gap-2 pt-2 border-t">
+              <div className="flex flex-wrap justify-end gap-2 pt-2 border-t">
                 {selectedNote.status === 'draft' && (
                   <>
                     <Button variant="outline" className="gap-2" onClick={() => { setDetailOpen(false); openEditDialog(selectedNote) }}>
@@ -740,7 +1129,9 @@ export default function DeliveryNotesView() {
         </DialogContent>
       </Dialog>
 
-      {/* ═══ DELETE CONFIRM DIALOG ═══ */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* DELETE CONFIRM DIALOG                                 */}
+      {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
