@@ -530,10 +530,11 @@ export default function QuotesView() {
 
       {/* Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Nouveau devis</DialogTitle>
           </DialogHeader>
+          <div className="overflow-auto scrollbar-visible max-h-[calc(90vh-8rem)]">
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Client searchable combobox */}
@@ -725,6 +726,7 @@ export default function QuotesView() {
               <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(calcFormTotals.totalTTC)}</span></div>
             </div>
           </div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
             <Button onClick={handleSave} disabled={saving}>
@@ -736,7 +738,7 @@ export default function QuotesView() {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -748,6 +750,7 @@ export default function QuotesView() {
               )}
             </DialogTitle>
           </DialogHeader>
+          <div className="overflow-auto scrollbar-visible max-h-[calc(90vh-8rem)]">
           {selectedQuote && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -793,6 +796,9 @@ export default function QuotesView() {
                 <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(selectedQuote.totalTTC)}</span></div>
               </div>
 
+            </div>
+          )}
+          </div>
               <DialogFooter>
                 {getStatusActions(selectedQuote).map((action) => (
                   <Button
@@ -812,8 +818,6 @@ export default function QuotesView() {
                   </Button>
                 ))}
               </DialogFooter>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </div>
