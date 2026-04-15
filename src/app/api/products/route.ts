@@ -20,7 +20,7 @@ const productSchema = z.object({
   isActive: z.boolean().default(true),
 })
 
-// GET - List products
+// GET - List products with pagination
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -70,7 +70,9 @@ export async function GET(req: NextRequest) {
       db.product.count({ where }),
     ])
 
-    return NextResponse.json({ products, total, page, limit })
+    const totalPages = Math.ceil(total / limit)
+
+    return NextResponse.json({ products, total, page, limit, totalPages })
   } catch (error) {
     console.error('Products list error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })

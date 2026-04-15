@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -22,7 +22,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Edit, Trash2, Search, Package, Filter } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Plus, Edit, Trash2, Search, Package, Filter, ArrowUpDown, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Product {
@@ -71,55 +72,93 @@ const productTypeColors: Record<string, string> = {
 }
 
 export default function ProductsView() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [allProducts, setAllProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
-  const [familleFilter, setFamilleFilter] = useState<string>('all')
+  const searchRef = useRef<string>('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  const [familleFilter, setFamilleFilter] = useState<string | null>(null)
+  const [sortField, setSortField] = useState<string>('reference')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [form, setForm] = useState(emptyProduct)
   const [saving, setSaving] = useState(false)
 
-  const fetchProducts = async () => {
+  // Debounced search
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+    searchRef.current = value
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      fetchProductsBySearch(value)
+    }, 300)
+  }, [])
+
+  const fetchProductsBySearch = useCallback(async (searchTerm: string) => {
+    try {
+      const params = new URLSearchParams({ limit: '10000', active: 'false' })
+      if (searchTerm) params.set('search', searchTerm)
+      const res = await api.get<{ products: Product[], total: number }>(`/products?${params}`)
+      setAllProducts(res.products || [])
+    } catch (err) {
+      console.error('Erreur recherche produits:', err)
+    }
+  }, [])
+
+  // Fetch ALL products
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await api.get<{products: Product[]}>(`/products`)
-      setProducts(res.products || [])
+      const params = new URLSearchParams({ limit: '10000', active: 'false' })
+      if (searchRef.current) params.set('search', searchRef.current)
+      const res = await api.get<{ products: Product[], total: number }>(`/products?${params}`)
+      setAllProducts(res.products || [])
     } catch (err) {
       console.error('Erreur chargement produits:', err)
       toast.error('Erreur de chargement', { description: 'Impossible de charger la liste des produits.' })
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchProducts()
-  }, [])
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [fetchProducts])
 
-  // Extract unique familles and sous-familles from products
+  // Client-side filters + sorting
+  const filteredProducts = useMemo(() => {
+    let result = [...allProducts]
+    if (typeFilter) result = result.filter(p => p.productType === typeFilter)
+    if (familleFilter) result = result.filter(p => p.famille === familleFilter)
+    result.sort((a, b) => {
+      const aVal = String(a[sortField as keyof Product] ?? '')
+      const bVal = String(b[sortField as keyof Product] ?? '')
+      return sortDir === 'asc' ? aVal.localeCompare(bVal, 'fr') : bVal.localeCompare(aVal, 'fr')
+    })
+    return result
+  }, [allProducts, typeFilter, familleFilter, sortField, sortDir])
+
+  // Unique familles
   const familles = useMemo(() => {
     const set = new Set<string>()
-    products.forEach(p => { if (p.famille) set.add(p.famille) })
-    return Array.from(set).sort()
-  }, [products])
+    allProducts.forEach(p => { if (p.famille) set.add(p.famille) })
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'))
+  }, [allProducts])
 
-  const filteredProducts = useMemo(() => {
-    let result = products.filter(p =>
-      p.reference.toLowerCase().includes(search.toLowerCase()) ||
-      p.designation.toLowerCase().includes(search.toLowerCase()) ||
-      (p.famille && p.famille.toLowerCase().includes(search.toLowerCase())) ||
-      (p.sousFamille && p.sousFamille.toLowerCase().includes(search.toLowerCase()))
-    )
-    if (typeFilter !== 'all') {
-      result = result.filter(p => p.productType === typeFilter)
-    }
-    if (familleFilter !== 'all') {
-      result = result.filter(p => p.famille === familleFilter)
-    }
-    return result
-  }, [products, search, typeFilter, familleFilter])
+  // Counts by type
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = { achat: 0, vente: 0, semi_fini: 0 }
+    allProducts.forEach(p => { if (counts[p.productType] !== undefined) counts[p.productType]++ })
+    return counts
+  }, [allProducts])
+
+  const toggleSort = (field: string) => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDir('asc') }
+  }
 
   const openCreate = () => {
     setEditingProduct(null)
@@ -198,17 +237,21 @@ export default function ProductsView() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-9 w-32" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5" />
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-6 w-10" />
+          </div>
+          <Skeleton className="h-9 w-36" />
         </div>
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          </CardContent>
+        <Skeleton className="h-10 w-full" />
+        <div className="flex gap-2">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-24" />)}
+        </div>
+        <Card className="overflow-hidden">
+          <div className="space-y-3 p-4">
+            {Array.from({ length: 15 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+          </div>
         </Card>
       </div>
     )
@@ -221,68 +264,114 @@ export default function ProductsView() {
         <div className="flex items-center gap-2">
           <Package className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Produits</h2>
-          <Badge variant="secondary">{filteredProducts.length}</Badge>
+          <Badge variant="secondary">
+            {filteredProducts.length}
+            {filteredProducts.length !== allProducts.length ? `/${allProducts.length}` : ''}
+          </Badge>
         </div>
-        <Button onClick={openCreate} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Nouveau produit
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchProducts}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button onClick={openCreate} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Nouveau produit
+          </Button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Rechercher par référence, désignation, famille..."
+          value={search}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      {/* Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={typeFilter === null && familleFilter === null ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setTypeFilter(null); setFamilleFilter(null) }}
+        >
+          Tous
         </Button>
+        <Button variant={typeFilter === 'achat' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'achat' ? null : 'achat')}>
+          Achat ({typeCounts.achat})
+        </Button>
+        <Button variant={typeFilter === 'vente' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'vente' ? null : 'vente')}>
+          Vente ({typeCounts.vente})
+        </Button>
+        <Button variant={typeFilter === 'semi_fini' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'semi_fini' ? null : 'semi_fini')}>
+          Semi-fini ({typeCounts.semi_fini})
+        </Button>
+        <Separator orientation="vertical" className="h-8 mx-1 hidden sm:block" />
+        <Select value={familleFilter ?? '__all__'} onValueChange={(v) => setFamilleFilter(v === '__all__' ? null : v)}>
+          <SelectTrigger className="w-auto h-8 text-sm">
+            <SelectValue placeholder="Famille..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Toutes les familles</SelectItem>
+            {familles.map(f => (
+              <SelectItem key={f} value={f}>{f}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher par réf, désignation, famille..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les types</SelectItem>
-              <SelectItem value="achat">Achat</SelectItem>
-              <SelectItem value="vente">Vente</SelectItem>
-              <SelectItem value="semi_fini">Semi-fini</SelectItem>
-            </SelectContent>
-          </Select>
-          {familles.length > 0 && (
-            <Select value={familleFilter} onValueChange={setFamilleFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Famille" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les familles</SelectItem>
-                {familles.map(f => (
-                  <SelectItem key={f} value={f}>{f}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      </div>
-
-      {/* Table */}
+      {/* Table — scrollable with native scrollbar (like clients) */}
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto overflow-y-auto"
+            style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '300px' }}
+          >
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Référence</TableHead>
-                  <TableHead>Désignation</TableHead>
+                  <TableHead
+                    className="cursor-pointer select-none"
+                    onClick={() => toggleSort('reference')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Référence
+                      <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer select-none"
+                    onClick={() => toggleSort('designation')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Désignation
+                      <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
                   <TableHead className="hidden lg:table-cell">Famille</TableHead>
                   <TableHead className="hidden xl:table-cell">Sous-famille</TableHead>
                   <TableHead className="hidden md:table-cell">Type</TableHead>
-                  <TableHead className="text-right">Prix HT</TableHead>
-                  <TableHead className="hidden sm:table-cell text-center">Stock</TableHead>
+                  <TableHead
+                    className="text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('priceHT')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      Prix HT
+                      <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="hidden sm:table-cell text-center cursor-pointer select-none"
+                    onClick={() => toggleSort('currentStock')}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Stock
+                      <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
                   <TableHead className="hidden lg:table-cell">TVA</TableHead>
                   <TableHead className="hidden lg:table-cell text-center">Actif</TableHead>
                   <TableHead className="text-right w-[100px]">Actions</TableHead>
@@ -292,31 +381,26 @@ export default function ProductsView() {
                 {filteredProducts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      {search || typeFilter !== 'all' || familleFilter !== 'all' ? 'Aucun produit trouvé.' : 'Aucun produit enregistré.'}
+                      {search || typeFilter || familleFilter ? 'Aucun produit trouvé.' : 'Aucun produit enregistré.'}
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredProducts.map((product) => {
-                    const lowStock = product.minStock !== null && product.currentStock <= product.minStock
+                    const lowStock = product.minStock !== null && product.minStock > 0 && product.currentStock <= product.minStock
                     return (
                       <TableRow key={product.id} className={!product.isActive ? 'opacity-50' : ''}>
-                        <TableCell className="font-mono text-sm">{product.reference}</TableCell>
+                        <TableCell className="font-mono text-xs">{product.reference}</TableCell>
                         <TableCell>
-                          <div>
-                            <span className="font-medium">{product.designation}</span>
-                            {product.description && (
-                              <p className="text-xs text-muted-foreground truncate max-w-48">{product.description}</p>
-                            )}
-                          </div>
+                          <span className="font-medium">{product.designation}</span>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {product.famille ? (
-                            <Badge variant="outline" className="font-normal">{product.famille}</Badge>
+                            <Badge variant="outline" className="font-normal text-xs">{product.famille}</Badge>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden xl:table-cell text-muted-foreground">
+                        <TableCell className="hidden xl:table-cell text-muted-foreground text-xs">
                           {product.sousFamille || '—'}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
@@ -326,14 +410,12 @@ export default function ProductsView() {
                         </TableCell>
                         <TableCell className="text-right font-medium">{fmt(product.priceHT)}</TableCell>
                         <TableCell className="hidden sm:table-cell text-center">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-1">
                             <span className={`font-mono font-medium ${lowStock ? 'text-red-600' : 'text-green-600'}`}>
                               {product.currentStock}
                             </span>
-                            {product.minStock !== null && (
-                              <span className="text-xs text-muted-foreground">
-                                / min {product.minStock}
-                              </span>
+                            {lowStock && (
+                              <span className="text-xs text-red-400">≤{product.minStock}</span>
                             )}
                           </div>
                         </TableCell>
@@ -356,7 +438,7 @@ export default function ProductsView() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Supprimer le produit</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Êtes-vous sûr de vouloir supprimer le produit <strong>{product.reference} - {product.designation}</strong> ?
+                                    Êtes-vous sûr de vouloir supprimer <strong>{product.reference} - {product.designation}</strong> ?
                                     Cette action est irréversible.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
@@ -387,38 +469,25 @@ export default function ProductsView() {
             <DialogTitle>{editingProduct ? 'Modifier le produit' : 'Nouveau produit'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Classification Section */}
+            {/* Classification */}
             <div className="md:col-span-2">
               <h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Classification</h4>
             </div>
             <div className="space-y-2">
               <Label htmlFor="famille">Famille</Label>
-              <Input
-                id="famille"
-                list="familles-list"
-                value={form.famille}
-                onChange={(e) => setForm({ ...form, famille: e.target.value })}
-                placeholder="Ex: Électronique, Mécanique..."
-              />
+              <Input id="famille" list="familles-list" value={form.famille} onChange={(e) => setForm({ ...form, famille: e.target.value })} placeholder="Ex: Électronique, Mécanique..." />
               <datalist id="familles-list">
                 {familles.map(f => <option key={f} value={f} />)}
               </datalist>
             </div>
             <div className="space-y-2">
               <Label htmlFor="sousFamille">Sous-famille</Label>
-              <Input
-                id="sousFamille"
-                value={form.sousFamille}
-                onChange={(e) => setForm({ ...form, sousFamille: e.target.value })}
-                placeholder="Ex: Composants, Pièces..."
-              />
+              <Input id="sousFamille" value={form.sousFamille} onChange={(e) => setForm({ ...form, sousFamille: e.target.value })} placeholder="Ex: Composants, Pièces..." />
             </div>
             <div className="space-y-2">
               <Label htmlFor="productType">Type de produit</Label>
               <Select value={form.productType} onValueChange={(v) => setForm({ ...form, productType: v as Product['productType'] })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="vente">Vente (produit en vente)</SelectItem>
                   <SelectItem value="achat">Achat (produit acheté)</SelectItem>
@@ -426,8 +495,7 @@ export default function ProductsView() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Identification Section */}
+            {/* Identification */}
             <div className="md:col-span-2 mt-2">
               <h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Identification</h4>
             </div>
@@ -443,8 +511,7 @@ export default function ProductsView() {
               <Label htmlFor="description">Description</Label>
               <Input id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description du produit" />
             </div>
-
-            {/* Pricing Section */}
+            {/* Tarification & Stock */}
             <div className="md:col-span-2 mt-2">
               <h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Tarification & Stock</h4>
             </div>
@@ -455,9 +522,7 @@ export default function ProductsView() {
             <div className="space-y-2">
               <Label htmlFor="tvaRate">Taux TVA (%)</Label>
               <Select value={form.tvaRate} onValueChange={(v) => setForm({ ...form, tvaRate: v })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">0%</SelectItem>
                   <SelectItem value="7">7%</SelectItem>
@@ -470,9 +535,7 @@ export default function ProductsView() {
             <div className="space-y-2">
               <Label htmlFor="unit">Unité</Label>
               <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unité">Unité</SelectItem>
                   <SelectItem value="kg">Kg</SelectItem>
