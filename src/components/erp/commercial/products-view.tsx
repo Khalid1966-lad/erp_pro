@@ -413,11 +413,12 @@ export default function ProductsView() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-auto scrollbar-visible">
+        <DialogContent resizable className="sm:max-w-3xl lg:max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{editingProduct ? 'Modifier le produit' : 'Nouveau produit'}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="overflow-auto scrollbar-visible max-h-[calc(90vh-8rem)]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Classification</h4></div>
             <div className="space-y-2">
               <Label htmlFor="famille">Famille</Label>
@@ -487,8 +488,9 @@ export default function ProductsView() {
               <Switch checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
               <Label>Produit actif</Label>
             </div>
-          </div>
-          <DialogFooter>
+            </div>
+            </div>
+            <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
             <Button onClick={handleSave} disabled={!form.reference.trim() || !form.designation.trim() || saving}>{saving ? 'Enregistrement...' : editingProduct ? 'Modifier' : 'Créer'}</Button>
           </DialogFooter>
