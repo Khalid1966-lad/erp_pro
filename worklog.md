@@ -5,7 +5,7 @@ Task: Products search by designation + Quotes searchable client/product dropdown
 
 Work Log:
 - Modified `prisma/schema.prisma`: changed provider from postgresql to sqlite for local dev
-- Modified `src/app/api/products/route.ts`: 
+- Modified `src/app/api/products/route.ts`:
   - Search now by designation only (removed multi-field OR search)
   - Added dropdown mode (`?dropdown=true`): lightweight response with select fields only, no pagination
   - Added `searchDesignation` query parameter
@@ -26,3 +26,38 @@ Stage Summary:
 - Commit 70f8748 pushed to origin/main
 - Lint: 0 errors
 - All changes pushed to https://github.com/Khalid1966-lad/erp_pro.git
+
+---
+Task ID: restore-postgresql
+Agent: main
+Task: Restore PostgreSQL provider in Prisma schema (was changed to SQLite in previous session)
+
+Work Log:
+- Restored `prisma/schema.prisma` from commit bc775c9 (PostgreSQL + directUrl)
+- Created `.env` file with Neon PostgreSQL credentials recovered from git history
+- Ran `npx prisma generate` successfully for PostgreSQL
+- Ran `npx prisma db pull` — confirmed 38 models introspected from Neon DB
+- Committed as "fix: restore PostgreSQL provider + directUrl for Neon DB"
+- Pushed to origin/main (6e62834)
+
+Stage Summary:
+- Schema back to PostgreSQL with `directUrl = env("DIRECT_URL")`
+- Database connection verified against Neon PostgreSQL
+- Commit 6e62834 pushed to GitHub
+
+---
+Task ID: fix-case-insensitive-search
+Agent: main
+Task: Fix case-insensitive search for products and quotes in PostgreSQL
+
+Work Log:
+- Identified root cause: PostgreSQL `contains` is case-sensitive by default (unlike SQLite)
+- Typing "Tube" wouldn't match "tube" or "TUBE" in the database
+- Fixed `src/app/api/products/route.ts`: Added `mode: 'insensitive'` to designation search
+- Fixed `src/app/api/quotes/route.ts`: Added `mode: 'insensitive'` to number/name/raisonSociale search, also added raisonSociale to quote search fields
+- Committed and pushed as af97d4e
+
+Stage Summary:
+- Products search "Tube" now matches "tube", "TUBE", etc.
+- Quotes search also now case-insensitive
+- Commit af97d4e pushed to GitHub
