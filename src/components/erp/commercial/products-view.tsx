@@ -328,10 +328,10 @@ export default function ProductsView() {
       <Card>
         <CardContent className="p-0">
           <div
-            className="overflow-x-auto overflow-y-auto"
+            className="overflow-x-auto overflow-y-auto scrollbar-visible"
             style={{ maxHeight: 'calc(100vh - 300px)', minHeight: '300px' }}
           >
-            <Table className="min-w-[900px]">
+            <Table className="min-w-[1200px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="cursor-pointer select-none sticky top-0 bg-card z-10 min-w-[100px]" onClick={() => toggleSort('reference')}>
