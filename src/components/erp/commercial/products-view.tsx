@@ -413,7 +413,7 @@ export default function ProductsView() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-auto scrollbar-visible">
           <DialogHeader>
             <DialogTitle>{editingProduct ? 'Modifier le produit' : 'Nouveau produit'}</DialogTitle>
           </DialogHeader>
