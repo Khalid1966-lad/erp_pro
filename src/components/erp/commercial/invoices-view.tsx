@@ -33,6 +33,7 @@ import {
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { numberToFrenchWords } from '@/lib/number-to-words'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -140,6 +141,7 @@ export default function InvoicesView() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -242,6 +244,7 @@ export default function InvoicesView() {
 
   // ─── Open create dialog ───
   const openCreate = () => {
+    setEditingInvoice(null)
     setSelectedInvoice(null)
     setCreateMode('manual')
     // Reset manual form
@@ -268,6 +271,19 @@ export default function InvoicesView() {
   const openDetail = (invoice: Invoice) => {
     setSelectedInvoice(invoice)
     setDetailOpen(true)
+  }
+
+  const openEdit = (invoice: Invoice) => {
+    setEditingInvoice(invoice)
+    setSelectedInvoice(invoice)
+    setCreateMode('manual')
+    setFormClientId(invoice.client.id)
+    setFormDueDate(invoice.dueDate.slice(0, 10))
+    setFormDiscountRate(String(invoice.discountRate))
+    setFormShippingCost(String(invoice.shippingCost))
+    setFormNotes(invoice.notes || '')
+    setFormLines(invoice.lines.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, tvaRate: l.tvaRate })))
+    setDialogOpen(true)
   }
 
   // ─── Fetch uninvoiced BLs when BL client changes ───
@@ -340,24 +356,42 @@ export default function InvoicesView() {
     try {
       setSaving(true)
       const dueDateISO = new Date(formDueDate + 'T23:59:59.000Z').toISOString()
-      await api.post('/invoices', {
-        clientId: formClientId,
-        dueDate: dueDateISO,
-        discountRate: parseFloat(formDiscountRate) || 0,
-        shippingCost: parseFloat(formShippingCost) || 0,
-        notes: formNotes || undefined,
-        lines: validLines.map(l => ({
-          productId: l.productId,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          tvaRate: l.tvaRate
-        }))
-      })
-      toast.success('Facture créée')
+      if (editingInvoice) {
+        await api.put('/invoices', {
+          id: editingInvoice.id,
+          clientId: formClientId,
+          dueDate: dueDateISO,
+          discountRate: parseFloat(formDiscountRate) || 0,
+          shippingCost: parseFloat(formShippingCost) || 0,
+          notes: formNotes || undefined,
+          lines: validLines.map(l => ({
+            productId: l.productId,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            tvaRate: l.tvaRate
+          }))
+        })
+        toast.success('Facture modifiée')
+      } else {
+        await api.post('/invoices', {
+          clientId: formClientId,
+          dueDate: dueDateISO,
+          discountRate: parseFloat(formDiscountRate) || 0,
+          shippingCost: parseFloat(formShippingCost) || 0,
+          notes: formNotes || undefined,
+          lines: validLines.map(l => ({
+            productId: l.productId,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            tvaRate: l.tvaRate
+          }))
+        })
+        toast.success('Facture créée')
+      }
       setDialogOpen(false)
       fetchInvoices()
     } catch (err: any) {
-      toast.error(err.message || 'Erreur création')
+      toast.error(err.message || editingInvoice ? 'Erreur modification' : 'Erreur création')
     } finally {
       setSaving(false)
     }
@@ -629,33 +663,35 @@ export default function InvoicesView() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nouvelle facture</DialogTitle>
+            <DialogTitle>{editingInvoice ? 'Modifier la facture' : 'Nouvelle facture'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Mode Toggle */}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={createMode === 'manual' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCreateMode('manual')}
-              >
-                <FileText className="h-4 w-4 mr-1" />
-                Manuelle
-              </Button>
-              <Button
-                type="button"
-                variant={createMode === 'from_bl' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCreateMode('from_bl')}
-              >
-                <Truck className="h-4 w-4 mr-1" />
-                Depuis BL
-              </Button>
-            </div>
+            {!editingInvoice && (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={createMode === 'manual' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCreateMode('manual')}
+                >
+                  <FileText className="h-4 w-4 mr-1" />
+                  Manuelle
+                </Button>
+                <Button
+                  type="button"
+                  variant={createMode === 'from_bl' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCreateMode('from_bl')}
+                >
+                  <Truck className="h-4 w-4 mr-1" />
+                  Depuis BL
+                </Button>
+              </div>
+            )}
 
             {/* ═══ MANUAL MODE ═══ */}
-            {createMode === 'manual' && (
+            {(createMode === 'manual' || editingInvoice) && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -775,7 +811,7 @@ export default function InvoicesView() {
             )}
 
             {/* ═══ FROM BL MODE ═══ */}
-            {createMode === 'from_bl' && (
+            {!editingInvoice && createMode === 'from_bl' && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -967,9 +1003,12 @@ export default function InvoicesView() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-            {createMode === 'manual' ? (
+            {createMode === 'manual' || editingInvoice ? (
               <Button onClick={handleSaveManual} disabled={saving}>
-                {saving ? 'Création...' : 'Créer la facture'}
+                {saving
+                  ? (editingInvoice ? 'Modification...' : 'Création...')
+                  : (editingInvoice ? 'Enregistrer les modifications' : 'Créer la facture')
+                }
               </Button>
             ) : (
               <Button onClick={handleSaveFromBL} disabled={saving || selectedBLIds.length === 0}>
@@ -1131,9 +1170,27 @@ export default function InvoicesView() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(selectedInvoice.totalHT)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(selectedInvoice.totalTVA)}</span></div>
                 <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(selectedInvoice.totalTTC)}</span></div>
+                <div className="flex justify-between text-sm italic text-muted-foreground pt-1">
+                  <span>Arrêtée la présente facture à la somme de :</span>
+                </div>
+                <div className="text-sm font-medium italic text-right mt-1">
+                  {numberToFrenchWords(selectedInvoice.totalTTC || 0)} dirhams
+                </div>
               </div>
 
               <DialogFooter>
+                {(selectedInvoice.status === 'draft') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDetailOpen(false)
+                      openEdit(selectedInvoice)
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Modifier
+                  </Button>
+                )}
                 {getActions(selectedInvoice).map((action) => (
                   <Button
                     key={action.action}

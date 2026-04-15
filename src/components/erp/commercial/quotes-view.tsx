@@ -36,6 +36,7 @@ import {
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { numberToFrenchWords } from '@/lib/number-to-words'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -117,6 +118,7 @@ export default function QuotesView() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
+  const [editingQuote, setEditingQuote] = useState<Quote | null>(null)
   const [saving, setSaving] = useState(false)
 
   // Dropdown data for comboboxes
@@ -226,6 +228,7 @@ export default function QuotesView() {
   }, [formLines, formDiscountRate, formShippingCost])
 
   const openCreate = () => {
+    setEditingQuote(null)
     setSelectedQuote(null)
     setFormClientId('')
     setClientSearch('')
@@ -317,6 +320,65 @@ export default function QuotesView() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur'
       toast.error(msg || 'Erreur création')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openEdit = (quote: Quote) => {
+    setEditingQuote(quote)
+    setSelectedQuote(quote)
+    setFormClientId(quote.client.id)
+    setClientSearch('')
+    setLineSearches({})
+    setFormValidUntil(quote.validUntil.slice(0, 10))
+    setFormDiscountRate(String(quote.discountRate))
+    setFormShippingCost(String(quote.shippingCost))
+    setFormNotes(quote.notes || '')
+    setFormLines(quote.lines.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, tvaRate: l.tvaRate, discount: l.discount || 0 })))
+    setDialogOpen(true)
+  }
+
+  const handleUpdate = async () => {
+    if (!editingQuote) return
+    if (!formClientId) {
+      toast.error('Veuillez sélectionner un client')
+      return
+    }
+    const validLines = formLines.filter(l => l.productId)
+    if (validLines.length === 0) {
+      toast.error('Au moins une ligne est requise')
+      return
+    }
+    if (!formValidUntil) {
+      toast.error('Veuillez indiquer une date de validité')
+      return
+    }
+
+    try {
+      setSaving(true)
+      const validUntilDate = new Date(formValidUntil + 'T23:59:59.000Z')
+      await api.put('/quotes', {
+        id: editingQuote.id,
+        clientId: formClientId,
+        validUntil: validUntilDate.toISOString(),
+        discountRate: parseFloat(formDiscountRate) || 0,
+        shippingCost: parseFloat(formShippingCost) || 0,
+        notes: formNotes || undefined,
+        lines: validLines.map(l => ({
+          productId: l.productId,
+          quantity: l.quantity,
+          unitPrice: l.unitPrice,
+          tvaRate: l.tvaRate,
+          discount: l.discount || 0
+        }))
+      })
+      toast.success('Devis modifié')
+      setDialogOpen(false)
+      fetchQuotes()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error(msg || 'Erreur modification')
     } finally {
       setSaving(false)
     }
@@ -532,7 +594,7 @@ export default function QuotesView() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Nouveau devis</DialogTitle>
+            <DialogTitle>{editingQuote ? 'Modifier le devis' : 'Nouveau devis'}</DialogTitle>
           </DialogHeader>
           <div className="overflow-auto scrollbar-visible max-h-[calc(90vh-8rem)]">
           <div className="space-y-4">
@@ -729,8 +791,11 @@ export default function QuotesView() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Création...' : 'Créer le devis'}
+            <Button onClick={editingQuote ? handleUpdate : handleSave} disabled={saving}>
+              {saving
+                ? (editingQuote ? 'Modification...' : 'Création...')
+                : (editingQuote ? 'Enregistrer les modifications' : 'Créer le devis')
+              }
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -794,9 +859,34 @@ export default function QuotesView() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(selectedQuote.totalHT)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(selectedQuote.totalTVA)}</span></div>
                 <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(selectedQuote.totalTTC)}</span></div>
+                <div className="flex justify-between text-sm italic text-muted-foreground pt-1">
+                  <span>Arrêtée la présente facture à la somme de :</span>
+                </div>
+                <div className="text-sm font-medium italic text-right mt-1">
+                  {numberToFrenchWords(selectedQuote.totalTTC || 0)} dirhams
+                </div>
               </div>
 
               <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="h-4 w-4 mr-1" />
+                  Imprimer
+                </Button>
+                {(selectedQuote.status === 'draft' || selectedQuote.status === 'rejected' || selectedQuote.status === 'expired') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDetailOpen(false)
+                      openEdit(selectedQuote)
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Modifier
+                  </Button>
+                )}
                 {getStatusActions(selectedQuote).map((action) => (
                   <Button
                     key={action.status}

@@ -28,8 +28,9 @@ import {
 import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
   Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2,
-  Truck, Package
+  Truck, Package, Edit
 } from 'lucide-react'
+import { numberToFrenchWords } from '@/lib/number-to-words'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -129,6 +130,7 @@ export default function SalesOrdersView() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null)
+  const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null)
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -197,6 +199,7 @@ export default function SalesOrdersView() {
   }, [formLines])
 
   const openCreate = () => {
+    setEditingOrder(null)
     setSelectedOrder(null)
     setFormClientId('')
     const in7 = new Date()
@@ -212,6 +215,17 @@ export default function SalesOrdersView() {
   const openDetail = (order: SalesOrder) => {
     setSelectedOrder(order)
     setDetailOpen(true)
+  }
+
+  const openEdit = (order: SalesOrder) => {
+    setEditingOrder(order)
+    setFormClientId(order.client.id)
+    setFormDeliveryDate(order.deliveryDate ? order.deliveryDate.slice(0, 10) : '')
+    setFormNotes(order.notes || '')
+    setFormLines(order.lines.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, tvaRate: l.tvaRate, discount: l.discount || 0 })))
+    setFormQuoteId(order.quoteId || null)
+    setFormQuoteNumber(order.quote?.number || null)
+    setDialogOpen(true)
   }
 
   // Fetch accepted quotes for the selected client
@@ -333,25 +347,42 @@ export default function SalesOrdersView() {
     try {
       setSaving(true)
       const deliveryDate = formDeliveryDate ? new Date(formDeliveryDate + 'T23:59:59.000Z').toISOString() : undefined
-      await api.post('/sales-orders', {
-        clientId: formClientId,
-        deliveryDate,
-        notes: formNotes || undefined,
-        quoteId: formQuoteId || undefined,
-        lines: validLines.map(l => ({
-          productId: l.productId,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          tvaRate: l.tvaRate,
-          discount: l.discount || 0
-        }))
-      })
-      toast.success('Commande créée')
+      if (editingOrder) {
+        await api.put('/sales-orders', {
+          id: editingOrder.id,
+          clientId: formClientId,
+          deliveryDate,
+          notes: formNotes || undefined,
+          lines: validLines.map(l => ({
+            productId: l.productId,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            tvaRate: l.tvaRate,
+            discount: l.discount || 0
+          }))
+        })
+        toast.success('Commande modifiée')
+      } else {
+        await api.post('/sales-orders', {
+          clientId: formClientId,
+          deliveryDate,
+          notes: formNotes || undefined,
+          quoteId: formQuoteId || undefined,
+          lines: validLines.map(l => ({
+            productId: l.productId,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            tvaRate: l.tvaRate,
+            discount: l.discount || 0
+          }))
+        })
+        toast.success('Commande créée')
+      }
       setDialogOpen(false)
       fetchOrders()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur'
-      toast.error(msg || 'Erreur création')
+      toast.error(msg || editingOrder ? 'Erreur modification' : 'Erreur création')
     } finally {
       setSaving(false)
     }
@@ -610,7 +641,7 @@ export default function SalesOrdersView() {
       }}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nouvelle commande client</DialogTitle>
+            <DialogTitle>{editingOrder ? 'Modifier la commande' : 'Nouvelle commande client'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Client selection + Import button */}
@@ -785,7 +816,10 @@ export default function SalesOrdersView() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Création...' : 'Créer la commande'}
+              {saving
+                ? (editingOrder ? 'Modification...' : 'Création...')
+                : (editingOrder ? 'Enregistrer les modifications' : 'Créer la commande')
+              }
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1037,9 +1071,27 @@ export default function SalesOrdersView() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(selectedOrder.totalHT)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(selectedOrder.totalTVA)}</span></div>
                 <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(selectedOrder.totalTTC)}</span></div>
+                <div className="flex justify-between text-sm italic text-muted-foreground pt-1">
+                  <span>Arrêtée la présente commande à la somme de :</span>
+                </div>
+                <div className="text-sm font-medium italic text-right mt-1">
+                  {numberToFrenchWords(selectedOrder.totalTTC || 0)} dirhams
+                </div>
               </div>
 
               <DialogFooter>
+                {(selectedOrder.status === 'pending') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDetailOpen(false)
+                      openEdit(selectedOrder)
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Modifier
+                  </Button>
+                )}
                 {getStatusActions(selectedOrder).map((action) => (
                   <Button
                     key={action.action}
