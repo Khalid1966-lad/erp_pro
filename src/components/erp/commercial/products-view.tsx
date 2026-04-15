@@ -10,9 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-} from '@/components/ui/table'
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog'
 import {
@@ -324,67 +321,67 @@ export default function ProductsView() {
         </Select>
       </div>
 
-      {/* Table — scrollable with vertical scrollbar */}
+      {/* Table — scrollable with always-visible horizontal scrollbar and sticky header */}
       <Card>
         <CardContent className="p-0">
           <div
-            className="overflow-x-auto overflow-y-auto scrollbar-visible"
+            className="overflow-auto scrollbar-visible"
             style={{ maxHeight: 'calc(100vh - 300px)', minHeight: '300px' }}
           >
-            <Table className="min-w-[1200px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="cursor-pointer select-none sticky top-0 bg-card z-10 min-w-[100px]" onClick={() => toggleSort('reference')}>
+            <table className="w-full caption-bottom text-sm" style={{ minWidth: 1200 }}>
+              <thead className="[&_tr]:border-b">
+                <tr className="hover:bg-muted/50 border-b transition-colors">
+                  <th className="cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[100px]" onClick={() => toggleSort('reference')}>
                     <div className="flex items-center gap-1">Référence<ArrowUpDown className="h-3 w-3" /></div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none sticky top-0 bg-card z-10 min-w-[200px]" onClick={() => toggleSort('designation')}>
+                  </th>
+                  <th className="cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[200px]" onClick={() => toggleSort('designation')}>
                     <div className="flex items-center gap-1">Désignation<ArrowUpDown className="h-3 w-3" /></div>
-                  </TableHead>
-                  <TableHead className="sticky top-0 bg-card z-10 min-w-[110px]">Famille</TableHead>
-                  <TableHead className="sticky top-0 bg-card z-10 min-w-[110px]">Sous-famille</TableHead>
-                  <TableHead className="sticky top-0 bg-card z-10 min-w-[100px]">Type</TableHead>
-                  <TableHead className="text-right cursor-pointer select-none sticky top-0 bg-card z-10" onClick={() => toggleSort('priceHT')}>
+                  </th>
+                  <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[110px]">Famille</th>
+                  <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[110px]">Sous-famille</th>
+                  <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[100px]">Type</th>
+                  <th className="text-right cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap" onClick={() => toggleSort('priceHT')}>
                     <div className="flex items-center justify-end gap-1">Prix HT<ArrowUpDown className="h-3 w-3" /></div>
-                  </TableHead>
-                  <TableHead className="text-center cursor-pointer select-none sticky top-0 bg-card z-10 min-w-[90px]" onClick={() => toggleSort('currentStock')}>
+                  </th>
+                  <th className="text-center cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[90px]" onClick={() => toggleSort('currentStock')}>
                     <div className="flex items-center justify-center gap-1">Stock<ArrowUpDown className="h-3 w-3" /></div>
-                  </TableHead>
-                  <TableHead className="sticky top-0 bg-card z-10 min-w-[60px]">TVA</TableHead>
-                  <TableHead className="text-center sticky top-0 bg-card z-10 min-w-[60px]">Actif</TableHead>
-                  <TableHead className="text-right w-[100px] sticky top-0 bg-card z-10">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+                  </th>
+                  <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[60px]">TVA</th>
+                  <th className="text-center sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[60px]">Actif</th>
+                  <th className="text-right sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap w-[100px]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="[&_tr:last-child]:border-0">
                 {sortedProducts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                  <tr className="hover:bg-muted/50 border-b transition-colors">
+                    <td colSpan={10} className="p-2 align-middle text-center py-8 text-muted-foreground">
                       {search || typeFilter || familleFilter ? 'Aucun produit trouvé.' : 'Aucun produit enregistré.'}
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : (
                   sortedProducts.map((product) => {
                     const lowStock = product.minStock !== null && product.minStock > 0 && product.currentStock <= product.minStock
                     return (
-                      <TableRow key={product.id} className={!product.isActive ? 'opacity-50' : ''}>
-                        <TableCell className="font-mono text-xs">{product.reference}</TableCell>
-                        <TableCell><span className="font-medium">{product.designation}</span></TableCell>
-                        <TableCell className="whitespace-nowrap">
+                      <tr key={product.id} className={`hover:bg-muted/50 border-b transition-colors ${!product.isActive ? 'opacity-50' : ''}`}>
+                        <td className="p-2 align-middle whitespace-nowrap font-mono text-xs">{product.reference}</td>
+                        <td className="p-2 align-middle whitespace-nowrap"><span className="font-medium">{product.designation}</span></td>
+                        <td className="p-2 align-middle whitespace-nowrap">
                           <Badge variant="outline" className="font-normal text-xs">{product.famille || '—'}</Badge>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-muted-foreground text-xs">{product.sousFamille || '—'}</TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        </td>
+                        <td className="p-2 align-middle whitespace-nowrap text-muted-foreground text-xs">{product.sousFamille || '—'}</td>
+                        <td className="p-2 align-middle whitespace-nowrap">
                           <Badge variant="secondary" className={productTypeColors[product.productType]}>{productTypeLabels[product.productType]}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">{fmt(product.priceHT)}</TableCell>
-                        <TableCell className="text-center">
+                        </td>
+                        <td className="p-2 align-middle whitespace-nowrap text-right font-medium">{fmt(product.priceHT)}</td>
+                        <td className="p-2 align-middle whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-1">
                             <span className={`font-mono font-medium ${lowStock ? 'text-red-600' : 'text-green-600'}`}>{product.currentStock}</span>
                             {lowStock && <span className="text-xs text-red-400">≤{product.minStock}</span>}
                           </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{product.tvaRate}%</TableCell>
-                        <TableCell className="text-center"><Switch checked={product.isActive} disabled /></TableCell>
-                        <TableCell className="text-right">
+                        </td>
+                        <td className="p-2 align-middle whitespace-nowrap text-muted-foreground">{product.tvaRate}%</td>
+                        <td className="p-2 align-middle whitespace-nowrap text-center"><Switch checked={product.isActive} disabled /></td>
+                        <td className="p-2 align-middle whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}><Edit className="h-4 w-4" /></Button>
                             <AlertDialog>
@@ -403,13 +400,13 @@ export default function ProductsView() {
                               </AlertDialogContent>
                             </AlertDialog>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     )
                   })
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>
