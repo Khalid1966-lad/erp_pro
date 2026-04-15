@@ -42,9 +42,9 @@ export async function GET(req: NextRequest) {
 
     const where: Record<string, unknown> = {}
     if (searchDesignation) {
-      where.designation = { contains: searchDesignation }
+      where.designation = { contains: searchDesignation, mode: 'insensitive' }
     } else if (search) {
-      where.designation = { contains: search }
+      where.designation = { contains: search, mode: 'insensitive' }
     }
     if (productType) {
       where.productType = productType

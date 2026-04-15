@@ -49,8 +49,9 @@ export async function GET(req: NextRequest) {
     if (clientId) where.clientId = clientId
     if (search) {
       where.OR = [
-        { number: { contains: search } },
-        { client: { name: { contains: search } } },
+        { number: { contains: search, mode: 'insensitive' } },
+        { client: { name: { contains: search, mode: 'insensitive' } } },
+        { client: { raisonSociale: { contains: search, mode: 'insensitive' } } },
       ]
     }
 
