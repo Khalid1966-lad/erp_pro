@@ -10,7 +10,6 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('📦 Product import script started...')
 
-  // Check if import data exists
   let products: Array<{
     reference: string
     designation: string
@@ -42,7 +41,34 @@ async function main() {
 
   console.log(`📊 Found ${products.length} products to import`)
 
-  // Delete all existing products (cascade handles related records)
+  // Delete all dependent records in correct FK order before deleting products
+  console.log('🗑️  Cleaning dependent records...')
+  await prisma.purchaseOrderLine.deleteMany({})
+  await prisma.reception.deleteMany({})
+  await prisma.purchaseOrder.deleteMany({})
+  await prisma.creditNoteLine.deleteMany({})
+  await prisma.creditNote.deleteMany({})
+  await prisma.invoiceLine.deleteMany({})
+  await prisma.invoiceDeliveryNote.deleteMany({})
+  await prisma.payment.deleteMany({})
+  await prisma.invoice.deleteMany({})
+  await prisma.deliveryNoteLine.deleteMany({})
+  await prisma.deliveryNote.deleteMany({})
+  await prisma.preparationLine.deleteMany({})
+  await prisma.preparationOrder.deleteMany({})
+  await prisma.salesOrderLine.deleteMany({})
+  await prisma.salesOrder.deleteMany({})
+  await prisma.quoteLine.deleteMany({})
+  await prisma.quote.deleteMany({})
+  await prisma.stockMovement.deleteMany({})
+  await prisma.inventoryLine.deleteMany({})
+  await prisma.inventory.deleteMany({})
+  await prisma.routingStep.deleteMany({})
+  await prisma.bomComponent.deleteMany({})
+  await prisma.workOrderStep.deleteMany({})
+  await prisma.workOrder.deleteMany({})
+
+  // Now safe to delete products
   const deleted = await prisma.product.deleteMany({})
   console.log(`🗑️  Deleted ${deleted.count} existing products`)
 
