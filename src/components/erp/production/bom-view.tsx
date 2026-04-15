@@ -91,7 +91,7 @@ export default function BomView() {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await api.get<{ products: Product[] }>('/products?productType=finished&limit=100')
+      const res = await api.get<{ products: Product[] }>('/products?productType=vente&limit=100')
       setProducts(res.products || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur de chargement des produits')
@@ -120,7 +120,7 @@ export default function BomView() {
     try {
       const res = await api.get<{ products: Product[] }>('/products?limit=500&active=false')
       const filtered = (res.products || []).filter(
-        (p) => p.productType === 'raw_material' || p.productType === 'semi_finished'
+        (p) => p.productType === 'achat' || p.productType === 'semi_fini'
       )
       setMaterials(filtered)
     } catch (err: any) {
@@ -258,7 +258,7 @@ export default function BomView() {
                       <SelectContent>
                         {filteredMaterials.map((m) => (
                           <SelectItem key={m.id} value={m.id}>
-                            [{m.productType === 'raw_material' ? 'Matière' : 'Semi-fini'}]{' '}
+                            [{m.productType === 'achat' ? 'Achat' : 'Semi-fini'}]{' '}
                             {m.reference} - {m.designation} (stock: {m.currentStock.toLocaleString('fr-FR')})
                           </SelectItem>
                         ))}

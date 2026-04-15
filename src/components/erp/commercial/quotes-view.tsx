@@ -543,9 +543,9 @@ export default function QuotesView() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="0">0%</SelectItem>
-                              <SelectItem value="2.1">2,1%</SelectItem>
-                              <SelectItem value="5.5">5,5%</SelectItem>
+                              <SelectItem value="7">7%</SelectItem>
                               <SelectItem value="10">10%</SelectItem>
+                              <SelectItem value="14">14%</SelectItem>
                               <SelectItem value="20">20%</SelectItem>
                             </SelectContent>
                           </Select>
@@ -576,7 +576,7 @@ export default function QuotesView() {
                 <Input type="number" min="0" max="100" step="1" value={formDiscountRate} onChange={(e) => setFormDiscountRate(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Frais de port (€)</Label>
+                <Label>Frais de port (MAD)</Label>
                 <Input type="number" min="0" step="0.01" value={formShippingCost} onChange={(e) => setFormShippingCost(e.target.value)} />
               </div>
             </div>

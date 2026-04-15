@@ -30,10 +30,12 @@ interface Product {
   reference: string
   designation: string
   description: string | null
+  famille: string | null
+  sousFamille: string | null
   priceHT: number
   tvaRate: number
   unit: string | null
-  productType: 'raw_material' | 'semi_finished' | 'finished'
+  productType: 'achat' | 'vente' | 'semi_fini'
   minStock: number | null
   maxStock: number | null
   currentStock: number
@@ -45,25 +47,27 @@ const emptyProduct = {
   reference: '',
   designation: '',
   description: '',
+  famille: '',
+  sousFamille: '',
   priceHT: '',
   tvaRate: '20',
   unit: 'unité',
-  productType: 'finished' as const,
+  productType: 'vente' as const,
   minStock: '',
   maxStock: '',
   isActive: true
 }
 
 const productTypeLabels: Record<string, string> = {
-  raw_material: 'Matière première',
-  semi_finished: 'Semi-fini',
-  finished: 'Produit fini'
+  achat: 'Achat',
+  vente: 'Vente',
+  semi_fini: 'Semi-fini'
 }
 
 const productTypeColors: Record<string, string> = {
-  raw_material: 'bg-orange-100 text-orange-800',
-  semi_finished: 'bg-blue-100 text-blue-800',
-  finished: 'bg-green-100 text-green-800'
+  achat: 'bg-orange-100 text-orange-800',
+  vente: 'bg-green-100 text-green-800',
+  semi_fini: 'bg-blue-100 text-blue-800'
 }
 
 export default function ProductsView() {
@@ -71,6 +75,7 @@ export default function ProductsView() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [familleFilter, setFamilleFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [form, setForm] = useState(emptyProduct)
@@ -93,16 +98,28 @@ export default function ProductsView() {
     fetchProducts()
   }, [])
 
+  // Extract unique familles and sous-familles from products
+  const familles = useMemo(() => {
+    const set = new Set<string>()
+    products.forEach(p => { if (p.famille) set.add(p.famille) })
+    return Array.from(set).sort()
+  }, [products])
+
   const filteredProducts = useMemo(() => {
     let result = products.filter(p =>
       p.reference.toLowerCase().includes(search.toLowerCase()) ||
-      p.designation.toLowerCase().includes(search.toLowerCase())
+      p.designation.toLowerCase().includes(search.toLowerCase()) ||
+      (p.famille && p.famille.toLowerCase().includes(search.toLowerCase())) ||
+      (p.sousFamille && p.sousFamille.toLowerCase().includes(search.toLowerCase()))
     )
     if (typeFilter !== 'all') {
       result = result.filter(p => p.productType === typeFilter)
     }
+    if (familleFilter !== 'all') {
+      result = result.filter(p => p.famille === familleFilter)
+    }
     return result
-  }, [products, search, typeFilter])
+  }, [products, search, typeFilter, familleFilter])
 
   const openCreate = () => {
     setEditingProduct(null)
@@ -116,6 +133,8 @@ export default function ProductsView() {
       reference: product.reference,
       designation: product.designation,
       description: product.description || '',
+      famille: product.famille || '',
+      sousFamille: product.sousFamille || '',
       priceHT: product.priceHT.toString(),
       tvaRate: product.tvaRate.toString(),
       unit: product.unit || 'unité',
@@ -135,6 +154,8 @@ export default function ProductsView() {
         reference: form.reference.trim(),
         designation: form.designation.trim(),
         description: form.description || null,
+        famille: form.famille.trim() || null,
+        sousFamille: form.sousFamille.trim() || null,
         priceHT: parseFloat(form.priceHT),
         tvaRate: parseFloat(form.tvaRate),
         unit: form.unit || null,
@@ -208,30 +229,43 @@ export default function ProductsView() {
         </Button>
       </div>
 
-      {/* Search & Filter */}
+      {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher par référence ou désignation..."
+            placeholder="Rechercher par réf, désignation, famille..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Type de produit" />
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les types</SelectItem>
-              <SelectItem value="raw_material">Matière première</SelectItem>
-              <SelectItem value="semi_finished">Semi-fini</SelectItem>
-              <SelectItem value="finished">Produit fini</SelectItem>
+              <SelectItem value="achat">Achat</SelectItem>
+              <SelectItem value="vente">Vente</SelectItem>
+              <SelectItem value="semi_fini">Semi-fini</SelectItem>
             </SelectContent>
           </Select>
+          {familles.length > 0 && (
+            <Select value={familleFilter} onValueChange={setFamilleFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Famille" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les familles</SelectItem>
+                {familles.map(f => (
+                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
@@ -244,6 +278,8 @@ export default function ProductsView() {
                 <TableRow>
                   <TableHead>Référence</TableHead>
                   <TableHead>Désignation</TableHead>
+                  <TableHead className="hidden lg:table-cell">Famille</TableHead>
+                  <TableHead className="hidden xl:table-cell">Sous-famille</TableHead>
                   <TableHead className="hidden md:table-cell">Type</TableHead>
                   <TableHead className="text-right">Prix HT</TableHead>
                   <TableHead className="hidden sm:table-cell text-center">Stock</TableHead>
@@ -255,8 +291,8 @@ export default function ProductsView() {
               <TableBody>
                 {filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      {search || typeFilter !== 'all' ? 'Aucun produit trouvé.' : 'Aucun produit enregistré.'}
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      {search || typeFilter !== 'all' || familleFilter !== 'all' ? 'Aucun produit trouvé.' : 'Aucun produit enregistré.'}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -272,6 +308,16 @@ export default function ProductsView() {
                               <p className="text-xs text-muted-foreground truncate max-w-48">{product.description}</p>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {product.famille ? (
+                            <Badge variant="outline" className="font-normal">{product.famille}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell text-muted-foreground">
+                          {product.sousFamille || '—'}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           <Badge variant="secondary" className={productTypeColors[product.productType]}>
@@ -341,6 +387,50 @@ export default function ProductsView() {
             <DialogTitle>{editingProduct ? 'Modifier le produit' : 'Nouveau produit'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Classification Section */}
+            <div className="md:col-span-2">
+              <h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Classification</h4>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="famille">Famille</Label>
+              <Input
+                id="famille"
+                list="familles-list"
+                value={form.famille}
+                onChange={(e) => setForm({ ...form, famille: e.target.value })}
+                placeholder="Ex: Électronique, Mécanique..."
+              />
+              <datalist id="familles-list">
+                {familles.map(f => <option key={f} value={f} />)}
+              </datalist>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sousFamille">Sous-famille</Label>
+              <Input
+                id="sousFamille"
+                value={form.sousFamille}
+                onChange={(e) => setForm({ ...form, sousFamille: e.target.value })}
+                placeholder="Ex: Composants, Pièces..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="productType">Type de produit</Label>
+              <Select value={form.productType} onValueChange={(v) => setForm({ ...form, productType: v as Product['productType'] })}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vente">Vente (produit en vente)</SelectItem>
+                  <SelectItem value="achat">Achat (produit acheté)</SelectItem>
+                  <SelectItem value="semi_fini">Semi-fini</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Identification Section */}
+            <div className="md:col-span-2 mt-2">
+              <h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Identification</h4>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="reference">Référence *</Label>
               <Input id="reference" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="REF-001" className="font-mono" />
@@ -353,8 +443,13 @@ export default function ProductsView() {
               <Label htmlFor="description">Description</Label>
               <Input id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description du produit" />
             </div>
+
+            {/* Pricing Section */}
+            <div className="md:col-span-2 mt-2">
+              <h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Tarification & Stock</h4>
+            </div>
             <div className="space-y-2">
-              <Label htmlFor="priceHT">Prix HT (€) *</Label>
+              <Label htmlFor="priceHT">Prix HT (MAD) *</Label>
               <Input id="priceHT" type="number" step="0.01" value={form.priceHT} onChange={(e) => setForm({ ...form, priceHT: e.target.value })} placeholder="0.00" />
             </div>
             <div className="space-y-2">
@@ -365,9 +460,9 @@ export default function ProductsView() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">0%</SelectItem>
-                  <SelectItem value="2.1">2,1%</SelectItem>
-                  <SelectItem value="5.5">5,5%</SelectItem>
+                  <SelectItem value="7">7%</SelectItem>
                   <SelectItem value="10">10%</SelectItem>
+                  <SelectItem value="14">14%</SelectItem>
                   <SelectItem value="20">20%</SelectItem>
                 </SelectContent>
               </Select>
@@ -387,19 +482,6 @@ export default function ProductsView() {
                   <SelectItem value="m³">M³</SelectItem>
                   <SelectItem value="palette">Palette</SelectItem>
                   <SelectItem value="lot">Lot</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="productType">Type de produit</Label>
-              <Select value={form.productType} onValueChange={(v) => setForm({ ...form, productType: v as Product['productType'] })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="finished">Produit fini</SelectItem>
-                  <SelectItem value="semi_finished">Semi-fini</SelectItem>
-                  <SelectItem value="raw_material">Matière première</SelectItem>
                 </SelectContent>
               </Select>
             </div>

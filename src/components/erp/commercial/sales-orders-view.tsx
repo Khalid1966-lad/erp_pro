@@ -742,9 +742,9 @@ export default function SalesOrdersView() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="0">0%</SelectItem>
-                                <SelectItem value="2.1">2,1%</SelectItem>
-                                <SelectItem value="5.5">5,5%</SelectItem>
+                                <SelectItem value="7">7%</SelectItem>
                                 <SelectItem value="10">10%</SelectItem>
+                                <SelectItem value="14">14%</SelectItem>
                                 <SelectItem value="20">20%</SelectItem>
                               </SelectContent>
                             </Select>

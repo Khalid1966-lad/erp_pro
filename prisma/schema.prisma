@@ -276,9 +276,9 @@ model ClientDocument {
 }
 
 enum ProductType {
-  raw_material
-  semi_finished
-  finished
+  achat
+  vente
+  semi_fini
 }
 
 model Product {
@@ -286,10 +286,12 @@ model Product {
   reference     String      @unique
   designation   String
   description   String?
+  famille       String?
+  sousFamille   String?
   priceHT       Float
   tvaRate       Float       @default(20)
   unit          String      @default("unité")
-  productType   ProductType @default(raw_material)
+  productType   ProductType @default(vente)
   currentStock  Float       @default(0)
   minStock      Float       @default(0)
   maxStock      Float       @default(100)

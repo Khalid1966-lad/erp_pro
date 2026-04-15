@@ -7,10 +7,12 @@ const productSchema = z.object({
   reference: z.string().min(1, 'La référence est requise'),
   designation: z.string().min(1, 'La désignation est requise'),
   description: z.string().optional(),
+  famille: z.string().optional(),
+  sousFamille: z.string().optional(),
   priceHT: z.number().min(0),
   tvaRate: z.number().default(20),
   unit: z.string().default('unité'),
-  productType: z.enum(['raw_material', 'semi_finished', 'finished']).default('raw_material'),
+  productType: z.enum(['achat', 'vente', 'semi_fini']).default('vente'),
   currentStock: z.number().default(0),
   minStock: z.number().default(0),
   maxStock: z.number().default(100),
@@ -30,6 +32,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const search = searchParams.get('search') || ''
     const productType = searchParams.get('productType') || ''
+    const famille = searchParams.get('famille') || ''
+    const sousFamille = searchParams.get('sousFamille') || ''
     const activeOnly = searchParams.get('active') !== 'false'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
@@ -39,10 +43,18 @@ export async function GET(req: NextRequest) {
       where.OR = [
         { reference: { contains: search } },
         { designation: { contains: search } },
+        { famille: { contains: search } },
+        { sousFamille: { contains: search } },
       ]
     }
     if (productType) {
       where.productType = productType
+    }
+    if (famille) {
+      where.famille = famille
+    }
+    if (sousFamille) {
+      where.sousFamille = sousFamille
     }
     if (activeOnly) {
       where.isActive = true

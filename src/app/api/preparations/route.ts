@@ -45,15 +45,15 @@ const simpleUpdateSchema = z.object({
 // ═══════════════════════════════════════════════════════
 
 const PRODUCT_TYPE_LABELS: Record<string, string> = {
-  raw_material: 'Matière première',
-  semi_finished: 'Semi-fini',
-  finished: 'Produit fini',
+  achat: 'Achat',
+  semi_fini: 'Semi-fini',
+  vente: 'Vente',
 }
 
 const PRODUCT_TYPE_SUGGESTIONS: Record<string, { action: string; target: string }> = {
-  raw_material: { action: 'Commander auprès d\'un fournisseur', target: 'purchase-orders' },
-  semi_finished: { action: 'Lancer une production', target: 'work-orders' },
-  finished: { action: 'Lancer une production', target: 'work-orders' },
+  achat: { action: 'Commander auprès d\'un fournisseur', target: 'purchase-orders' },
+  semi_fini: { action: 'Lancer une production', target: 'work-orders' },
+  vente: { action: 'Lancer une production', target: 'work-orders' },
 }
 
 function generatePrepNumber(): Promise<string> {
@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status') || ''
     const salesOrderId = searchParams.get('salesOrderId') || ''
+    const search = searchParams.get('search') || ''
     const stockCheckId = searchParams.get('stockCheck') === 'true' ? searchParams.get('id') : null
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
@@ -144,6 +145,13 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = {}
     if (status) where.status = status
     if (salesOrderId) where.salesOrderId = salesOrderId
+    if (search) {
+      where.OR = [
+        { number: { contains: search, mode: 'insensitive' } },
+        { salesOrder: { number: { contains: search, mode: 'insensitive' } } },
+        { salesOrder: { client: { name: { contains: search, mode: 'insensitive' } } } },
+      ]
+    }
 
     const [preparations, total] = await Promise.all([
       db.preparationOrder.findMany({

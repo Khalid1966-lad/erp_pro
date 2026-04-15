@@ -171,7 +171,7 @@ export default function WorkOrdersView() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const data = await api.get<{ products: Product[] }>('/products?productType=finished&limit=200')
+      const data = await api.get<{ products: Product[] }>('/products?productType=vente&limit=200')
       setProducts(data.products || [])
     } catch {
       // silent

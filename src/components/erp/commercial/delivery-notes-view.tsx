@@ -24,7 +24,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart, CalendarClock, Loader2
+  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart, CalendarClock, Loader2, Search, RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -200,6 +200,7 @@ export default function DeliveryNotesView() {
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
 
   // Dialogs
   const [createOpen, setCreateOpen] = useState(false)
@@ -250,6 +251,7 @@ export default function DeliveryNotesView() {
       params.set('page', '1')
       params.set('limit', '100')
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+      if (search) params.set('search', search)
       const data = await api.get<{ deliveryNotes: DeliveryNote[]; total: number }>(`/delivery-notes?${params.toString()}`)
       setDeliveryNotes(data.deliveryNotes)
     } catch (err: any) {
@@ -257,7 +259,7 @@ export default function DeliveryNotesView() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter])
+  }, [statusFilter, search])
 
   useEffect(() => {
     fetchDeliveryNotes()
@@ -679,14 +681,29 @@ export default function DeliveryNotesView() {
           <h2 className="text-lg font-semibold">Bons de Livraison</h2>
           <Badge variant="secondary">{deliveryNotes.length}</Badge>
         </div>
-        <Button onClick={openCreateDialog} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nouveau bon de livraison
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchDeliveryNotes}>
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Actualiser
+          </Button>
+          <Button onClick={openCreateDialog} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nouveau bon de livraison
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher par N°, commande, client..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Statut" />

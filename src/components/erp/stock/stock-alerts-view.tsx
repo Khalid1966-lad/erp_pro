@@ -22,9 +22,9 @@ interface ProductAlert {
 }
 
 const productTypeLabels: Record<string, string> = {
-  raw_material: 'Matière première',
-  semi_finished: 'Semi-fini',
-  finished: 'Produit fini',
+  achat: 'Achat',
+  semi_fini: 'Semi-fini',
+  vente: 'Vente',
 }
 
 export default function StockAlertsView() {

@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   ClipboardList, MoreVertical, Play, CheckCircle, XCircle, Eye, Trash2, Package,
-  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText
+  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -156,15 +156,15 @@ const statusColors: Record<string, string> = {
 }
 
 const productTypeLabels: Record<string, string> = {
-  raw_material: 'Matière première',
-  semi_finished: 'Semi-fini',
-  finished: 'Produit fini',
+  achat: 'Achat',
+  semi_fini: 'Semi-fini',
+  vente: 'Vente',
 }
 
 const productTypeColors: Record<string, string> = {
-  raw_material: 'bg-amber-100 text-amber-800',
-  semi_finished: 'bg-purple-100 text-purple-800',
-  finished: 'bg-emerald-100 text-emerald-800',
+  achat: 'bg-amber-100 text-amber-800',
+  semi_fini: 'bg-purple-100 text-purple-800',
+  vente: 'bg-emerald-100 text-emerald-800',
 }
 
 // ═══════════════════════════════════════════════════════
@@ -194,6 +194,7 @@ export default function PreparationsView() {
   const [preparations, setPreparations] = useState<Preparation[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
 
   // Create dialog
@@ -219,6 +220,7 @@ export default function PreparationsView() {
       setLoading(true)
       const params = new URLSearchParams()
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+      if (search) params.set('search', search)
       const data = await api.get<{ preparations: Preparation[]; total: number }>(
         `/preparations?${params.toString()}`,
       )
@@ -229,7 +231,7 @@ export default function PreparationsView() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter])
+  }, [statusFilter, search])
 
   useEffect(() => {
     fetchPreparations()
@@ -485,6 +487,15 @@ export default function PreparationsView() {
 
       {/* ── Filters ── */}
       <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher par N°, commande, client..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Statut" />
@@ -721,7 +732,7 @@ export default function PreparationsView() {
                                       -{deficit}
                                     </Badge>
                                     <span className="text-xs text-muted-foreground">
-                                      {line.product.productType === 'raw_material'
+                                      {line.product.productType === 'achat'
                                         ? 'Achat fournisseur'
                                         : 'Production interne'}
                                     </span>
@@ -1016,7 +1027,7 @@ export default function PreparationsView() {
                             </div>
                             {alertLine.suggestion && (
                               <div className="flex items-center gap-2">
-                                {alertLine.productType === 'raw_material' ? (
+                                {alertLine.productType === 'achat' ? (
                                   <Button
                                     variant="outline"
                                     size="sm"

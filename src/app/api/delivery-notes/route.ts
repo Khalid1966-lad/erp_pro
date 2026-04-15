@@ -80,6 +80,7 @@ export async function GET(req: NextRequest) {
     const clientId = searchParams.get('clientId') || ''
     const salesOrderId = searchParams.get('salesOrderId') || ''
     const standalone = searchParams.get('standalone') || ''
+    const search = searchParams.get('search') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
 
@@ -89,6 +90,15 @@ export async function GET(req: NextRequest) {
     if (salesOrderId) where.salesOrderId = salesOrderId
     if (standalone === 'true') where.salesOrderId = null
     if (standalone === 'false') where.salesOrderId = { not: null }
+    if (search) {
+      where.OR = [
+        { number: { contains: search, mode: 'insensitive' } },
+        { client: { name: { contains: search, mode: 'insensitive' } } },
+        { client: { raisonSociale: { contains: search, mode: 'insensitive' } } },
+        { salesOrder: { number: { contains: search, mode: 'insensitive' } } },
+        { transporteur: { contains: search, mode: 'insensitive' } },
+      ]
+    }
 
     const [deliveryNotes, total] = await Promise.all([
       db.deliveryNote.findMany({

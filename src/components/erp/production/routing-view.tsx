@@ -90,7 +90,7 @@ export default function RoutingView() {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await api.get<{ products: Product[] }>('/products?productType=finished&limit=100')
+      const res = await api.get<{ products: Product[] }>('/products?productType=vente&limit=100')
       setProducts(res.products || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur de chargement des produits')
