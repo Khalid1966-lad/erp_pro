@@ -331,26 +331,26 @@ export default function ProductsView() {
             className="overflow-x-auto overflow-y-auto"
             style={{ maxHeight: 'calc(100vh - 300px)', minHeight: '300px' }}
           >
-            <Table>
+            <Table className="min-w-[900px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="cursor-pointer select-none sticky top-0 bg-card z-10" onClick={() => toggleSort('reference')}>
+                  <TableHead className="cursor-pointer select-none sticky top-0 bg-card z-10 min-w-[100px]" onClick={() => toggleSort('reference')}>
                     <div className="flex items-center gap-1">Référence<ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none sticky top-0 bg-card z-10" onClick={() => toggleSort('designation')}>
+                  <TableHead className="cursor-pointer select-none sticky top-0 bg-card z-10 min-w-[200px]" onClick={() => toggleSort('designation')}>
                     <div className="flex items-center gap-1">Désignation<ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell sticky top-0 bg-card z-10">Famille</TableHead>
-                  <TableHead className="hidden xl:table-cell sticky top-0 bg-card z-10">Sous-famille</TableHead>
-                  <TableHead className="hidden md:table-cell sticky top-0 bg-card z-10">Type</TableHead>
+                  <TableHead className="sticky top-0 bg-card z-10 min-w-[110px]">Famille</TableHead>
+                  <TableHead className="sticky top-0 bg-card z-10 min-w-[110px]">Sous-famille</TableHead>
+                  <TableHead className="sticky top-0 bg-card z-10 min-w-[100px]">Type</TableHead>
                   <TableHead className="text-right cursor-pointer select-none sticky top-0 bg-card z-10" onClick={() => toggleSort('priceHT')}>
                     <div className="flex items-center justify-end gap-1">Prix HT<ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="hidden sm:table-cell text-center cursor-pointer select-none sticky top-0 bg-card z-10" onClick={() => toggleSort('currentStock')}>
+                  <TableHead className="text-center cursor-pointer select-none sticky top-0 bg-card z-10 min-w-[90px]" onClick={() => toggleSort('currentStock')}>
                     <div className="flex items-center justify-center gap-1">Stock<ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell sticky top-0 bg-card z-10">TVA</TableHead>
-                  <TableHead className="hidden lg:table-cell text-center sticky top-0 bg-card z-10">Actif</TableHead>
+                  <TableHead className="sticky top-0 bg-card z-10 min-w-[60px]">TVA</TableHead>
+                  <TableHead className="text-center sticky top-0 bg-card z-10 min-w-[60px]">Actif</TableHead>
                   <TableHead className="text-right w-[100px] sticky top-0 bg-card z-10">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -368,26 +368,22 @@ export default function ProductsView() {
                       <TableRow key={product.id} className={!product.isActive ? 'opacity-50' : ''}>
                         <TableCell className="font-mono text-xs">{product.reference}</TableCell>
                         <TableCell><span className="font-medium">{product.designation}</span></TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          {product.famille ? (
-                            <Badge variant="outline" className="font-normal text-xs">{product.famille}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+                        <TableCell className="whitespace-nowrap">
+                          <Badge variant="outline" className="font-normal text-xs">{product.famille || '—'}</Badge>
                         </TableCell>
-                        <TableCell className="hidden xl:table-cell text-muted-foreground text-xs">{product.sousFamille || '—'}</TableCell>
-                        <TableCell className="hidden md:table-cell">
+                        <TableCell className="whitespace-nowrap text-muted-foreground text-xs">{product.sousFamille || '—'}</TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <Badge variant="secondary" className={productTypeColors[product.productType]}>{productTypeLabels[product.productType]}</Badge>
                         </TableCell>
                         <TableCell className="text-right font-medium">{fmt(product.priceHT)}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-center">
+                        <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
                             <span className={`font-mono font-medium ${lowStock ? 'text-red-600' : 'text-green-600'}`}>{product.currentStock}</span>
                             {lowStock && <span className="text-xs text-red-400">≤{product.minStock}</span>}
                           </div>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell text-muted-foreground">{product.tvaRate}%</TableCell>
-                        <TableCell className="hidden lg:table-cell text-center"><Switch checked={product.isActive} disabled /></TableCell>
+                        <TableCell className="text-muted-foreground">{product.tvaRate}%</TableCell>
+                        <TableCell className="text-center"><Switch checked={product.isActive} disabled /></TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}><Edit className="h-4 w-4" /></Button>
