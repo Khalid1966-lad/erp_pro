@@ -23,7 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Edit, Trash2, Search, Package, Filter, ArrowUpDown, RefreshCw } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Package, ArrowUpDown, RefreshCw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Product {
@@ -72,8 +72,10 @@ const productTypeColors: Record<string, string> = {
 }
 
 export default function ProductsView() {
-  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [searching, setSearching] = useState(false)
   const [search, setSearch] = useState('')
   const searchRef = useRef<string>('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -86,74 +88,71 @@ export default function ProductsView() {
   const [form, setForm] = useState(emptyProduct)
   const [saving, setSaving] = useState(false)
 
-  // Debounced search
-  const handleSearch = useCallback((value: string) => {
-    setSearch(value)
-    searchRef.current = value
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      fetchProductsBySearch(value)
-    }, 300)
-  }, [])
-
-  const fetchProductsBySearch = useCallback(async (searchTerm: string) => {
+  // Fetch products from server with search and filters
+  const fetchProducts = useCallback(async (searchTerm?: string) => {
     try {
+      if (searchTerm !== undefined) {
+        setSearching(true)
+      } else {
+        setLoading(true)
+      }
       const params = new URLSearchParams({ limit: '10000', active: 'false' })
-      if (searchTerm) params.set('search', searchTerm)
+      const term = searchTerm !== undefined ? searchTerm : searchRef.current
+      if (term) params.set('search', term)
+      if (typeFilter) params.set('productType', typeFilter)
+      if (familleFilter) params.set('famille', familleFilter)
       const res = await api.get<{ products: Product[], total: number }>(`/products?${params}`)
-      setAllProducts(res.products || [])
-    } catch (err) {
-      console.error('Erreur recherche produits:', err)
-    }
-  }, [])
-
-  // Fetch ALL products
-  const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams({ limit: '10000', active: 'false' })
-      if (searchRef.current) params.set('search', searchRef.current)
-      const res = await api.get<{ products: Product[], total: number }>(`/products?${params}`)
-      setAllProducts(res.products || [])
+      setProducts(res.products || [])
+      setTotal(res.total || 0)
     } catch (err) {
       console.error('Erreur chargement produits:', err)
       toast.error('Erreur de chargement', { description: 'Impossible de charger la liste des produits.' })
     } finally {
       setLoading(false)
+      setSearching(false)
     }
-  }, [])
+  }, [typeFilter, familleFilter])
 
+  // Debounced search — only by designation
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+    searchRef.current = value
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      fetchProducts(value)
+    }, 400)
+  }, [fetchProducts])
+
+  // Initial load + re-fetch when type/famille filters change
   useEffect(() => {
     fetchProducts()
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [fetchProducts])
 
-  // Client-side filters + sorting
-  const filteredProducts = useMemo(() => {
-    let result = [...allProducts]
-    if (typeFilter) result = result.filter(p => p.productType === typeFilter)
-    if (familleFilter) result = result.filter(p => p.famille === familleFilter)
+  // Client-side sorting only (filtering done server-side)
+  const sortedProducts = useMemo(() => {
+    const result = [...products]
     result.sort((a, b) => {
       const aVal = String(a[sortField as keyof Product] ?? '')
       const bVal = String(b[sortField as keyof Product] ?? '')
       return sortDir === 'asc' ? aVal.localeCompare(bVal, 'fr') : bVal.localeCompare(aVal, 'fr')
     })
     return result
-  }, [allProducts, typeFilter, familleFilter, sortField, sortDir])
+  }, [products, sortField, sortDir])
 
-  // Unique familles
+  // Unique familles from current results
   const familles = useMemo(() => {
     const set = new Set<string>()
-    allProducts.forEach(p => { if (p.famille) set.add(p.famille) })
+    products.forEach(p => { if (p.famille) set.add(p.famille) })
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'))
-  }, [allProducts])
+  }, [products])
 
-  // Counts by type
+  // Type counts from displayed products
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = { achat: 0, vente: 0, semi_fini: 0 }
-    allProducts.forEach(p => { if (counts[p.productType] !== undefined) counts[p.productType]++ })
+    products.forEach(p => { if (counts[p.productType] !== undefined) counts[p.productType]++ })
     return counts
-  }, [allProducts])
+  }, [products])
 
   const toggleSort = (field: string) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -265,12 +264,11 @@ export default function ProductsView() {
           <Package className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Produits</h2>
           <Badge variant="secondary">
-            {filteredProducts.length}
-            {filteredProducts.length !== allProducts.length ? `/${allProducts.length}` : ''}
+            {total}
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchProducts}>
+          <Button variant="outline" size="sm" onClick={() => fetchProducts()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button onClick={openCreate} size="sm">
@@ -280,15 +278,18 @@ export default function ProductsView() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search — by designation only */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Rechercher par référence, désignation, famille..."
+          placeholder="Rechercher par désignation..."
           value={search}
           onChange={(e) => handleSearch(e.target.value)}
           className="pl-9"
         />
+        {searching && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+        )}
       </div>
 
       {/* Filter Buttons */}
@@ -323,76 +324,50 @@ export default function ProductsView() {
         </Select>
       </div>
 
-      {/* Table — scrollable with native scrollbar (like clients) */}
+      {/* Table — scrollable with vertical scrollbar */}
       <Card>
         <CardContent className="p-0">
           <div
             className="overflow-x-auto overflow-y-auto"
-            style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '300px' }}
+            style={{ maxHeight: 'calc(100vh - 300px)', minHeight: '300px' }}
           >
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead
-                    className="cursor-pointer select-none"
-                    onClick={() => toggleSort('reference')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Référence
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
+                  <TableHead className="cursor-pointer select-none sticky top-0 bg-card z-10" onClick={() => toggleSort('reference')}>
+                    <div className="flex items-center gap-1">Référence<ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer select-none"
-                    onClick={() => toggleSort('designation')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Désignation
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
+                  <TableHead className="cursor-pointer select-none sticky top-0 bg-card z-10" onClick={() => toggleSort('designation')}>
+                    <div className="flex items-center gap-1">Désignation<ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell">Famille</TableHead>
-                  <TableHead className="hidden xl:table-cell">Sous-famille</TableHead>
-                  <TableHead className="hidden md:table-cell">Type</TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer select-none"
-                    onClick={() => toggleSort('priceHT')}
-                  >
-                    <div className="flex items-center justify-end gap-1">
-                      Prix HT
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
+                  <TableHead className="hidden lg:table-cell sticky top-0 bg-card z-10">Famille</TableHead>
+                  <TableHead className="hidden xl:table-cell sticky top-0 bg-card z-10">Sous-famille</TableHead>
+                  <TableHead className="hidden md:table-cell sticky top-0 bg-card z-10">Type</TableHead>
+                  <TableHead className="text-right cursor-pointer select-none sticky top-0 bg-card z-10" onClick={() => toggleSort('priceHT')}>
+                    <div className="flex items-center justify-end gap-1">Prix HT<ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead
-                    className="hidden sm:table-cell text-center cursor-pointer select-none"
-                    onClick={() => toggleSort('currentStock')}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      Stock
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
+                  <TableHead className="hidden sm:table-cell text-center cursor-pointer select-none sticky top-0 bg-card z-10" onClick={() => toggleSort('currentStock')}>
+                    <div className="flex items-center justify-center gap-1">Stock<ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell">TVA</TableHead>
-                  <TableHead className="hidden lg:table-cell text-center">Actif</TableHead>
-                  <TableHead className="text-right w-[100px]">Actions</TableHead>
+                  <TableHead className="hidden lg:table-cell sticky top-0 bg-card z-10">TVA</TableHead>
+                  <TableHead className="hidden lg:table-cell text-center sticky top-0 bg-card z-10">Actif</TableHead>
+                  <TableHead className="text-right w-[100px] sticky top-0 bg-card z-10">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.length === 0 ? (
+                {sortedProducts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       {search || typeFilter || familleFilter ? 'Aucun produit trouvé.' : 'Aucun produit enregistré.'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredProducts.map((product) => {
+                  sortedProducts.map((product) => {
                     const lowStock = product.minStock !== null && product.minStock > 0 && product.currentStock <= product.minStock
                     return (
                       <TableRow key={product.id} className={!product.isActive ? 'opacity-50' : ''}>
                         <TableCell className="font-mono text-xs">{product.reference}</TableCell>
-                        <TableCell>
-                          <span className="font-medium">{product.designation}</span>
-                        </TableCell>
+                        <TableCell><span className="font-medium">{product.designation}</span></TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {product.famille ? (
                             <Badge variant="outline" className="font-normal text-xs">{product.famille}</Badge>
@@ -400,53 +375,34 @@ export default function ProductsView() {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden xl:table-cell text-muted-foreground text-xs">
-                          {product.sousFamille || '—'}
-                        </TableCell>
+                        <TableCell className="hidden xl:table-cell text-muted-foreground text-xs">{product.sousFamille || '—'}</TableCell>
                         <TableCell className="hidden md:table-cell">
-                          <Badge variant="secondary" className={productTypeColors[product.productType]}>
-                            {productTypeLabels[product.productType]}
-                          </Badge>
+                          <Badge variant="secondary" className={productTypeColors[product.productType]}>{productTypeLabels[product.productType]}</Badge>
                         </TableCell>
                         <TableCell className="text-right font-medium">{fmt(product.priceHT)}</TableCell>
                         <TableCell className="hidden sm:table-cell text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <span className={`font-mono font-medium ${lowStock ? 'text-red-600' : 'text-green-600'}`}>
-                              {product.currentStock}
-                            </span>
-                            {lowStock && (
-                              <span className="text-xs text-red-400">≤{product.minStock}</span>
-                            )}
+                            <span className={`font-mono font-medium ${lowStock ? 'text-red-600' : 'text-green-600'}`}>{product.currentStock}</span>
+                            {lowStock && <span className="text-xs text-red-400">≤{product.minStock}</span>}
                           </div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-muted-foreground">{product.tvaRate}%</TableCell>
-                        <TableCell className="hidden lg:table-cell text-center">
-                          <Switch checked={product.isActive} disabled />
-                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-center"><Switch checked={product.isActive} disabled /></TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}><Edit className="h-4 w-4" /></Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Supprimer le produit</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Êtes-vous sûr de vouloir supprimer <strong>{product.reference} - {product.designation}</strong> ?
-                                    Cette action est irréversible.
-                                  </AlertDialogDescription>
+                                  <AlertDialogDescription>Êtes-vous sûr de vouloir supprimer <strong>{product.reference} - {product.designation}</strong> ? Cette action est irréversible.</AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(product.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                    Supprimer
-                                  </AlertDialogAction>
+                                  <AlertDialogAction onClick={() => handleDelete(product.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -469,16 +425,11 @@ export default function ProductsView() {
             <DialogTitle>{editingProduct ? 'Modifier le produit' : 'Nouveau produit'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Classification */}
-            <div className="md:col-span-2">
-              <h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Classification</h4>
-            </div>
+            <div className="md:col-span-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Classification</h4></div>
             <div className="space-y-2">
               <Label htmlFor="famille">Famille</Label>
               <Input id="famille" list="familles-list" value={form.famille} onChange={(e) => setForm({ ...form, famille: e.target.value })} placeholder="Ex: Électronique, Mécanique..." />
-              <datalist id="familles-list">
-                {familles.map(f => <option key={f} value={f} />)}
-              </datalist>
+              <datalist id="familles-list">{familles.map(f => <option key={f} value={f} />)}</datalist>
             </div>
             <div className="space-y-2">
               <Label htmlFor="sousFamille">Sous-famille</Label>
@@ -495,10 +446,7 @@ export default function ProductsView() {
                 </SelectContent>
               </Select>
             </div>
-            {/* Identification */}
-            <div className="md:col-span-2 mt-2">
-              <h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Identification</h4>
-            </div>
+            <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Identification</h4></div>
             <div className="space-y-2">
               <Label htmlFor="reference">Référence *</Label>
               <Input id="reference" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="REF-001" className="font-mono" />
@@ -511,10 +459,7 @@ export default function ProductsView() {
               <Label htmlFor="description">Description</Label>
               <Input id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description du produit" />
             </div>
-            {/* Tarification & Stock */}
-            <div className="md:col-span-2 mt-2">
-              <h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Tarification & Stock</h4>
-            </div>
+            <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Tarification & Stock</h4></div>
             <div className="space-y-2">
               <Label htmlFor="priceHT">Prix HT (MAD) *</Label>
               <Input id="priceHT" type="number" step="0.01" value={form.priceHT} onChange={(e) => setForm({ ...form, priceHT: e.target.value })} placeholder="0.00" />
@@ -524,11 +469,7 @@ export default function ProductsView() {
               <Select value={form.tvaRate} onValueChange={(v) => setForm({ ...form, tvaRate: v })}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">0%</SelectItem>
-                  <SelectItem value="7">7%</SelectItem>
-                  <SelectItem value="10">10%</SelectItem>
-                  <SelectItem value="14">14%</SelectItem>
-                  <SelectItem value="20">20%</SelectItem>
+                  <SelectItem value="0">0%</SelectItem><SelectItem value="7">7%</SelectItem><SelectItem value="10">10%</SelectItem><SelectItem value="14">14%</SelectItem><SelectItem value="20">20%</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -537,14 +478,7 @@ export default function ProductsView() {
               <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unité">Unité</SelectItem>
-                  <SelectItem value="kg">Kg</SelectItem>
-                  <SelectItem value="litre">Litre</SelectItem>
-                  <SelectItem value="mètre">Mètre</SelectItem>
-                  <SelectItem value="m²">M²</SelectItem>
-                  <SelectItem value="m³">M³</SelectItem>
-                  <SelectItem value="palette">Palette</SelectItem>
-                  <SelectItem value="lot">Lot</SelectItem>
+                  <SelectItem value="unité">Unité</SelectItem><SelectItem value="kg">Kg</SelectItem><SelectItem value="litre">Litre</SelectItem><SelectItem value="mètre">Mètre</SelectItem><SelectItem value="m²">M²</SelectItem><SelectItem value="m³">M³</SelectItem><SelectItem value="palette">Palette</SelectItem><SelectItem value="lot">Lot</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -563,9 +497,7 @@ export default function ProductsView() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleSave} disabled={!form.reference.trim() || !form.designation.trim() || saving}>
-              {saving ? 'Enregistrement...' : editingProduct ? 'Modifier' : 'Créer'}
-            </Button>
+            <Button onClick={handleSave} disabled={!form.reference.trim() || !form.designation.trim() || saving}>{saving ? 'Enregistrement...' : editingProduct ? 'Modifier' : 'Créer'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || ''
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const limit = Math.max(1, Math.min(5000, parseInt(searchParams.get('limit') || '50')))
+    const dropdown = searchParams.get('dropdown') === 'true'
     const statut = searchParams.get('statut')
     const categorie = searchParams.get('categorie')
     const formeJuridique = searchParams.get('formeJuridique')
@@ -29,17 +30,25 @@ export async function GET(req: NextRequest) {
       isDeleted: false,
     }
 
-    // Search across multiple fields
+    // Search across multiple fields (full list mode)
     if (search) {
-      where.OR = [
-        { raisonSociale: { contains: search, mode: 'insensitive' } },
-        { nomCommercial: { contains: search, mode: 'insensitive' } },
-        { ice: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { ville: { contains: search, mode: 'insensitive' } },
-        { telephone: { contains: search } },
-        { name: { contains: search, mode: 'insensitive' } },
-      ]
+      // In dropdown mode, search only by raisonSociale for client name matching
+      if (dropdown) {
+        where.OR = [
+          { raisonSociale: { contains: search, mode: 'insensitive' } },
+          { name: { contains: search, mode: 'insensitive' } },
+        ]
+      } else {
+        where.OR = [
+          { raisonSociale: { contains: search, mode: 'insensitive' } },
+          { nomCommercial: { contains: search, mode: 'insensitive' } },
+          { ice: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { ville: { contains: search, mode: 'insensitive' } },
+          { telephone: { contains: search } },
+          { name: { contains: search, mode: 'insensitive' } },
+        ]
+      }
     }
 
     // Filters
@@ -58,6 +67,17 @@ export async function GET(req: NextRequest) {
     const orderByField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
     const orderBy: Prisma.ClientOrderByWithRelationInput = {
       [orderByField]: sortOrder === 'asc' ? 'asc' : 'desc',
+    }
+
+    // Dropdown mode: lightweight response for select components (no pagination, search by raisonSociale only)
+    if (dropdown) {
+      const orderByDropdown: Prisma.ClientOrderByWithRelationInput = { raisonSociale: 'asc' }
+      const clients = await db.client.findMany({
+        where,
+        orderBy: orderByDropdown,
+        select: { id: true, name: true, raisonSociale: true, nomCommercial: true, ice: true, ville: true, statut: true },
+      })
+      return NextResponse.json({ clients, total: clients.length })
     }
 
     const [clients, total] = await Promise.all([

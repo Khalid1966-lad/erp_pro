@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -26,8 +27,11 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
+  Popover, PopoverContent, PopoverTrigger
+} from '@/components/ui/popover'
+import {
   FileText, Plus, Search, MoreVertical, Eye, Send, CheckCircle, XCircle, ArrowRight,
-  Trash2, Edit, Printer
+  Trash2, Edit, Printer, Check, ChevronsUpDown, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -62,8 +66,24 @@ interface Quote {
   lines: QuoteLine[]
 }
 
-interface Client { id: string; name: string }
-interface Product { id: string; reference: string; designation: string; priceHT: number; tvaRate: number }
+interface ClientOption {
+  id: string
+  name: string
+  raisonSociale: string | null
+  nomCommercial: string | null
+  ice: string | null
+  ville: string | null
+  statut: string | null
+}
+
+interface ProductOption {
+  id: string
+  reference: string
+  designation: string
+  priceHT: number
+  tvaRate: number
+  productType: string
+}
 
 const statusLabels: Record<string, string> = {
   draft: 'Brouillon',
@@ -98,8 +118,18 @@ export default function QuotesView() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
   const [saving, setSaving] = useState(false)
-  const [clients, setClients] = useState<Client[]>([])
-  const [products, setProducts] = useState<Product[]>([])
+
+  // Dropdown data for comboboxes
+  const [allClients, setAllClients] = useState<ClientOption[]>([])
+  const [allProducts, setAllProducts] = useState<ProductOption[]>([])
+  const [dropdownsLoading, setDropdownsLoading] = useState(false)
+
+  // Client combobox state
+  const [clientSearch, setClientSearch] = useState('')
+  const [clientPopoverOpen, setClientPopoverOpen] = useState(false)
+
+  // Product combobox state per line
+  const [lineSearches, setLineSearches] = useState<Record<number, string>>({})
 
   // Form state
   const [formClientId, setFormClientId] = useState('')
@@ -125,29 +155,58 @@ export default function QuotesView() {
     }
   }
 
-  const fetchDropdowns = async () => {
+  const fetchDropdowns = useCallback(async () => {
     try {
+      setDropdownsLoading(true)
       const [clientsRes, productsRes] = await Promise.all([
-        api.get<{ clients: Client[] }>('/clients'),
-        api.get<{ products: Product[] }>('/products')
+        api.get<{ clients: ClientOption[] }>('/clients?dropdown=true&limit=5000'),
+        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=vente&active=true'),
       ])
-      setClients(clientsRes.clients || [])
-      setProducts(productsRes.products || [])
+      setAllClients(clientsRes.clients || [])
+      setAllProducts(productsRes.products || [])
     } catch (err) {
       console.error('Erreur chargement dropdowns:', err)
+    } finally {
+      setDropdownsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchQuotes()
     fetchDropdowns()
-  }, [statusFilter])
+  }, [statusFilter, fetchDropdowns])
 
   const handleSearch = () => {
     fetchQuotes()
   }
 
   const filteredQuotes = useMemo(() => quotes, [quotes])
+
+  // Client combobox: filter by raisonSociale / name
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return allClients
+    const q = clientSearch.toLowerCase()
+    return allClients.filter(c =>
+      (c.raisonSociale && c.raisonSociale.toLowerCase().includes(q)) ||
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.nomCommercial && c.nomCommercial.toLowerCase().includes(q)) ||
+      (c.ice && c.ice.toLowerCase().includes(q))
+    )
+  }, [allClients, clientSearch])
+
+  const selectedClient = useMemo(() => {
+    return allClients.find(c => c.id === formClientId)
+  }, [allClients, formClientId])
+
+  // Product combobox: filter by designation / reference
+  const getFilteredProducts = useCallback((idx: number) => {
+    const q = (lineSearches[idx] || '').toLowerCase()
+    if (!q.trim()) return allProducts
+    return allProducts.filter(p =>
+      p.designation.toLowerCase().includes(q) ||
+      p.reference.toLowerCase().includes(q)
+    )
+  }, [allProducts, lineSearches])
 
   const calcFormTotals = useMemo(() => {
     let totalHT = 0
@@ -169,6 +228,8 @@ export default function QuotesView() {
   const openCreate = () => {
     setSelectedQuote(null)
     setFormClientId('')
+    setClientSearch('')
+    setLineSearches({})
     const in30 = new Date()
     in30.setDate(in30.getDate() + 30)
     setFormValidUntil(in30.toISOString().slice(0, 10))
@@ -267,7 +328,7 @@ export default function QuotesView() {
     const updated = [...formLines]
     updated[idx] = { ...updated[idx], [field]: value }
     if (field === 'productId') {
-      const prod = products.find(p => p.id === value)
+      const prod = allProducts.find(p => p.id === value)
       if (prod) {
         updated[idx].unitPrice = prod.priceHT
         updated[idx].tvaRate = prod.tvaRate
@@ -475,18 +536,87 @@ export default function QuotesView() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Client searchable combobox */}
               <div className="space-y-2">
                 <Label>Client *</Label>
-                <Select value={formClientId} onValueChange={setFormClientId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={clientPopoverOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {dropdownsLoading ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Chargement...
+                        </span>
+                      ) : selectedClient ? (
+                        <span>
+                          {selectedClient.raisonSociale || selectedClient.name}
+                          {selectedClient.ice && (
+                            <span className="ml-2 text-xs text-muted-foreground">({selectedClient.ice})</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Sélectionner un client...</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <div className="p-2">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Rechercher par raison sociale..."
+                          value={clientSearch}
+                          onChange={(e) => setClientSearch(e.target.value)}
+                          className="pl-8"
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {filteredClients.length === 0 ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          Aucun client trouvé.
+                        </div>
+                      ) : (
+                        filteredClients.map((c) => (
+                          <div
+                            key={c.id}
+                            className={cn(
+                              'flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent text-sm',
+                              formClientId === c.id && 'bg-accent'
+                            )}
+                            onClick={() => {
+                              setFormClientId(c.id)
+                              setClientSearch('')
+                              setClientPopoverOpen(false)
+                            }}
+                          >
+                            {formClientId === c.id && <Check className="h-4 w-4 shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">
+                                {c.raisonSociale || c.name || '—'}
+                              </div>
+                              {c.nomCommercial && (
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {c.nomCommercial}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground shrink-0 flex items-center gap-2">
+                              {c.ville && <span>{c.ville}</span>}
+                              {c.ice && <span>{c.ice}</span>}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label>Valide jusqu&apos;au *</Label>
@@ -506,7 +636,7 @@ export default function QuotesView() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[200px]">Produit</TableHead>
+                      <TableHead className="w-[220px]">Produit</TableHead>
                       <TableHead className="w-[80px]">Qté</TableHead>
                       <TableHead className="w-[100px]">P.U. HT</TableHead>
                       <TableHead className="w-[80px]">TVA %</TableHead>
@@ -519,16 +649,18 @@ export default function QuotesView() {
                     {formLines.map((line, idx) => (
                       <TableRow key={idx}>
                         <TableCell>
-                          <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Produit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>{p.reference} - {p.designation}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {/* Product searchable combobox */}
+                          <ProductCombobox
+                            products={getFilteredProducts(idx)}
+                            value={line.productId}
+                            loading={dropdownsLoading}
+                            searchValue={lineSearches[idx] || ''}
+                            onSearchChange={(val) => setLineSearches(prev => ({ ...prev, [idx]: val }))}
+                            onSelect={(productId) => {
+                              updateLine(idx, 'productId', productId)
+                              setLineSearches(prev => ({ ...prev, [idx]: '' }))
+                            }}
+                          />
                         </TableCell>
                         <TableCell>
                           <Input type="number" min="0.01" step="1" value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)} className="w-full" />
@@ -685,5 +817,116 @@ export default function QuotesView() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+// ─── ProductCombobox sub-component ───────────────────────────────────────────────
+function ProductCombobox({
+  products,
+  value,
+  loading,
+  searchValue,
+  onSearchChange,
+  onSelect,
+}: {
+  products: ProductOption[]
+  value: string
+  loading: boolean
+  searchValue: string
+  onSearchChange: (val: string) => void
+  onSelect: (productId: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const selected = products.find(p => p.id === value) // note: products is already filtered
+
+  // Also check in allProducts context for the selected product label
+  const displayLabel = useMemo(() => {
+    if (!value) return ''
+    // Find the product by id in the full products list passed via products prop
+    // But since products is filtered, if searchValue is set the selected might not show
+    // We use a ref trick: the parent passes already filtered list, but for the trigger
+    // we should show the selected product even if not in filtered list
+    return null // Will be handled via a separate state
+  }, [value])
+
+  // We need to get selected product label even when it's filtered out
+  const [selectedLabel, setSelectedLabel] = useState('')
+  const [allProductsRef] = useState<ProductOption[]>(() => [])
+
+  // When value changes from parent, find the product in the products list
+  useEffect(() => {
+    const found = products.find(p => p.id === value)
+    if (found) {
+      setSelectedLabel(`${found.reference} - ${found.designation}`)
+    } else if (value && !searchValue) {
+      // Value is set but not found in current products (shouldn't happen normally)
+      setSelectedLabel('')
+    }
+  }, [value, products, searchValue])
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal h-9 text-xs"
+        >
+          {loading ? (
+            <span className="flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Chargement...
+            </span>
+          ) : selected || selectedLabel ? (
+            <span className="truncate">
+              {selected ? `${selected.reference} - ${selected.designation}` : selectedLabel}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">Produit...</span>
+          )}
+          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[350px] p-0" align="start">
+        <div className="p-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Désignation / Réf..."
+              value={searchValue}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-7 h-8 text-xs"
+            />
+          </div>
+        </div>
+        <div className="max-h-[250px] overflow-y-auto">
+          {products.length === 0 ? (
+            <div className="py-4 text-center text-xs text-muted-foreground">
+              Aucun produit trouvé.
+            </div>
+          ) : (
+            products.slice(0, 50).map((p) => (
+              <div
+                key={p.id}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-accent text-xs',
+                  value === p.id && 'bg-accent'
+                )}
+                onClick={() => {
+                  onSelect(p.id)
+                  setOpen(false)
+                }}
+              >
+                {value === p.id && <Check className="h-3 w-3 shrink-0" />}
+                <span className="font-mono shrink-0 text-muted-foreground">{p.reference}</span>
+                <span className="truncate flex-1">{p.designation}</span>
+                <span className="shrink-0 font-medium">{formatCurrency(p.priceHT)}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }

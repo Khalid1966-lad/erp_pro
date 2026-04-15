@@ -37,15 +37,14 @@ export async function GET(req: NextRequest) {
     const activeOnly = searchParams.get('active') !== 'false'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
+    const searchDesignation = searchParams.get('searchDesignation') || ''
+    const dropdown = searchParams.get('dropdown') === 'true'
 
     const where: Record<string, unknown> = {}
-    if (search) {
-      where.OR = [
-        { reference: { contains: search } },
-        { designation: { contains: search } },
-        { famille: { contains: search } },
-        { sousFamille: { contains: search } },
-      ]
+    if (searchDesignation) {
+      where.designation = { contains: searchDesignation }
+    } else if (search) {
+      where.designation = { contains: search }
     }
     if (productType) {
       where.productType = productType
@@ -58,6 +57,16 @@ export async function GET(req: NextRequest) {
     }
     if (activeOnly) {
       where.isActive = true
+    }
+
+    // Dropdown mode: lightweight response for select components (no pagination)
+    if (dropdown) {
+      const products = await db.product.findMany({
+        where,
+        orderBy: { designation: 'asc' },
+        select: { id: true, reference: true, designation: true, priceHT: true, tvaRate: true, productType: true },
+      })
+      return NextResponse.json({ products, total: products.length })
     }
 
     const [products, total] = await Promise.all([
