@@ -696,3 +696,23 @@ Stage Summary:
 - Partial deliveries: user selects quantities per line, system tracks cumulative delivered amounts
 - Multi-BL invoicing: select multiple delivered BLs to generate a single invoice
 - All lint checks pass, dev server running on port 3000
+---
+Task ID: 3-4-5-fixes-verify
+Agent: main
+Task: Verify and fix TVA rates, currency labels, and search across all commercial views
+
+Work Log:
+- Verified commit fc0b942 is pushed with all fixes
+- Checked all TVA rate selects across commercial views: all use Moroccan rates (0%, 7%, 10%, 14%, 20%)
+- Checked all € labels: none remaining (all replaced with MAD or generic symbol)
+- Checked search bars: preparations-view and delivery-notes-view both have search with Search icon
+- Checked API search support: both preparations and delivery-notes API routes accept `search` param with OR filtering
+- Credit-notes-view.tsx confirmed using Moroccan TVA rates (7%, 14%)
+- All fixes already applied in earlier commits, repo is clean and up-to-date
+
+Stage Summary:
+- All 3 remaining issues were already fixed in previous sessions
+- TVA rates unified to Moroccan standard across all views
+- Currency labels all show MAD
+- Search functionality added to Preparations and Delivery Notes
+- Repo is clean, everything pushed to origin/main at fc0b942

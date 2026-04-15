@@ -1,0 +1,22 @@
+
+---
+Task ID: 1
+Agent: Main
+Task: Fix login access issues and refine permissions
+
+Work Log:
+- Fixed super admin hardcoded email typo: `contact@jazelwebagnecy.com` → `contact@jazelwebagency.com` in login route
+- Fixed profile API bug: `isBlocked: false` in select (should be `true` to include the field)
+- Verified all API routes for users are already restricted to `super_admin` only (GET, POST, PUT, block)
+- Added `super_admin` to valid roles in user create and update API endpoints
+- Added `isSuperAdmin` flag when creating users with `super_admin` role
+- Added `super_admin` role option to frontend user create/edit dialog
+- Restarted dev server, verified compilation with lint (0 errors)
+- Synced Prisma schema to database (already in sync)
+
+Stage Summary:
+- Super admin login now works with correct email: `contact@jazelwebagency.com` / `hello@erp2026`
+- Only super admins can create, modify, or block users
+- Super admins can now create other super admins from the UI
+- Profile page available for all users to view info and change password
+- Dev server running on port 3000, all code passing lint
