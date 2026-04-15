@@ -796,9 +796,6 @@ export default function QuotesView() {
                 <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(selectedQuote.totalTTC)}</span></div>
               </div>
 
-            </div>
-          )}
-          </div>
               <DialogFooter>
                 {getStatusActions(selectedQuote).map((action) => (
                   <Button
@@ -818,6 +815,9 @@ export default function QuotesView() {
                   </Button>
                 ))}
               </DialogFooter>
+            </div>
+          )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
