@@ -28,7 +28,7 @@ import {
 import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
   Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2,
-  Truck, Package, Edit
+  Truck, Package, Edit, Printer
 } from 'lucide-react'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { toast } from 'sonner'
@@ -1080,6 +1080,13 @@ export default function SalesOrdersView() {
               </div>
 
               <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="h-4 w-4 mr-1" />
+                  Imprimer
+                </Button>
                 {(selectedOrder.status === 'pending') && (
                   <Button
                     variant="outline"

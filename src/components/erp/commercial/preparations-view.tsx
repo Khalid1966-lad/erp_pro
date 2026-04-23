@@ -30,11 +30,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   ClipboardList, MoreVertical, Play, CheckCircle, XCircle, Eye, Trash2, Package,
-  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search
+  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search, Printer
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { numberToFrenchWords } from '@/lib/number-to-words'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -1066,6 +1067,46 @@ export default function PreparationsView() {
                 </div>
               )}
 
+              {/* ── Totaux ── */}
+              {(() => {
+                const totals = selectedPrep.salesOrder.lines.reduce(
+                  (acc, line) => {
+                    const tva = line.totalHT * line.tvaRate / 100
+                    return { totalHT: acc.totalHT + line.totalHT, totalTVA: acc.totalTVA + tva }
+                  },
+                  { totalHT: 0, totalTVA: 0 },
+                )
+                const totalTTC = totals.totalHT + totals.totalTVA
+                return (
+                  <div className="space-y-3">
+                    <Separator />
+                    <div className="flex justify-end">
+                      <div className="w-64 space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total HT</span>
+                          <span className="font-mono font-medium">{formatCurrency(totals.totalHT)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total TVA</span>
+                          <span className="font-mono font-medium">{formatCurrency(totals.totalTVA)}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between font-semibold">
+                          <span>Total TTC</span>
+                          <span className="font-mono">{formatCurrency(totalTTC)}</span>
+                        </div>
+                        <div className="text-sm italic text-muted-foreground pt-1">
+                          <span>Arrêté le présent bon de préparation à la somme de :</span>
+                        </div>
+                        <div className="text-sm font-medium italic text-right mt-1">
+                          {numberToFrenchWords(totalTTC)} dirhams
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* ── Notes ── */}
               {selectedPrep.notes && (
                 <div className="text-sm">
@@ -1078,6 +1119,13 @@ export default function PreparationsView() {
 
               {/* ── Action buttons ── */}
               <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="h-4 w-4 mr-1" />
+                  Imprimer
+                </Button>
                 {selectedPrep.status === 'pending' && (
                   <>
                     <Button

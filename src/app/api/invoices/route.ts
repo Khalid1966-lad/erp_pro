@@ -612,6 +612,73 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(invoice)
     }
 
+    // Recalculate if lines changed (edit mode)
+    if (updateData.lines && Array.isArray(updateData.lines)) {
+      // Only allow editing when status is 'draft'
+      if (existing.status !== 'draft') {
+        return NextResponse.json({ error: 'Seule une facture en brouillon peut être modifiée' }, { status: 400 })
+      }
+
+      let totalHT = 0
+      let totalTVA = 0
+      const linesData = updateData.lines.map((line: z.infer<typeof invoiceLineSchema>) => {
+        const lineHT = line.quantity * line.unitPrice
+        const lineTVA = lineHT * (line.tvaRate / 100)
+        totalHT += lineHT
+        totalTVA += lineTVA
+        return {
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          tvaRate: line.tvaRate,
+          totalHT: lineHT,
+        }
+      })
+
+      // Delete existing lines and recreate
+      await db.invoiceLine.deleteMany({ where: { invoiceId: id } })
+
+      const { lines: _lines, ...fieldsToUpdate } = updateData
+      const discountRate = fieldsToUpdate.discountRate !== undefined ? fieldsToUpdate.discountRate : existing.discountRate
+      const shippingCost = fieldsToUpdate.shippingCost !== undefined ? fieldsToUpdate.shippingCost : existing.shippingCost
+      const discountedHT = totalHT * (1 - discountRate / 100)
+      const finalTotalHT = discountedHT + shippingCost
+      const finalTotalTVA = totalTVA * (1 - discountRate / 100)
+
+      const invoice = await db.invoice.update({
+        where: { id },
+        data: {
+          ...fieldsToUpdate,
+          totalHT: finalTotalHT,
+          totalTVA: finalTotalTVA,
+          totalTTC: finalTotalHT + finalTotalTVA,
+          lines: { create: linesData },
+        },
+        include: {
+          client: true,
+          lines: { include: { product: true } },
+          deliveryNotes: {
+            include: {
+              deliveryNote: {
+                select: {
+                  id: true,
+                  number: true,
+                  date: true,
+                  totalHT: true,
+                  totalTVA: true,
+                  totalTTC: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
+      await auditLog(auth.userId, 'update', 'Invoice', id, existing, invoice)
+      return NextResponse.json(invoice)
+    }
+
     // Simple update
     const invoice = await db.invoice.update({
       where: { id },

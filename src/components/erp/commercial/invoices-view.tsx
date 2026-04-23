@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   Receipt, Plus, Search, MoreVertical, Eye, Send, CheckCircle,
-  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText
+  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText, Printer
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -1179,6 +1179,13 @@ export default function InvoicesView() {
               </div>
 
               <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="h-4 w-4 mr-1" />
+                  Imprimer
+                </Button>
                 {(selectedInvoice.status === 'draft') && (
                   <Button
                     variant="outline"

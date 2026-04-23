@@ -860,7 +860,7 @@ export default function QuotesView() {
                 <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(selectedQuote.totalTVA)}</span></div>
                 <div className="flex justify-between text-base font-bold border-t pt-2"><span>Total TTC</span><span>{formatCurrency(selectedQuote.totalTTC)}</span></div>
                 <div className="flex justify-between text-sm italic text-muted-foreground pt-1">
-                  <span>Arrêtée la présente facture à la somme de :</span>
+                  <span>Arrêté le présent devis à la somme de :</span>
                 </div>
                 <div className="text-sm font-medium italic text-right mt-1">
                   {numberToFrenchWords(selectedQuote.totalTTC || 0)} dirhams
@@ -943,20 +943,12 @@ function ProductCombobox({
     return null // Will be handled via a separate state
   }, [value])
 
-  // We need to get selected product label even when it's filtered out
-  const [selectedLabel, setSelectedLabel] = useState('')
-  const [allProductsRef] = useState<ProductOption[]>(() => [])
-
-  // When value changes from parent, find the product in the products list
-  useEffect(() => {
-    const found = products.find(p => p.id === value)
-    if (found) {
-      setSelectedLabel(`${found.reference} - ${found.designation}`)
-    } else if (value && !searchValue) {
-      // Value is set but not found in current products (shouldn't happen normally)
-      setSelectedLabel('')
-    }
-  }, [value, products, searchValue])
+  // Compute the label for the selected product
+  const selected = useMemo(() => products.find(p => p.id === value), [products, value])
+  const selectedLabel = useMemo(() => {
+    if (selected) return `${selected.reference} - ${selected.designation}`
+    return ''
+  }, [selected])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

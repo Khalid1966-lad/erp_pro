@@ -272,7 +272,57 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(invoice, { status: 201 })
     }
 
-    // Update sales order
+    // Recalculate if lines changed
+    if (updateData.lines && Array.isArray(updateData.lines)) {
+      // Only allow editing when status is 'pending'
+      if (existing.status !== 'pending') {
+        return NextResponse.json({ error: 'Seule une commande en attente peut être modifiée' }, { status: 400 })
+      }
+
+      let totalHT = 0
+      let totalTVA = 0
+      const linesData = updateData.lines.map((line: z.infer<typeof salesOrderLineSchema>) => {
+        const discountMultiplier = 1 - ((line.discount || 0) / 100)
+        const lineHT = line.quantity * line.unitPrice * discountMultiplier
+        const lineTVA = lineHT * (line.tvaRate / 100)
+        totalHT += lineHT
+        totalTVA += lineTVA
+        return {
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          tvaRate: line.tvaRate,
+          totalHT: lineHT,
+        }
+      })
+
+      // Delete existing lines and recreate
+      await db.salesOrderLine.deleteMany({ where: { orderId: id } })
+
+      const { lines: _lines, ...fieldsToUpdate } = updateData
+
+      const order = await db.salesOrder.update({
+        where: { id },
+        data: {
+          ...fieldsToUpdate,
+          totalHT,
+          totalTVA,
+          totalTTC: totalHT + totalTVA,
+          lines: { create: linesData },
+        },
+        include: {
+          client: true,
+          lines: { include: { product: true } },
+          preparationOrders: true,
+          quote: { select: { id: true, number: true } },
+        },
+      })
+
+      await auditLog(auth.userId, 'update', 'SalesOrder', id, existing, order)
+      return NextResponse.json(order)
+    }
+
+    // Update sales order (simple fields)
     const order = await db.salesOrder.update({
       where: { id },
       data: updateData,

@@ -24,9 +24,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart, CalendarClock, Loader2, Search, RefreshCw
+  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart, CalendarClock, Loader2, Search, RefreshCw, Printer
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { numberToFrenchWords } from '@/lib/number-to-words'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -1603,6 +1604,13 @@ export default function DeliveryNotesView() {
                 </div>
               </div>
 
+              <div className="text-sm italic text-muted-foreground pt-1">
+                <span>Arrêté le présent bon de livraison à la somme de :</span>
+              </div>
+              <div className="text-sm font-medium italic text-right mt-1">
+                {numberToFrenchWords(selectedNote.totalTTC || 0)} dirhams
+              </div>
+
               {selectedNote.notes && (
                 <div className="rounded-md bg-muted/50 p-3 text-sm">
                   <div className="flex items-start gap-2">
@@ -1614,6 +1622,13 @@ export default function DeliveryNotesView() {
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="h-4 w-4 mr-1" />
+                  Imprimer
+                </Button>
                 {selectedNote.status === 'draft' && (
                   <>
                     <Button variant="outline" size="sm" onClick={() => { setDetailOpen(false); openEditDialog(selectedNote) }}>
