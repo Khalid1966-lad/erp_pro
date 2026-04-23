@@ -8,17 +8,14 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-} from '@/components/ui/table'
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
-} from '@/components/ui/dialog'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+} from '@/components/ui/dialog'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
@@ -28,6 +25,7 @@ import { toast } from 'sonner'
 // ── Types ──────────────────────────────────────────────
 interface Supplier {
   id: string
+  code: string
   name: string
   email: string | null
   phone: string | null
@@ -45,6 +43,7 @@ interface Supplier {
 }
 
 interface SupplierFormData {
+  code: string
   name: string
   email: string
   phone: string
@@ -60,16 +59,12 @@ interface SupplierFormData {
 }
 
 const emptyForm: SupplierFormData = {
-  name: '', email: '', phone: '', siret: '', address: '', city: '',
+  code: '', name: '', email: '', phone: '', siret: '', address: '', city: '',
   postalCode: '', country: 'Maroc', deliveryDelay: 7,
-  paymentTerms: '30 jours', rating: 3, notes: ''
+  paymentTerms: '30 jours', rating: 5, notes: ''
 }
 
 // ── Helpers ────────────────────────────────────────────
-function formatCurrency(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
-}
-
 function Stars({ rating, onChange, size = 'sm' }: { rating: number; onChange?: (r: number) => void; size?: 'sm' | 'md' }) {
   const cls = size === 'md' ? 'h-5 w-5' : 'h-3.5 w-3.5'
   return (
@@ -99,7 +94,7 @@ export default function SuppliersView() {
   const fetchSuppliers = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await api.get<{suppliers: Supplier[]}>(`/suppliers`)
+      const res = await api.get<{suppliers: Supplier[]}>(`/suppliers?limit=500`)
       setSuppliers(res.suppliers || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur lors du chargement des fournisseurs')
@@ -111,6 +106,7 @@ export default function SuppliersView() {
   useEffect(() => { fetchSuppliers() }, [fetchSuppliers])
 
   const filtered = suppliers.filter((s) =>
+    s.code.toLowerCase().includes(search.toLowerCase()) ||
     s.name.toLowerCase().includes(search.toLowerCase()) ||
     s.email?.toLowerCase().includes(search.toLowerCase()) ||
     s.siret?.includes(search) ||
@@ -126,7 +122,7 @@ export default function SuppliersView() {
   const openEdit = (s: Supplier) => {
     setEditing(s)
     setForm({
-      name: s.name, email: s.email || '', phone: s.phone || '', siret: s.siret || '',
+      code: s.code, name: s.name, email: s.email || '', phone: s.phone || '', siret: s.siret || '',
       address: s.address || '', city: s.city || '', postalCode: s.postalCode || '',
       country: s.country || 'Maroc', deliveryDelay: s.deliveryDelay,
       paymentTerms: s.paymentTerms, rating: s.rating, notes: s.notes || ''
@@ -135,8 +131,12 @@ export default function SuppliersView() {
   }
 
   const handleSave = async () => {
+    if (!form.code.trim()) {
+      toast.error('Le code fournisseur est obligatoire')
+      return
+    }
     if (!form.name.trim()) {
-      toast.error('Le nom du fournisseur est obligatoire')
+      toast.error('La raison sociale est obligatoire')
       return
     }
     try {
@@ -181,7 +181,7 @@ export default function SuppliersView() {
         <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher un fournisseur..."
+            placeholder="Rechercher par code ou raison sociale..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -201,22 +201,22 @@ export default function SuppliersView() {
             <div className="grid gap-4 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Nom *</Label>
-                  <Input value={form.name} onChange={(e) => updateField('name', e.target.value)} placeholder="Nom du fournisseur" />
+                  <Label>Code *</Label>
+                  <Input value={form.code} onChange={(e) => updateField('code', e.target.value)} placeholder="FR0001" disabled={!!editing} />
                 </div>
                 <div className="space-y-2">
-                  <Label>SIRET</Label>
-                  <Input value={form.siret} onChange={(e) => updateField('siret', e.target.value)} placeholder="XXX XXX XXX XXXXX" />
+                  <Label>Raison Sociale *</Label>
+                  <Input value={form.name} onChange={(e) => updateField('name', e.target.value)} placeholder="Raison sociale du fournisseur" />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} placeholder="email@fournisseur.fr" />
+                  <Input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} placeholder="email@fournisseur.com" />
                 </div>
                 <div className="space-y-2">
                   <Label>Téléphone</Label>
-                  <Input value={form.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="+33 X XX XX XX XX" />
+                  <Input value={form.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="+212 X XX XX XX XX" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -226,11 +226,11 @@ export default function SuppliersView() {
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label>Code postal</Label>
-                  <Input value={form.postalCode} onChange={(e) => updateField('postalCode', e.target.value)} placeholder="75001" />
+                  <Input value={form.postalCode} onChange={(e) => updateField('postalCode', e.target.value)} placeholder="40000" />
                 </div>
                 <div className="space-y-2">
                   <Label>Ville</Label>
-                  <Input value={form.city} onChange={(e) => updateField('city', e.target.value)} placeholder="Paris" />
+                  <Input value={form.city} onChange={(e) => updateField('city', e.target.value)} placeholder="Marrakech" />
                 </div>
                 <div className="space-y-2">
                   <Label>Pays</Label>
@@ -243,7 +243,7 @@ export default function SuppliersView() {
                   <Input type="number" min={0} value={form.deliveryDelay} onChange={(e) => updateField('deliveryDelay', parseInt(e.target.value) || 0)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Conditions de paiement</Label>
+                  <Label>Délai de paiement</Label>
                   <Select value={form.paymentTerms} onValueChange={(v) => updateField('paymentTerms', v)}>
                     <SelectTrigger>
                       <SelectValue />
@@ -257,7 +257,7 @@ export default function SuppliersView() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Note</Label>
+                <Label>Note (1-5)</Label>
                 <Stars rating={form.rating} onChange={(r) => updateField('rating', r)} size="md" />
               </div>
               <div className="space-y-2">
@@ -282,10 +282,10 @@ export default function SuppliersView() {
             <div className="p-6 space-y-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-4 w-48" />
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-20" />
                   <div className="flex-1" />
                   <Skeleton className="h-8 w-16" />
                 </div>
@@ -298,30 +298,30 @@ export default function SuppliersView() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead className="hidden md:table-cell">Contact</TableHead>
-                    <TableHead className="hidden lg:table-cell">Ville</TableHead>
-                    <TableHead className="hidden lg:table-cell">Délai</TableHead>
-                    <TableHead className="hidden sm:table-cell">Paiement</TableHead>
-                    <TableHead>Note</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
+                  <tr className="border-b">
+                    <th className="text-left px-4 py-3 font-medium">Code</th>
+                    <th className="text-left px-4 py-3 font-medium">Raison Sociale</th>
+                    <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Contact</th>
+                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Ville</th>
+                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Délai</th>
+                    <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Paiement</th>
+                    <th className="text-left px-4 py-3 font-medium">Note</th>
+                    <th className="text-right px-4 py-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {filtered.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div>
-                            <p className="font-medium">{s.name}</p>
-                            {s.siret && <p className="text-xs text-muted-foreground">{s.siret}</p>}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                    <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{s.code}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium">{s.name}</div>
+                        {s.siret && <div className="text-xs text-muted-foreground">{s.siret}</div>}
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
                         <div className="space-y-1">
                           {s.email && (
                             <div className="flex items-center gap-1.5 text-xs">
@@ -336,16 +336,16 @@ export default function SuppliersView() {
                             </div>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell text-sm">
                         {s.city}{s.postalCode ? ` ${s.postalCode}` : ''}{s.country && s.country !== 'Maroc' ? `, ${s.country}` : ''}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">{s.deliveryDelay}j</TableCell>
-                      <TableCell className="hidden sm:table-cell">
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell text-sm">{s.deliveryDelay}j</td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
                         <Badge variant="outline">{s.paymentTerms}</Badge>
-                      </TableCell>
-                      <TableCell><Stars rating={s.rating} /></TableCell>
-                      <TableCell className="text-right">
+                      </td>
+                      <td className="px-4 py-3"><Stars rating={s.rating} /></td>
+                      <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
                             <Edit className="h-4 w-4" />
@@ -376,11 +376,11 @@ export default function SuppliersView() {
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>

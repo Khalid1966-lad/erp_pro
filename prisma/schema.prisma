@@ -589,19 +589,20 @@ model InvoiceDeliveryNote {
 
 model Supplier {
   id              String    @id @default(cuid())
+  code            String    @unique
   name            String
   siret           String?
   address         String?
   city            String?
   postalCode      String?
-  country         String    @default("France")
+  country         String    @default("Maroc")
   phone           String?
   email           String?
   deliveryDelay   Int       @default(7)
   paymentTerms    String    @default("30 jours")
   notes           String?
   balance         Float     @default(0)
-  rating          Float     @default(0)
+  rating          Float     @default(5)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

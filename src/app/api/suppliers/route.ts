@@ -4,7 +4,8 @@ import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
 import { z } from 'zod'
 
 const supplierSchema = z.object({
-  name: z.string().min(1, 'Le nom est requis'),
+  code: z.string().min(1, 'Le code est requis'),
+  name: z.string().min(1, 'La raison sociale est requise'),
   siret: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -15,7 +16,7 @@ const supplierSchema = z.object({
   deliveryDelay: z.number().default(7),
   paymentTerms: z.string().default('30 jours'),
   notes: z.string().optional(),
-  rating: z.number().min(0).max(5).default(0),
+  rating: z.number().min(0).max(5).default(5),
 })
 
 // GET - List suppliers
@@ -35,9 +36,10 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = {}
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { email: { contains: search } },
-        { siret: { contains: search } },
+        { code: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { siret: { contains: search, mode: 'insensitive' } },
       ]
     }
 
@@ -47,7 +49,7 @@ export async function GET(req: NextRequest) {
         include: {
           _count: { select: { purchaseOrders: true } },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { code: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -72,6 +74,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const data = supplierSchema.parse(body)
+
+    const existing = await db.supplier.findUnique({ where: { code: data.code } })
+    if (existing) {
+      return NextResponse.json({ error: 'Ce code fournisseur existe déjà' }, { status: 409 })
+    }
 
     const supplier = await db.supplier.create({ data })
 
@@ -105,6 +112,14 @@ export async function PUT(req: NextRequest) {
     const existing = await db.supplier.findUnique({ where: { id } })
     if (!existing) {
       return NextResponse.json({ error: 'Fournisseur introuvable' }, { status: 404 })
+    }
+
+    // If code is being changed, check uniqueness
+    if (updateData.code && updateData.code !== existing.code) {
+      const codeExists = await db.supplier.findUnique({ where: { code: updateData.code } })
+      if (codeExists) {
+        return NextResponse.json({ error: 'Ce code fournisseur existe déjà' }, { status: 409 })
+      }
     }
 
     const data = supplierSchema.partial().parse(updateData)
