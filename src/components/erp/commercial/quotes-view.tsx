@@ -931,17 +931,6 @@ function ProductCombobox({
   onSelect: (productId: string) => void
 }) {
   const [open, setOpen] = useState(false)
-  const selected = products.find(p => p.id === value) // note: products is already filtered
-
-  // Also check in allProducts context for the selected product label
-  const displayLabel = useMemo(() => {
-    if (!value) return ''
-    // Find the product by id in the full products list passed via products prop
-    // But since products is filtered, if searchValue is set the selected might not show
-    // We use a ref trick: the parent passes already filtered list, but for the trigger
-    // we should show the selected product even if not in filtered list
-    return null // Will be handled via a separate state
-  }, [value])
 
   // Compute the label for the selected product
   const selected = useMemo(() => products.find(p => p.id === value), [products, value])
