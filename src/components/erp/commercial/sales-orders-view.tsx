@@ -28,7 +28,7 @@ import {
 import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
   Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2,
-  Truck, Package, Edit, Printer
+  Truck, Package, Edit, Printer, Pencil
 } from 'lucide-react'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { toast } from 'sonner'
@@ -576,6 +576,11 @@ export default function SalesOrdersView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(order)}>
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {order.status === 'pending' && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(order)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {getStatusActions(order).length > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

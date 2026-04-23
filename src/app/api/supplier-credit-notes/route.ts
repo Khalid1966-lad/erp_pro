@@ -199,6 +199,44 @@ export async function PUT(req: NextRequest) {
     if (updateData.status !== undefined) data.status = updateData.status
     if (updateData.amountApplied !== undefined) data.amountApplied = updateData.amountApplied
 
+    // If lines are provided, replace them and recalculate totals (only for received)
+    if (updateData.lines && Array.isArray(updateData.lines) && updateData.lines.length > 0) {
+      if (existing.status !== 'received') {
+        return NextResponse.json({ error: 'Seul un avoir en statut "reçu" peut avoir ses lignes modifiées' }, { status: 400 })
+      }
+
+      const parsedLines = z.array(supplierCreditNoteLineSchema).parse(updateData.lines)
+
+      const productIds = parsedLines.map((l) => l.productId)
+      const products = await db.product.findMany({ where: { id: { in: productIds } } })
+      if (products.length !== productIds.length) {
+        return NextResponse.json({ error: 'Un ou plusieurs produits introuvables' }, { status: 404 })
+      }
+
+      let totalHT = 0
+      let totalTVA = 0
+
+      const linesData = parsedLines.map((line) => {
+        const lineHT = line.quantity * line.unitPrice
+        const lineTVA = lineHT * (line.tvaRate / 100)
+        totalHT += lineHT
+        totalTVA += lineTVA
+        return {
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          tvaRate: line.tvaRate,
+          totalHT: lineHT,
+        }
+      })
+
+      await db.supplierCreditNoteLine.deleteMany({ where: { supplierCreditNoteId: id } })
+      data.lines = { create: linesData }
+      data.totalHT = totalHT
+      data.totalTVA = totalTVA
+      data.totalTTC = totalHT + totalTVA
+    }
+
     // Auto-determine status based on amountApplied if not explicitly set
     if (updateData.amountApplied !== undefined && !updateData.status) {
       if (updateData.amountApplied >= existing.totalTTC) {

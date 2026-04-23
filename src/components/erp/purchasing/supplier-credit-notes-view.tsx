@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, ArrowLeftRight, CheckCircle2, XCircle } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, ArrowLeftRight, CheckCircle2, XCircle, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -109,6 +109,7 @@ export default function SupplierCreditNotesView() {
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
 
   // Form state
   const [supplierId, setSupplierId] = useState('')
@@ -189,6 +190,17 @@ export default function SupplierCreditNotesView() {
     setLines([])
   }
 
+  const openEdit = (doc: SupplierCreditNote) => {
+    setSelected(doc)
+    setIsEditing(true)
+    setSupplierId(doc.supplierId)
+    setInvoiceId(doc.supplierInvoiceId || '')
+    setReturnId(doc.supplierReturnId || '')
+    setReason(doc.reason || '')
+    setLines(doc.lines.map((l) => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, tvaRate: l.tvaRate })))
+    setDialogOpen(true)
+  }
+
   const handleCreate = async () => {
     if (!supplierId) {
       toast.error('Veuillez sélectionner un fournisseur')
@@ -205,19 +217,31 @@ export default function SupplierCreditNotesView() {
     }
     try {
       setSaving(true)
-      await api.post('/supplier-credit-notes', {
-        supplierId,
-        supplierInvoiceId: invoiceId || null,
-        supplierReturnId: returnId || null,
-        reason: reason || null,
-        lines
-      })
-      toast.success('Avoir fournisseur créé')
+      if (isEditing && selected) {
+        await api.put('/supplier-credit-notes', {
+          id: selected.id,
+          supplierId,
+          supplierInvoiceId: invoiceId || null,
+          supplierReturnId: returnId || null,
+          reason: reason || null,
+          lines
+        })
+        toast.success('Avoir fournisseur modifié')
+      } else {
+        await api.post('/supplier-credit-notes', {
+          supplierId,
+          supplierInvoiceId: invoiceId || null,
+          supplierReturnId: returnId || null,
+          reason: reason || null,
+          lines
+        })
+        toast.success('Avoir fournisseur créé')
+      }
       setDialogOpen(false)
       resetForm()
       fetchItems()
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la création')
+      toast.error(err.message || isEditing ? 'Erreur lors de la modification' : 'Erreur lors de la création')
     } finally {
       setSaving(false)
     }
@@ -278,7 +302,7 @@ export default function SupplierCreditNotesView() {
             </SelectContent>
           </Select>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
@@ -287,7 +311,7 @@ export default function SupplierCreditNotesView() {
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Nouvel avoir fournisseur</DialogTitle>
+              <DialogTitle>{isEditing ? "Modifier l'avoir" : 'Nouvel avoir fournisseur'}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -409,7 +433,7 @@ export default function SupplierCreditNotesView() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
               <Button onClick={handleCreate} disabled={saving}>
-                {saving ? 'Création...' : 'Créer l\'avoir'}
+                {saving ? (isEditing ? 'Modification...' : 'Création...') : (isEditing ? "Modifier l'avoir" : "Créer l'avoir")}
               </Button>
             </div>
           </DialogContent>
@@ -546,6 +570,11 @@ export default function SupplierCreditNotesView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(item); setDetailOpen(true) }}>
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {item.status === 'received' && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {item.status === 'received' && (
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"

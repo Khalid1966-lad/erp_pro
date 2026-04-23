@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, Receipt, CheckCircle2, ShieldCheck } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, Receipt, CheckCircle2, ShieldCheck, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -122,6 +122,7 @@ export default function SupplierInvoicesView() {
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
 
   // Form state
   const [supplierId, setSupplierId] = useState('')
@@ -202,6 +203,17 @@ export default function SupplierInvoicesView() {
     setLines([])
   }
 
+  const openEdit = (doc: SupplierInvoice) => {
+    setSelected(doc)
+    setIsEditing(true)
+    setSupplierId(doc.supplierId)
+    setPurchaseOrderId(doc.purchaseOrderId || '')
+    setDueDate(doc.dueDate ? format(new Date(doc.dueDate), 'yyyy-MM-dd') : '')
+    setNotes(doc.notes || '')
+    setLines(doc.lines.map((l) => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, tvaRate: l.tvaRate })))
+    setDialogOpen(true)
+  }
+
   const handleCreate = async () => {
     if (!supplierId) {
       toast.error('Veuillez sélectionner un fournisseur')
@@ -218,19 +230,31 @@ export default function SupplierInvoicesView() {
     }
     try {
       setSaving(true)
-      await api.post('/supplier-invoices', {
-        supplierId,
-        purchaseOrderId: purchaseOrderId || null,
-        dueDate: dueDate || null,
-        notes: notes || null,
-        lines
-      })
-      toast.success('Facture fournisseur créée')
+      if (isEditing && selected) {
+        await api.put('/supplier-invoices', {
+          id: selected.id,
+          supplierId,
+          purchaseOrderId: purchaseOrderId || null,
+          dueDate: dueDate || null,
+          notes: notes || null,
+          lines
+        })
+        toast.success('Facture fournisseur modifiée')
+      } else {
+        await api.post('/supplier-invoices', {
+          supplierId,
+          purchaseOrderId: purchaseOrderId || null,
+          dueDate: dueDate || null,
+          notes: notes || null,
+          lines
+        })
+        toast.success('Facture fournisseur créée')
+      }
       setDialogOpen(false)
       resetForm()
       fetchItems()
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la création')
+      toast.error(err.message || isEditing ? 'Erreur lors de la modification' : 'Erreur lors de la création')
     } finally {
       setSaving(false)
     }
@@ -303,7 +327,7 @@ export default function SupplierInvoicesView() {
             </SelectContent>
           </Select>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
@@ -312,7 +336,7 @@ export default function SupplierInvoicesView() {
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Nouvelle facture fournisseur</DialogTitle>
+              <DialogTitle>{isEditing ? 'Modifier la facture' : 'Nouvelle facture fournisseur'}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -427,7 +451,7 @@ export default function SupplierInvoicesView() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
               <Button onClick={handleCreate} disabled={saving}>
-                {saving ? 'Création...' : 'Créer la facture'}
+                {saving ? (isEditing ? 'Modification...' : 'Création...') : (isEditing ? 'Modifier' : 'Créer la facture')}
               </Button>
             </div>
           </DialogContent>
@@ -565,6 +589,11 @@ export default function SupplierInvoicesView() {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {item.status === 'received' && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {item.status === 'received' && (
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"
                               disabled={transitioning === item.id}
@@ -595,7 +624,7 @@ export default function SupplierInvoicesView() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Supprimer cette facture ?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    La facture &quot;{item.reference}&quot; sera définitivement supprimée. Seules les factures reçues peuvent être supprimées.
+                                    La facture &quot;{item.number}&quot; sera définitivement supprimée. Seules les factures reçues peuvent être supprimées.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

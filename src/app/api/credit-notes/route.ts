@@ -238,9 +238,51 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(creditNote)
     }
 
+    // Data editing (reason, lines)
+    if (existing.status !== 'draft') {
+      return NextResponse.json({ error: 'Seul un avoir en brouillon peut être modifié' }, { status: 400 })
+    }
+
+    const data: Record<string, unknown> = {}
+    if (updateData.reason !== undefined) data.reason = updateData.reason
+
+    // If lines are provided, replace them and recalculate totals
+    if (updateData.lines && Array.isArray(updateData.lines) && updateData.lines.length > 0) {
+      const parsedLines = z.array(creditNoteLineSchema).parse(updateData.lines)
+
+      const productIds = parsedLines.map((l) => l.productId)
+      const products = await db.product.findMany({ where: { id: { in: productIds } } })
+      if (products.length !== productIds.length) {
+        return NextResponse.json({ error: 'Un ou plusieurs produits introuvables' }, { status: 404 })
+      }
+
+      let totalHT = 0
+      let totalTVA = 0
+
+      const linesData = parsedLines.map((line) => {
+        const lineHT = line.quantity * line.unitPrice
+        const lineTVA = lineHT * (line.tvaRate / 100)
+        totalHT += lineHT
+        totalTVA += lineTVA
+        return {
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          tvaRate: line.tvaRate,
+          totalHT: lineHT,
+        }
+      })
+
+      await db.creditNoteLine.deleteMany({ where: { creditNoteId: id } })
+      data.lines = { create: linesData }
+      data.totalHT = totalHT
+      data.totalTVA = totalTVA
+      data.totalTTC = totalHT + totalTVA
+    }
+
     const creditNote = await db.creditNote.update({
       where: { id },
-      data: updateData,
+      data,
       include: {
         client: true,
         invoice: true,

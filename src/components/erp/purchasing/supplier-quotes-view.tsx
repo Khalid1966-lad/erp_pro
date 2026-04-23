@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, FileText, CheckCircle2, XCircle } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, FileText, CheckCircle2, XCircle, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -111,6 +111,7 @@ export default function SupplierQuotesView() {
   const [products, setProducts] = useState<Product[]>([])
   const [priceRequests, setPriceRequests] = useState<PriceRequest[]>([])
   const [saving, setSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -200,6 +201,19 @@ export default function SupplierQuotesView() {
     setDeliveryDelay('')
     setPaymentTerms('')
     setLines([])
+    setIsEditing(false)
+  }
+
+  const openEdit = (item: SupplierQuote) => {
+    setSelected(item)
+    setIsEditing(true)
+    setSupplierId(item.supplierId || '')
+    setPriceRequestId(item.priceRequestId || '')
+    setValidUntil(item.validUntil ? item.validUntil.substring(0, 10) : '')
+    setDeliveryDelay(item.deliveryDelay != null ? String(item.deliveryDelay) : '')
+    setPaymentTerms(item.paymentTerms || '')
+    setLines((item.lines || []).map((l) => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, tvaRate: l.tvaRate })))
+    setDialogOpen(true)
   }
 
   const handleCreate = async () => {
@@ -218,20 +232,26 @@ export default function SupplierQuotesView() {
     }
     try {
       setSaving(true)
-      await api.post('/supplier-quotes', {
+      const formData = {
         supplierId,
         priceRequestId: priceRequestId || null,
         validUntil: validUntil || null,
         deliveryDelay: deliveryDelay ? parseInt(deliveryDelay) : null,
         paymentTerms: paymentTerms || null,
         lines
-      })
-      toast.success('Devis fournisseur créé')
+      }
+      if (isEditing && selected) {
+        await api.put('/supplier-quotes', { id: selected.id, ...formData })
+        toast.success('Devis fournisseur modifié')
+      } else {
+        await api.post('/supplier-quotes', formData)
+        toast.success('Devis fournisseur créé')
+      }
       setDialogOpen(false)
       resetForm()
       fetchItems()
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la création')
+      toast.error(err.message || isEditing ? 'Erreur lors de la modification' : 'Erreur lors de la création')
     } finally {
       setSaving(false)
     }
@@ -302,7 +322,7 @@ export default function SupplierQuotesView() {
             </SelectContent>
           </Select>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
@@ -311,7 +331,7 @@ export default function SupplierQuotesView() {
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Nouveau devis fournisseur</DialogTitle>
+              <DialogTitle>{isEditing ? 'Modifier le devis fournisseur' : 'Nouveau devis fournisseur'}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -436,7 +456,7 @@ export default function SupplierQuotesView() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
               <Button onClick={handleCreate} disabled={saving}>
-                {saving ? 'Création...' : 'Créer le devis'}
+                {saving ? (isEditing ? 'Modification...' : 'Création...') : (isEditing ? 'Modifier' : 'Créer le devis')}
               </Button>
             </div>
           </DialogContent>
@@ -569,6 +589,11 @@ export default function SupplierQuotesView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(item); setDetailOpen(true) }}>
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {item.status === 'received' && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {item.status === 'received' && (
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"

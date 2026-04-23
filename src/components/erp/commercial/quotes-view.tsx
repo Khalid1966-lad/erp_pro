@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/popover'
 import {
   FileText, Plus, Search, MoreVertical, Eye, Send, CheckCircle, XCircle, ArrowRight,
-  Trash2, Edit, Printer, Check, ChevronsUpDown, Loader2
+  Trash2, Edit, Printer, Check, ChevronsUpDown, Loader2, Pencil
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -526,6 +526,11 @@ export default function QuotesView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(quote)}>
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {(quote.status === 'draft' || quote.status === 'rejected' || quote.status === 'expired') && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(quote)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {getStatusActions(quote).length > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

@@ -204,6 +204,45 @@ export async function PUT(req: NextRequest) {
     if (updateData.notes !== undefined) data.notes = updateData.notes
     if (updateData.status !== undefined) data.status = updateData.status
 
+    // If lines are provided, replace them and recalculate totals (only for draft)
+    if (updateData.lines && Array.isArray(updateData.lines) && updateData.lines.length > 0) {
+      if (existing.status !== 'draft') {
+        return NextResponse.json({ error: 'Seul un bon de retour en brouillon peut avoir ses lignes modifiées' }, { status: 400 })
+      }
+
+      const parsedLines = z.array(supplierReturnLineSchema).parse(updateData.lines)
+
+      const productIds = parsedLines.map((l) => l.productId)
+      const products = await db.product.findMany({ where: { id: { in: productIds } } })
+      if (products.length !== productIds.length) {
+        return NextResponse.json({ error: 'Un ou plusieurs produits introuvables' }, { status: 404 })
+      }
+
+      let totalHT = 0
+      let totalTVA = 0
+
+      const linesData = parsedLines.map((line) => {
+        const lineHT = line.quantity * line.unitPrice
+        const lineTVA = lineHT * (line.tvaRate / 100)
+        totalHT += lineHT
+        totalTVA += lineTVA
+        return {
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          tvaRate: line.tvaRate,
+          totalHT: lineHT,
+          reason: line.reason,
+        }
+      })
+
+      await db.supplierReturnLine.deleteMany({ where: { supplierReturnId: id } })
+      data.lines = { create: linesData }
+      data.totalHT = totalHT
+      data.totalTVA = totalTVA
+      data.totalTTC = totalHT + totalTVA
+    }
+
     // When status becomes received_by_supplier, create stock movements OUT in a transaction
     if (updateData.status === 'received_by_supplier' && existing.status !== 'received_by_supplier') {
       const supplierReturn = await db.$transaction(async (tx) => {

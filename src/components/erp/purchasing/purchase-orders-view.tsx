@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Edit, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -104,6 +104,7 @@ export default function PurchaseOrdersView() {
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
 
   // Form state
   const [supplierId, setSupplierId] = useState('')
@@ -177,6 +178,22 @@ export default function PurchaseOrdersView() {
     setExpectedDate('')
     setNotes('')
     setLines([])
+    setIsEditing(false)
+  }
+
+  const openEdit = (order: PurchaseOrder) => {
+    setIsEditing(true)
+    setSelectedOrder(order)
+    setSupplierId(order.supplierId)
+    setExpectedDate(order.expectedDate ? format(new Date(order.expectedDate), 'yyyy-MM-dd') : '')
+    setNotes(order.notes || '')
+    setLines(order.lines.map((l) => ({
+      productId: l.productId,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      tvaRate: l.tvaRate
+    })))
+    setDialogOpen(true)
   }
 
   const handleCreate = async () => {
@@ -195,18 +212,29 @@ export default function PurchaseOrdersView() {
     }
     try {
       setSaving(true)
-      await api.post('/purchase-orders', {
-        supplierId,
-        expectedDate: expectedDate || null,
-        notes: notes || null,
-        lines
-      })
-      toast.success('Commande fournisseur créée')
+      if (isEditing && selectedOrder) {
+        await api.put('/purchase-orders', {
+          id: selectedOrder.id,
+          supplierId,
+          expectedDate: expectedDate || null,
+          notes: notes || null,
+          lines
+        })
+        toast.success('Commande fournisseur modifiée')
+      } else {
+        await api.post('/purchase-orders', {
+          supplierId,
+          expectedDate: expectedDate || null,
+          notes: notes || null,
+          lines
+        })
+        toast.success('Commande fournisseur créée')
+      }
       setDialogOpen(false)
       resetForm()
       fetchOrders()
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la création')
+      toast.error(err.message || (isEditing ? 'Erreur lors de la modification' : 'Erreur lors de la création'))
     } finally {
       setSaving(false)
     }
@@ -251,7 +279,7 @@ export default function PurchaseOrdersView() {
             className="pl-9"
           />
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
@@ -260,7 +288,7 @@ export default function PurchaseOrdersView() {
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Nouvelle commande fournisseur</DialogTitle>
+              <DialogTitle>{isEditing ? 'Modifier la commande' : 'Nouvelle commande fournisseur'}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -362,7 +390,7 @@ export default function PurchaseOrdersView() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
               <Button onClick={handleCreate} disabled={saving}>
-                {saving ? 'Création...' : 'Créer la commande'}
+                {saving ? (isEditing ? 'Modification...' : 'Création...') : (isEditing ? 'Modifier' : 'Créer la commande')}
               </Button>
             </div>
           </DialogContent>
@@ -481,6 +509,11 @@ export default function PurchaseOrdersView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedOrder(o); setDetailOpen(true) }}>
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {(o.status === 'draft' || o.status === 'sent') && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(o)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {o.status === 'draft' && (
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"

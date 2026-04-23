@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   Receipt, Plus, Search, MoreVertical, Eye, Send, CheckCircle,
-  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText, Printer
+  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText, Printer, Pencil
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -604,6 +604,11 @@ export default function InvoicesView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(invoice)}>
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {invoice.status === 'draft' && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(invoice)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {getActions(invoice).length > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

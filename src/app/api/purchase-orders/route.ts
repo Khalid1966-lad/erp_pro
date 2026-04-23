@@ -181,9 +181,52 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(order)
     }
 
+    if (existing.status !== 'draft' && existing.status !== 'sent') {
+      return NextResponse.json({ error: 'Seule une commande en brouillon ou envoyée peut être modifiée' }, { status: 400 })
+    }
+
+    const data: Record<string, unknown> = {}
+    if (updateData.supplierId !== undefined) data.supplierId = updateData.supplierId
+    if (updateData.expectedDate !== undefined) data.expectedDate = updateData.expectedDate ? new Date(updateData.expectedDate) : null
+    if (updateData.notes !== undefined) data.notes = updateData.notes
+
+    // If lines are provided, replace them and recalculate totals
+    if (updateData.lines && Array.isArray(updateData.lines) && updateData.lines.length > 0) {
+      const parsedLines = z.array(purchaseOrderLineSchema).parse(updateData.lines)
+
+      const productIds = parsedLines.map((l) => l.productId)
+      const products = await db.product.findMany({ where: { id: { in: productIds } } })
+      if (products.length !== productIds.length) {
+        return NextResponse.json({ error: 'Un ou plusieurs produits introuvables' }, { status: 404 })
+      }
+
+      let totalHT = 0
+      let totalTVA = 0
+
+      const linesData = parsedLines.map((line) => {
+        const lineHT = line.quantity * line.unitPrice
+        const lineTVA = lineHT * (line.tvaRate / 100)
+        totalHT += lineHT
+        totalTVA += lineTVA
+        return {
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          tvaRate: line.tvaRate,
+          totalHT: lineHT,
+        }
+      })
+
+      await db.purchaseOrderLine.deleteMany({ where: { purchaseOrderId: id } })
+      data.lines = { create: linesData }
+      data.totalHT = totalHT
+      data.totalTVA = totalTVA
+      data.totalTTC = totalHT + totalTVA
+    }
+
     const order = await db.purchaseOrder.update({
       where: { id },
-      data: updateData,
+      data,
       include: {
         supplier: true,
         lines: { include: { product: true } },

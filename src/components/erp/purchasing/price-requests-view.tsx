@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, Send, FileQuestion, XCircle } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, Send, FileQuestion, XCircle, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -109,6 +109,7 @@ export default function PriceRequestsView() {
   const [selected, setSelected] = useState<PriceRequest | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [saving, setSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -165,6 +166,17 @@ export default function PriceRequestsView() {
     setValidUntil('')
     setNotes('')
     setLines([])
+    setIsEditing(false)
+  }
+
+  const openEdit = (item: PriceRequest) => {
+    setSelected(item)
+    setIsEditing(true)
+    setTitle(item.title || '')
+    setValidUntil(item.validUntil ? item.validUntil.substring(0, 10) : '')
+    setNotes(item.notes || '')
+    setLines((item.lines || []).map((l) => ({ productId: l.productId, quantity: l.quantity })))
+    setDialogOpen(true)
   }
 
   const handleCreate = async () => {
@@ -183,18 +195,24 @@ export default function PriceRequestsView() {
     }
     try {
       setSaving(true)
-      await api.post('/price-requests', {
+      const formData = {
         title,
         validUntil: validUntil || null,
         notes: notes || null,
         lines
-      })
-      toast.success('Demande de prix créée')
+      }
+      if (isEditing && selected) {
+        await api.put('/price-requests', { id: selected.id, ...formData })
+        toast.success('Demande de prix modifiée')
+      } else {
+        await api.post('/price-requests', formData)
+        toast.success('Demande de prix créée')
+      }
       setDialogOpen(false)
       resetForm()
       fetchItems()
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la création')
+      toast.error(err.message || isEditing ? 'Erreur lors de la modification' : 'Erreur lors de la création')
     } finally {
       setSaving(false)
     }
@@ -264,7 +282,7 @@ export default function PriceRequestsView() {
             </SelectContent>
           </Select>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
@@ -273,7 +291,7 @@ export default function PriceRequestsView() {
           </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Nouvelle demande de prix</DialogTitle>
+              <DialogTitle>{isEditing ? 'Modifier la demande' : 'Nouvelle demande de prix'}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -349,7 +367,7 @@ export default function PriceRequestsView() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
               <Button onClick={handleCreate} disabled={saving}>
-                {saving ? 'Création...' : 'Créer la demande'}
+                {saving ? (isEditing ? 'Modification...' : 'Création...') : (isEditing ? 'Modifier' : 'Créer la demande')}
               </Button>
             </div>
           </DialogContent>
@@ -506,6 +524,11 @@ export default function PriceRequestsView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetail(item)}>
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {item.status === 'draft' && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {item.status === 'draft' && (
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"

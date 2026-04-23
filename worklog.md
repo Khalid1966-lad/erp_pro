@@ -251,3 +251,88 @@ Stage Summary:
 - Credit notes can now be edited (in draft status) via the Pencil icon button
 - Reuses existing create dialog with dynamic title/button text
 - Backend PUT endpoint already supports this via updateData spread
+
+---
+Task ID: 2b-1
+Agent: frontend-achats-edit-1
+Task: Add edit functionality to price-requests and supplier-quotes views
+
+Work Log:
+- Added Pencil icon import to both views
+- Added isEditing state variable to both views
+- Added openEdit function to both views (pre-populates form from existing document)
+- Modified handleCreate to support both POST and PUT
+- Made dialog title and save button text dynamic
+- Added Edit button in table rows (draft for price-requests, received for supplier-quotes)
+- Reset isEditing on dialog close
+
+Stage Summary:
+- Price requests can now be edited in draft status
+- Supplier quotes can now be edited in received status
+- Both reuse the existing create dialog with pre-populated data
+
+---
+Task ID: 2b-2
+Agent: frontend-achats-edit-2
+Task: Add edit functionality to purchase-orders and supplier-returns views
+
+Work Log:
+- Added isEditing state to both views
+- Added openEdit function to pre-populate form from existing document
+- Modified handleCreate to support POST/PUT
+- Dynamic dialog titles and save buttons
+- Edit button in table rows (draft/sent for PO, draft for returns)
+
+Stage Summary:
+- Purchase orders can now be edited in draft/sent status
+- Supplier returns can now be edited in draft status
+- Both reuse existing create dialog
+
+---
+Task ID: 2c
+Agent: frontend-ventes-pencil
+Task: Add Pencil edit button directly in table rows for ventes views
+
+Work Log:
+- Added Pencil button to quotes-view.tsx table rows (draft/rejected/expired)
+- Added Pencil button to sales-orders-view.tsx table rows (pending)
+- Added Pencil button to invoices-view.tsx table rows (draft)
+
+Stage Summary:
+- All 3 ventes views now have direct Edit access from table row
+- Previously edit was only accessible via Detail dialog
+- Uses existing openEdit functions already present in each view
+
+---
+Task ID: 2a
+Agent: backend-api-fixer
+Task: Fix backend PUT APIs to support data editing (lines, metadata)
+
+Work Log:
+- Fixed credit-notes PUT to support line replacement + recalculate totals (draft only)
+- Fixed purchase-orders PUT to support line replacement + recalculate totals (draft/sent only)
+- Fixed supplier-returns PUT to support line replacement + recalculate totals (draft only)
+- Fixed supplier-invoices PUT to support line replacement + recalculate totals (received only)
+- Fixed supplier-credit-notes PUT to support line replacement + recalculate totals (received only)
+
+Stage Summary:
+- All 5 PUT APIs now support full data editing with line replacement and total recalculation
+- Each API validates status before allowing edits
+- price-requests and supplier-quotes already had full support
+
+---
+Task ID: 2b-3
+Agent: frontend-achats-edit-3
+Task: Add edit functionality to supplier-invoices and supplier-credit-notes views
+
+Work Log:
+- Added isEditing state to both views
+- Added openEdit function with form pre-population
+- Modified handleCreate for POST/PUT support
+- Dynamic dialog titles and save buttons
+- Edit button in table rows (received status for both)
+- Fixed pre-existing TS error: item.reference → item.number in delete dialog
+
+Stage Summary:
+- Supplier invoices can now be edited in received status
+- Supplier credit notes can now be edited in received status
