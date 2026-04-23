@@ -42,8 +42,11 @@ interface Supplier {
 interface SILine {
   id?: string
   productId: string
-  productRef?: string
-  productDesignation?: string
+  product?: {
+    id: string
+    reference: string
+    designation: string
+  }
   quantity: number
   unitPrice: number
   tvaRate: number
@@ -51,16 +54,22 @@ interface SILine {
 
 interface PurchaseOrder {
   id: string
-  reference: string
+  number: string
 }
 
 interface SupplierInvoice {
   id: string
-  reference: string
+  number: string
   supplierId: string
-  supplierName?: string
+  supplier?: {
+    id: string
+    name: string
+  }
   purchaseOrderId?: string
-  purchaseOrderRef?: string
+  purchaseOrder?: {
+    id: string
+    number: string
+  }
   status: 'received' | 'verified' | 'paid' | 'partially_paid' | 'overdue' | 'cancelled'
   dueDate: string | null
   notes: string | null
@@ -69,7 +78,6 @@ interface SupplierInvoice {
   totalTVA: number
   totalTTC: number
   amountPaid: number
-  remaining: number
   createdAt: string
   updatedAt: string
 }
@@ -125,8 +133,8 @@ export default function SupplierInvoicesView() {
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<SupplierInvoice[]>('/supplier-invoices')
-      setItems(data)
+      const data = await api.get<{ supplierInvoices: SupplierInvoice[]; total: number }>('/supplier-invoices')
+      setItems(data.supplierInvoices || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur lors du chargement des factures fournisseurs')
     } finally {
@@ -160,8 +168,8 @@ export default function SupplierInvoicesView() {
 
   const filtered = items.filter((item) => {
     const matchSearch =
-      item.reference.toLowerCase().includes(search.toLowerCase()) ||
-      item.supplierName?.toLowerCase().includes(search.toLowerCase())
+      item.number.toLowerCase().includes(search.toLowerCase()) ||
+      item.supplier?.name?.toLowerCase().includes(search.toLowerCase())
     const matchStatus = statusFilter === 'all' || item.status === statusFilter
     const matchSupplier = supplierFilter === 'all' || item.supplierId === supplierFilter
     return matchSearch && matchStatus && matchSupplier
@@ -235,8 +243,8 @@ export default function SupplierInvoicesView() {
       toast.success(`Statut mis à jour : ${statusConfig[newStatus]?.label || newStatus}`)
       fetchItems()
       if (detailOpen && selected?.id === id) {
-        const data = await api.get<SupplierInvoice[]>('/supplier-invoices')
-        const updated = data.find((inv) => inv.id === id)
+        const data = await api.get<{ supplierInvoices: SupplierInvoice[]; total: number }>('/supplier-invoices')
+        const updated = (data.supplierInvoices || []).find((inv) => inv.id === id)
         if (updated) setSelected(updated)
       }
     } catch (err: any) {
@@ -325,7 +333,7 @@ export default function SupplierInvoicesView() {
                     <SelectTrigger><SelectValue placeholder="Lier à une commande..." /></SelectTrigger>
                     <SelectContent>
                       {purchaseOrders.map((po) => (
-                        <SelectItem key={po.id} value={po.id}>{po.reference}</SelectItem>
+                        <SelectItem key={po.id} value={po.id}>{po.number}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -432,7 +440,7 @@ export default function SupplierInvoicesView() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
-              Facture {selected?.reference}
+              Facture {selected?.number}
             </DialogTitle>
           </DialogHeader>
           {selected && (
@@ -440,7 +448,7 @@ export default function SupplierInvoicesView() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Fournisseur</p>
-                  <p className="font-medium">{selected.supplierName}</p>
+                  <p className="font-medium">{selected.supplier?.name || '—'}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Statut</p>
@@ -452,7 +460,7 @@ export default function SupplierInvoicesView() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Commande</p>
-                  <p className="font-medium font-mono">{selected.purchaseOrderRef || '—'}</p>
+                  <p className="font-medium font-mono">{selected.purchaseOrder?.number || '—'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
@@ -466,7 +474,7 @@ export default function SupplierInvoicesView() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Reste à payer</p>
-                  <p className={`font-medium ${(selected.remaining || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmtMoney(selected.remaining || 0)}</p>
+                  <p className={`font-medium ${(selected.totalTTC - (selected.amountPaid || 0)) > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmtMoney(selected.totalTTC - (selected.amountPaid || 0))}</p>
                 </div>
               </div>
               {selected.notes && (
@@ -485,7 +493,7 @@ export default function SupplierInvoicesView() {
                 <TableBody>
                   {selected.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
-                      <TableCell className="text-sm">{l.productRef || '—'} {l.productDesignation && <span className="text-muted-foreground">— {l.productDesignation}</span>}</TableCell>
+                      <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
                       <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
                       <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
                       <TableCell className="text-right">{l.tvaRate}%</TableCell>
@@ -544,13 +552,13 @@ export default function SupplierInvoicesView() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium font-mono text-sm">{item.reference}</TableCell>
+                      <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
-                      <TableCell className="hidden md:table-cell">{item.supplierName || '—'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{fmtDate(item.dueDate)}</TableCell>
                       <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC)}</TableCell>
                       <TableCell className="text-right hidden lg:table-cell text-sm text-green-600">{fmtMoney(item.amountPaid || 0)}</TableCell>
-                      <TableCell className={`text-right hidden lg:table-cell text-sm ${(item.remaining || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmtMoney(item.remaining || 0)}</TableCell>
+                      <TableCell className={`text-right hidden lg:table-cell text-sm ${(item.totalTTC - (item.amountPaid || 0)) > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmtMoney(item.totalTTC - (item.amountPaid || 0))}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(item); setDetailOpen(true) }}>

@@ -13,7 +13,7 @@ const purchaseOrderLineSchema = z.object({
 const purchaseOrderSchema = z.object({
   supplierId: z.string(),
   status: z.enum(['draft', 'sent', 'partially_received', 'received', 'cancelled']).optional(),
-  expectedDate: z.string().datetime(),
+  expectedDate: z.string().datetime().nullable().optional(),
   notes: z.string().optional(),
   lines: z.array(purchaseOrderLineSchema).min(1, 'Au moins une ligne requise'),
 })
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
         number,
         supplierId: data.supplierId,
         status: data.status || 'draft',
-        expectedDate: new Date(data.expectedDate),
+        expectedDate: data.expectedDate ? new Date(data.expectedDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         notes: data.notes,
         totalHT,
         totalTVA,

@@ -26,35 +26,50 @@ import { toast } from 'sonner'
 // ── Types ──────────────────────────────────────────────
 interface ReceptionLine {
   id?: string
-  productId: string
-  productRef?: string
-  productDesignation?: string
+  purchaseOrderLineId?: string
+  product?: {
+    reference?: string
+    designation?: string
+  } | null
   expectedQty: number
-  receivedQty: number
+  receivedQuantity: number
   qualityCheck: string
+}
+
+interface PurchaseOrderLine {
+  id: string
+  purchaseOrderId: string
+  productId?: string
+  product?: {
+    reference?: string
+    designation?: string
+  } | null
+  quantity: number
+  receivedQuantity: number
+  unitPrice: number
 }
 
 interface PurchaseOrder {
   id: string
-  reference: string
-  supplierName?: string
-  lines: Array<{
-    productId: string
-    productRef?: string
-    productDesignation?: string
-    quantity: number
-    receivedQty: number
-    unitPrice: number
-  }>
+  number: string
+  status?: string
+  supplier?: {
+    name?: string
+  } | null
+  lines: PurchaseOrderLine[]
 }
 
 interface Reception {
   id: string
-  reference: string
+  number: string
   purchaseOrderId: string
-  purchaseOrderRef?: string
-  supplierName?: string
   date: string
+  purchaseOrder?: {
+    number?: string
+    supplier?: {
+      name?: string
+    } | null
+  } | null
   lines: ReceptionLine[]
   notes: string | null
   createdAt: string
@@ -114,8 +129,8 @@ export default function ReceptionsView() {
   const fetchReceptions = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<Reception[]>('/receptions')
-      setReceptions(data)
+      const data = await api.get<{ receptions: Reception[]; total: number }>('/receptions')
+      setReceptions(data.receptions || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur lors du chargement des réceptions')
     } finally {
@@ -125,18 +140,18 @@ export default function ReceptionsView() {
 
   const fetchPurchaseOrders = useCallback(async () => {
     try {
-      const data = await api.get<{ purchaseOrders: PurchaseOrder[] }>('/purchase-orders')
+      const data = await api.get<{ orders: PurchaseOrder[]; total: number }>('/purchase-orders')
       // Only show sent or partially_received orders
-      setPurchaseOrders((data.purchaseOrders || []).filter((po) => po.status === 'sent' || po.status === 'partially_received'))
+      setPurchaseOrders((data.orders || []).filter((po) => po.status === 'sent' || po.status === 'partially_received'))
     } catch { /* silent */ }
   }, [])
 
   useEffect(() => { fetchReceptions(); fetchPurchaseOrders() }, [fetchReceptions, fetchPurchaseOrders])
 
   const filtered = receptions.filter((r) =>
-    r.reference.toLowerCase().includes(search.toLowerCase()) ||
-    r.purchaseOrderRef?.toLowerCase().includes(search.toLowerCase()) ||
-    r.supplierName?.toLowerCase().includes(search.toLowerCase())
+    r.number.toLowerCase().includes(search.toLowerCase()) ||
+    r.purchaseOrder?.number?.toLowerCase().includes(search.toLowerCase()) ||
+    r.purchaseOrder?.supplier?.name?.toLowerCase().includes(search.toLowerCase())
   )
 
   const handlePOSelect = (poId: string) => {
@@ -147,8 +162,8 @@ export default function ReceptionsView() {
       const qtys: Record<string, number> = {}
       const qualities: Record<string, string> = {}
       po.lines.forEach((l) => {
-        qtys[l.productId] = l.quantity - (l.receivedQty || 0)
-        qualities[l.productId] = 'conforme'
+        qtys[l.id] = l.quantity - (l.receivedQuantity || 0)
+        qualities[l.id] = 'conforme'
       })
       setLineQtys(qtys)
       setLineQualities(qualities)
@@ -161,12 +176,12 @@ export default function ReceptionsView() {
       return
     }
     const lines = selectedPO.lines.map((l) => ({
-      productId: l.productId,
-      expectedQty: l.quantity - (l.receivedQty || 0),
-      receivedQty: lineQtys[l.productId] || 0,
-      qualityCheck: lineQualities[l.productId] || 'conforme'
+      purchaseOrderLineId: l.id,
+      expectedQty: l.quantity - (l.receivedQuantity || 0),
+      receivedQuantity: lineQtys[l.id] || 0,
+      qualityCheck: lineQualities[l.id] || 'conforme'
     }))
-    if (lines.every((l) => l.receivedQty === 0)) {
+    if (lines.every((l) => l.receivedQuantity === 0)) {
       toast.error('Au moins une ligne doit avoir une quantité reçue')
       return
     }
@@ -245,7 +260,7 @@ export default function ReceptionsView() {
                   <SelectContent>
                     {purchaseOrders.map((po) => (
                       <SelectItem key={po.id} value={po.id}>
-                        {po.reference} — {po.supplierName || 'Fournisseur inconnu'}
+                        {po.number} — {po.supplier?.name || 'Fournisseur inconnu'}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -255,7 +270,7 @@ export default function ReceptionsView() {
               {selectedPO && (
                 <div className="space-y-3">
                   <div className="text-sm text-muted-foreground">
-                    Fournisseur : <span className="font-medium text-foreground">{selectedPO.supplierName}</span>
+                    Fournisseur : <span className="font-medium text-foreground">{selectedPO.supplier?.name}</span>
                   </div>
                   <div className="border rounded-md overflow-hidden">
                     <Table>
@@ -269,26 +284,26 @@ export default function ReceptionsView() {
                       </TableHeader>
                       <TableBody>
                         {selectedPO.lines.map((l) => (
-                          <TableRow key={l.productId}>
+                          <TableRow key={l.id}>
                             <TableCell className="text-sm">
-                              {l.productRef || '—'}{' '}
-                              {l.productDesignation && <span className="text-muted-foreground">— {l.productDesignation}</span>}
+                              {l.product?.reference || '—'}{' '}
+                              {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}
                             </TableCell>
-                            <TableCell className="text-right">{(l.quantity - (l.receivedQty || 0)).toLocaleString('fr-FR')}</TableCell>
+                            <TableCell className="text-right">{(l.quantity - (l.receivedQuantity || 0)).toLocaleString('fr-FR')}</TableCell>
                             <TableCell>
                               <Input
                                 type="number"
                                 min={0}
-                                max={l.quantity - (l.receivedQty || 0)}
-                                value={lineQtys[l.productId] || 0}
-                                onChange={(e) => setLineQtys((prev) => ({ ...prev, [l.productId]: parseInt(e.target.value) || 0 }))}
+                                max={l.quantity - (l.receivedQuantity || 0)}
+                                value={lineQtys[l.id] || 0}
+                                onChange={(e) => setLineQtys((prev) => ({ ...prev, [l.id]: parseInt(e.target.value) || 0 }))}
                                 className="h-8 text-right"
                               />
                             </TableCell>
                             <TableCell>
                               <Select
-                                value={lineQualities[l.productId] || 'conforme'}
-                                onValueChange={(v) => setLineQualities((prev) => ({ ...prev, [l.productId]: v }))}
+                                value={lineQualities[l.id] || 'conforme'}
+                                onValueChange={(v) => setLineQualities((prev) => ({ ...prev, [l.id]: v }))}
                               >
                                 <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -327,7 +342,7 @@ export default function ReceptionsView() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Warehouse className="h-5 w-5" />
-              Réception {selectedReception?.reference}
+              Réception {selectedReception?.number}
             </DialogTitle>
           </DialogHeader>
           {selectedReception && (
@@ -335,11 +350,11 @@ export default function ReceptionsView() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Commande</p>
-                  <p className="font-medium font-mono">{selectedReception.purchaseOrderRef || '—'}</p>
+                  <p className="font-medium font-mono">{selectedReception.purchaseOrder?.number || '—'}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Fournisseur</p>
-                  <p className="font-medium">{selectedReception.supplierName || '—'}</p>
+                  <p className="font-medium">{selectedReception.purchaseOrder?.supplier?.name || '—'}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Date</p>
@@ -361,9 +376,9 @@ export default function ReceptionsView() {
                 <TableBody>
                   {selectedReception.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
-                      <TableCell className="text-sm">{l.productRef || '—'} {l.productDesignation && <span className="text-muted-foreground">— {l.productDesignation}</span>}</TableCell>
+                      <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
                       <TableCell className="text-right">{l.expectedQty?.toLocaleString('fr-FR') || 0}</TableCell>
-                      <TableCell className="text-right font-medium">{l.receivedQty?.toLocaleString('fr-FR') || 0}</TableCell>
+                      <TableCell className="text-right font-medium">{l.receivedQuantity?.toLocaleString('fr-FR') || 0}</TableCell>
                       <TableCell><QualityBadge quality={l.qualityCheck} /></TableCell>
                     </TableRow>
                   ))}
@@ -419,9 +434,9 @@ export default function ReceptionsView() {
                     const qualityStatus = hasNonConforme ? 'non_conforme' : allConforme ? 'conforme' : 'partiel'
                     return (
                       <TableRow key={r.id}>
-                        <TableCell className="font-medium font-mono text-sm">{r.reference}</TableCell>
-                        <TableCell className="hidden md:table-cell font-mono text-sm">{r.purchaseOrderRef || '—'}</TableCell>
-                        <TableCell className="hidden lg:table-cell">{r.supplierName || '—'}</TableCell>
+                        <TableCell className="font-medium font-mono text-sm">{r.number}</TableCell>
+                        <TableCell className="hidden md:table-cell font-mono text-sm">{r.purchaseOrder?.number || '—'}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{r.purchaseOrder?.supplier?.name || '—'}</TableCell>
                         <TableCell className="text-sm">{fmtDate(r.date || r.createdAt)}</TableCell>
                         <TableCell><QualityBadge quality={qualityStatus} /></TableCell>
                         <TableCell className="text-right">

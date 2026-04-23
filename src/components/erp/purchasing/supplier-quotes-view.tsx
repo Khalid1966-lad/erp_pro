@@ -42,8 +42,7 @@ interface Supplier {
 interface SQLine {
   id?: string
   productId: string
-  productRef?: string
-  productDesignation?: string
+  product?: { reference: string; designation: string }
   quantity: number
   unitPrice: number
   tvaRate: number
@@ -51,17 +50,18 @@ interface SQLine {
 
 interface PriceRequest {
   id: string
-  reference: string
+  number: string
   title: string
+  status?: string
 }
 
 interface SupplierQuote {
   id: string
-  reference: string
+  number: string
   supplierId: string
-  supplierName?: string
+  supplier?: { id: string; name: string }
   priceRequestId?: string
-  priceRequestRef?: string
+  priceRequest?: { id: string; number: string; title: string }
   status: 'received' | 'accepted' | 'rejected' | 'expired'
   validUntil: string | null
   deliveryDelay: number | null
@@ -125,8 +125,8 @@ export default function SupplierQuotesView() {
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<SupplierQuote[]>('/supplier-quotes')
-      setItems(data)
+      const data = await api.get<{ supplierQuotes: SupplierQuote[]; total: number }>('/supplier-quotes')
+      setItems(data.supplierQuotes || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur lors du chargement des devis fournisseurs')
     } finally {
@@ -150,8 +150,8 @@ export default function SupplierQuotesView() {
 
   const fetchPriceRequests = useCallback(async () => {
     try {
-      const data = await api.get<PriceRequest[]>('/price-requests')
-      setPriceRequests((data || []).filter((pr) => pr.status === 'sent' || pr.status === 'answered' || pr.status === 'partially_answered'))
+      const data = await api.get<{ priceRequests: PriceRequest[] }>('/price-requests')
+      setPriceRequests((data.priceRequests || []).filter((pr) => pr.status === 'sent' || pr.status === 'answered' || pr.status === 'partially_answered'))
     } catch { /* silent */ }
   }, [])
 
@@ -160,8 +160,8 @@ export default function SupplierQuotesView() {
 
   const filtered = items.filter((item) => {
     const matchSearch =
-      item.reference.toLowerCase().includes(search.toLowerCase()) ||
-      item.supplierName?.toLowerCase().includes(search.toLowerCase())
+      item.number.toLowerCase().includes(search.toLowerCase()) ||
+      item.supplier?.name?.toLowerCase().includes(search.toLowerCase())
     const matchStatus = statusFilter === 'all' || item.status === statusFilter
     const matchSupplier = supplierFilter === 'all' || item.supplierId === supplierFilter
     return matchSearch && matchStatus && matchSupplier
@@ -244,8 +244,8 @@ export default function SupplierQuotesView() {
       toast.success(`Statut mis à jour : ${statusConfig[newStatus]?.label || newStatus}`)
       fetchItems()
       if (detailOpen && selected?.id === id) {
-        const data = await api.get<SupplierQuote[]>('/supplier-quotes')
-        const updated = data.find((q) => q.id === id)
+        const data = await api.get<{ supplierQuotes: SupplierQuote[] }>('/supplier-quotes')
+        const updated = (data.supplierQuotes || []).find((q) => q.id === id)
         if (updated) setSelected(updated)
       }
     } catch (err: any) {
@@ -332,7 +332,7 @@ export default function SupplierQuotesView() {
                     <SelectTrigger><SelectValue placeholder="Lier à une demande..." /></SelectTrigger>
                     <SelectContent>
                       {priceRequests.map((pr) => (
-                        <SelectItem key={pr.id} value={pr.id}>{pr.reference} — {pr.title}</SelectItem>
+                        <SelectItem key={pr.id} value={pr.id}>{pr.number} — {pr.title}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -449,7 +449,7 @@ export default function SupplierQuotesView() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Devis {selected?.reference}
+              Devis {selected?.number}
             </DialogTitle>
           </DialogHeader>
           {selected && (
@@ -457,7 +457,7 @@ export default function SupplierQuotesView() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Fournisseur</p>
-                  <p className="font-medium">{selected.supplierName}</p>
+                  <p className="font-medium">{selected.supplier?.name}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Statut</p>
@@ -469,7 +469,7 @@ export default function SupplierQuotesView() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Demande de prix</p>
-                  <p className="font-medium font-mono">{selected.priceRequestRef || '—'}</p>
+                  <p className="font-medium font-mono">{selected.priceRequest?.number || '—'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
@@ -502,7 +502,7 @@ export default function SupplierQuotesView() {
                 <TableBody>
                   {selected.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
-                      <TableCell className="text-sm">{l.productRef || '—'} {l.productDesignation && <span className="text-muted-foreground">— {l.productDesignation}</span>}</TableCell>
+                      <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
                       <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
                       <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
                       <TableCell className="text-right">{l.tvaRate}%</TableCell>
@@ -559,9 +559,9 @@ export default function SupplierQuotesView() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium font-mono text-sm">{item.reference}</TableCell>
+                      <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
-                      <TableCell className="hidden md:table-cell">{item.supplierName || '—'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{fmtDate(item.validUntil)}</TableCell>
                       <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC)}</TableCell>
                       <TableCell className="text-right">
@@ -600,7 +600,7 @@ export default function SupplierQuotesView() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Supprimer ce devis ?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Le devis &quot;{item.reference}&quot; sera définitivement supprimé. Seuls les devis reçus peuvent être supprimés.
+                                    Le devis &quot;{item.number}&quot; sera définitivement supprimé. Seuls les devis reçus peuvent être supprimés.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

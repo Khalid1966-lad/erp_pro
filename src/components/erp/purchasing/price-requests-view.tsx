@@ -34,18 +34,28 @@ interface Product {
   designation: string
 }
 
+interface PRLineProduct {
+  id: string
+  reference?: string
+  designation?: string
+}
+
 interface PRLine {
   id?: string
   productId: string
-  productRef?: string
-  productDesignation?: string
+  product?: PRLineProduct | null
   quantity: number
+}
+
+interface SupplierQuoteSupplier {
+  id: string
+  name?: string
 }
 
 interface SupplierQuote {
   id: string
-  reference: string
-  supplierName?: string
+  number: string
+  supplier?: SupplierQuoteSupplier | null
   status: string
   totalTTC: number
   createdAt: string
@@ -53,7 +63,7 @@ interface SupplierQuote {
 
 interface PriceRequest {
   id: string
-  reference: string
+  number: string
   title: string
   status: 'draft' | 'sent' | 'answered' | 'partially_answered' | 'closed' | 'cancelled'
   validUntil: string | null
@@ -111,8 +121,8 @@ export default function PriceRequestsView() {
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<PriceRequest[]>('/price-requests')
-      setItems(data)
+      const data = await api.get<{ priceRequests: PriceRequest[]; total: number }>('/price-requests')
+      setItems(data.priceRequests || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur lors du chargement des demandes de prix')
     } finally {
@@ -132,7 +142,7 @@ export default function PriceRequestsView() {
 
   const filtered = items.filter((item) => {
     const matchSearch =
-      item.reference.toLowerCase().includes(search.toLowerCase()) ||
+      item.number.toLowerCase().includes(search.toLowerCase()) ||
       item.title.toLowerCase().includes(search.toLowerCase())
     const matchStatus = statusFilter === 'all' || item.status === statusFilter
     return matchSearch && matchStatus
@@ -198,8 +208,8 @@ export default function PriceRequestsView() {
       fetchItems()
       // Refresh detail if open
       if (detailOpen && selected?.id === id) {
-        const data = await api.get<PriceRequest[]>(`/price-requests`)
-        const updated = data.find((r) => r.id === id)
+        const data = await api.get<{ priceRequests: PriceRequest[]; total: number }>(`/price-requests`)
+        const updated = data.priceRequests?.find((r) => r.id === id)
         if (updated) setSelected(updated)
       }
     } catch (err: any) {
@@ -352,7 +362,7 @@ export default function PriceRequestsView() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileQuestion className="h-5 w-5" />
-              Demande {selected?.reference}
+              Demande {selected?.number}
             </DialogTitle>
           </DialogHeader>
           {selected && (
@@ -398,7 +408,7 @@ export default function PriceRequestsView() {
                   <TableBody>
                     {selected.lines?.map((l, i) => (
                       <TableRow key={l.id || i}>
-                        <TableCell className="text-sm">{l.productRef || '—'} {l.productDesignation && <span className="text-muted-foreground">— {l.productDesignation}</span>}</TableCell>
+                        <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
                         <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
                       </TableRow>
                     ))}
@@ -422,8 +432,8 @@ export default function PriceRequestsView() {
                     <TableBody>
                       {selected.supplierQuotes.map((sq) => (
                         <TableRow key={sq.id}>
-                          <TableCell className="font-mono text-sm">{sq.reference}</TableCell>
-                          <TableCell className="text-sm">{sq.supplierName || '—'}</TableCell>
+                          <TableCell className="font-mono text-sm">{sq.number}</TableCell>
+                          <TableCell className="text-sm">{sq.supplier?.name || '—'}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={
                               sq.status === 'accepted' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
@@ -485,7 +495,7 @@ export default function PriceRequestsView() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium font-mono text-sm">{item.reference}</TableCell>
+                      <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell className="max-w-48 truncate">{item.title}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{fmtDate(item.validUntil)}</TableCell>
@@ -527,7 +537,7 @@ export default function PriceRequestsView() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Supprimer cette demande ?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    La demande &quot;{item.reference}&quot; sera définitivement supprimée. Seuls les brouillons peuvent être supprimés.
+                                    La demande &quot;{item.number}&quot; sera définitivement supprimée. Seuls les brouillons peuvent être supprimés.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

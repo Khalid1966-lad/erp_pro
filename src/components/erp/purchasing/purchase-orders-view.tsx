@@ -44,19 +44,19 @@ interface Supplier {
 interface POLine {
   id?: string
   productId: string
-  productRef?: string
-  productDesignation?: string
   quantity: number
   unitPrice: number
   tvaRate: number
-  receivedQty: number
+  totalHT: number
+  quantityReceived: number
+  product?: { id: string; reference: string; designation: string }
 }
 
 interface PurchaseOrder {
   id: string
-  reference: string
+  number: string
   supplierId: string
-  supplierName?: string
+  supplier?: { id: string; name: string }
   status: 'draft' | 'sent' | 'partially_received' | 'received' | 'cancelled'
   expectedDate: string | null
   lines: POLine[]
@@ -114,8 +114,8 @@ export default function PurchaseOrdersView() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<PurchaseOrder[]>('/purchase-orders')
-      setOrders(data)
+      const data = await api.get<{ orders: PurchaseOrder[]; total: number }>('/purchase-orders')
+      setOrders(data.orders || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur lors du chargement des commandes')
     } finally {
@@ -141,8 +141,8 @@ export default function PurchaseOrdersView() {
   useEffect(() => { fetchSuppliers(); fetchProducts() }, [fetchSuppliers, fetchProducts])
 
   const filtered = orders.filter((o) =>
-    o.reference.toLowerCase().includes(search.toLowerCase()) ||
-    o.supplierName?.toLowerCase().includes(search.toLowerCase())
+    o.number.toLowerCase().includes(search.toLowerCase()) ||
+    o.supplier?.name.toLowerCase().includes(search.toLowerCase())
   )
 
   const addLine = () => {
@@ -375,7 +375,7 @@ export default function PurchaseOrdersView() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Commande {selectedOrder?.reference}
+              Commande {selectedOrder?.number}
             </DialogTitle>
           </DialogHeader>
           {selectedOrder && (
@@ -383,7 +383,7 @@ export default function PurchaseOrdersView() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Fournisseur</p>
-                  <p className="font-medium">{selectedOrder.supplierName}</p>
+                  <p className="font-medium">{selectedOrder.supplier?.name}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Statut</p>
@@ -414,9 +414,9 @@ export default function PurchaseOrdersView() {
                 <TableBody>
                   {selectedOrder.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
-                      <TableCell className="text-sm">{l.productRef || '—'} {l.productDesignation && <span className="text-muted-foreground">— {l.productDesignation}</span>}</TableCell>
+                      <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
                       <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
-                      <TableCell className="text-right">{l.receivedQty?.toLocaleString('fr-FR') || 0}</TableCell>
+                      <TableCell className="text-right">{l.quantityReceived?.toLocaleString('fr-FR') || 0}</TableCell>
                       <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
                       <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
                     </TableRow>
@@ -471,9 +471,9 @@ export default function PurchaseOrdersView() {
                 <TableBody>
                   {filtered.map((o) => (
                     <TableRow key={o.id}>
-                      <TableCell className="font-medium font-mono text-sm">{o.reference}</TableCell>
+                      <TableCell className="font-medium font-mono text-sm">{o.number}</TableCell>
                       <TableCell><StatusBadge status={o.status} /></TableCell>
-                      <TableCell className="hidden md:table-cell">{o.supplierName || '—'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{o.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{fmtDate(o.expectedDate)}</TableCell>
                       <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(o.totalTTC)}</TableCell>
                       <TableCell className="text-right">
@@ -512,7 +512,7 @@ export default function PurchaseOrdersView() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Supprimer cette commande ?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    La commande &quot;{o.reference}&quot; sera définitivement supprimée. Seuls les brouillons peuvent être supprimés.
+                                    La commande &quot;{o.number}&quot; sera définitivement supprimée. Seuls les brouillons peuvent être supprimés.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

@@ -42,8 +42,10 @@ interface Supplier {
 interface SRLine {
   id?: string
   productId: string
-  productRef?: string
-  productDesignation?: string
+  product?: {
+    reference: string
+    designation: string
+  }
   quantity: number
   unitPrice: number
   tvaRate: number
@@ -51,15 +53,15 @@ interface SRLine {
 
 interface SupplierReturn {
   id: string
-  reference: string
+  number: string
   supplierId: string
-  supplierName?: string
-  receptionId?: string
-  receptionRef?: string
-  purchaseOrderId?: string
-  purchaseOrderRef?: string
-  invoiceId?: string
-  invoiceRef?: string
+  supplier?: {
+    id: string
+    name: string
+  }
+  reception?: { id: string; number: string }
+  purchaseOrder?: { id: string; number: string }
+  supplierInvoice?: { id: string; number: string }
   status: 'draft' | 'sent' | 'received_by_supplier' | 'credited' | 'cancelled'
   reason: string | null
   lines: SRLine[]
@@ -104,9 +106,9 @@ export default function SupplierReturnsView() {
   const [selected, setSelected] = useState<SupplierReturn | null>(null)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [purchaseOrders, setPurchaseOrders] = useState<Array<{ id: string; reference: string }>>([])
-  const [receptions, setReceptions] = useState<Array<{ id: string; reference: string }>>([])
-  const [invoices, setInvoices] = useState<Array<{ id: string; reference: string }>>([])
+  const [purchaseOrders, setPurchaseOrders] = useState<Array<{ id: string; number: string }>>([])
+  const [receptions, setReceptions] = useState<Array<{ id: string; number: string }>>([])
+  const [invoices, setInvoices] = useState<Array<{ id: string; number: string }>>([])
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -122,8 +124,8 @@ export default function SupplierReturnsView() {
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<SupplierReturn[]>('/supplier-returns')
-      setItems(data)
+      const data = await api.get<{ supplierReturns: SupplierReturn[]; total: number }>('/supplier-returns')
+      setItems(data.supplierReturns || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur lors du chargement des bons de retour')
     } finally {
@@ -148,13 +150,13 @@ export default function SupplierReturnsView() {
   const fetchRelated = useCallback(async () => {
     try {
       const [pos, recs, invs] = await Promise.all([
-        api.get<Array<{ id: string; reference: string }>>('/purchase-orders').catch(() => []),
-        api.get<Array<{ id: string; reference: string }>>('/receptions').catch(() => []),
-        api.get<Array<{ id: string; reference: string }>>('/supplier-invoices').catch(() => [])
+        api.get<{ orders: Array<{ id: string; number: string }> }>('/purchase-orders').then(d => d.orders || []).catch(() => []),
+        api.get<{ receptions: Array<{ id: string; number: string }> }>('/receptions').then(d => d.receptions || []).catch(() => []),
+        api.get<{ supplierInvoices: Array<{ id: string; number: string }> }>('/supplier-invoices').then(d => d.supplierInvoices || []).catch(() => [])
       ])
-      setPurchaseOrders(pos || [])
-      setReceptions(recs || [])
-      setInvoices(invs || [])
+      setPurchaseOrders(pos)
+      setReceptions(recs)
+      setInvoices(invs)
     } catch { /* silent */ }
   }, [])
 
@@ -163,8 +165,8 @@ export default function SupplierReturnsView() {
 
   const filtered = items.filter((item) => {
     const matchSearch =
-      item.reference.toLowerCase().includes(search.toLowerCase()) ||
-      item.supplierName?.toLowerCase().includes(search.toLowerCase())
+      item.number.toLowerCase().includes(search.toLowerCase()) ||
+      item.supplier?.name?.toLowerCase().includes(search.toLowerCase())
     const matchSupplier = supplierFilter === 'all' || item.supplierId === supplierFilter
     return matchSearch && matchSupplier
   })
@@ -214,7 +216,7 @@ export default function SupplierReturnsView() {
         supplierId,
         receptionId: receptionId || null,
         purchaseOrderId: purchaseOrderId || null,
-        invoiceId: invoiceId || null,
+        supplierInvoiceId: invoiceId || null,
         reason: reason || null,
         lines
       })
@@ -236,8 +238,8 @@ export default function SupplierReturnsView() {
       toast.success(`Statut mis à jour : ${statusConfig[newStatus]?.label || newStatus}`)
       fetchItems()
       if (detailOpen && selected?.id === id) {
-        const data = await api.get<SupplierReturn[]>('/supplier-returns')
-        const updated = data.find((r) => r.id === id)
+        const data = await api.get<{ supplierReturns: SupplierReturn[]; total: number }>('/supplier-returns')
+        const updated = (data.supplierReturns || []).find((r) => r.id === id)
         if (updated) setSelected(updated)
       }
     } catch (err: any) {
@@ -314,7 +316,7 @@ export default function SupplierReturnsView() {
                     <SelectTrigger><SelectValue placeholder="Réception..." /></SelectTrigger>
                     <SelectContent>
                       {receptions.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>{r.reference}</SelectItem>
+                        <SelectItem key={r.id} value={r.id}>{r.number}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -325,7 +327,7 @@ export default function SupplierReturnsView() {
                     <SelectTrigger><SelectValue placeholder="Commande..." /></SelectTrigger>
                     <SelectContent>
                       {purchaseOrders.map((po) => (
-                        <SelectItem key={po.id} value={po.id}>{po.reference}</SelectItem>
+                        <SelectItem key={po.id} value={po.id}>{po.number}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -336,7 +338,7 @@ export default function SupplierReturnsView() {
                     <SelectTrigger><SelectValue placeholder="Facture..." /></SelectTrigger>
                     <SelectContent>
                       {invoices.map((inv) => (
-                        <SelectItem key={inv.id} value={inv.id}>{inv.reference}</SelectItem>
+                        <SelectItem key={inv.id} value={inv.id}>{inv.number}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -437,7 +439,7 @@ export default function SupplierReturnsView() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RotateCcw className="h-5 w-5" />
-              Retour {selected?.reference}
+              Retour {selected?.number}
             </DialogTitle>
           </DialogHeader>
           {selected && (
@@ -445,7 +447,7 @@ export default function SupplierReturnsView() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Fournisseur</p>
-                  <p className="font-medium">{selected.supplierName}</p>
+                  <p className="font-medium">{selected.supplier?.name}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Statut</p>
@@ -453,17 +455,17 @@ export default function SupplierReturnsView() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Réception</p>
-                  <p className="font-medium font-mono">{selected.receptionRef || '—'}</p>
+                  <p className="font-medium font-mono">{selected.reception?.number || '—'}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Commande</p>
-                  <p className="font-medium font-mono">{selected.purchaseOrderRef || '—'}</p>
+                  <p className="font-medium font-mono">{selected.purchaseOrder?.number || '—'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Facture</p>
-                  <p className="font-medium font-mono">{selected.invoiceRef || '—'}</p>
+                  <p className="font-medium font-mono">{selected.supplierInvoice?.number || '—'}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Créée le</p>
@@ -488,7 +490,7 @@ export default function SupplierReturnsView() {
                 <TableBody>
                   {selected.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
-                      <TableCell className="text-sm">{l.productRef || '—'} {l.productDesignation && <span className="text-muted-foreground">— {l.productDesignation}</span>}</TableCell>
+                      <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product?.designation}</span>}</TableCell>
                       <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
                       <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
                       <TableCell className="text-right">{l.tvaRate}%</TableCell>
@@ -544,10 +546,10 @@ export default function SupplierReturnsView() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium font-mono text-sm">{item.reference}</TableCell>
+                      <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
-                      <TableCell className="hidden md:table-cell">{item.supplierName || '—'}</TableCell>
-                      <TableCell className="hidden lg:table-cell font-mono text-sm">{item.purchaseOrderRef || '—'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
+                      <TableCell className="hidden lg:table-cell font-mono text-sm">{item.purchaseOrder?.number || '—'}</TableCell>
                       <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -605,7 +607,7 @@ export default function SupplierReturnsView() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Supprimer ce retour ?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Le bon &quot;{item.reference}&quot; sera définitivement supprimé. Seuls les brouillons peuvent être supprimés.
+                                    Le bon &quot;{item.number}&quot; sera définitivement supprimé. Seuls les brouillons peuvent être supprimés.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
