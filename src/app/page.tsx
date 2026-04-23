@@ -19,6 +19,11 @@ const DeliveryNotesView = dynamic(() => import('@/components/erp/commercial/deli
 const SuppliersView = dynamic(() => import('@/components/erp/purchasing/suppliers-view'), { ssr: false })
 const PurchaseOrdersView = dynamic(() => import('@/components/erp/purchasing/purchase-orders-view'), { ssr: false })
 const ReceptionsView = dynamic(() => import('@/components/erp/purchasing/receptions-view'), { ssr: false })
+const PriceRequestsView = dynamic(() => import('@/components/erp/purchasing/price-requests-view'), { ssr: false })
+const SupplierQuotesView = dynamic(() => import('@/components/erp/purchasing/supplier-quotes-view'), { ssr: false })
+const SupplierInvoicesView = dynamic(() => import('@/components/erp/purchasing/supplier-invoices-view'), { ssr: false })
+const SupplierReturnsView = dynamic(() => import('@/components/erp/purchasing/supplier-returns-view'), { ssr: false })
+const SupplierCreditNotesView = dynamic(() => import('@/components/erp/purchasing/supplier-credit-notes-view'), { ssr: false })
 const StockMovementsView = dynamic(() => import('@/components/erp/stock/stock-movements-view'), { ssr: false })
 const StockAlertsView = dynamic(() => import('@/components/erp/stock/stock-alerts-view'), { ssr: false })
 const InventoryView = dynamic(() => import('@/components/erp/stock/inventory-view'), { ssr: false })
@@ -52,6 +57,11 @@ function ViewRouter() {
     case 'suppliers': return <SuppliersView />
     case 'purchase-orders': return <PurchaseOrdersView />
     case 'receptions': return <ReceptionsView />
+    case 'price-requests': return <PriceRequestsView />
+    case 'supplier-quotes': return <SupplierQuotesView />
+    case 'supplier-invoices': return <SupplierInvoicesView />
+    case 'supplier-returns': return <SupplierReturnsView />
+    case 'supplier-credit-notes': return <SupplierCreditNotesView />
     case 'stock-movements': return <StockMovementsView />
     case 'stock-alerts': return <StockAlertsView />
     case 'inventory': return <InventoryView />

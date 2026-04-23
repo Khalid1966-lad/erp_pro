@@ -53,7 +53,9 @@ import {
   Menu,
   Factory,
   ChevronDown,
-  UserCog
+  UserCog,
+  FileQuestion,
+  ArrowLeftRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -103,7 +105,12 @@ const navigation: NavGroup[] = [
     items: [
       { id: 'suppliers', label: 'Fournisseurs', icon: <Truck className="h-4 w-4" />, color: 'text-indigo-500', permission: 'suppliers:read' },
       { id: 'purchase-orders', label: 'Commandes fournisseur', icon: <ArrowDownToLine className="h-4 w-4" />, color: 'text-teal-500', permission: 'purchase_orders:read' },
-      { id: 'receptions', label: 'Réceptions', icon: <Warehouse className="h-4 w-4" />, color: 'text-lime-600', permission: 'receptions:read' }
+      { id: 'receptions', label: 'Réceptions', icon: <Warehouse className="h-4 w-4" />, color: 'text-lime-600', permission: 'receptions:read' },
+      { id: 'price-requests', label: 'Demandes de prix', icon: <FileQuestion className="h-4 w-4" />, color: 'text-purple-500', permission: 'purchase_orders:read' },
+      { id: 'supplier-quotes', label: 'Devis fournisseurs', icon: <FileText className="h-4 w-4" />, color: 'text-sky-500', permission: 'purchase_orders:read' },
+      { id: 'supplier-invoices', label: 'Factures fournisseurs', icon: <Receipt className="h-4 w-4" />, color: 'text-rose-500', permission: 'purchase_orders:read' },
+      { id: 'supplier-returns', label: 'Bons de retour', icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500', permission: 'purchase_orders:read' },
+      { id: 'supplier-credit-notes', label: 'Avoirs fournisseurs', icon: <ArrowLeftRight className="h-4 w-4" />, color: 'text-teal-500', permission: 'purchase_orders:read' }
     ]
   },
   {
@@ -351,6 +358,11 @@ export function ERPHeader() {
     'suppliers': 'Fournisseurs',
     'purchase-orders': 'Commandes fournisseur',
     'receptions': 'Réceptions',
+    'price-requests': 'Demandes de prix',
+    'supplier-quotes': 'Devis fournisseurs',
+    'supplier-invoices': 'Factures fournisseurs',
+    'supplier-returns': 'Bons de retour',
+    'supplier-credit-notes': 'Avoirs fournisseurs',
     'stock-movements': 'Mouvements de stock',
     'inventory': 'Inventaires',
     'stock-alerts': 'Alertes stock',

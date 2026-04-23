@@ -1,0 +1,641 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { api } from '@/lib/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from '@/components/ui/table'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+} from '@/components/ui/dialog'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select'
+import { Plus, Search, Eye, Trash2, RotateCcw, Send, XCircle, CheckCircle2 } from 'lucide-react'
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
+import { toast } from 'sonner'
+
+// ── Types ──────────────────────────────────────────────
+interface Product {
+  id: string
+  reference: string
+  designation: string
+}
+
+interface Supplier {
+  id: string
+  name: string
+}
+
+interface SRLine {
+  id?: string
+  productId: string
+  productRef?: string
+  productDesignation?: string
+  quantity: number
+  unitPrice: number
+  tvaRate: number
+}
+
+interface SupplierReturn {
+  id: string
+  reference: string
+  supplierId: string
+  supplierName?: string
+  receptionId?: string
+  receptionRef?: string
+  purchaseOrderId?: string
+  purchaseOrderRef?: string
+  invoiceId?: string
+  invoiceRef?: string
+  status: 'draft' | 'sent' | 'received_by_supplier' | 'credited' | 'cancelled'
+  reason: string | null
+  lines: SRLine[]
+  totalHT: number
+  totalTVA: number
+  totalTTC: number
+  createdAt: string
+  updatedAt: string
+}
+
+// ── Status helpers ─────────────────────────────────────
+const statusConfig: Record<string, { label: string; className: string }> = {
+  draft: { label: 'Brouillon', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  sent: { label: 'Envoyé', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
+  received_by_supplier: { label: 'Reçu par fournisseur', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' },
+  credited: { label: 'Avoir émis', className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+  cancelled: { label: 'Annulé', className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' }
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = statusConfig[status] || statusConfig.draft
+  return <Badge variant="outline" className={cfg.className}>{cfg.label}</Badge>
+}
+
+function fmtDate(d: string | null) {
+  if (!d) return '—'
+  return format(new Date(d), 'dd/MM/yyyy', { locale: fr })
+}
+
+function fmtMoney(n: number) {
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
+}
+
+// ── Component ──────────────────────────────────────────
+export default function SupplierReturnsView() {
+  const [items, setItems] = useState<SupplierReturn[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [supplierFilter, setSupplierFilter] = useState<string>('all')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [selected, setSelected] = useState<SupplierReturn | null>(null)
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [purchaseOrders, setPurchaseOrders] = useState<Array<{ id: string; reference: string }>>([])
+  const [receptions, setReceptions] = useState<Array<{ id: string; reference: string }>>([])
+  const [invoices, setInvoices] = useState<Array<{ id: string; reference: string }>>([])
+  const [saving, setSaving] = useState(false)
+  const [transitioning, setTransitioning] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  // Form state
+  const [supplierId, setSupplierId] = useState('')
+  const [receptionId, setReceptionId] = useState('')
+  const [purchaseOrderId, setPurchaseOrderId] = useState('')
+  const [invoiceId, setInvoiceId] = useState('')
+  const [reason, setReason] = useState('')
+  const [lines, setLines] = useState<Array<{ productId: string; quantity: number; unitPrice: number; tvaRate: number }>>([])
+
+  const fetchItems = useCallback(async () => {
+    try {
+      setLoading(true)
+      const data = await api.get<SupplierReturn[]>('/supplier-returns')
+      setItems(data)
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors du chargement des bons de retour')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const fetchSuppliers = useCallback(async () => {
+    try {
+      const data = await api.get<{ suppliers: Supplier[] }>('/suppliers')
+      setSuppliers(data.suppliers || [])
+    } catch { /* silent */ }
+  }, [])
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const data = await api.get<{ products: Product[] }>('/products')
+      setProducts(data.products || [])
+    } catch { /* silent */ }
+  }, [])
+
+  const fetchRelated = useCallback(async () => {
+    try {
+      const [pos, recs, invs] = await Promise.all([
+        api.get<Array<{ id: string; reference: string }>>('/purchase-orders').catch(() => []),
+        api.get<Array<{ id: string; reference: string }>>('/receptions').catch(() => []),
+        api.get<Array<{ id: string; reference: string }>>('/supplier-invoices').catch(() => [])
+      ])
+      setPurchaseOrders(pos || [])
+      setReceptions(recs || [])
+      setInvoices(invs || [])
+    } catch { /* silent */ }
+  }, [])
+
+  useEffect(() => { fetchItems() }, [fetchItems])
+  useEffect(() => { fetchSuppliers(); fetchProducts(); fetchRelated() }, [fetchSuppliers, fetchProducts, fetchRelated])
+
+  const filtered = items.filter((item) => {
+    const matchSearch =
+      item.reference.toLowerCase().includes(search.toLowerCase()) ||
+      item.supplierName?.toLowerCase().includes(search.toLowerCase())
+    const matchSupplier = supplierFilter === 'all' || item.supplierId === supplierFilter
+    return matchSearch && matchSupplier
+  })
+
+  const addLine = () => {
+    setLines((prev) => [...prev, { productId: '', quantity: 1, unitPrice: 0, tvaRate: 20 }])
+  }
+
+  const removeLine = (idx: number) => {
+    setLines((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const updateLine = (idx: number, field: string, value: string | number) => {
+    setLines((prev) => prev.map((l, i) => (i !== idx ? l : { ...l, [field]: value })))
+  }
+
+  const lineTotalHT = lines.reduce((sum, l) => sum + (l.quantity * l.unitPrice), 0)
+  const lineTotalTVA = lines.reduce((sum, l) => sum + (l.quantity * l.unitPrice * l.tvaRate / 100), 0)
+  const lineTotalTTC = lineTotalHT + lineTotalTVA
+
+  const resetForm = () => {
+    setSupplierId('')
+    setReceptionId('')
+    setPurchaseOrderId('')
+    setInvoiceId('')
+    setReason('')
+    setLines([])
+  }
+
+  const handleCreate = async () => {
+    if (!supplierId) {
+      toast.error('Veuillez sélectionner un fournisseur')
+      return
+    }
+    if (lines.length === 0) {
+      toast.error('Ajoutez au moins une ligne')
+      return
+    }
+    const validLines = lines.every((l) => l.productId && l.quantity > 0)
+    if (!validLines) {
+      toast.error('Toutes les lignes doivent avoir un produit et une quantité')
+      return
+    }
+    try {
+      setSaving(true)
+      await api.post('/supplier-returns', {
+        supplierId,
+        receptionId: receptionId || null,
+        purchaseOrderId: purchaseOrderId || null,
+        invoiceId: invoiceId || null,
+        reason: reason || null,
+        lines
+      })
+      toast.success('Bon de retour créé')
+      setDialogOpen(false)
+      resetForm()
+      fetchItems()
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la création')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleTransition = async (id: string, newStatus: string) => {
+    try {
+      setTransitioning(id)
+      await api.put('/supplier-returns', { id, status: newStatus })
+      toast.success(`Statut mis à jour : ${statusConfig[newStatus]?.label || newStatus}`)
+      fetchItems()
+      if (detailOpen && selected?.id === id) {
+        const data = await api.get<SupplierReturn[]>('/supplier-returns')
+        const updated = data.find((r) => r.id === id)
+        if (updated) setSelected(updated)
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la mise à jour')
+    } finally {
+      setTransitioning(null)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      setDeleting(id)
+      await api.delete(`/supplier-returns?id=${id}`)
+      toast.success('Bon de retour supprimé')
+      fetchItems()
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la suppression')
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-2 flex-1 w-full sm:max-w-md">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher par référence ou fournisseur..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+            <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Fournisseur" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les fournisseurs</SelectItem>
+              {suppliers.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
+          <DialogTrigger asChild>
+            <Button onClick={resetForm}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouveau retour
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Nouveau bon de retour fournisseur</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <div className="space-y-2">
+                <Label>Fournisseur *</Label>
+                <Select value={supplierId} onValueChange={setSupplierId}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Réception liée (optionnel)</Label>
+                  <Select value={receptionId} onValueChange={setReceptionId}>
+                    <SelectTrigger><SelectValue placeholder="Réception..." /></SelectTrigger>
+                    <SelectContent>
+                      {receptions.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.reference}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Commande liée (optionnel)</Label>
+                  <Select value={purchaseOrderId} onValueChange={setPurchaseOrderId}>
+                    <SelectTrigger><SelectValue placeholder="Commande..." /></SelectTrigger>
+                    <SelectContent>
+                      {purchaseOrders.map((po) => (
+                        <SelectItem key={po.id} value={po.id}>{po.reference}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Facture liée (optionnel)</Label>
+                  <Select value={invoiceId} onValueChange={setInvoiceId}>
+                    <SelectTrigger><SelectValue placeholder="Facture..." /></SelectTrigger>
+                    <SelectContent>
+                      {invoices.map((inv) => (
+                        <SelectItem key={inv.id} value={inv.id}>{inv.reference}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Lines */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Articles retournés</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Ajouter une ligne
+                  </Button>
+                </div>
+                {lines.length === 0 ? (
+                  <div className="border rounded-md p-6 text-center text-sm text-muted-foreground">
+                    Aucune ligne. Cliquez sur &quot;Ajouter une ligne&quot; pour commencer.
+                  </div>
+                ) : (
+                  <div className="border rounded-md overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-48">Produit</TableHead>
+                          <TableHead className="w-24 text-right">Quantité</TableHead>
+                          <TableHead className="w-32 text-right">Prix unit. HT</TableHead>
+                          <TableHead className="w-24 text-right">TVA %</TableHead>
+                          <TableHead className="w-28 text-right">Total HT</TableHead>
+                          <TableHead className="w-10" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lines.map((line, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>
+                              <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Produit..." /></SelectTrigger>
+                                <SelectContent>
+                                  {products.map((p) => (
+                                    <SelectItem key={p.id} value={p.id}>
+                                      {p.reference} — {p.designation}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Input type="number" min={1} value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseInt(e.target.value) || 0)} className="h-8 text-right" />
+                            </TableCell>
+                            <TableCell>
+                              <Input type="number" step="0.01" min={0} value={line.unitPrice} onChange={(e) => updateLine(idx, 'unitPrice', parseFloat(e.target.value) || 0)} className="h-8 text-right" />
+                            </TableCell>
+                            <TableCell>
+                              <Input type="number" step="0.1" min={0} max={100} value={line.tvaRate} onChange={(e) => updateLine(idx, 'tvaRate', parseFloat(e.target.value) || 0)} className="h-8 text-right" />
+                            </TableCell>
+                            <TableCell className="text-right text-sm font-medium">
+                              {fmtMoney(line.quantity * line.unitPrice)}
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                {lines.length > 0 && (
+                  <div className="flex justify-end gap-6 text-sm pt-2">
+                    <span>Total HT : <strong>{fmtMoney(lineTotalHT)}</strong></span>
+                    <span>TVA : <strong>{fmtMoney(lineTotalTVA)}</strong></span>
+                    <span>Total TTC : <strong>{fmtMoney(lineTotalTTC)}</strong></span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Motif du retour</Label>
+                <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motif du retour..." rows={2} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
+              <Button onClick={handleCreate} disabled={saving}>
+                {saving ? 'Création...' : 'Créer le retour'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Detail dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5" />
+              Retour {selected?.reference}
+            </DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Fournisseur</p>
+                  <p className="font-medium">{selected.supplierName}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Statut</p>
+                  <StatusBadge status={selected.status} />
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Réception</p>
+                  <p className="font-medium font-mono">{selected.receptionRef || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Commande</p>
+                  <p className="font-medium font-mono">{selected.purchaseOrderRef || '—'}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Facture</p>
+                  <p className="font-medium font-mono">{selected.invoiceRef || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Créée le</p>
+                  <p className="font-medium">{fmtDate(selected.createdAt)}</p>
+                </div>
+              </div>
+              {selected.reason && (
+                <p className="text-sm bg-muted/50 rounded-md p-3">
+                  <span className="font-medium">Motif : </span>{selected.reason}
+                </p>
+              )}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produit</TableHead>
+                    <TableHead className="text-right">Qté</TableHead>
+                    <TableHead className="text-right">P.U. HT</TableHead>
+                    <TableHead className="text-right">TVA</TableHead>
+                    <TableHead className="text-right">Total HT</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selected.lines?.map((l, i) => (
+                    <TableRow key={l.id || i}>
+                      <TableCell className="text-sm">{l.productRef || '—'} {l.productDesignation && <span className="text-muted-foreground">— {l.productDesignation}</span>}</TableCell>
+                      <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                      <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                      <TableCell className="text-right">{l.tvaRate}%</TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="flex justify-end gap-6 text-sm pt-2 border-t">
+                <span>Total HT : <strong>{fmtMoney(selected.totalHT)}</strong></span>
+                <span>TVA : <strong>{fmtMoney(selected.totalTVA)}</strong></span>
+                <span>Total TTC : <strong>{fmtMoney(selected.totalTTC)}</strong></span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-5 w-36" />
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-4 w-28" />
+                  <div className="flex-1" />
+                  <Skeleton className="h-8 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <RotateCcw className="h-12 w-12 mb-3 opacity-40" />
+              <p className="text-sm">{search || supplierFilter !== 'all' ? 'Aucun retour trouvé' : 'Aucun bon de retour fournisseur'}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Référence</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="hidden md:table-cell">Fournisseur</TableHead>
+                    <TableHead className="hidden lg:table-cell">Commande</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Total TTC</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium font-mono text-sm">{item.reference}</TableCell>
+                      <TableCell><StatusBadge status={item.status} /></TableCell>
+                      <TableCell className="hidden md:table-cell">{item.supplierName || '—'}</TableCell>
+                      <TableCell className="hidden lg:table-cell font-mono text-sm">{item.purchaseOrderRef || '—'}</TableCell>
+                      <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(item); setDetailOpen(true) }}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {item.status === 'draft' && (
+                            <Button
+                              variant="ghost" size="sm" className="h-8 text-xs gap-1"
+                              disabled={transitioning === item.id}
+                              onClick={() => handleTransition(item.id, 'sent')}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                              Envoyer
+                            </Button>
+                          )}
+                          {item.status === 'sent' && (
+                            <Button
+                              variant="ghost" size="sm" className="h-8 text-xs gap-1"
+                              disabled={transitioning === item.id}
+                              onClick={() => handleTransition(item.id, 'received_by_supplier')}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              Reçu
+                            </Button>
+                          )}
+                          {item.status === 'received_by_supplier' && (
+                            <Button
+                              variant="ghost" size="sm" className="h-8 text-xs gap-1"
+                              disabled={transitioning === item.id}
+                              onClick={() => handleTransition(item.id, 'credited')}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Avoir émis
+                            </Button>
+                          )}
+                          {(item.status === 'draft' || item.status === 'sent') && (
+                            <Button
+                              variant="ghost" size="sm" className="h-8 text-xs gap-1 text-destructive hover:text-destructive"
+                              disabled={transitioning === item.id}
+                              onClick={() => handleTransition(item.id, 'cancelled')}
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                              Annuler
+                            </Button>
+                          )}
+                          {item.status === 'draft' && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Supprimer ce retour ?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Le bon &quot;{item.reference}&quot; sera définitivement supprimé. Seuls les brouillons peuvent être supprimés.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(item.id)}
+                                    disabled={deleting === item.id}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    {deleting === item.id ? 'Suppression...' : 'Supprimer'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+        {!loading && filtered.length > 0 && (
+          <div className="border-t px-4 py-3 text-sm text-muted-foreground">
+            {filtered.length} bon{filtered.length > 1 ? 's' : ''} de retour {search || supplierFilter !== 'all' ? '(filtré(s))' : 'au total'}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}

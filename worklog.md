@@ -83,3 +83,96 @@ Stage Summary:
 - API PUT endpoints properly handle line updates with recalculation
 - Lint: 0 errors
 - Commit f406e51 pushed to GitHub (main branch)
+
+---
+Task ID: 3
+Agent: main
+Task: Create 5 purchasing API routes (price-requests, supplier-quotes, supplier-invoices, supplier-returns, supplier-credit-notes)
+
+Work Log:
+- Read existing API routes for patterns: purchase-orders, receptions, suppliers, auth, db
+- Created `src/app/api/price-requests/route.ts`:
+  - GET: List price requests with lines (product info) + supplierQuotes. Filters: ?search, ?status
+  - POST: Create with lines (productId + quantity). Auto-generates number `DMP-{year}-{seq}`
+  - PUT: Update status (draft→sent→answered→partially_answered→closed/cancelled), title, notes, lines
+  - DELETE: Only draft status
+- Created `src/app/api/supplier-quotes/route.ts`:
+  - GET: List with lines + supplier + priceRequest info. Filters: ?priceRequestId, ?supplierId, ?status
+  - POST: Create linked to priceRequest (optional) + supplier (required) + lines. Auto-calc totals. Number `DFR-{year}-{seq}`
+  - PUT: Update status (received→accepted/rejected/expired), lines, totals recalculation
+  - DELETE: Only received status
+- Created `src/app/api/supplier-invoices/route.ts`:
+  - GET: List with lines + supplier + purchaseOrder info. Filters: ?supplierId, ?status, ?search
+  - POST: Create linked to purchaseOrder (optional) + supplier (required) + lines. Number `FAC-F-{year}-{seq}`
+  - PUT: Update status, notes, paymentDate, amountPaid, dueDate
+  - DELETE: Only received status
+- Created `src/app/api/supplier-returns/route.ts`:
+  - GET: List with lines + supplier + reception/purchaseOrder/supplierInvoice info. Filters: ?receptionId, ?supplierId
+  - POST: Create linked to reception (optional) + purchaseOrder (optional) + supplierInvoice (optional) + supplier (required) + lines. Number `BRF-{year}-{seq}`
+  - PUT: Update status (draft→sent→received_by_supplier→credited/cancelled). When status becomes `received_by_supplier`, creates stock movement OUT via transaction with stock validation
+  - DELETE: Only draft status
+- Created `src/app/api/supplier-credit-notes/route.ts`:
+  - GET: List with lines + supplier + supplierInvoice/supplierReturn info. Filters: ?supplierInvoiceId, ?supplierId
+  - POST: Create linked to supplierInvoice (optional) + supplierReturn (optional) + supplier (required) + lines. Number `AVF-{year}-{seq}`
+  - PUT: Update status (received→applied/partially_applied/cancelled), amountApplied with validation. Auto-determines status from amountApplied
+  - DELETE: Only received status
+
+Stage Summary:
+- All 5 API routes follow existing patterns: auth, Zod validation, number generation, audit logging, proper HTTP status codes
+- Case-insensitive search with `mode: 'insensitive'` for PostgreSQL
+- Stock movements on supplier return `received_by_supplier` status (transactional)
+- Lint: 0 errors
+
+---
+Task ID: 6
+Agent: main
+Task: Create 5 frontend purchasing view components + update navigation
+
+Work Log:
+- Read existing view files (purchase-orders-view, receptions-view, suppliers-view) for exact patterns
+- Created `src/components/erp/purchasing/price-requests-view.tsx`:
+  - List with search + status filter (draft/sent/answered/partially_answered/closed/cancelled)
+  - Create dialog: title, validUntil, notes, product lines (productId + quantity)
+  - Detail dialog: shows lines with product info + list of supplier quotes received
+  - Actions: send (draft→sent), close (sent/answered→closed), delete (draft only)
+  - Icons: FileQuestion
+- Created `src/components/erp/purchasing/supplier-quotes-view.tsx`:
+  - List with search + supplier filter + status filter (received/accepted/rejected/expired)
+  - Create dialog: select supplier (required), link to price request (optional), lines with product/qty/unitPrice/tvaRate, validUntil, deliveryDelay, paymentTerms
+  - Detail dialog with totals (HT/TVA/TTC), linked price request, delivery/payment info
+  - Actions: accept (received→accepted), reject (received→rejected), delete (received only)
+  - Icons: FileText
+- Created `src/components/erp/purchasing/supplier-invoices-view.tsx`:
+  - List with search + supplier filter + status filter (received/verified/paid/partially_paid/overdue/cancelled)
+  - Create dialog: select supplier, link to purchase order (optional), lines, dueDate, notes
+  - Detail dialog with totals, amount paid, remaining balance
+  - Actions: verify (received→verified), mark paid (verified/partially_paid→paid), delete (received only)
+  - Icons: Receipt
+- Created `src/components/erp/purchasing/supplier-returns-view.tsx`:
+  - List with search + supplier filter
+  - Create dialog: select supplier, link to reception/purchase order/invoice (optional), lines, reason
+  - Detail dialog with totals + linked document refs + reason
+  - Status flow: draft→sent→received_by_supplier→credited/cancelled
+  - Actions: send, received, credited, cancel, delete (draft only)
+  - Icons: RotateCcw
+- Created `src/components/erp/purchasing/supplier-credit-notes-view.tsx`:
+  - List with search + supplier filter
+  - Create dialog: select supplier, link to invoice/return (optional), lines, reason
+  - Detail dialog with totals, amount applied, remaining to apply
+  - Status flow: received→applied/partially_applied/cancelled
+  - Actions: apply, cancel, delete (received only)
+  - Icons: ArrowLeftRight
+- Updated `src/lib/stores.ts`: Added 5 new ViewIds (price-requests, supplier-quotes, supplier-invoices, supplier-returns, supplier-credit-notes)
+- Updated `src/components/erp/erp-layout.tsx`:
+  - Added 5 nav items to "Achats" group after receptions
+  - Added viewLabels for all 5 new views
+  - Imported FileQuestion + ArrowLeftRight from lucide-react
+- Updated `src/app/page.tsx`:
+  - Added 5 dynamic imports with ssr: false
+  - Added 5 case statements in ViewRouter switch
+
+Stage Summary:
+- All 5 frontend views follow existing patterns (use client, api wrapper, shadcn/ui, StatusBadge, fmtMoney, fmtDate, toast)
+- Navigation fully updated with icons, colors, and permissions
+- Lint: 0 errors
+- Dev server: compiling successfully

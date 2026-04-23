@@ -308,6 +308,12 @@ model Product {
   invoiceLines      InvoiceLine[]
   creditNoteLines   CreditNoteLine[]
   purchaseOrderLines PurchaseOrderLine[]
+  receptionLines    ReceptionLine[]
+  priceRequestLines PriceRequestLine[]
+  supplierQuoteLines SupplierQuoteLine[]
+  supplierInvoiceLines SupplierInvoiceLine[]
+  supplierReturnLines SupplierReturnLine[]
+  supplierCreditNoteLines SupplierCreditNoteLine[]
   stockMovements    StockMovement[]
   routingSteps      RoutingStep[]
   deliveryNoteLines DeliveryNoteLine[]
@@ -606,7 +612,11 @@ model Supplier {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  purchaseOrders  PurchaseOrder[]
+  purchaseOrders      PurchaseOrder[]
+  supplierQuotes     SupplierQuote[]
+  supplierInvoices   SupplierInvoice[]
+  supplierReturns     SupplierReturn[]
+  supplierCreditNotes SupplierCreditNote[]
 }
 
 enum PurchaseOrderStatus {
@@ -622,6 +632,8 @@ model PurchaseOrder {
   number          String                @unique
   supplierId      String
   supplier        Supplier              @relation(fields: [supplierId], references: [id])
+  supplierQuoteId String?
+  supplierQuote    SupplierQuote?        @relation(fields: [supplierQuoteId], references: [id])
   status          PurchaseOrderStatus   @default(draft)
   date            DateTime              @default(now())
   expectedDate    DateTime
@@ -632,8 +644,10 @@ model PurchaseOrder {
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
 
-  lines           PurchaseOrderLine[]
-  receptions      Reception[]
+  lines             PurchaseOrderLine[]
+  receptions        Reception[]
+  supplierInvoices SupplierInvoice[]
+  supplierReturns   SupplierReturn[]
 }
 
 model PurchaseOrderLine {
@@ -647,6 +661,8 @@ model PurchaseOrderLine {
   tvaRate          Float
   totalHT          Float
   quantityReceived Float           @default(0)
+
+  receptionLines   ReceptionLine[]
 }
 
 model Reception {
@@ -659,6 +675,244 @@ model Reception {
   notes            String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+
+  lines            ReceptionLine[]
+  supplierReturns  SupplierReturn[]
+}
+
+model ReceptionLine {
+  id                 String          @id @default(cuid())
+  receptionId        String
+  reception          Reception       @relation(fields: [receptionId], references: [id], onDelete: Cascade)
+  purchaseOrderLineId String
+  purchaseOrderLine  PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id])
+  productId          String
+  product            Product         @relation(fields: [productId], references: [id])
+  expectedQty        Float
+  receivedQty        Float
+  qualityCheck       String          @default("conforme")
+  unitCost           Float           @default(0)
+  notes              String?
+}
+
+// ============ DEMANDE DE PRIX ============
+
+enum PriceRequestStatus {
+  draft
+  sent
+  answered
+  partially_answered
+  closed
+  cancelled
+}
+
+model PriceRequest {
+  id              String              @id @default(cuid())
+  number          String              @unique
+  title           String?
+  status          PriceRequestStatus @default(draft)
+  date            DateTime            @default(now())
+  validUntil      DateTime?
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  lines           PriceRequestLine[]
+  supplierQuotes  SupplierQuote[]
+}
+
+// PriceRequest must NOT have a supplierId (sent to multiple suppliers)
+
+model PriceRequestLine {
+  id              String       @id @default(cuid())
+  priceRequestId  String
+  priceRequest    PriceRequest @relation(fields: [priceRequestId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product      @relation(fields: [productId], references: [id])
+  quantity        Float
+  description     String?
+}
+
+// ============ DEVIS FOURNISSEUR ============
+
+enum SupplierQuoteStatus {
+  received
+  accepted
+  rejected
+  expired
+}
+
+model SupplierQuote {
+  id              String              @id @default(cuid())
+  number          String              @unique
+  priceRequestId  String?
+  priceRequest    PriceRequest?       @relation(fields: [priceRequestId], references: [id])
+  supplierId      String
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  status          SupplierQuoteStatus @default(received)
+  date            DateTime            @default(now())
+  validUntil      DateTime?
+  deliveryDelay   Int                 @default(7)
+  paymentTerms    String              @default("30 jours")
+  notes           String?
+  totalHT         Float               @default(0)
+  totalTVA        Float               @default(0)
+  totalTTC        Float               @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  lines           SupplierQuoteLine[]
+  purchaseOrders  PurchaseOrder[]
+}
+
+model SupplierQuoteLine {
+  id              String         @id @default(cuid())
+  supplierQuoteId String
+  supplierQuote   SupplierQuote  @relation(fields: [supplierQuoteId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product        @relation(fields: [productId], references: [id])
+  quantity        Float
+  unitPrice       Float
+  tvaRate         Float           @default(20)
+  totalHT         Float           @default(0)
+}
+
+// ============ FACTURE FOURNISSEUR ============
+
+enum SupplierInvoiceStatus {
+  received
+  verified
+  paid
+  partially_paid
+  overdue
+  cancelled
+}
+
+model SupplierInvoice {
+  id               String                @id @default(cuid())
+  number           String                @unique
+  purchaseOrderId  String?
+  purchaseOrder    PurchaseOrder?        @relation(fields: [purchaseOrderId], references: [id])
+  supplierId       String
+  supplier         Supplier              @relation(fields: [supplierId], references: [id])
+  status           SupplierInvoiceStatus @default(received)
+  date             DateTime              @default(now())
+  dueDate          DateTime
+  paymentDate      DateTime?
+  notes            String?
+  totalHT          Float                 @default(0)
+  totalTVA         Float                 @default(0)
+  totalTTC         Float                 @default(0)
+  amountPaid       Float                 @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  lines            SupplierInvoiceLine[]
+  supplierReturns  SupplierReturn[]
+  supplierCreditNotes SupplierCreditNote[]
+}
+
+model SupplierInvoiceLine {
+  id                String          @id @default(cuid())
+  supplierInvoiceId String
+  supplierInvoice   SupplierInvoice @relation(fields: [supplierInvoiceId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product         @relation(fields: [productId], references: [id])
+  quantity          Float
+  unitPrice         Float
+  tvaRate           Float           @default(20)
+  totalHT           Float
+}
+
+// ============ BON DE RETOUR FOURNISSEUR ============
+
+enum SupplierReturnStatus {
+  draft
+  sent
+  received_by_supplier
+  credited
+  cancelled
+}
+
+model SupplierReturn {
+  id               String                @id @default(cuid())
+  number           String                @unique
+  receptionId      String?
+  reception        Reception?            @relation(fields: [receptionId], references: [id])
+  purchaseOrderId  String?
+  purchaseOrder    PurchaseOrder?        @relation(fields: [purchaseOrderId], references: [id])
+  supplierInvoiceId String?
+  supplierInvoice   SupplierInvoice?      @relation(fields: [supplierInvoiceId], references: [id])
+  supplierId       String
+  supplier         Supplier              @relation(fields: [supplierId], references: [id])
+  status           SupplierReturnStatus @default(draft)
+  date             DateTime              @default(now())
+  reason           String?
+  notes            String?
+  totalHT          Float                 @default(0)
+  totalTVA         Float                 @default(0)
+  totalTTC         Float                 @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  lines               SupplierReturnLine[]
+  supplierCreditNotes SupplierCreditNote[]
+}
+
+model SupplierReturnLine {
+  id              String          @id @default(cuid())
+  supplierReturnId String
+  supplierReturn  SupplierReturn  @relation(fields: [supplierReturnId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product         @relation(fields: [productId], references: [id])
+  quantity        Float
+  unitPrice       Float
+  tvaRate         Float           @default(20)
+  totalHT         Float
+  reason          String?
+}
+
+// ============ AVOIR FOURNISSEUR ============
+
+enum SupplierCreditNoteStatus {
+  received
+  applied
+  partially_applied
+  cancelled
+}
+
+model SupplierCreditNote {
+  id                  String                   @id @default(cuid())
+  number              String                   @unique
+  supplierInvoiceId   String?
+  supplierInvoice     SupplierInvoice?         @relation(fields: [supplierInvoiceId], references: [id])
+  supplierReturnId    String?
+  supplierReturn      SupplierReturn?          @relation(fields: [supplierReturnId], references: [id])
+  supplierId          String
+  supplier            Supplier                 @relation(fields: [supplierId], references: [id])
+  status              SupplierCreditNoteStatus @default(received)
+  date                DateTime                 @default(now())
+  reason              String?
+  totalHT             Float                    @default(0)
+  totalTVA            Float                    @default(0)
+  totalTTC            Float                    @default(0)
+  amountApplied       Float                    @default(0)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  lines               SupplierCreditNoteLine[]
+}
+
+model SupplierCreditNoteLine {
+  id                   String              @id @default(cuid())
+  supplierCreditNoteId String
+  supplierCreditNote   SupplierCreditNote @relation(fields: [supplierCreditNoteId], references: [id], onDelete: Cascade)
+  productId            String
+  product              Product             @relation(fields: [productId], references: [id])
+  quantity             Float
+  unitPrice            Float
+  tvaRate              Float               @default(20)
+  totalHT              Float
 }
 
 // ============ STOCK ============
