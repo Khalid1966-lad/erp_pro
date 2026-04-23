@@ -36,7 +36,8 @@ import {
   Building2, Phone, Mail, MapPin, Calendar, TrendingUp,
   ChevronLeft, ChevronRight, RefreshCw, Eye, Minus, GripVertical,
   AlertTriangle, FileText, Receipt, ShoppingCart, UserPlus, UserMinus,
-  FileSpreadsheet, Download, Upload, CheckCircle2, XCircle, Loader2
+  FileSpreadsheet, Download, Upload, CheckCircle2, XCircle, Loader2,
+  Truck, RotateCcw
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/stores'
@@ -1832,6 +1833,38 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
 // ═══════════════════════════════════════════════════════════════
 //  DETAIL VIEW
 // ═══════════════════════════════════════════════════════════════
+// ───────────────────── Historique Document Types ─────────────────────
+interface DocRow {
+  id: string
+  number: string
+  date: string
+  status: string
+  totalTTC: number
+}
+
+// Status config maps for each document type
+const docStatusConfig: Record<string, { label: string; color: string }> = {
+  // Devis
+  draft: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+  sent: { label: 'Envoyé', color: 'bg-sky-100 text-sky-700 border-sky-200' },
+  accepted: { label: 'Accepté', color: 'bg-green-100 text-green-700 border-green-200' },
+  rejected: { label: 'Refusé', color: 'bg-red-100 text-red-700 border-red-200' },
+  expired: { label: 'Expiré', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  // Commandes
+  pending: { label: 'En attente', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  confirmed: { label: 'Confirmée', color: 'bg-green-100 text-green-700 border-green-200' },
+  in_preparation: { label: 'En préparation', color: 'bg-sky-100 text-sky-700 border-sky-200' },
+  delivered: { label: 'Livrée', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  // Factures
+  validated: { label: 'Validée', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  paid: { label: 'Payée', color: 'bg-green-100 text-green-700 border-green-200' },
+  overdue: { label: 'En retard', color: 'bg-red-100 text-red-700 border-red-200' },
+  // Avoirs
+  applied: { label: 'Appliqué', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  // Bons de livraison
+  draft_bl: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+}
+
 interface ClientDetailViewProps {
   client: Client
   onBack: () => void
@@ -1839,14 +1872,118 @@ interface ClientDetailViewProps {
   onDelete: (id: string) => void
 }
 
+function DocSectionCard({
+  title,
+  icon,
+  count,
+  items,
+  emptyMessage,
+}: {
+  title: string
+  icon: React.ReactNode
+  count: number
+  items: DocRow[]
+  emptyMessage: string
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {icon}
+            <CardTitle className="text-base">{title}</CardTitle>
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            {count}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {items.length === 0 ? (
+          <div className="text-center py-6 text-muted-foreground">
+            <FileText className="h-6 w-6 mx-auto mb-1 opacity-40" />
+            <p className="text-sm">{emptyMessage}</p>
+          </div>
+        ) : (
+          <div className="max-h-96 overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">N°</TableHead>
+                  <TableHead className="text-xs">Date</TableHead>
+                  <TableHead className="text-xs">Statut</TableHead>
+                  <TableHead className="text-xs text-right">Total TTC</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((doc) => {
+                  const statusCfg = docStatusConfig[doc.status]
+                  return (
+                    <TableRow key={doc.id}>
+                      <TableCell className="font-medium text-xs">{doc.number}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {format(new Date(doc.date), 'dd/MM/yyyy', { locale: fr })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] px-1.5 py-0 ${
+                            statusCfg?.color || 'bg-gray-100 text-gray-700 border-gray-200'
+                          }`}
+                        >
+                          {statusCfg?.label || doc.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-xs">
+                        {doc.totalTTC.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailViewProps) {
   const [loading, setLoading] = useState(true)
+  const [docsLoading, setDocsLoading] = useState(true)
+  const [quotes, setQuotes] = useState<DocRow[]>([])
+  const [orders, setOrders] = useState<DocRow[]>([])
+  const [deliveryNotes, setDeliveryNotes] = useState<DocRow[]>([])
+  const [invoices, setInvoices] = useState<DocRow[]>([])
+  const [creditNotes, setCreditNotes] = useState<DocRow[]>([])
 
   useEffect(() => {
-    // Simulate loading for related data
+    // Simulate loading for detail view
     const timer = setTimeout(() => setLoading(false), 300)
     return () => clearTimeout(timer)
   }, [])
+
+  // Fetch all related documents in parallel
+  useEffect(() => {
+    if (!client.id) return
+    const fetchDocs = async () => {
+      const results = await Promise.allSettled([
+        api.get<{ quotes: DocRow[] }>(`/quotes?clientId=${client.id}`).then(r => r.quotes || []).catch(() => []),
+        api.get<{ orders: DocRow[] }>(`/sales-orders?clientId=${client.id}`).then(r => r.orders || []).catch(() => []),
+        api.get<{ deliveryNotes: DocRow[] }>(`/delivery-notes?clientId=${client.id}`).then(r => r.deliveryNotes || []).catch(() => []),
+        api.get<{ invoices: DocRow[] }>(`/invoices?clientId=${client.id}`).then(r => r.invoices || []).catch(() => []),
+        api.get<{ creditNotes: DocRow[] }>(`/credit-notes?clientId=${client.id}`).then(r => r.creditNotes || []).catch(() => []),
+      ])
+      if (results[0].status === 'fulfilled') setQuotes(results[0].value)
+      if (results[1].status === 'fulfilled') setOrders(results[1].value)
+      if (results[2].status === 'fulfilled') setDeliveryNotes(results[2].value)
+      if (results[3].status === 'fulfilled') setInvoices(results[3].value)
+      if (results[4].status === 'fulfilled') setCreditNotes(results[4].value)
+      setDocsLoading(false)
+    }
+    fetchDocs()
+  }, [client.id])
 
   if (loading) return <DetailSkeleton />
 
@@ -2030,19 +2167,72 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
         {/* Tab: Historique (related documents) */}
         <TabsContent value="historique">
           <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Documents récents</CardTitle>
-                <CardDescription>Devis, commandes et factures associées</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Les documents associés seront affichés ici.</p>
-                  <p className="text-xs mt-1">Connectez le module historique pour voir les devis, commandes et factures.</p>
-                </div>
-              </CardContent>
-            </Card>
+            {docsLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Card key={i}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-5 w-8" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {Array.from({ length: 3 }).map((_, j) => (
+                        <Skeleton key={j} className="h-8 w-full mb-2 last:mb-0" />
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* Devis */}
+                <DocSectionCard
+                  title="Devis"
+                  icon={<FileText className="h-4 w-4" />}
+                  count={quotes.length}
+                  items={quotes}
+                  emptyMessage="Aucun devis associé à ce client."
+                />
+
+                {/* Commandes */}
+                <DocSectionCard
+                  title="Commandes"
+                  icon={<ShoppingCart className="h-4 w-4" />}
+                  count={orders.length}
+                  items={orders}
+                  emptyMessage="Aucune commande associée à ce client."
+                />
+
+                {/* Bons de Livraison */}
+                <DocSectionCard
+                  title="Bons de Livraison"
+                  icon={<Truck className="h-4 w-4" />}
+                  count={deliveryNotes.length}
+                  items={deliveryNotes}
+                  emptyMessage="Aucun bon de livraison associé à ce client."
+                />
+
+                {/* Factures */}
+                <DocSectionCard
+                  title="Factures"
+                  icon={<Receipt className="h-4 w-4" />}
+                  count={invoices.length}
+                  items={invoices}
+                  emptyMessage="Aucune facture associée à ce client."
+                />
+
+                {/* Avoirs */}
+                <DocSectionCard
+                  title="Avoirs"
+                  icon={<RotateCcw className="h-4 w-4" />}
+                  count={creditNotes.length}
+                  items={creditNotes}
+                  emptyMessage="Aucun avoir associé à ce client."
+                />
+              </>
+            )}
           </div>
         </TabsContent>
 

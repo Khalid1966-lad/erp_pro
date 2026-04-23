@@ -19,7 +19,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Edit, Trash2, Star, Phone, Mail, Building2 } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Star, Phone, Mail, Building2, Eye } from 'lucide-react'
+import SupplierDetailView from './supplier-detail-view'
 import { toast } from 'sonner'
 
 // ── Types ──────────────────────────────────────────────
@@ -81,6 +82,8 @@ function Stars({ rating, onChange, size = 'sm' }: { rating: number; onChange?: (
 }
 
 // ── Component ──────────────────────────────────────────
+type SubView = 'list' | 'detail'
+
 export default function SuppliersView() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,6 +93,10 @@ export default function SuppliersView() {
   const [form, setForm] = useState<SupplierFormData>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [subView, setSubView] = useState<SubView>('list')
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
+
+  const goBack = () => { setSubView('list'); setSelectedSupplier(null) }
 
   const fetchSuppliers = useCallback(async () => {
     try {
@@ -120,6 +127,7 @@ export default function SuppliersView() {
   }
 
   const openEdit = (s: Supplier) => {
+    setSelectedSupplier(s)
     setEditing(s)
     setForm({
       code: s.code, name: s.name, email: s.email || '', phone: s.phone || '', siret: s.siret || '',
@@ -172,6 +180,17 @@ export default function SuppliersView() {
 
   const updateField = (field: keyof SupplierFormData, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  if (subView === 'detail' && selectedSupplier) {
+    return (
+      <SupplierDetailView
+        supplier={selectedSupplier}
+        onBack={goBack}
+        onEdit={() => { openEdit(selectedSupplier) }}
+        onDelete={handleDelete}
+      />
+    )
   }
 
   return (
@@ -347,6 +366,9 @@ export default function SuppliersView() {
                       <td className="px-4 py-3"><Stars rating={s.rating} /></td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSupplier(s); setSubView('detail') }}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
                             <Edit className="h-4 w-4" />
                           </Button>

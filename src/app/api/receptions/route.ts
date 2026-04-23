@@ -33,11 +33,15 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const purchaseOrderId = searchParams.get('purchaseOrderId') || ''
+    const supplierId = searchParams.get('supplierId') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
 
     const where: Record<string, unknown> = {}
     if (purchaseOrderId) where.purchaseOrderId = purchaseOrderId
+    if (supplierId) {
+      where.purchaseOrder = { ...(where.purchaseOrder as Record<string, unknown> || {}), supplierId }
+    }
 
     const [receptions, total] = await Promise.all([
       db.reception.findMany({
