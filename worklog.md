@@ -198,3 +198,56 @@ Stage Summary:
 - Client detail view now matches supplier detail view pattern with individual tabs
 - Each document type has its own dedicated tab with status-colored badges
 - Commercial sidebar was already renamed to 'Ventes' and purchase items already in correct order
+
+---
+Task ID: 2
+Agent: main
+Task: Add overflow-x-auto to all tables missing horizontal scroll
+
+Work Log:
+- Added overflow-x-auto to quotes-view.tsx
+- Added overflow-x-auto to sales-orders-view.tsx
+- Added overflow-x-auto to preparations-view.tsx
+- Added overflow-x-auto to delivery-notes-view.tsx
+- Added overflow-x-auto to invoices-view.tsx
+- Added overflow-x-auto to credit-notes-view.tsx
+- Added overflow-x-auto to payments-view.tsx
+- Added overflow-x-auto to accounting-view.tsx
+- Added overflow-x-auto to cash-registers-view.tsx
+- Added overflow-x-auto to bank-accounts-view.tsx
+- Added overflow-x-auto to audit-log-view.tsx
+
+Stage Summary:
+- All 11 table views now have horizontal scroll support via overflow-x-auto
+
+---
+Task ID: 1
+Agent: main
+Task: Remove ICE column from clients table
+
+Work Log:
+- Removed ICE TableHead from clients table header
+- Removed ICE TableCell from data rows  
+- Updated colSpan from 8 to 7 in loading/empty states
+
+Stage Summary:
+- ICE column successfully removed from client list view
+
+---
+Task ID: 3
+Agent: main
+Task: Add Edit functionality to credit-notes (Avoirs ventes)
+
+Work Log:
+- Added Pencil icon import
+- Added isEditing state variable
+- Added openEdit function to populate form from existing credit note
+- Modified handleSave to support both create and update modes
+- Made dialog title and save button text dynamic based on edit mode
+- Added Edit button in actions column for draft credit notes
+- Reset isEditing state when dialog closes
+
+Stage Summary:
+- Credit notes can now be edited (in draft status) via the Pencil icon button
+- Reuses existing create dialog with dynamic title/button text
+- Backend PUT endpoint already supports this via updateData spread

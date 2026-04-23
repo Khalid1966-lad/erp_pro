@@ -26,7 +26,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  RotateCcw, Plus, Search, MoreVertical, Eye, Trash2, CheckCircle, XCircle, ShieldCheck
+  RotateCcw, Plus, Search, MoreVertical, Eye, Trash2, CheckCircle, XCircle, ShieldCheck, Pencil
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -97,6 +97,7 @@ export default function CreditNotesView() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedCN, setSelectedCN] = useState<CreditNote | null>(null)
   const [saving, setSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [products, setProducts] = useState<Product[]>([])
 
@@ -157,6 +158,7 @@ export default function CreditNotesView() {
 
   const openCreate = () => {
     setSelectedCN(null)
+    setIsEditing(false)
     setFormInvoiceId('')
     setFormReason('')
     setFormLines([emptyLine()])
@@ -166,6 +168,23 @@ export default function CreditNotesView() {
   const openDetail = (cn: CreditNote) => {
     setSelectedCN(cn)
     setDetailOpen(true)
+  }
+
+  const openEdit = (cn: CreditNote) => {
+    setSelectedCN(cn)
+    setIsEditing(true)
+    setFormInvoiceId(cn.invoice.id)
+    setFormReason(cn.reason || '')
+    setFormLines(
+      cn.lines.map((l) => ({
+        productId: l.productId,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        tvaRate: l.tvaRate,
+        product: l.product
+      }))
+    )
+    setDialogOpen(true)
   }
 
   const handleAction = async (cn: CreditNote, action: string) => {
@@ -208,7 +227,7 @@ export default function CreditNotesView() {
 
     try {
       setSaving(true)
-      await api.post('/credit-notes', {
+      const payload = {
         invoiceId: formInvoiceId,
         reason: formReason || undefined,
         lines: validLines.map(l => ({
@@ -217,13 +236,20 @@ export default function CreditNotesView() {
           unitPrice: l.unitPrice,
           tvaRate: l.tvaRate
         }))
-      })
-      toast.success('Avoir créé')
+      }
+
+      if (isEditing && selectedCN) {
+        await api.put('/credit-notes', { id: selectedCN.id, ...payload })
+        toast.success('Avoir modifié')
+      } else {
+        await api.post('/credit-notes', payload)
+        toast.success('Avoir créé')
+      }
       setDialogOpen(false)
       fetchCreditNotes()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur'
-      toast.error(msg || 'Erreur création')
+      toast.error(msg || "Erreur lors de l'enregistrement")
     } finally {
       setSaving(false)
     }
@@ -330,7 +356,7 @@ export default function CreditNotesView() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <div className="max-h-[500px] overflow-y-auto">
+          <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -376,6 +402,11 @@ export default function CreditNotesView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(cn)}>
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {cn.status === 'draft' && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cn)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {getActions(cn).length > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -432,10 +463,10 @@ export default function CreditNotesView() {
       </Card>
 
       {/* Create Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) setIsEditing(false); setDialogOpen(open) }}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nouvel avoir</DialogTitle>
+            <DialogTitle>{isEditing ? 'Modifier l\'avoir' : 'Nouvel avoir'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -546,7 +577,7 @@ export default function CreditNotesView() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Création...' : 'Créer l\'avoir'}
+              {saving ? (isEditing ? 'Modification...' : 'Création...') : (isEditing ? 'Modifier l\'avoir' : 'Créer l\'avoir')}
             </Button>
           </DialogFooter>
         </DialogContent>

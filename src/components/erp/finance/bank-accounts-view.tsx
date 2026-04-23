@@ -317,7 +317,7 @@ export default function BankAccountsView() {
           <CardTitle className="text-base">Comptes disponibles</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="max-h-[300px] overflow-y-auto">
+          <div className="max-h-[300px] overflow-x-auto overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>

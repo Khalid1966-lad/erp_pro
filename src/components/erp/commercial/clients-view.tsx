@@ -721,7 +721,6 @@ function ClientListView({
                     </div>
                   </TableHead>
                   <TableHead className="hidden md:table-cell">Type</TableHead>
-                  <TableHead className="hidden md:table-cell">ICE</TableHead>
                   <TableHead className="hidden lg:table-cell" onClick={() => onSort('city')}>
                     <div className="flex items-center gap-1 cursor-pointer select-none">
                       Ville
@@ -744,14 +743,14 @@ function ClientListView({
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={7}>
                         <Skeleton className="h-10 w-full" />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : clients.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       {search ? 'Aucun client trouvé.' : 'Aucun client enregistré.'}
                     </TableCell>
                   </TableRow>
@@ -767,9 +766,6 @@ function ClientListView({
                         <Badge variant="outline" className={typeSocieteColorMap[client.typeSociete] || ''}>
                           {client.typeSociete || '—'}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground font-mono text-xs">
-                        {client.ice || client.siret || '—'}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground">
                         {client.city || '—'}

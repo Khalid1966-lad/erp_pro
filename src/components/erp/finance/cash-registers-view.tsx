@@ -282,7 +282,7 @@ export default function CashRegistersView() {
           <CardTitle className="text-base">Caisses disponibles</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="max-h-[300px] overflow-y-auto">
+          <div className="max-h-[300px] overflow-x-auto overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>

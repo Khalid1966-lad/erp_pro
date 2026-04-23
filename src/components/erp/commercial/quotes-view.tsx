@@ -478,7 +478,7 @@ export default function QuotesView() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <div className="max-h-[500px] overflow-y-auto">
+          <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
