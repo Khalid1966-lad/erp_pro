@@ -1834,6 +1834,7 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
 //  DETAIL VIEW
 // ═══════════════════════════════════════════════════════════════
 // ───────────────────── Historique Document Types ─────────────────────
+// ── Document types for tab tables ──
 interface DocRow {
   id: string
   number: string
@@ -1842,27 +1843,130 @@ interface DocRow {
   totalTTC: number
 }
 
-// Status config maps for each document type
-const docStatusConfig: Record<string, { label: string; color: string }> = {
-  // Devis
-  draft: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700 border-gray-200' },
-  sent: { label: 'Envoyé', color: 'bg-sky-100 text-sky-700 border-sky-200' },
-  accepted: { label: 'Accepté', color: 'bg-green-100 text-green-700 border-green-200' },
-  rejected: { label: 'Refusé', color: 'bg-red-100 text-red-700 border-red-200' },
-  expired: { label: 'Expiré', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  // Commandes
-  pending: { label: 'En attente', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  confirmed: { label: 'Confirmée', color: 'bg-green-100 text-green-700 border-green-200' },
-  in_preparation: { label: 'En préparation', color: 'bg-sky-100 text-sky-700 border-sky-200' },
-  delivered: { label: 'Livrée', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  // Factures
-  validated: { label: 'Validée', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-  paid: { label: 'Payée', color: 'bg-green-100 text-green-700 border-green-200' },
-  overdue: { label: 'En retard', color: 'bg-red-100 text-red-700 border-red-200' },
-  // Avoirs
-  applied: { label: 'Appliqué', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  // Bons de livraison
-  draft_bl: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+// ── Status configs per document type (commercial) ──
+const quoteStatusCfg: Record<string, { label: string; className: string }> = {
+  draft:     { label: 'Brouillon', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  sent:      { label: 'Envoyé',    className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
+  accepted:  { label: 'Accepté',   className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+  rejected:  { label: 'Refusé',    className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' },
+  expired:   { label: 'Expiré',    className: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' },
+  cancelled: { label: 'Annulé',    className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+}
+
+const orderStatusCfg: Record<string, { label: string; className: string }> = {
+  pending:             { label: 'En attente',         className: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' },
+  confirmed:           { label: 'Confirmée',          className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+  in_preparation:      { label: 'En préparation',     className: 'bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-300' },
+  prepared:            { label: 'Préparée',           className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' },
+  partially_delivered: { label: 'Partiellement livrée', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' },
+  delivered:           { label: 'Livrée',             className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' },
+  cancelled:           { label: 'Annulée',            className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+}
+
+const blStatusCfg: Record<string, { label: string; className: string }> = {
+  draft:      { label: 'Brouillon',  className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  confirmed:  { label: 'Confirmé',   className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
+  delivered:  { label: 'Livré',      className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+  cancelled:  { label: 'Annulé',     className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+}
+
+const invoiceStatusCfg: Record<string, { label: string; className: string }> = {
+  draft:     { label: 'Brouillon', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  validated: { label: 'Validée',   className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' },
+  sent:      { label: 'Envoyée',   className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
+  paid:      { label: 'Payée',     className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+  overdue:   { label: 'En retard', className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' },
+  cancelled: { label: 'Annulée',   className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+}
+
+const creditNoteStatusCfg: Record<string, { label: string; className: string }> = {
+  draft:     { label: 'Brouillon', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  validated: { label: 'Validé',    className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' },
+  applied:   { label: 'Appliqué',  className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+  cancelled: { label: 'Annulé',    className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+}
+
+function DocStatusBadge({ status, config }: { status: string; config: Record<string, { label: string; className: string }> }) {
+  const cfg = config[status]
+  if (!cfg) return <Badge variant="outline">{status}</Badge>
+  return <Badge variant="outline" className={cfg.className}>{cfg.label}</Badge>
+}
+
+// ── Empty State ──
+function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+      <Icon className="h-10 w-10 mb-3 opacity-40" />
+      <p className="text-sm">{message}</p>
+    </div>
+  )
+}
+
+// ── Tab Skeleton ──
+function TabSkeleton() {
+  return (
+    <div className="space-y-3 p-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-4 w-28" />
+          <div className="flex-1" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Tab Card Wrapper ──
+function TabCard({ children }: { children: React.ReactNode }) {
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto max-h-96 overflow-y-auto">
+          {children}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ── Custom hook for fetching tab data ──
+function useTabData<T>(endpoint: string, field: string, clientId: string) {
+  const [data, setData] = useState<T[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetch() {
+      try {
+        setLoading(true)
+        const res = await api.get<Record<string, unknown>>(`${endpoint}?clientId=${clientId}`)
+        if (!cancelled) {
+          setData((res[field] as T[]) || [])
+        }
+      } catch {
+        if (!cancelled) setData([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    fetch()
+    return () => { cancelled = true }
+  }, [endpoint, field, clientId])
+
+  return { data, loading }
+}
+
+// ── Format helpers ──
+function fmtMoney(n: number) {
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
+}
+
+function fmtDate(d: string | null) {
+  if (!d) return '—'
+  return format(new Date(d), 'dd/MM/yyyy', { locale: fr })
 }
 
 interface ClientDetailViewProps {
@@ -1872,124 +1976,21 @@ interface ClientDetailViewProps {
   onDelete: (id: string) => void
 }
 
-function DocSectionCard({
-  title,
-  icon,
-  count,
-  items,
-  emptyMessage,
-}: {
-  title: string
-  icon: React.ReactNode
-  count: number
-  items: DocRow[]
-  emptyMessage: string
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {icon}
-            <CardTitle className="text-base">{title}</CardTitle>
-          </div>
-          <Badge variant="secondary" className="text-xs">
-            {count}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {items.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <FileText className="h-6 w-6 mx-auto mb-1 opacity-40" />
-            <p className="text-sm">{emptyMessage}</p>
-          </div>
-        ) : (
-          <div className="max-h-96 overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">N°</TableHead>
-                  <TableHead className="text-xs">Date</TableHead>
-                  <TableHead className="text-xs">Statut</TableHead>
-                  <TableHead className="text-xs text-right">Total TTC</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((doc) => {
-                  const statusCfg = docStatusConfig[doc.status]
-                  return (
-                    <TableRow key={doc.id}>
-                      <TableCell className="font-medium text-xs">{doc.number}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(new Date(doc.date), 'dd/MM/yyyy', { locale: fr })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] px-1.5 py-0 ${
-                            statusCfg?.color || 'bg-gray-100 text-gray-700 border-gray-200'
-                          }`}
-                        >
-                          {statusCfg?.label || doc.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-xs">
-                        {doc.totalTTC.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
 function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailViewProps) {
-  const [loading, setLoading] = useState(true)
-  const [docsLoading, setDocsLoading] = useState(true)
-  const [quotes, setQuotes] = useState<DocRow[]>([])
-  const [orders, setOrders] = useState<DocRow[]>([])
-  const [deliveryNotes, setDeliveryNotes] = useState<DocRow[]>([])
-  const [invoices, setInvoices] = useState<DocRow[]>([])
-  const [creditNotes, setCreditNotes] = useState<DocRow[]>([])
+  // Tab data
+  const quotes = useTabData<DocRow>('/quotes', 'quotes', client.id)
+  const orders = useTabData<DocRow>('/sales-orders', 'orders', client.id)
+  const deliveryNotes = useTabData<DocRow>('/delivery-notes', 'deliveryNotes', client.id)
+  const invoices = useTabData<DocRow>('/invoices', 'invoices', client.id)
+  const creditNotes = useTabData<DocRow>('/credit-notes', 'creditNotes', client.id)
 
-  useEffect(() => {
-    // Simulate loading for detail view
-    const timer = setTimeout(() => setLoading(false), 300)
-    return () => clearTimeout(timer)
-  }, [])
-
-  // Fetch all related documents in parallel
-  useEffect(() => {
-    if (!client.id) return
-    const fetchDocs = async () => {
-      const results = await Promise.allSettled([
-        api.get<{ quotes: DocRow[] }>(`/quotes?clientId=${client.id}`).then(r => r.quotes || []).catch(() => []),
-        api.get<{ orders: DocRow[] }>(`/sales-orders?clientId=${client.id}`).then(r => r.orders || []).catch(() => []),
-        api.get<{ deliveryNotes: DocRow[] }>(`/delivery-notes?clientId=${client.id}`).then(r => r.deliveryNotes || []).catch(() => []),
-        api.get<{ invoices: DocRow[] }>(`/invoices?clientId=${client.id}`).then(r => r.invoices || []).catch(() => []),
-        api.get<{ creditNotes: DocRow[] }>(`/credit-notes?clientId=${client.id}`).then(r => r.creditNotes || []).catch(() => []),
-      ])
-      if (results[0].status === 'fulfilled') setQuotes(results[0].value)
-      if (results[1].status === 'fulfilled') setOrders(results[1].value)
-      if (results[2].status === 'fulfilled') setDeliveryNotes(results[2].value)
-      if (results[3].status === 'fulfilled') setInvoices(results[3].value)
-      if (results[4].status === 'fulfilled') setCreditNotes(results[4].value)
-      setDocsLoading(false)
-    }
-    fetchDocs()
-  }, [client.id])
-
-  if (loading) return <DetailSkeleton />
+  const fullAddress = [client.address, client.postalCode, client.city, client.country]
+    .filter(Boolean)
+    .join(', ')
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={onBack}>
@@ -1998,10 +1999,15 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold">{client.name}</h2>
-              <StatusBadge status="actif" />
+              <StatusBadge status={client.statut || 'prospect'} />
+              {client.typeSociete && (
+                <Badge variant="outline" className={typeSocieteColorMap[client.typeSociete] || ''}>
+                  {client.typeSociete}
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
-              {client.siret && <span className="font-mono">ICE: {client.siret}</span>}
+              {client.siret && <span className="font-mono text-xs">ICE: {client.siret}</span>}
               {client.city && <span className="ml-2">• {client.city}</span>}
             </p>
           </div>
@@ -2040,227 +2046,289 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* ── Summary Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Phone className="h-4 w-4" />
-              Téléphone
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-50 text-blue-600 shrink-0">
+              <Phone className="h-5 w-5" />
             </div>
-            <p className="font-medium">{client.phone || '—'}</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Téléphone</p>
+              <p className="text-sm font-medium truncate">{client.phone || '—'}</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Mail className="h-4 w-4" />
-              Email
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
+              <Mail className="h-5 w-5" />
             </div>
-            <p className="font-medium truncate">{client.email || '—'}</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Email</p>
+              <p className="text-sm font-medium truncate">{client.email || '—'}</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <MapPin className="h-4 w-4" />
-              Adresse
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-orange-50 text-orange-600 shrink-0">
+              <MapPin className="h-5 w-5" />
             </div>
-            <p className="font-medium truncate">
-              {[client.address, client.postalCode, client.city].filter(Boolean).join(', ') || '—'}
-            </p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Adresse</p>
+              <p className="text-sm font-medium truncate">{fullAddress || '—'}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className={`flex items-center justify-center h-10 w-10 rounded-lg ${client.balance > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'} shrink-0`}>
+              <Receipt className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Solde</p>
+              <p className={`text-sm font-bold truncate ${client.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {fmt(client.balance)}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Detail Tabs */}
-      <Tabs defaultValue="identite">
+      {/* ── Tabs ── */}
+      <Tabs defaultValue="info" className="space-y-4">
         <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="identite" className="text-xs sm:text-sm">
+          <TabsTrigger value="info" className="text-xs sm:text-sm">
             <Building2 className="h-4 w-4 mr-1 hidden sm:inline" />
-            Identité
+            Informations
           </TabsTrigger>
-          <TabsTrigger value="commercial" className="text-xs sm:text-sm">
-            <ShoppingCart className="h-4 w-4 mr-1 hidden sm:inline" />
-            Commercial
-          </TabsTrigger>
-          <TabsTrigger value="historique" className="text-xs sm:text-sm">
+          <TabsTrigger value="quotes" className="text-xs sm:text-sm">
             <FileText className="h-4 w-4 mr-1 hidden sm:inline" />
-            Historique
+            Devis
+            {quotes.data.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">{quotes.data.length}</Badge>
+            )}
           </TabsTrigger>
-          <TabsTrigger value="contacts" className="text-xs sm:text-sm">
-            <Users className="h-4 w-4 mr-1 hidden sm:inline" />
-            Contacts
+          <TabsTrigger value="orders" className="text-xs sm:text-sm">
+            <ShoppingCart className="h-4 w-4 mr-1 hidden sm:inline" />
+            Commandes
+            {orders.data.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">{orders.data.length}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="delivery-notes" className="text-xs sm:text-sm">
+            <Truck className="h-4 w-4 mr-1 hidden sm:inline" />
+            Bons de Livraison
+            {deliveryNotes.data.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">{deliveryNotes.data.length}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="invoices" className="text-xs sm:text-sm">
+            <Receipt className="h-4 w-4 mr-1 hidden sm:inline" />
+            Factures
+            {invoices.data.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">{invoices.data.length}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="credit-notes" className="text-xs sm:text-sm">
+            <RotateCcw className="h-4 w-4 mr-1 hidden sm:inline" />
+            Avoirs
+            {creditNotes.data.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">{creditNotes.data.length}</Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
-        {/* Tab: Identité */}
-        <TabsContent value="identite">
+        {/* ── Tab: Informations ── */}
+        <TabsContent value="info">
           <Card>
-            <CardHeader>
-              <CardTitle>Informations légales</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                <InfoRow label="Raison sociale" value={client.name} />
-                <InfoRow label="SIRET / ICE" value={client.siret} />
-                <InfoRow label="Adresse" value={client.address} />
-                <InfoRow label="Code postal" value={client.postalCode} />
-                <InfoRow label="Ville" value={client.city} />
-                <InfoRow label="Pays" value={client.country} />
-                <InfoRow label="Téléphone" value={client.phone} />
-                <InfoRow label="Email" value={client.email} />
-                <InfoRow label="Limite de crédit" value={client.creditLimit ? fmt(client.creditLimit) : null} />
-                <InfoRow label="Conditions de paiement" value={client.paymentTerms} />
-                <InfoRow label="Solde" value={fmt(client.balance)} />
-                <InfoRow label="Notes" value={client.notes} />
-                <InfoRow label="Date de création" value={
-                  client.createdAt ? format(new Date(client.createdAt), 'dd MMMM yyyy', { locale: fr }) : null
-                } />
-                <InfoRow label="Dernière modification" value={
-                  client.updatedAt ? format(new Date(client.updatedAt), 'dd MMMM yyyy', { locale: fr }) : null
-                } />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab: Commercial */}
-        <TabsContent value="commercial">
-          <Card>
-            <CardHeader>
-              <CardTitle>Données commerciales</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <Card className="bg-muted/50">
-                  <CardContent className="p-4 text-center">
-                    <p className="text-sm text-muted-foreground">Solde actuel</p>
-                    <p className={`text-2xl font-bold ${client.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {fmt(client.balance)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                  <CardContent className="p-4 text-center">
-                    <p className="text-sm text-muted-foreground">Limite de crédit</p>
-                    <p className="text-2xl font-bold">{client.creditLimit ? fmt(client.creditLimit) : '—'}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                  <CardContent className="p-4 text-center">
-                    <p className="text-sm text-muted-foreground">Conditions de paiement</p>
-                    <p className="text-2xl font-bold">{client.paymentTerms || '—'}</p>
-                  </CardContent>
-                </Card>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                <InfoRow label="Solde" value={fmt(client.balance)} />
-                <InfoRow label="Limite de crédit" value={client.creditLimit ? fmt(client.creditLimit) : null} />
-                <InfoRow label="Conditions de paiement" value={client.paymentTerms} />
-                <InfoRow label="Notes" value={client.notes} />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab: Historique (related documents) */}
-        <TabsContent value="historique">
-          <div className="space-y-4">
-            {docsLoading ? (
-              <div className="space-y-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <Skeleton className="h-5 w-32" />
-                        <Skeleton className="h-5 w-8" />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {Array.from({ length: 3 }).map((_, j) => (
-                        <Skeleton key={j} className="h-8 w-full mb-2 last:mb-0" />
-                      ))}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <>
-                {/* Devis */}
-                <DocSectionCard
-                  title="Devis"
-                  icon={<FileText className="h-4 w-4" />}
-                  count={quotes.length}
-                  items={quotes}
-                  emptyMessage="Aucun devis associé à ce client."
-                />
-
-                {/* Commandes */}
-                <DocSectionCard
-                  title="Commandes"
-                  icon={<ShoppingCart className="h-4 w-4" />}
-                  count={orders.length}
-                  items={orders}
-                  emptyMessage="Aucune commande associée à ce client."
-                />
-
-                {/* Bons de Livraison */}
-                <DocSectionCard
-                  title="Bons de Livraison"
-                  icon={<Truck className="h-4 w-4" />}
-                  count={deliveryNotes.length}
-                  items={deliveryNotes}
-                  emptyMessage="Aucun bon de livraison associé à ce client."
-                />
-
-                {/* Factures */}
-                <DocSectionCard
-                  title="Factures"
-                  icon={<Receipt className="h-4 w-4" />}
-                  count={invoices.length}
-                  items={invoices}
-                  emptyMessage="Aucune facture associée à ce client."
-                />
-
-                {/* Avoirs */}
-                <DocSectionCard
-                  title="Avoirs"
-                  icon={<RotateCcw className="h-4 w-4" />}
-                  count={creditNotes.length}
-                  items={creditNotes}
-                  emptyMessage="Aucun avoir associé à ce client."
-                />
-              </>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Tab: Contacts */}
-        <TabsContent value="contacts">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Contacts</CardTitle>
-                  <CardDescription>Personnes de contact associées</CardDescription>
+                  <InfoRow label="Raison sociale" value={client.name} />
+                  <InfoRow label="ICE / SIRET" value={client.siret} />
+                  <InfoRow label="Email" value={client.email} />
+                  <InfoRow label="Téléphone" value={client.phone} />
+                  <InfoRow label="Adresse" value={client.address} />
                 </div>
-                <Button size="sm" variant="outline" onClick={onEdit}>
-                  <Edit className="h-4 w-4 mr-1" />
-                  Gérer
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">Aucun contact enregistré pour ce client.</p>
-                <Button variant="link" size="sm" className="mt-1" onClick={onEdit}>
-                  Ajouter un contact
-                </Button>
+                <div>
+                  <InfoRow label="Ville" value={client.city} />
+                  <InfoRow label="Code postal" value={client.postalCode} />
+                  <InfoRow label="Pays" value={client.country} />
+                  <InfoRow label="Type société" value={client.typeSociete || null} />
+                  <InfoRow label="Statut" value={statusLabelMap[client.statut] || client.statut} />
+                  <InfoRow label="Catégorie" value={client.categorie || null} />
+                  <InfoRow label="Limite de crédit" value={client.creditLimit ? fmt(client.creditLimit) : null} />
+                  <InfoRow label="Conditions de paiement" value={client.paymentTerms} />
+                  <InfoRow label="Notes" value={client.notes} />
+                  <InfoRow label="Date de création" value={
+                    client.createdAt ? format(new Date(client.createdAt), 'dd MMMM yyyy', { locale: fr }) : null
+                  } />
+                </div>
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── Tab: Devis ── */}
+        <TabsContent value="quotes">
+          {quotes.loading ? (
+            <TabSkeleton />
+          ) : quotes.data.length === 0 ? (
+            <EmptyState icon={FileText} message="Aucun devis pour ce client" />
+          ) : (
+            <TabCard>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Numéro</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Total TTC</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {quotes.data.map((q) => (
+                    <TableRow key={q.id}>
+                      <TableCell className="font-medium font-mono text-sm">{q.number}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm">{fmtDate(q.date)}</TableCell>
+                      <TableCell><DocStatusBadge status={q.status} config={quoteStatusCfg} /></TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney(q.totalTTC)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabCard>
+          )}
+        </TabsContent>
+
+        {/* ── Tab: Commandes ── */}
+        <TabsContent value="orders">
+          {orders.loading ? (
+            <TabSkeleton />
+          ) : orders.data.length === 0 ? (
+            <EmptyState icon={ShoppingCart} message="Aucune commande pour ce client" />
+          ) : (
+            <TabCard>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Numéro</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Total TTC</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.data.map((o) => (
+                    <TableRow key={o.id}>
+                      <TableCell className="font-medium font-mono text-sm">{o.number}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm">{fmtDate(o.date)}</TableCell>
+                      <TableCell><DocStatusBadge status={o.status} config={orderStatusCfg} /></TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney(o.totalTTC)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabCard>
+          )}
+        </TabsContent>
+
+        {/* ── Tab: Bons de Livraison ── */}
+        <TabsContent value="delivery-notes">
+          {deliveryNotes.loading ? (
+            <TabSkeleton />
+          ) : deliveryNotes.data.length === 0 ? (
+            <EmptyState icon={Truck} message="Aucun bon de livraison pour ce client" />
+          ) : (
+            <TabCard>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Numéro</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Total TTC</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deliveryNotes.data.map((bl) => (
+                    <TableRow key={bl.id}>
+                      <TableCell className="font-medium font-mono text-sm">{bl.number}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm">{fmtDate(bl.date)}</TableCell>
+                      <TableCell><DocStatusBadge status={bl.status} config={blStatusCfg} /></TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney(bl.totalTTC)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabCard>
+          )}
+        </TabsContent>
+
+        {/* ── Tab: Factures ── */}
+        <TabsContent value="invoices">
+          {invoices.loading ? (
+            <TabSkeleton />
+          ) : invoices.data.length === 0 ? (
+            <EmptyState icon={Receipt} message="Aucune facture pour ce client" />
+          ) : (
+            <TabCard>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Numéro</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Total TTC</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoices.data.map((inv) => (
+                    <TableRow key={inv.id}>
+                      <TableCell className="font-medium font-mono text-sm">{inv.number}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm">{fmtDate(inv.date)}</TableCell>
+                      <TableCell><DocStatusBadge status={inv.status} config={invoiceStatusCfg} /></TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney(inv.totalTTC)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabCard>
+          )}
+        </TabsContent>
+
+        {/* ── Tab: Avoirs ── */}
+        <TabsContent value="credit-notes">
+          {creditNotes.loading ? (
+            <TabSkeleton />
+          ) : creditNotes.data.length === 0 ? (
+            <EmptyState icon={RotateCcw} message="Aucun avoir pour ce client" />
+          ) : (
+            <TabCard>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Numéro</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Total TTC</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {creditNotes.data.map((cn) => (
+                    <TableRow key={cn.id}>
+                      <TableCell className="font-medium font-mono text-sm">{cn.number}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm">{fmtDate(cn.date)}</TableCell>
+                      <TableCell><DocStatusBadge status={cn.status} config={creditNoteStatusCfg} /></TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney(cn.totalTTC)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabCard>
+          )}
         </TabsContent>
       </Tabs>
     </div>

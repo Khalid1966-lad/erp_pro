@@ -176,3 +176,25 @@ Stage Summary:
 - Navigation fully updated with icons, colors, and permissions
 - Lint: 0 errors
 - Dev server: compiling successfully
+
+---
+Task ID: 4
+Agent: main
+Task: Add client detail view with individual document tabs (same as supplier detail view)
+
+Work Log:
+- Read the existing ClientDetailView in clients-view.tsx which had a single "Historique" tab grouping all documents
+- Analyzed the supplier detail view (supplier-detail-view.tsx) for the target pattern
+- Replaced the grouped "Historique" approach with individual tabs for each document type
+- Created separate status config maps for each document type (quotes, orders, delivery notes, invoices, credit notes)
+- Added useTabData custom hook for parallel data fetching per tab
+- Created individual tabs: Informations, Devis, Commandes, Bons de Livraison, Factures, Avoirs
+- Added document count badges on tab triggers
+- Added 4 summary cards: Téléphone, Email, Adresse, Solde (with color-coded balance)
+- Added comprehensive status badge configs with dark mode support
+- Verified: lint passes with 0 errors, dev server compiling
+
+Stage Summary:
+- Client detail view now matches supplier detail view pattern with individual tabs
+- Each document type has its own dedicated tab with status-colored badges
+- Commercial sidebar was already renamed to 'Ventes' and purchase items already in correct order
