@@ -61,3 +61,25 @@ Stage Summary:
 - Products search "Tube" now matches "tube", "TUBE", etc.
 - Quotes search also now case-insensitive
 - Commit af97d4e pushed to GitHub
+
+---
+Task ID: complete-commercial-docs-features
+Agent: main
+Task: Complete edit/print/montant-en-lettres for all commercial documents
+
+Work Log:
+- Examined commit b2f0b65 from GitHub (partial implementation of edit + montant en lettres)
+- Fixed bug: Quotes detail said "Arrêtée la présente facture" → "Arrêté le présent devis"
+- Fixed Sales Orders API PUT: added line update logic (delete old lines + create new + recalculate totals)
+- Fixed Invoices API PUT: added line update logic (delete old lines + create new + recalculate with discount/shipping)
+- Added print button (Imprimer) to Sales Orders detail dialog
+- Added print button (Imprimer) to Invoices detail dialog
+- Added print button + montant en lettres to Delivery Notes detail dialog
+- Added print button + montant en lettres + computed totals to Preparations detail dialog
+- Fixed lint error: replaced useState+useEffect with useMemo in ProductCombobox (quotes-view)
+
+Stage Summary:
+- All 5 commercial document types now have: edit capability, print button, montant en lettres
+- API PUT endpoints properly handle line updates with recalculation
+- Lint: 0 errors
+- Commit f406e51 pushed to GitHub (main branch)
