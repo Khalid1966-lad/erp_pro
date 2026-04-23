@@ -13,7 +13,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
 } from '@/components/ui/dialog'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -22,7 +22,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer } from 'lucide-react'
+import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -408,6 +409,7 @@ export default function PurchaseOrdersView() {
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
+              <PrintHeader />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Fournisseur</p>
@@ -456,8 +458,15 @@ export default function PurchaseOrdersView() {
                 <span>TVA : <strong>{fmtMoney(selectedOrder.totalTVA)}</strong></span>
                 <span>Total TTC : <strong>{fmtMoney(selectedOrder.totalTTC)}</strong></span>
               </div>
+              <PrintFooter amount={selectedOrder.totalTTC} label="Arrêtée la présente commande à la somme de" />
             </div>
           )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4 mr-1" />
+              Imprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

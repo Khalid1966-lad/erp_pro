@@ -31,6 +31,7 @@ import {
   Truck, Package, Edit, Printer, Pencil
 } from 'lucide-react'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { PrintHeader } from '@/components/erp/shared/print-header'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -932,6 +933,7 @@ export default function SalesOrdersView() {
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
+              <PrintHeader />
               {/* Quote origin badge */}
               {selectedOrder.quoteId && selectedOrder.quote && (
                 <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { PrintHeader } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -1392,6 +1393,7 @@ export default function DeliveryNotesView() {
           </DialogHeader>
           {selectedNote && (
             <div className="space-y-4">
+              <PrintHeader />
               {/* Info Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <div>

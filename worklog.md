@@ -336,3 +336,47 @@ Work Log:
 Stage Summary:
 - Supplier invoices can now be edited in received status
 - Supplier credit notes can now be edited in received status
+
+---
+Task ID: 3d
+Agent: ventes-print-header
+Task: Add PrintHeader (company info) to existing 5 ventes print templates
+
+Work Log:
+- Added PrintHeader import to all 5 ventes views
+- Added PrintHeader component at top of each detail dialog content
+- No other changes - existing print buttons/footers preserved
+
+Stage Summary:
+- All 5 ventes print templates now include company header with name, address, phone, ICE, TVA
+
+---
+Task ID: 3c
+Agent: achats-print-2
+Task: Add print to supplier-returns, supplier-credit-notes, supplier-invoices
+
+Work Log:
+- Added Printer import and PrintHeader/PrintFooter to all 3 views
+- Added PrintHeader to detail dialog content
+- Added PrintFooter with French amount text
+- Added Print button in detail dialog footer
+
+Stage Summary:
+- All 3 remaining achats views now have print functionality
+
+---
+Task ID: 3b
+Agent: achats-print-1
+Task: Add print to price-requests, supplier-quotes, purchase-orders, receptions
+
+Work Log:
+- Added Printer import and PrintHeader/PrintFooter to all 4 views
+- Added PrintHeader to detail dialog content
+- Added PrintFooter with French amount text
+- Added Print button in detail dialog footer
+- Added totalTTC optional field to Reception interface (for PrintFooter)
+- Added DialogFooter import to all 4 views
+
+Stage Summary:
+- All 4 achats views now have print functionality with company header
+- TypeScript: 0 new errors in modified files

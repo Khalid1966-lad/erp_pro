@@ -34,6 +34,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { PrintHeader } from '@/components/erp/shared/print-header'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -1046,6 +1047,7 @@ export default function InvoicesView() {
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-4">
+              <PrintHeader />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div><span className="text-muted-foreground">Client</span><p className="font-medium">{selectedInvoice.client.name}</p></div>
                 <div><span className="text-muted-foreground">Date</span><p className="font-medium">{format(new Date(selectedInvoice.date), 'dd/MM/yyyy', { locale: fr })}</p></div>

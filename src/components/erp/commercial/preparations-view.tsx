@@ -36,6 +36,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { PrintHeader } from '@/components/erp/shared/print-header'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -818,6 +819,7 @@ export default function PreparationsView() {
 
           {selectedPrep && (
             <div className="space-y-6">
+              <PrintHeader />
               {/* ── Info grid ── */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>

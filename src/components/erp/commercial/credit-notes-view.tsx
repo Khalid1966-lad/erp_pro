@@ -26,8 +26,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  RotateCcw, Plus, Search, MoreVertical, Eye, Trash2, CheckCircle, XCircle, ShieldCheck, Pencil
+  RotateCcw, Plus, Search, MoreVertical, Eye, Trash2, CheckCircle, XCircle, ShieldCheck, Pencil, Printer
 } from 'lucide-react'
+import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
+import { numberToFrenchWords } from '@/lib/number-to-words'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -599,6 +601,7 @@ export default function CreditNotesView() {
           </DialogHeader>
           {selectedCN && (
             <div className="space-y-4">
+              <PrintHeader />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div><span className="text-muted-foreground">Client</span><p className="font-medium">{selectedCN.client.name}</p></div>
                 <div><span className="text-muted-foreground">Facture</span><p className="font-mono font-medium">{selectedCN.invoice.number}</p></div>
@@ -637,7 +640,16 @@ export default function CreditNotesView() {
                 <div className="flex justify-between text-base font-bold border-t border-red-200 pt-2"><span>Total TTC</span><span className="text-red-700">-{formatCurrency(selectedCN.totalTTC)}</span></div>
               </div>
 
+              <PrintFooter 
+                amount={selectedCN.totalTTC} 
+                label="Arrêté le présent avoir à la somme de" 
+              />
+
               <DialogFooter>
+                <Button variant="outline" onClick={() => window.print()}>
+                  <Printer className="h-4 w-4 mr-1" />
+                  Imprimer
+                </Button>
                 {getActions(selectedCN).map((action) => (
                   <Button
                     key={action.action}

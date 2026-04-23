@@ -13,12 +13,13 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger
 } from '@/components/ui/dialog'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Warehouse, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Plus, Search, Eye, Warehouse, CheckCircle2, XCircle, AlertCircle, Printer } from 'lucide-react'
+import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -72,6 +73,7 @@ interface Reception {
   } | null
   lines: ReceptionLine[]
   notes: string | null
+  totalTTC?: number
   createdAt: string
 }
 
@@ -347,6 +349,7 @@ export default function ReceptionsView() {
           </DialogHeader>
           {selectedReception && (
             <div className="space-y-4">
+              <PrintHeader />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Commande</p>
@@ -388,8 +391,15 @@ export default function ReceptionsView() {
                 <CheckCircle2 className="h-4 w-4 text-green-600 inline mr-2" />
                 Le stock a été mis à jour automatiquement à la création de cette réception.
               </div>
+              <PrintFooter amount={selectedReception.totalTTC ?? 0} label="Arrêté le présent bon de réception à la somme de" />
             </div>
           )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4 mr-1" />
+              Imprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

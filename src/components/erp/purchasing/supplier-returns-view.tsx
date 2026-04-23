@@ -13,7 +13,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
 } from '@/components/ui/dialog'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -22,10 +22,12 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, Send, XCircle, CheckCircle2 } from 'lucide-react'
+import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, Send, XCircle, CheckCircle2, Printer } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { PrintHeader, PrintFooter, formatCurrency } from '@/components/erp/shared/print-header'
+import { numberToFrenchWords } from '@/lib/number-to-words'
 
 // ── Types ──────────────────────────────────────────────
 interface Product {
@@ -476,6 +478,7 @@ export default function SupplierReturnsView() {
           </DialogHeader>
           {selected && (
             <div className="space-y-4">
+              <PrintHeader />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Fournisseur</p>
@@ -536,8 +539,15 @@ export default function SupplierReturnsView() {
                 <span>TVA : <strong>{fmtMoney(selected.totalTVA)}</strong></span>
                 <span>Total TTC : <strong>{fmtMoney(selected.totalTTC)}</strong></span>
               </div>
+              <PrintFooter amount={selected.totalTTC} label="Arrêté le présent bon de retour à la somme de" />
             </div>
           )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4 mr-1" />
+              Imprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
