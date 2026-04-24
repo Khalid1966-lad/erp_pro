@@ -20,7 +20,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Edit, Trash2, Star, Phone, Mail, Building2, Eye, ArrowUpDown } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Star, Phone, Mail, Building2, Eye, ArrowUpDown, AlertTriangle } from 'lucide-react'
 import SupplierDetailView from './supplier-detail-view'
 import { toast } from 'sonner'
 
@@ -40,6 +40,7 @@ interface Supplier {
   paymentTerms: string
   rating: number
   balance: number
+  creditLimit: number
   notes: string | null
   createdAt: string
   updatedAt: string
@@ -58,13 +59,14 @@ interface SupplierFormData {
   deliveryDelay: number
   paymentTerms: string
   rating: number
+  creditLimit: number       // ADD
   notes: string
 }
 
 const emptyForm: SupplierFormData = {
   code: '', name: '', email: '', phone: '', siret: '', address: '', city: '',
   postalCode: '', country: 'Maroc', deliveryDelay: 7,
-  paymentTerms: '30 jours', rating: 5, notes: ''
+  paymentTerms: '30 jours', rating: 5, creditLimit: 0, notes: ''
 }
 
 // ── Helpers ────────────────────────────────────────────
@@ -93,7 +95,7 @@ export default function SuppliersView() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [balanceFilter, setBalanceFilter] = useState<'all' | 'debtor' | 'creditor'>('all')
+  const [balanceFilter, setBalanceFilter] = useState<'all' | 'debtor' | 'creditor' | 'creditLimit'>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Supplier | null>(null)
   const [form, setForm] = useState<SupplierFormData>(emptyForm)
@@ -127,6 +129,7 @@ export default function SuppliersView() {
   ).filter((s) => {
     if (balanceFilter === 'debtor') return s.balance > 0
     if (balanceFilter === 'creditor') return s.balance < 0
+    if (balanceFilter === 'creditLimit') return s.creditLimit > 0 && s.balance >= s.creditLimit
     return true
   })
 
@@ -143,7 +146,7 @@ export default function SuppliersView() {
       code: s.code, name: s.name, email: s.email || '', phone: s.phone || '', siret: s.siret || '',
       address: s.address || '', city: s.city || '', postalCode: s.postalCode || '',
       country: s.country || 'Maroc', deliveryDelay: s.deliveryDelay,
-      paymentTerms: s.paymentTerms, rating: s.rating, notes: s.notes || ''
+      paymentTerms: s.paymentTerms, rating: s.rating, creditLimit: s.creditLimit || 0, notes: s.notes || ''
     })
     setDialogOpen(true)
   }
@@ -284,6 +287,10 @@ export default function SuppliersView() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Plafond de crédit (MAD)</Label>
+                  <Input type="number" min={0} step={0.01} value={form.creditLimit} onChange={(e) => updateField('creditLimit', parseFloat(e.target.value) || 0)} placeholder="0.00" />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Note (1-5)</Label>
@@ -329,6 +336,15 @@ export default function SuppliersView() {
         >
           Créditeurs
         </Button>
+        <Button
+          variant={balanceFilter === 'creditLimit' ? 'default' : 'outline'}
+          size="sm"
+          className={balanceFilter === 'creditLimit' ? 'bg-orange-600 hover:bg-orange-700 text-white' : ''}
+          onClick={() => setBalanceFilter(balanceFilter === 'creditLimit' ? 'all' : 'creditLimit')}
+        >
+          <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+          Plafond atteint
+        </Button>
       </div>
 
       {/* Table */}
@@ -369,18 +385,19 @@ export default function SuppliersView() {
                         Solde
                       </div>
                     </th>
+                    <th className="text-right px-4 py-3 font-medium hidden xl:table-cell">Plafond</th>
                     <th className="text-right px-4 py-3 font-medium w-[100px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((s) => (
-                    <tr key={s.id} className="border-b hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => { setSelectedSupplier(s); setSubView('detail') }}>
+                    <tr key={s.id} className={`border-b hover:bg-muted/50 transition-colors cursor-pointer ${s.creditLimit > 0 && s.balance >= s.creditLimit ? 'bg-red-50/50 dark:bg-red-950/10' : ''}`} onClick={() => { setSelectedSupplier(s); setSubView('detail') }}>
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{s.code}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-medium">{s.name}</div>
-                        {s.siret && <div className="text-xs text-muted-foreground">{s.siret}</div>}
+                        {s.siret && <div className="text-xs text-muted-foreground font-mono">ICE: {s.siret}</div>}
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
                         <div className="space-y-1">
@@ -410,6 +427,15 @@ export default function SuppliersView() {
                         <span className={s.balance > 0 ? 'text-red-600 font-medium' : s.balance < 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
                           {fmt(s.balance)}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-right hidden xl:table-cell">
+                        {s.creditLimit > 0 ? (
+                          <span className={s.balance >= s.creditLimit ? 'text-red-600 font-medium' : 'text-muted-foreground'}>
+                            {fmt(s.creditLimit)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">

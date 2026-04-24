@@ -20,7 +20,7 @@ import {
 import {
   ArrowLeft, Edit, Trash2, Phone, Mail, MapPin, Building2, Star,
   FileText, ShoppingCart, Warehouse, RotateCcw, ArrowLeftRight, Receipt, Package,
-  Inbox, Wallet, CalendarDays, Printer,
+  Inbox, Wallet, CalendarDays, Printer, AlertTriangle,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -43,6 +43,8 @@ interface SupplierDetailProps {
     deliveryDelay: number
     paymentTerms: string
     rating: number
+    balance: number
+    creditLimit: number
     notes: string | null
   }
   onBack: () => void
@@ -573,7 +575,7 @@ export default function SupplierDetailView({ supplier, onBack, onEdit, onDelete 
       </div>
 
       {/* ── Summary Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-50 text-blue-600 shrink-0">
@@ -604,6 +606,19 @@ export default function SupplierDetailView({ supplier, onBack, onEdit, onDelete 
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Adresse</p>
               <p className="text-sm font-medium truncate">{fullAddress || '—'}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className={`flex items-center justify-center h-10 w-10 rounded-lg ${supplier.balance > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'} shrink-0`}>
+              <Receipt className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Solde</p>
+              <p className={`text-sm font-bold truncate ${supplier.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {fmtMoney(supplier.balance)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -672,7 +687,7 @@ export default function SupplierDetailView({ supplier, onBack, onEdit, onDelete 
                 <div>
                   <InfoRow label="Code" value={supplier.code} />
                   <InfoRow label="Raison sociale" value={supplier.name} />
-                  <InfoRow label="SIRET" value={supplier.siret} />
+                  <InfoRow label="ICE" value={supplier.siret} />
                   <InfoRow label="Email" value={supplier.email} />
                   <InfoRow label="Téléphone" value={supplier.phone} />
                   <InfoRow label="Adresse" value={supplier.address} />
@@ -683,6 +698,17 @@ export default function SupplierDetailView({ supplier, onBack, onEdit, onDelete 
                   <InfoRow label="Pays" value={supplier.country} />
                   <InfoRow label="Délai de livraison" value={`${supplier.deliveryDelay} jours`} />
                   <InfoRow label="Conditions de paiement" value={supplier.paymentTerms} />
+                  <InfoRow label="Solde" value={fmtMoney(supplier.balance)} />
+                  <InfoRow label="Plafond de crédit" value={supplier.creditLimit > 0 ? fmtMoney(supplier.creditLimit) : null} />
+                  {supplier.creditLimit > 0 && supplier.balance >= supplier.creditLimit && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 py-2 border-b">
+                      <span className="text-sm font-medium text-muted-foreground sm:w-48 shrink-0">État plafond</span>
+                      <Badge variant="destructive" className="gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Plafond atteint
+                      </Badge>
+                    </div>
+                  )}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 py-2 border-b last:border-0">
                     <span className="text-sm font-medium text-muted-foreground sm:w-48 shrink-0">Note</span>
                     <Stars rating={supplier.rating} />

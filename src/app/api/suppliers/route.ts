@@ -17,6 +17,7 @@ const supplierSchema = z.object({
   paymentTerms: z.string().default('30 jours'),
   notes: z.string().optional(),
   rating: z.number().min(0).max(5).default(5),
+  creditLimit: z.number().default(0),
 })
 
 // GET - List suppliers

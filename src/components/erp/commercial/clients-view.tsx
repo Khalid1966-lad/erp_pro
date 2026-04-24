@@ -80,13 +80,20 @@ interface Client {
   postalCode: string | null
   country: string | null
   creditLimit: number | null
+  seuilCredit: number
   paymentTerms: string | null
+  conditionsPaiement: string | null
   notes: string | null
   balance: number
   typeSociete: string
   statut: string
   categorie: string
   ice: string
+  gsm: string | null
+  caTotalHT: number
+  nbCommandes: number
+  alerteImpaye: boolean
+  nbImpayes: number
   createdAt: string
   updatedAt: string
 }
@@ -204,7 +211,7 @@ export default function ClientsView() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [categorieFilter, setCategorieFilter] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
-  const [balanceFilter, setBalanceFilter] = useState<'all' | 'debtor' | 'creditor'>('all')
+  const [balanceFilter, setBalanceFilter] = useState<'all' | 'debtor' | 'creditor' | 'creditLimit'>('all')
   const [sortField, setSortField] = useState<string>('raisonSociale')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [saving, setSaving] = useState(false)
@@ -265,6 +272,7 @@ export default function ClientsView() {
     if (typeFilter) result = result.filter(c => c.typeSociete === typeFilter)
     if (balanceFilter === 'debtor') result = result.filter(c => c.balance > 0)
     if (balanceFilter === 'creditor') result = result.filter(c => c.balance < 0)
+    if (balanceFilter === 'creditLimit') result = result.filter(c => c.seuilCredit > 0 && c.balance >= c.seuilCredit)
     result.sort((a, b) => {
       const aVal = String(a[sortField as keyof Client] ?? '')
       const bVal = String(b[sortField as keyof Client] ?? '')
@@ -290,8 +298,17 @@ export default function ClientsView() {
     setSubView('create')
   }
 
-  const goToEdit = (client: Client) => {
-    setSelectedClient(client)
+  const goToEdit = async (client: Client) => {
+    try {
+      const fullClient = await api.get<Client>(`/clients/${client.id}`)
+      if (fullClient) {
+        setSelectedClient(fullClient)
+      } else {
+        setSelectedClient(client)
+      }
+    } catch {
+      setSelectedClient(client)
+    }
     setSubView('edit')
   }
 
@@ -381,14 +398,14 @@ interface ClientListViewProps {
   statusFilter: string | null
   categorieFilter: string | null
   typeFilter: string | null
-  balanceFilter: 'all' | 'debtor' | 'creditor'
+  balanceFilter: 'all' | 'debtor' | 'creditor' | 'creditLimit'
   sortField: string
   sortDir: 'asc' | 'desc'
   onSearch: (v: string) => void
   onStatusFilter: (v: string | null) => void
   onCategorieFilter: (v: string | null) => void
   onTypeFilter: (v: string | null) => void
-  onBalanceFilter: (v: 'all' | 'debtor' | 'creditor') => void
+  onBalanceFilter: (v: 'all' | 'debtor' | 'creditor' | 'creditLimit') => void
   onSort: (field: string) => void
   onCreate: () => void
   onEdit: (c: Client) => void
@@ -699,6 +716,10 @@ function ClientListView({
         {/* Balance filters */}
         <Button variant={balanceFilter === 'debtor' ? 'default' : 'outline'} size="sm" className={balanceFilter === 'debtor' ? 'bg-red-600 hover:bg-red-700 text-white' : ''} onClick={() => onBalanceFilter(balanceFilter === 'debtor' ? 'all' : 'debtor')}>Débiteurs</Button>
         <Button variant={balanceFilter === 'creditor' ? 'default' : 'outline'} size="sm" className={balanceFilter === 'creditor' ? 'bg-green-600 hover:bg-green-700 text-white' : ''} onClick={() => onBalanceFilter(balanceFilter === 'creditor' ? 'all' : 'creditor')}>Créditeurs</Button>
+        <Button variant={balanceFilter === 'creditLimit' ? 'default' : 'outline'} size="sm" className={balanceFilter === 'creditLimit' ? 'bg-orange-600 hover:bg-orange-700 text-white' : ''} onClick={() => onBalanceFilter(balanceFilter === 'creditLimit' ? 'all' : 'creditLimit')}>
+          <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+          Plafond atteint
+        </Button>
         <Separator orientation="vertical" className="h-8 mx-1 hidden sm:block" />
         <Select value={categorieFilter ?? ''} onValueChange={(v) => onCategorieFilter(v === '__all__' ? null : v)}>
           <SelectTrigger className="w-auto h-8 text-sm">
@@ -744,10 +765,11 @@ function ClientListView({
                   <TableHead className="hidden sm:table-cell">Statut</TableHead>
                   <TableHead className="text-right hidden lg:table-cell" onClick={() => onSort('balance')}>
                     <div className="flex items-center justify-end gap-1 cursor-pointer select-none">
-                      CA Total
+                      Solde
                       <ArrowUpDown className="h-3 w-3" />
                     </div>
                   </TableHead>
+                  <TableHead className="hidden xl:table-cell">Plafond</TableHead>
                   <TableHead className="text-right w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -755,14 +777,14 @@ function ClientListView({
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={7}>
+                      <TableCell colSpan={8}>
                         <Skeleton className="h-10 w-full" />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : clients.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       {search ? 'Aucun client trouvé.' : 'Aucun client enregistré.'}
                     </TableCell>
                   </TableRow>
@@ -790,6 +812,16 @@ function ClientListView({
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <StatusBadge status={client.statut || 'prospect'} />
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        {client.seuilCredit > 0 && (
+                          <div className="flex items-center gap-2">
+                            <Progress value={Math.min(100, (Math.abs(client.balance) / client.seuilCredit) * 100)} className="h-1.5 flex-1 min-w-[40px]" />
+                            <span className={`text-[10px] font-medium ${client.balance >= client.seuilCredit ? 'text-red-600' : 'text-muted-foreground'}`}>
+                              {Math.round((Math.abs(client.balance) / client.seuilCredit) * 100)}%
+                            </span>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-medium hidden lg:table-cell">
                         <span className={client.balance > 0 ? 'text-red-600' : 'text-green-600'}>
@@ -861,21 +893,29 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
     defaultValues: mode === 'edit' && client
       ? {
           ...defaultClientFormValues,
-          raisonSociale: client.name,
+          raisonSociale: client.name || '',
           nomCommercial: '',
-          ice: client.siret || '',
+          ice: client.siret || client.ice || '',
           patente: '',
           cnss: '',
           identifiantFiscal: '',
           registreCommerce: '',
           villeRC: '',
+          formeJuridique: '',
           adresse: client.address || '',
           ville: client.city || '',
           codePostal: client.postalCode || '',
           telephone: client.phone || '',
+          gsm: client.gsm || '',
           email: client.email || '',
-          seuilCredit: client.creditLimit || 0,
-          conditionsPaiement: client.paymentTerms || '30',
+          emailSecondaire: '',
+          siteWeb: '',
+          seuilCredit: client.creditLimit || client.seuilCredit || 0,
+          conditionsPaiement: client.paymentTerms || client.conditionsPaiement || '30',
+          modeReglementPrefere: '',
+          escompte: 0,
+          remisePermanente: 0,
+          delaiLivraison: null,
           commentairesInternes: client.notes || '',
         }
       : defaultClientFormValues,
@@ -1422,7 +1462,7 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                   )} />
                   <FormField control={form.control} name="seuilCredit" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Seuil de crédit (MAD)</FormLabel>
+                      <FormLabel>Plafond de crédit (MAD)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -2451,7 +2491,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                 <div>
                   <InfoRow label="Raison sociale" value={client.name} />
-                  <InfoRow label="ICE / SIRET" value={client.siret} />
+                  <InfoRow label="ICE" value={client.siret} />
                   <InfoRow label="Email" value={client.email} />
                   <InfoRow label="Téléphone" value={client.phone} />
                   <InfoRow label="Adresse" value={client.address} />
@@ -2463,7 +2503,17 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
                   <InfoRow label="Type société" value={client.typeSociete || null} />
                   <InfoRow label="Statut" value={statusLabelMap[client.statut] || client.statut} />
                   <InfoRow label="Catégorie" value={client.categorie || null} />
-                  <InfoRow label="Limite de crédit" value={client.creditLimit ? fmt(client.creditLimit) : null} />
+                  <InfoRow label="Solde" value={fmt(client.balance)} />
+                  <InfoRow label="Plafond de crédit" value={client.seuilCredit > 0 ? fmt(client.seuilCredit) : null} />
+                  {client.seuilCredit > 0 && client.balance >= client.seuilCredit && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 py-2 border-b">
+                      <span className="text-sm font-medium text-muted-foreground sm:w-48 shrink-0">État plafond</span>
+                      <Badge variant="destructive" className="gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Plafond atteint
+                      </Badge>
+                    </div>
+                  )}
                   <InfoRow label="Conditions de paiement" value={client.paymentTerms} />
                   <InfoRow label="Notes" value={client.notes} />
                   <InfoRow label="Date de création" value={
