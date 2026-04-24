@@ -500,3 +500,24 @@ Work Log:
 Stage Summary:
 - Version 1.0.3 released with all references updated
 - Files changed: src/lib/version.ts, package.json, src/components/erp/admin/guide-view.tsx
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix backup restore - no feedback to user + Vercel timeout issues
+
+Work Log:
+- Diagnosed issues: Vercel function timeout killing restore silently, no fetch timeout on frontend, computeSchemaHash crash on Vercel filesystem
+- Fixed `computeSchemaHash()` in `src/lib/backup.ts` with try/catch fallback for Vercel environments
+- Added `maxDuration` exports to all backup routes: 120s (create), 300s (restore), 60s (download)
+- Rewrote `/api/backup/restore` endpoint with Server-Sent Events (SSE) streaming for real-time progress
+- Added `RestoreProgress` type with step tracking (validating/deleting/inserting/done/error) and table-level progress
+- Rewrote `backup-section.tsx` with full-screen progress overlay, progress bar, and AbortController timeout
+- Increased transaction timeout from 120s to 300s in `restoreDatabase()`
+- Added `upload/` directory to .gitignore
+- Verified: ESLint passes, Next.js production build succeeds
+- Pushed commit 162be34 to GitHub main branch
+
+Stage Summary:
+- Root cause: Vercel function timeout (10-60s default) was killing the restore endpoint silently, frontend fetch hung indefinitely without feedback
+- Fix: SSE streaming keeps Vercel function alive, maxDuration=300s extends timeout, AbortController gives frontend 5min deadline
+- User now sees: real-time progress overlay with step indicators, progress bar, table-by-table tracking, clear success/error messages
