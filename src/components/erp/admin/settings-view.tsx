@@ -167,6 +167,8 @@ function LogoUploadCard() {
   const [uploading, setUploading] = useState(false)
   const [currentLogo, setCurrentLogo] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
+  const [logoShape, setLogoShape] = useState<'square' | 'rectangle'>('square')
+  const [shapeSaved, setShapeSaved] = useState(true)
 
   useEffect(() => {
     // Check if custom logo exists
@@ -176,6 +178,14 @@ function LogoUploadCard() {
         else setCurrentLogo(null)
       })
       .catch(() => setCurrentLogo(null))
+
+    // Load logo shape setting
+    api.get<{ settingsMap: Record<string, string> }>('/settings')
+      .then(data => {
+        const shape = data.settingsMap?.company_logo_shape
+        if (shape === 'rectangle') setLogoShape('rectangle')
+      })
+      .catch(() => {})
   }, [])
 
   const uploadFile = async (file: File) => {
@@ -246,7 +256,10 @@ function LogoUploadCard() {
       <CardContent>
         <div className="flex flex-col sm:flex-row gap-6 items-start">
           {/* Preview */}
-          <div className="w-32 h-32 bg-muted rounded-xl border-2 border-dashed border-border flex items-center justify-center shrink-0 overflow-hidden relative">
+          <div className={cn(
+            "bg-muted rounded-xl border-2 border-dashed border-border flex items-center justify-center shrink-0 overflow-hidden relative",
+            logoShape === 'rectangle' ? "w-40 h-16" : "w-32 h-32"
+          )}>
             {currentLogo ? (
               <Image
                 src={currentLogo}
@@ -256,12 +269,60 @@ function LogoUploadCard() {
                 unoptimized
               />
             ) : (
-              <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+              <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
             )}
           </div>
 
-          {/* Upload area */}
+          {/* Upload area + shape selector */}
           <div className="flex-1 space-y-3 w-full">
+            {/* Shape selector */}
+            <div className="flex items-center gap-3">
+              <Label className="text-sm font-medium shrink-0">Forme du logo :</Label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setLogoShape('square'); setShapeSaved(false) }}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors",
+                    logoShape === 'square'
+                      ? "border-primary bg-primary/10 text-primary font-medium"
+                      : "border-border text-muted-foreground hover:bg-muted/50"
+                  )}
+                >
+                  <div className="w-4 h-4 border border-current rounded-sm" />
+                  Carré
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLogoShape('rectangle'); setShapeSaved(false) }}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors",
+                    logoShape === 'rectangle'
+                      ? "border-primary bg-primary/10 text-primary font-medium"
+                      : "border-border text-muted-foreground hover:bg-muted/50"
+                  )}
+                >
+                  <div className="w-5 h-3 border border-current rounded-sm" />
+                  Rectangle
+                </button>
+                {!shapeSaved && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      await api.put('/settings', { settings: { company_logo_shape: logoShape } })
+                      setShapeSaved(true)
+                      toast.success('Forme du logo mise à jour')
+                    }}
+                  >
+                    <Save className="h-3 w-3 mr-1" />
+                    OK
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Drag & drop upload */}
             <div
               className={cn(
                 'border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer',

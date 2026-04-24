@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 interface CompanyInfo {
   name: string
@@ -19,6 +20,7 @@ interface CompanyInfo {
   legalForm: string
   capital: string
   logoUrl: string | null
+  logoShape: 'square' | 'rectangle'
   // Print footer lines
   footerLine1: string
   footerLine2: string
@@ -42,6 +44,7 @@ const defaultCompany: CompanyInfo = {
   legalForm: '',
   capital: '',
   logoUrl: null,
+  logoShape: 'square' as const,
   footerLine1: '',
   footerLine2: '',
   footerLine3: '',
@@ -74,6 +77,7 @@ export function PrintHeader() {
         legalForm: m.company_legal_form || '',
         capital: m.company_capital || '',
         logoUrl: hasLogo ? `/api/logo?t=${Date.now()}` : null,
+        logoShape: (m.company_logo_shape === 'rectangle' ? 'rectangle' : 'square') as 'square' | 'rectangle',
         footerLine1: m.print_footer_line1 || '',
         footerLine2: m.print_footer_line2 || '',
         footerLine3: m.print_footer_line3 || '',
@@ -88,8 +92,26 @@ export function PrintHeader() {
 
   return (
     <div className="print-header mb-6">
-      <div className="flex items-start justify-between gap-4">
-        {/* Left: Company info */}
+      <div className="flex items-start gap-4">
+        {/* Left: Logo */}
+        <div className={cn(
+          "flex-shrink-0 flex items-center justify-center border rounded-md bg-muted/20 overflow-hidden",
+          company.logoShape === 'rectangle' ? "w-[140px] h-[60px]" : "w-[90px] h-[90px]"
+        )}>
+          {company.logoUrl && !logoError ? (
+            <img
+              src={company.logoUrl}
+              alt="Logo"
+              className="w-full h-full object-contain p-1"
+              onError={() => setLogoError(true)}
+            />
+          ) : (
+            <span className="text-[10px] text-muted-foreground text-center leading-tight px-2">
+              Logo
+            </span>
+          )}
+        </div>
+        {/* Right: Company info */}
         <div className="flex-1">
           {company.name && (
             <h2 className="text-lg font-bold uppercase tracking-wide">{company.name}</h2>
@@ -114,21 +136,6 @@ export function PrintHeader() {
             {company.rc && <span>RC : {company.rc}</span>}
             {company.capital && <span>Capital : {company.capital}</span>}
           </div>
-        </div>
-        {/* Right: Logo */}
-        <div className="flex-shrink-0 w-[100px] h-[100px] flex items-center justify-center border rounded-md bg-muted/20 overflow-hidden">
-          {company.logoUrl && !logoError ? (
-            <img
-              src={company.logoUrl}
-              alt="Logo"
-              className="w-full h-full object-contain p-1"
-              onError={() => setLogoError(true)}
-            />
-          ) : (
-            <span className="text-[10px] text-muted-foreground text-center leading-tight px-2">
-              Logo
-            </span>
-          )}
         </div>
       </div>
       {/* Separator line */}

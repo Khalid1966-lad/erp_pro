@@ -20,6 +20,7 @@ interface CompanyInfo {
   legalForm: string
   capital: string
   logoUrl: string | null
+  logoShape: 'square' | 'rectangle'
   footerLine1: string
   footerLine2: string
   footerLine3: string
@@ -57,6 +58,7 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
         legalForm: m.company_legal_form || '',
         capital: m.company_capital || '',
         logoUrl: hasLogo ? `/api/logo?t=${Date.now()}` : null,
+        logoShape: m.company_logo_shape === 'rectangle' ? 'rectangle' : 'square',
         footerLine1: m.print_footer_line1 || '',
         footerLine2: m.print_footer_line2 || '',
         footerLine3: m.print_footer_line3 || '',
@@ -67,7 +69,7 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
       return {
         name: '', address: '', city: '', postalCode: '', country: 'Maroc',
         phone: '', email: '', ice: '', tvaNumber: '', cnss: '', ifNumber: '',
-        rc: '', legalForm: '', capital: '', logoUrl: null,
+        rc: '', legalForm: '', capital: '', logoUrl: null, logoShape: 'square',
         footerLine1: '', footerLine2: '', footerLine3: '', footerLine4: '',
       }
     }
@@ -100,14 +102,18 @@ function buildHeaderHtml(c: CompanyInfo): string {
   const contactLine = [c.phone ? `Tél : ${c.phone}` : '', c.email ? `Email : ${c.email}` : ''].filter(Boolean).join(' &nbsp;|&nbsp; ')
 
   const logoSrc = c.logoUrl ? (c.logoUrl.startsWith('http') ? c.logoUrl : `${window.location.origin}${c.logoUrl}`) : ''
+  const isRect = c.logoShape === 'rectangle'
+  const logoW = isRect ? '140px' : '90px'
+  const logoH = isRect ? '60px' : '90px'
   const logoBlock = c.logoUrl
-    ? `<div style="flex-shrink:0;width:100px;height:100px;border:1px solid #e5e7eb;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+    ? `<div style="flex-shrink:0;width:${logoW};height:${logoH};border:1px solid #e5e7eb;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
          <img src="${logoSrc}" alt="Logo" style="width:100%;height:100%;object-fit:contain;padding:4px;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#9ca3af\\'>Logo</span>'">
        </div>`
     : ''
 
   return `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:12px;">
+      ${logoBlock}
       <div style="flex:1;">
         ${c.name ? `<div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">${esc(c.name)}</div>` : ''}
         ${c.legalForm ? `<div style="font-size:11px;color:#6b7280;">${esc(c.legalForm)}</div>` : ''}
@@ -116,7 +122,6 @@ function buildHeaderHtml(c: CompanyInfo): string {
         ${identLine1 ? `<div style="font-size:11px;color:#6b7280;margin-top:2px;">${identLine1}</div>` : ''}
         ${identLine2 ? `<div style="font-size:11px;color:#6b7280;margin-top:2px;">${identLine2}</div>` : ''}
       </div>
-      ${logoBlock}
     </div>
     <div style="border-top:2px solid #1a1a1a;margin-bottom:16px;"></div>`
 }
