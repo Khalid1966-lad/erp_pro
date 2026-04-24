@@ -52,60 +52,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Max 500 KB raw upload
-    const MAX_SIZE = 500 * 1024
+    // Max 2 MB raw upload
+    const MAX_SIZE = 2 * 1024 * 1024
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'Fichier trop volumineux (max 500 Ko)' }, { status: 400 })
+      return NextResponse.json({ error: 'Fichier trop volumineux (max 2 Mo)' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Convert to AVIF using sharp for compression
-    let finalBuffer: Buffer
-    let finalContentType = 'image/avif'
-    let finalExt = 'avif'
+    // Store ORIGINAL image as-is — no compression, no resize
+    // The user controls display size via the settings slider
+    const base64 = buffer.toString('base64')
 
-    try {
-      const sharp = (await import('sharp')).default
-
-      finalBuffer = await sharp(buffer)
-        .resize(400, 400, {
-          fit: 'contain',
-          background: { r: 0, g: 0, b: 0, alpha: 0 },
-        })
-        .avif({
-          quality: 85,
-          effort: 6,
-          chromaSubsampling: '4:2:0',
-        })
-        .toBuffer()
-    } catch (sharpErr) {
-      console.error('Sharp AVIF failed, trying PNG:', sharpErr)
-      // Fallback: convert to PNG instead
-      try {
-        const sharp = (await import('sharp')).default
-        finalBuffer = await sharp(buffer)
-          .resize(400, 400, {
-            fit: 'contain',
-            background: { r: 0, g: 0, b: 0, alpha: 0 },
-          })
-          .png({ quality: 100 })
-          .toBuffer()
-        finalContentType = 'image/png'
-        finalExt = 'png'
-      } catch {
-        // Sharp completely unavailable, save original as-is
-        finalBuffer = buffer
-        finalContentType = file.type
-        finalExt = file.type.split('/')[1] === 'svg+xml' ? 'svg' : file.type.split('/')[1]
-      }
-    }
-
-    // Convert to base64 for database storage
-    const base64 = finalBuffer.toString('base64')
-
-    // Save to database (not filesystem — Vercel filesystem is ephemeral)
     await db.setting.upsert({
       where: { key: 'company_logo_base64' },
       update: { value: base64 },
@@ -114,8 +73,8 @@ export async function POST(req: NextRequest) {
 
     await db.setting.upsert({
       where: { key: 'company_logo_content_type' },
-      update: { value: finalContentType },
-      create: { key: 'company_logo_content_type', value: finalContentType },
+      update: { value: file.type },
+      create: { key: 'company_logo_content_type', value: file.type },
     })
 
     await db.setting.upsert({
@@ -127,10 +86,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       url: '/api/logo',
-      size: finalBuffer.length,
-      format: finalExt,
+      size: buffer.length,
       originalSize: buffer.length,
-      compressionRatio: Math.round((1 - finalBuffer.length / buffer.length) * 100),
     })
   } catch (error) {
     console.error('Logo upload error:', error)

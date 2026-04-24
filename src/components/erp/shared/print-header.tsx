@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { cn } from '@/lib/utils'
 
 interface CompanyInfo {
   name: string
@@ -21,6 +20,7 @@ interface CompanyInfo {
   capital: string
   logoUrl: string | null
   logoShape: 'square' | 'rectangle'
+  logoWidth: number
   // Print footer lines
   footerLine1: string
   footerLine2: string
@@ -45,6 +45,7 @@ const defaultCompany: CompanyInfo = {
   capital: '',
   logoUrl: null,
   logoShape: 'square' as const,
+  logoWidth: 140,
   footerLine1: '',
   footerLine2: '',
   footerLine3: '',
@@ -78,6 +79,7 @@ export function PrintHeader() {
         capital: m.company_capital || '',
         logoUrl: hasLogo ? `/api/logo?t=${Date.now()}` : null,
         logoShape: (m.company_logo_shape === 'rectangle' ? 'rectangle' : 'square') as 'square' | 'rectangle',
+        logoWidth: parseInt(m.company_logo_width, 10) || 140,
         footerLine1: m.print_footer_line1 || '',
         footerLine2: m.print_footer_line2 || '',
         footerLine3: m.print_footer_line3 || '',
@@ -94,10 +96,14 @@ export function PrintHeader() {
     <div className="print-header mb-6">
       <div className="flex items-start gap-4">
         {/* Left: Logo */}
-        <div className={cn(
-          "flex-shrink-0 overflow-hidden",
-          company.logoShape === 'rectangle' ? "w-[140px] h-[60px]" : "w-[90px] h-[90px] border border-border rounded-md"
-        )}>
+        <div
+          style={{
+            flexShrink: 0,
+            overflow: 'hidden',
+            width: company.logoWidth,
+            height: company.logoShape === 'rectangle' ? Math.round(company.logoWidth * 0.43) : company.logoWidth,
+          }}
+        >
           {company.logoUrl && !logoError ? (
             <img
               src={company.logoUrl}

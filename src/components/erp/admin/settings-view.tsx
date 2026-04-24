@@ -13,12 +13,11 @@ import { Switch } from '@/components/ui/switch'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload, ImageIcon, X, Loader2 } from 'lucide-react'
+import { Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload, ImageIcon, X, Loader2, ZoomIn, ZoomOut } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
 import { APP_VERSION, APP_NAME, BUILD_DATE } from '@/lib/version'
 import { toast } from 'sonner'
-import Image from 'next/image'
 import { useRef } from 'react'
 
 interface Setting {
@@ -168,24 +167,20 @@ function LogoUploadCard() {
   const [currentLogo, setCurrentLogo] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [logoShape, setLogoShape] = useState<'square' | 'rectangle'>('square')
-  const [shapeSaved, setShapeSaved] = useState(true)
+  const [logoWidth, setLogoWidth] = useState(140)
+  const [pendingSave, setPendingSave] = useState(false)
 
   useEffect(() => {
-    // Check if custom logo exists
-    fetch('/api/logo')
-      .then(r => {
-        if (r.ok) setCurrentLogo('/api/logo')
-        else setCurrentLogo(null)
-      })
-      .catch(() => setCurrentLogo(null))
-
-    // Load logo shape setting
-    api.get<{ settingsMap: Record<string, string> }>('/settings')
-      .then(data => {
-        const shape = data.settingsMap?.company_logo_shape
-        if (shape === 'rectangle') setLogoShape('rectangle')
-      })
-      .catch(() => {})
+    // Load logo + settings
+    Promise.all([
+      fetch('/api/logo').then(r => r.ok).catch(() => false),
+      api.get<{ settingsMap: Record<string, string> }>('/settings'),
+    ]).then(([hasLogo, data]) => {
+      const m = data.settingsMap || {}
+      if (hasLogo) setCurrentLogo('/api/logo')
+      if (m.company_logo_shape === 'rectangle') setLogoShape('rectangle')
+      if (m.company_logo_width) setLogoWidth(parseInt(m.company_logo_width, 10) || 140)
+    }).catch(() => {})
   }, [])
 
   const uploadFile = async (file: File) => {
@@ -194,8 +189,8 @@ function LogoUploadCard() {
       toast.error('Type non supporté', { description: 'Utilisez PNG, JPEG, WebP, AVIF ou SVG.' })
       return
     }
-    if (file.size > 500 * 1024) {
-      toast.error('Fichier trop volumineux', { description: 'Taille maximale : 500 Ko' })
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Fichier trop volumineux', { description: 'Taille maximale : 2 Mo' })
       return
     }
 
@@ -216,16 +211,10 @@ function LogoUploadCard() {
         throw new Error(data.error || 'Erreur de téléchargement')
       }
 
-      setCurrentLogo('/api/logo')
+      setCurrentLogo('/api/logo?t=' + Date.now())
       toast.success('Logo mis à jour', {
-        description: data.compressionRatio > 0
-          ? `Compressé : ${data.compressionRatio}% réduit (${(data.size / 1024).toFixed(1)} Ko)`
-          : `Enregistré (${(data.size / 1024).toFixed(1)} Ko)`,
+        description: `Enregistré (${(data.size / 1024).toFixed(1)} Ko)`,
       })
-
-      // Bust cache by adding timestamp
-      const img = new Image()
-      img.src = `/api/logo?t=${Date.now()}`
     } catch (err: any) {
       toast.error('Erreur', { description: err.message })
     } finally {
@@ -240,158 +229,185 @@ function LogoUploadCard() {
     if (file) uploadFile(file)
   }
 
+  const saveDisplaySettings = async () => {
+    try {
+      await api.put('/settings', {
+        settings: {
+          company_logo_shape: logoShape,
+          company_logo_width: String(logoWidth),
+        }
+      })
+      setPendingSave(false)
+      toast.success('Affichage du logo mis à jour')
+    } catch {
+      toast.error('Erreur lors de la sauvegarde')
+    }
+  }
+
+  const previewHeight = logoShape === 'rectangle'
+    ? Math.round(logoWidth * 0.43) // ~2.33:1 aspect
+    : logoWidth
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <div className="text-muted-foreground"><ImageIcon className="h-5 w-5" /></div>
-          <div>
-            <CardTitle className="text-base">Logo de l&apos;entreprise</CardTitle>
-            <CardDescription className="text-sm">
-              Ce logo apparaît sur les documents, factures et devis
-            </CardDescription>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="text-muted-foreground"><ImageIcon className="h-5 w-5" /></div>
+            <div>
+              <CardTitle className="text-base">Logo de l&apos;entreprise</CardTitle>
+              <CardDescription className="text-sm">
+                Ce logo apparaît sur les documents, factures et devis
+              </CardDescription>
+            </div>
           </div>
+          {pendingSave && (
+            <Button size="sm" onClick={saveDisplaySettings}>
+              <Save className="h-3 w-3 mr-1" />
+              Sauvegarder
+            </Button>
+          )}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col sm:flex-row gap-6 items-start">
-          {/* Preview */}
-          <div className={cn(
-            "bg-muted rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative",
-            logoShape === 'rectangle'
-              ? "w-40 h-16 border-0"
-              : "w-32 h-32 border-2 border-dashed border-border"
-          )}>
-            {currentLogo ? (
-              <Image
-                src={currentLogo}
-                alt="Logo entreprise"
-                fill
-                className="object-contain p-0"
-                unoptimized
-              />
-            ) : (
-              <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-            )}
+      <CardContent className="space-y-5">
+        {/* Live preview */}
+        <div className="flex items-center justify-center p-6 bg-muted/30 rounded-xl border min-h-[120px]">
+          {currentLogo ? (
+            <img
+              src={currentLogo}
+              alt="Aperçu logo"
+              style={{ width: logoWidth, height: previewHeight, objectFit: 'contain' }}
+              className="max-w-full"
+            />
+          ) : (
+            <div className="text-muted-foreground/40 text-center">
+              <ImageIcon className="h-12 w-12 mx-auto mb-2" />
+              <p className="text-sm">Aucun logo téléchargé</p>
+            </div>
+          )}
+        </div>
+
+        {/* Size slider */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium flex items-center gap-1.5">
+              <ZoomOut className="h-3.5 w-3.5" /> Taille d&apos;affichage
+            </Label>
+            <span className="text-sm text-muted-foreground font-mono">{logoWidth} px</span>
           </div>
-
-          {/* Upload area + shape selector */}
-          <div className="flex-1 space-y-3 w-full">
-            {/* Shape selector */}
-            <div className="flex items-center gap-3">
-              <Label className="text-sm font-medium shrink-0">Forme du logo :</Label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setLogoShape('square'); setShapeSaved(false) }}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors",
-                    logoShape === 'square'
-                      ? "border-primary bg-primary/10 text-primary font-medium"
-                      : "border-border text-muted-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <div className="w-4 h-4 border border-current rounded-sm" />
-                  Carré
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setLogoShape('rectangle'); setShapeSaved(false) }}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors",
-                    logoShape === 'rectangle'
-                      ? "border-primary bg-primary/10 text-primary font-medium"
-                      : "border-border text-muted-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <div className="w-5 h-3 border border-current rounded-sm" />
-                  Rectangle
-                </button>
-                {!shapeSaved && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={async () => {
-                      await api.put('/settings', { settings: { company_logo_shape: logoShape } })
-                      setShapeSaved(true)
-                      toast.success('Forme du logo mise à jour')
-                    }}
-                  >
-                    <Save className="h-3 w-3 mr-1" />
-                    OK
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Drag & drop upload */}
-            <div
-              className={cn(
-                'border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer',
-                dragActive
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
-              )}
-              onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
-              onDragLeave={() => setDragActive(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/avif,image/png,image/jpeg,image/webp,image/svg+xml"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) uploadFile(file)
-                  e.target.value = ''
-                }}
-              />
-              {uploading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Compression en cours...</span>
-                </div>
-              ) : (
-                <>
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground/60 mb-2" />
-                  <p className="text-sm font-medium">
-                    Glissez-déposez votre logo ici
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    ou cliquez pour parcourir — PNG, JPEG, WebP, AVIF, SVG (max 500 Ko)
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 mt-2">
-                    L&apos;image est automatiquement compressée en AVIF haute qualité
-                  </p>
-                </>
-              )}
-            </div>
-            {currentLogo && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={async () => {
-                  try {
-                    await fetch('/api/upload', {
-                      method: 'DELETE',
-                      headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
-                    })
-                    setCurrentLogo(null)
-                    toast.success('Logo supprimé', { description: 'Le logo par défaut sera utilisé' })
-                  } catch {
-                    toast.error('Erreur lors de la suppression du logo')
-                  }
-                }}
-              >
-                <X className="h-4 w-4 mr-1" />
-                Réinitialiser le logo par défaut
-              </Button>
-            )}
+          <input
+            type="range"
+            min={60}
+            max={300}
+            step={5}
+            value={logoWidth}
+            onChange={(e) => { setLogoWidth(Number(e.target.value)); setPendingSave(true) }}
+            className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-primary bg-muted"
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>60px</span>
+            <span>300px</span>
           </div>
         </div>
+
+        {/* Shape selector */}
+        <div className="flex items-center gap-3">
+          <Label className="text-sm font-medium shrink-0">Forme :</Label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { setLogoShape('square'); setPendingSave(true) }}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors",
+                logoShape === 'square'
+                  ? "border-primary bg-primary/10 text-primary font-medium"
+                  : "border-border text-muted-foreground hover:bg-muted/50"
+              )}
+            >
+              <div className="w-4 h-4 border border-current rounded-sm" />
+              Carré
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLogoShape('rectangle'); setPendingSave(true) }}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors",
+                logoShape === 'rectangle'
+                  ? "border-primary bg-primary/10 text-primary font-medium"
+                  : "border-border text-muted-foreground hover:bg-muted/50"
+              )}
+            >
+              <div className="w-5 h-3 border border-current rounded-sm" />
+              Rectangle
+            </button>
+          </div>
+        </div>
+
+        {/* Upload area */}
+        <div
+          className={cn(
+            'border-2 border-dashed rounded-xl p-5 text-center transition-colors cursor-pointer',
+            dragActive
+              ? 'border-primary bg-primary/5'
+              : 'border-border hover:border-primary/50 hover:bg-muted/50'
+          )}
+          onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/avif,image/png,image/jpeg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) uploadFile(file)
+              e.target.value = ''
+            }}
+          />
+          {uploading ? (
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Téléchargement...</span>
+            </div>
+          ) : (
+            <>
+              <Upload className="h-6 w-6 mx-auto text-muted-foreground/60 mb-1.5" />
+              <p className="text-sm font-medium">Glissez-déposez ou cliquez pour parcourir</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                PNG, JPEG, WebP, AVIF, SVG (max 2 Mo) — image originale sans compression
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Delete button */}
+        {currentLogo && (
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={async () => {
+                try {
+                  await fetch('/api/upload', {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
+                  })
+                  setCurrentLogo(null)
+                  toast.success('Logo supprimé', { description: 'Le logo par défaut sera utilisé' })
+                } catch {
+                  toast.error('Erreur lors de la suppression du logo')
+                }
+              }}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Réinitialiser le logo par défaut
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

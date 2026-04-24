@@ -21,6 +21,7 @@ interface CompanyInfo {
   capital: string
   logoUrl: string | null
   logoShape: 'square' | 'rectangle'
+  logoWidth: number
   footerLine1: string
   footerLine2: string
   footerLine3: string
@@ -59,6 +60,7 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
         capital: m.company_capital || '',
         logoUrl: hasLogo ? `/api/logo?t=${Date.now()}` : null,
         logoShape: m.company_logo_shape === 'rectangle' ? 'rectangle' : 'square',
+        logoWidth: parseInt(m.company_logo_width, 10) || 140,
         footerLine1: m.print_footer_line1 || '',
         footerLine2: m.print_footer_line2 || '',
         footerLine3: m.print_footer_line3 || '',
@@ -69,7 +71,7 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
       return {
         name: '', address: '', city: '', postalCode: '', country: 'Maroc',
         phone: '', email: '', ice: '', tvaNumber: '', cnss: '', ifNumber: '',
-        rc: '', legalForm: '', capital: '', logoUrl: null, logoShape: 'square',
+        rc: '', legalForm: '', capital: '', logoUrl: null, logoShape: 'square', logoWidth: 140,
         footerLine1: '', footerLine2: '', footerLine3: '', footerLine4: '',
       }
     }
@@ -103,8 +105,8 @@ function buildHeaderHtml(c: CompanyInfo): string {
 
   const logoSrc = c.logoUrl ? (c.logoUrl.startsWith('http') ? c.logoUrl : `${window.location.origin}${c.logoUrl}`) : ''
   const isRect = c.logoShape === 'rectangle'
-  const logoW = isRect ? '140px' : '90px'
-  const logoH = isRect ? '60px' : '90px'
+  const logoW = c.logoWidth + 'px'
+  const logoH = isRect ? Math.round(c.logoWidth * 0.43) + 'px' : c.logoWidth + 'px'
   const logoBlock = c.logoUrl
     ? `<div style="flex-shrink:0;width:${logoW};height:${logoH};overflow:hidden;">
          <img src="${logoSrc}" alt="Logo" style="max-width:100%;max-height:100%;width:auto;height:auto;display:block;" onerror="this.style.display='none'">
