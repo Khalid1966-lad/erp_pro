@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -13,12 +13,17 @@ import { Switch } from '@/components/ui/switch'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload, ImageIcon, X, Loader2, ZoomIn, ZoomOut } from 'lucide-react'
+import {
+  Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload,
+  ImageIcon, X, Loader2, ZoomIn, ZoomOut, Printer, Database, type LucideIcon,
+} from 'lucide-react'
 import { useAuthStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
 import { APP_VERSION, APP_NAME, BUILD_DATE } from '@/lib/version'
 import { toast } from 'sonner'
-import { useRef } from 'react'
+import BackupSection from './backup-section'
+
+// ─── Types ───
 
 interface Setting {
   key: string
@@ -46,6 +51,29 @@ interface SettingField {
   options?: { value: string; label: string }[]
   description?: string
 }
+
+interface SidebarTab {
+  id: string
+  label: string
+  icon: LucideIcon
+}
+
+// ─── Sidebar Tabs ───
+
+const sidebarTabs: SidebarTab[] = [
+  { id: 'company', label: 'Entreprise', icon: Building2 },
+  { id: 'logo', label: 'Logo', icon: ImageIcon },
+  { id: 'printing', label: 'Impressions', icon: Printer },
+  { id: 'accounting', label: 'Comptabilité', icon: Calculator },
+  { id: 'rules', label: 'Règles métier', icon: Briefcase },
+  { id: 'backup', label: 'Sauvegarde', icon: Database },
+  { id: 'about', label: 'À propos', icon: Info },
+]
+
+// The tabs that show save/reset buttons in the header
+const settingsTabIds = new Set(['company', 'printing', 'accounting', 'rules'])
+
+// ─── Settings Groups ───
 
 const settingGroups: SettingGroup[] = [
   {
@@ -160,7 +188,16 @@ const settingGroups: SettingGroup[] = [
   }
 ]
 
+// Map tab id → settingGroups index
+const tabGroupMap: Record<string, number> = {
+  company: 0,
+  printing: 1,
+  accounting: 2,
+  rules: 3,
+}
+
 // ─── Logo Upload Card ───
+
 function LogoUploadCard() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -413,7 +450,149 @@ function LogoUploadCard() {
   )
 }
 
+// ─── Settings Group Section ───
+
+function SettingsGroupSection({
+  group,
+  settingsMap,
+  handleChange,
+  isDisabled,
+}: {
+  group: SettingGroup
+  settingsMap: Record<string, string>
+  handleChange: (key: string, value: string) => void
+  isDisabled: boolean
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <div className="text-muted-foreground">{group.icon}</div>
+          <div>
+            <CardTitle className="text-base">{group.title}</CardTitle>
+            <CardDescription className="text-sm">{group.description}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {group.fields.map((field) => {
+            const value = settingsMap[field.key] || ''
+
+            return (
+              <div key={field.key} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={field.key} className="text-sm font-medium">
+                      {field.label}
+                    </Label>
+                    {field.type === 'switch' && (
+                      <Switch
+                        id={field.key}
+                        checked={value === 'true'}
+                        onCheckedChange={(checked) => handleChange(field.key, checked ? 'true' : 'false')}
+                        disabled={isDisabled}
+                      />
+                    )}
+                  </div>
+                  {field.description && (
+                    <p className="text-xs text-muted-foreground">{field.description}</p>
+                  )}
+                  {field.type === 'text' && (
+                    <Input
+                      id={field.key}
+                      value={value}
+                      onChange={(e) => handleChange(field.key, e.target.value)}
+                      placeholder={field.placeholder}
+                      disabled={isDisabled}
+                    />
+                  )}
+                  {field.type === 'number' && (
+                    <Input
+                      id={field.key}
+                      type="number"
+                      step="0.01"
+                      value={value}
+                      onChange={(e) => handleChange(field.key, e.target.value)}
+                      placeholder={field.placeholder}
+                      disabled={isDisabled}
+                    />
+                  )}
+                  {field.type === 'textarea' && (
+                    <Textarea
+                      id={field.key}
+                      value={value}
+                      onChange={(e) => handleChange(field.key, e.target.value)}
+                      placeholder={field.placeholder}
+                      rows={2}
+                      disabled={isDisabled}
+                    />
+                  )}
+                  {field.type === 'select' && field.options && (
+                    <Select
+                      value={value}
+                      onValueChange={(v) => handleChange(field.key, v)}
+                      disabled={isDisabled}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={field.placeholder || 'Sélectionner...'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.options.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <Separator className="mt-4 hidden md:block" />
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── About Section ───
+
+function AboutSection() {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <div className="text-muted-foreground"><Info className="h-5 w-5" /></div>
+          <div>
+            <CardTitle className="text-base">À propos</CardTitle>
+            <CardDescription className="text-sm">Informations sur l&apos;application</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Application</p>
+            <p className="text-sm font-semibold">{APP_NAME}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Version</p>
+            <p className="text-sm font-semibold">v{APP_VERSION}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Date de build</p>
+            <p className="text-sm font-semibold">{BUILD_DATE}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── Main Settings View ───
+
 export default function SettingsView() {
+  const [activeTab, setActiveTab] = useState('company')
   const [settingsMap, setSettingsMap] = useState<Record<string, string>>({})
   const [originalMap, setOriginalMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -421,6 +600,7 @@ export default function SettingsView() {
   const { user } = useAuthStore()
 
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+  const showSaveButtons = settingsTabIds.has(activeTab) && isAdmin
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -470,9 +650,18 @@ export default function SettingsView() {
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-9 w-48" />
         </div>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-64" />
-        ))}
+        <div className="flex gap-6">
+          <div className="md:w-48 shrink-0 space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
+          <div className="flex-1">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="h-64 mb-4" />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -490,7 +679,7 @@ export default function SettingsView() {
             </span>
           )}
         </div>
-        {isAdmin && (
+        {showSaveButtons && (
           <div className="flex gap-2">
             {hasChanges && (
               <Button variant="outline" size="sm" onClick={handleReset}>
@@ -506,133 +695,112 @@ export default function SettingsView() {
         )}
       </div>
 
-      {/* Logo upload */}
-      {isAdmin && <LogoUploadCard />}
-
-      {/* Settings Groups */}
-      {settingGroups.map((group) => (
-        <Card key={group.category}>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <div className="text-muted-foreground">{group.icon}</div>
-              <div>
-                <CardTitle className="text-base">{group.title}</CardTitle>
-                <CardDescription className="text-sm">{group.description}</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {group.fields.map((field) => {
-                const value = settingsMap[field.key] || ''
-                const isDisabled = !isAdmin
-
-                return (
-                  <div key={field.key} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor={field.key} className="text-sm font-medium">
-                          {field.label}
-                        </Label>
-                        {field.type === 'switch' && (
-                          <Switch
-                            id={field.key}
-                            checked={value === 'true'}
-                            onCheckedChange={(checked) => handleChange(field.key, checked ? 'true' : 'false')}
-                            disabled={isDisabled}
-                          />
-                        )}
-                      </div>
-                      {field.description && (
-                        <p className="text-xs text-muted-foreground">{field.description}</p>
-                      )}
-                      {field.type === 'text' && (
-                        <Input
-                          id={field.key}
-                          value={value}
-                          onChange={(e) => handleChange(field.key, e.target.value)}
-                          placeholder={field.placeholder}
-                          disabled={isDisabled}
-                        />
-                      )}
-                      {field.type === 'number' && (
-                        <Input
-                          id={field.key}
-                          type="number"
-                          step="0.01"
-                          value={value}
-                          onChange={(e) => handleChange(field.key, e.target.value)}
-                          placeholder={field.placeholder}
-                          disabled={isDisabled}
-                        />
-                      )}
-                      {field.type === 'textarea' && (
-                        <Textarea
-                          id={field.key}
-                          value={value}
-                          onChange={(e) => handleChange(field.key, e.target.value)}
-                          placeholder={field.placeholder}
-                          rows={2}
-                          disabled={isDisabled}
-                        />
-                      )}
-                      {field.type === 'select' && field.options && (
-                        <Select
-                          value={value}
-                          onValueChange={(v) => handleChange(field.key, v)}
-                          disabled={isDisabled}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={field.placeholder || 'Sélectionner...'} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {field.options.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                    <Separator className="mt-4 hidden md:block" />
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-
-      {/* À propos */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="text-muted-foreground"><Info className="h-5 w-5" /></div>
-            <div>
-              <CardTitle className="text-base">À propos</CardTitle>
-              <CardDescription className="text-sm">Informations sur l&apos;application</CardDescription>
-            </div>
+      {/* Sidebar + Content Layout */}
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Sidebar Navigation */}
+        <nav className="md:w-48 shrink-0">
+          {/* Mobile: horizontal scrollable tabs */}
+          <div className="flex md:hidden gap-1 overflow-x-auto pb-2 scrollbar-none">
+            {sidebarTabs.map((tab) => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'flex items-center gap-2 py-2 px-3 rounded-lg text-sm whitespace-nowrap cursor-pointer transition-colors shrink-0',
+                    activeTab === tab.id
+                      ? 'bg-muted font-medium text-foreground'
+                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              )
+            })}
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Application</p>
-              <p className="text-sm font-semibold">{APP_NAME}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Version</p>
-              <p className="text-sm font-semibold">v{APP_VERSION}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Date de build</p>
-              <p className="text-sm font-semibold">{BUILD_DATE}</p>
-            </div>
+          {/* Desktop: vertical sidebar */}
+          <div className="hidden md:flex flex-col gap-1 sticky top-6">
+            {sidebarTabs.map((tab) => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'flex items-center gap-2 py-2 px-3 rounded-lg text-sm cursor-pointer transition-colors',
+                    activeTab === tab.id
+                      ? 'bg-muted font-medium text-foreground border-l-2 border-primary'
+                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-l-2 border-transparent'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              )
+            })}
           </div>
-        </CardContent>
-      </Card>
+        </nav>
 
-      {/* Save bar (bottom sticky) */}
-      {isAdmin && hasChanges && (
+        {/* Content Area */}
+        <div className="flex-1 min-w-0 space-y-6">
+          {activeTab === 'company' && (
+            <SettingsGroupSection
+              group={settingGroups[tabGroupMap.company]}
+              settingsMap={settingsMap}
+              handleChange={handleChange}
+              isDisabled={!isAdmin}
+            />
+          )}
+
+          {activeTab === 'logo' && isAdmin && <LogoUploadCard />}
+
+          {activeTab === 'logo' && !isAdmin && (
+            <Card>
+              <CardContent className="flex items-center justify-center py-8">
+                <p className="text-sm text-muted-foreground">Accès réservé aux administrateurs.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'printing' && (
+            <SettingsGroupSection
+              group={settingGroups[tabGroupMap.printing]}
+              settingsMap={settingsMap}
+              handleChange={handleChange}
+              isDisabled={!isAdmin}
+            />
+          )}
+
+          {activeTab === 'accounting' && (
+            <SettingsGroupSection
+              group={settingGroups[tabGroupMap.accounting]}
+              settingsMap={settingsMap}
+              handleChange={handleChange}
+              isDisabled={!isAdmin}
+            />
+          )}
+
+          {activeTab === 'rules' && (
+            <SettingsGroupSection
+              group={settingGroups[tabGroupMap.rules]}
+              settingsMap={settingsMap}
+              handleChange={handleChange}
+              isDisabled={!isAdmin}
+            />
+          )}
+
+          {activeTab === 'backup' && <BackupSection />}
+
+          {activeTab === 'about' && <AboutSection />}
+        </div>
+      </div>
+
+      {/* Sticky Save Bar — only for settings tabs */}
+      {showSaveButtons && hasChanges && (
         <div className="fixed bottom-4 right-4 z-50 flex gap-2">
           <div className="bg-background border shadow-lg rounded-lg px-4 py-3 flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Modifications non sauvegardées</span>
