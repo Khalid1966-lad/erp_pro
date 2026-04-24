@@ -871,3 +871,24 @@ Stage Summary:
 - Delete functionality is now accessible via an always-visible "⋮" icon on each of the user's own messages
 - No more reliance on CSS hover effects that don't work on touch devices
 - AlertDialog confirmation still required before deletion
+---
+Task ID: 1
+Agent: Main Agent
+Task: Version 1.2.1 release — conversation delete fix, guide update, backup verification, push
+
+Work Log:
+- Made conversation delete button clearly visible: changed from faded `text-muted-foreground/40` (3.5px) to red `text-red-400` (4px) Trash2 icon, only visible for super_admin and admin roles
+- Updated `src/lib/version.ts`: APP_VERSION 1.2.0 → 1.2.1, BUILD_DATE → 2025-07-25
+- Updated `package.json`: version 1.2.0 → 1.2.1
+- Verified backup system: all 53 tables in BACKUP_TABLES match Prisma schema (55 models, Backup table intentionally excluded), FK order correct, DATETIME_FIELDS complete
+- Updated guide Communication section: added features grid (online presence, emojis, old messages, search), delete conversation section, delete individual message section
+- Updated guide backup table count: 51 → 53
+- Fixed useCallback dependencies for renderConversationItem (added user?.role, user?.isSuperAdmin)
+- Ran lint: clean pass
+- Pushed to GitHub: commit 3dd0059 on main branch
+
+Stage Summary:
+- Version 1.2.1 released and pushed
+- Conversation delete now clearly visible as red trash icon (admin/super_admin only)
+- Guide updated with all messaging features
+- Backup system verified as up-to-date with current schema
