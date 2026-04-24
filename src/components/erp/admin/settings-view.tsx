@@ -62,8 +62,25 @@ const settingGroups: SettingGroup[] = [
       { key: 'company_country', label: 'Pays', type: 'text', placeholder: 'Maroc' },
       { key: 'company_phone', label: 'Téléphone', type: 'text', placeholder: '+212 5 XX XX XX XX' },
       { key: 'company_email', label: 'Email', type: 'text', placeholder: 'contact@gema-erp.com' },
-      { key: 'company_siret', label: 'SIRET', type: 'text', placeholder: 'XXX XXX XXX XXXXX' },
+      { key: 'company_siret', label: 'ICE (Identifiant Commun de l\'Entreprise)', type: 'text', placeholder: 'XXXXXXXXXXXXX' },
       { key: 'company_tva_number', label: 'N° TVA Intracommunautaire', type: 'text', placeholder: 'MA XX XXXXXXXXX' },
+      { key: 'company_cnss', label: 'N° CNSS', type: 'text', placeholder: 'XXXXXXXXXX' },
+      { key: 'company_if', label: 'Identification Fiscale (IF)', type: 'text', placeholder: 'XXXXXXXXXX' },
+      { key: 'company_rc', label: 'Registre de Commerce (RC)', type: 'text', placeholder: 'XXXXXX' },
+      { key: 'company_legal_form', label: 'Forme juridique', type: 'text', placeholder: 'SARL, SA, SARL AU...' },
+      { key: 'company_capital', label: 'Capital social', type: 'text', placeholder: '100 000 MAD' },
+    ]
+  },
+  {
+    title: 'Pied de page des impressions',
+    description: 'Informations affichées en bas de chaque document imprimé',
+    icon: <Settings className="h-5 w-5" />,
+    category: 'print_footer',
+    fields: [
+      { key: 'print_footer_line1', label: 'Ligne 1', type: 'text', placeholder: 'Siège social : ...' },
+      { key: 'print_footer_line2', label: 'Ligne 2', type: 'text', placeholder: 'Tél : ... | Fax : ...' },
+      { key: 'print_footer_line3', label: 'Ligne 3', type: 'text', placeholder: 'ICE : ... | IF : ... | CNSS : ...' },
+      { key: 'print_footer_line4', label: 'Ligne 4', type: 'text', placeholder: 'RC : ... | Capital : ...' },
     ]
   },
   {
@@ -167,8 +184,8 @@ function LogoUploadCard() {
       toast.error('Type non supporté', { description: 'Utilisez PNG, JPEG, WebP, AVIF ou SVG.' })
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Fichier trop volumineux', { description: 'Taille maximale : 5 Mo' })
+    if (file.size > 500 * 1024) {
+      toast.error('Fichier trop volumineux', { description: 'Taille maximale : 500 Ko' })
       return
     }
 
@@ -280,7 +297,7 @@ function LogoUploadCard() {
                     Glissez-déposez votre logo ici
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    ou cliquez pour parcourir — PNG, JPEG, WebP, AVIF, SVG (max 5 Mo)
+                    ou cliquez pour parcourir — PNG, JPEG, WebP, AVIF, SVG (max 500 Ko)
                   </p>
                   <p className="text-xs text-muted-foreground/70 mt-2">
                     L&apos;image est automatiquement compressée en AVIF haute qualité
@@ -316,7 +333,7 @@ export default function SettingsView() {
   const [saving, setSaving] = useState(false)
   const { user } = useAuthStore()
 
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
 
   const fetchSettings = useCallback(async () => {
     try {

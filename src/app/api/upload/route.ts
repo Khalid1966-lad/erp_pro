@@ -31,10 +31,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Max 5 MB raw upload
-    const MAX_SIZE = 5 * 1024 * 1024
+    // Max 500 KB raw upload
+    const MAX_SIZE = 500 * 1024
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'Fichier trop volumineux (max 5 Mo)' }, { status: 400 })
+      return NextResponse.json({ error: 'Fichier trop volumineux (max 500 Ko)' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
