@@ -252,7 +252,7 @@ export default function EffetsView() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Effets de Commerce</h2>
+          <h2 className="text-lg font-semibold">Chèques & Effets</h2>
           <Badge variant="secondary">{filteredEffets.length}</Badge>
         </div>
       </div>
