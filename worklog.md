@@ -916,3 +916,40 @@ Stage Summary:
 - Guide complete: all modules documented
 - All footers/references use APP_VERSION dynamically
 - Commit 86828ec pushed to GitHub main branch
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Simuler le processus commercial complet sur Neon PostgreSQL (données réelles)
+
+Work Log:
+- Analysé la base Neon PostgreSQL: 760 clients, 278 fournisseurs, 6377 produits, 8 postes de travail
+- Sélectionné CLIENT: ABDA BATIMENTS, FOURNISSEUR: ATLAS COPCO MAROC
+- Sélectionné 4 produits vente (tubes PEHD + joints) et 3 produits achat (pièces détachées)
+- Écrit et exécuté un script Prisma Client direct sur Neon (pas dev server)
+- Processus VENTE complété (6 étapes):
+  1. Devis DEV-2026-0002: 66 850 HT / 80 220 TTC — accepted
+  2. Commande BC-2026-0001: confirmed
+  3. Préparation PREP-2026-0001: completed
+  4. Bon de livraison BL-2026-0001: delivered + stock movements OUT
+  5. Facture FAC-202604-0001: validated + écritures comptables
+  6. Paiement VIR-FAC-202604-0001: 80 220 DH virement BNP Paribas
+- Processus ACHAT complété (6 étapes):
+  1. Demande de prix DMP-2026-0001: closed
+  2. Devis fournisseur DFR-2026-0001: accepted — ATLAS COPCO MAROC
+  3. Commande COM-2026-0001: received
+  4. Réception REC-2026-0001: conforme + stock movements IN
+  5. Facture FAC-F-2026-0001: paid
+  6. Paiement VIR-FAC-F-2026-0001: 8 154 DH virement
+- Processus PRODUCTION complété (3 étapes):
+  1. Nomenclature BOM: TUBE DN200 = 0.8 kg mélange bleu + 0.2 kg mélange noir par mètre
+  2. Gamme Routing: Extrusion (30min) → Contrôle (20min) → Emballage (15min)
+  3. OF-2026-0001: 1 000 m tube DN200, 0 rebut, 65 min, stock movements IN/OUT
+- Corrigé erreur fournisseur (ID incorrect) — nettoyé et recréé avec ATLAS COPCO MAROC
+- Bilan vérifié: BNP Paribas = 157 466 DH, Solde client = 0, Solde fournisseur = 0
+
+Stage Summary:
+- 14 opérations commerciales créées directement sur Neon PostgreSQL
+- 10 mouvements de stock enregistrés
+- Écritures comptables générées pour factures client et fournisseur
+- Tous les soldes cohérents: banque +80 220 (vente) - 8 154 (achat) = +72 066
