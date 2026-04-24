@@ -575,3 +575,39 @@ Stage Summary:
 - Backup system: 49/49 tables covered — zero gaps
 - All version references now use APP_VERSION constant (no hardcoded versions)
 - Version 1.0.5 released with unified references across 6 locations
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fiches client/fournisseur — ICE, solde, plafond crédit, fix edit
+
+Work Log:
+- Updated Client TypeScript interface with seuilCredit, gsm, caTotalHT, nbCommandes, alerteImpaye, nbImpayes, conditionsPaiement
+- Changed "ICE / SIRET" → "ICE" in client detail view info tab
+- Fixed edit button: goToEdit now re-fetches full client data from /clients/[id] API before switching to edit mode
+- Added Solde row in client detail info tab
+- Added Plafond de crédit row with "Plafond atteint" destructive badge when balance >= seuilCredit
+- Renamed "Seuil de crédit" → "Plafond de crédit" in client form
+- Added Plafond column in client list table with progress bar showing utilization %
+- Added "Plafond atteint" filter button (orange) in client list
+- Updated balanceFilter type to include 'creditLimit' option
+- Updated form defaultValues mapping for edit mode with more fields
+- Fixed colSpan from 7 to 8 in client list table
+- Added creditLimit field to Supplier model in Prisma schema
+- Pushed schema to Neon database with prisma db push
+- Added creditLimit to supplier API validation schema
+- Changed SIRET → ICE in supplier list and detail view
+- Added Solde summary card in supplier detail view
+- Added balance and creditLimit to supplier detail info tab with "Plafond atteint" badge
+- Added Plafond column in supplier list table
+- Added creditLimit field in supplier form dialog
+- Added "Plafond atteint" filter in supplier list
+- Added red background highlighting for suppliers at credit limit
+- Ran ESLint: 0 errors
+- Pushed commit 7e4b8c5 to origin/main
+
+Stage Summary:
+- 5 files modified, 128 insertions, 24 deletions
+- Both client and supplier views now have: ICE, Solde, Plafond de crédit
+- Credit limit system: visual indicators, filters, form fields for both entities
+- Edit button fix ensures full data loading from API
