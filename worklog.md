@@ -439,3 +439,22 @@ Stage Summary:
 - Version 1.0.2 released with all references updated
 - Comprehensive user guide now documents all 31 views across 7 sidebar groups
 - Guide covers: full sales cycle, full purchasing cycle, production workflow, finance module, print system, settings configuration
+---
+Task ID: 7
+Agent: Main Agent
+Task: Fix logo upload — store in PostgreSQL instead of filesystem for Vercel compatibility
+
+Work Log:
+- Identified root cause: Vercel filesystem is read-only and ephemeral. Logo upload wrote to `upload/` directory on disk → file disappeared between serverless invocations.
+- Rewrote `/api/upload/route.ts` POST: compress with sharp, convert to base64, store in DB settings (`company_logo_base64`, `company_logo_content_type`, `company_logo_url`)
+- Rewrote `/api/upload/route.ts` DELETE: delete logo settings from DB instead of deleting filesystem files
+- Rewrote `/api/logo/route.ts` GET: read base64 from DB, decode to binary, serve with correct MIME type (instead of reading from filesystem)
+- Updated `src/lib/print-utils.ts` `getCompanyInfo()`: check `company_logo_url` from settings map instead of making a separate fetch to `/api/logo`
+- Updated `src/components/erp/shared/print-header.tsx`: same optimization — check settings map for logo instead of separate `/api/logo` fetch
+- Lint passes clean (0 errors)
+- Committed as 43a2692 and pushed to GitHub
+
+Stage Summary:
+- Logo upload now works on Vercel/Neon: data stored in PostgreSQL as base64, not on ephemeral filesystem
+- 4 files changed, 54 insertions, 84 deletions
+- All logo consumers (sidebar, print header, print utils, settings preview) work via /api/logo endpoint backed by DB
