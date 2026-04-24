@@ -14,6 +14,21 @@ interface StatementTransaction {
   balance: number
 }
 
+interface StatementSummary {
+  /** Montant des factures impayées (non cancelées et non payées) */
+  unpaidInvoices: number
+  /** Montant des livraisons non encore facturées */
+  uninvoicedDeliveries: number
+  /** Montant des règlements de la période */
+  periodPayments: number
+  /** Montant des chèques/effets non remis à la banque (en_attente) */
+  portfolioAmount: number
+  /** Montant des avoirs non consolidés (validés mais non appliqués) */
+  unconsolidatedCreditNotes: number
+  /** Solde de la période (créditeur ou débiteur) */
+  periodBalance: number
+}
+
 // GET /api/clients/[id]/statement?from=YYYY-MM-DD&to=YYYY-MM-DD
 export async function GET(
   req: NextRequest,
@@ -255,6 +270,82 @@ export async function GET(
       totalCredit += tx.credit
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // SUMMARY TABLE — Récapitulatif financier
+    // ═══════════════════════════════════════════════════════════════
+
+    const [
+      // Factures impayées : non cancelées et non payées
+      unpaidInvoicesAgg,
+      // Livraisons non facturées : BL livrés qui n'ont PAS de liaison InvoiceDeliveryNote
+      uninvoicedDeliveries,
+      // Avoirs non consolidés : status validated (ni applied ni cancelled)
+      unconsolidatedCreditNotesAgg,
+      // Effets/Chèques en portefeuille (en_attente) pour ce client
+      portfolioAgg,
+    ] = await Promise.all([
+      // 1) Unpaid invoices (validated/sent/overdue/draft — not paid, not cancelled)
+      db.invoice.aggregate({
+        where: {
+          clientId: id,
+          status: { notIn: ['paid', 'cancelled'] },
+        },
+        _sum: { totalTTC: true },
+      }),
+
+      // 2) Delivered delivery notes that are NOT linked to any invoice
+      //    We find delivery notes for this client that have no InvoiceDeliveryNote records
+      db.deliveryNote.findMany({
+        where: {
+          clientId: id,
+          status: { notIn: ['cancelled', 'draft'] },
+          invoices: { none: {} },
+        },
+        select: { totalTTC: true },
+      }),
+
+      // 3) Unconsolidated credit notes (validated but not applied/cancelled)
+      db.creditNote.aggregate({
+        where: {
+          clientId: id,
+          status: 'validated',
+        },
+        _sum: { totalTTC: true },
+      }),
+
+      // 4) Portfolio: chèques/effets en_attente linked to this client's payments
+      db.effetCheque.aggregate({
+        where: {
+          statut: 'en_attente',
+          payment: {
+            type: 'client_payment',
+            invoice: {
+              clientId: id,
+            },
+          },
+        },
+        _sum: { montant: true },
+      }),
+    ])
+
+    const unpaidInvoices = Math.round((unpaidInvoicesAgg._sum.totalTTC || 0) * 100) / 100
+    const uninvoicedDeliveriesTotal = Math.round(
+      uninvoicedDeliveries.reduce((sum, dn) => sum + dn.totalTTC, 0) * 100
+    ) / 100
+    const periodPayments = Math.round(totalCredit * 100) / 100
+    const portfolioAmount = Math.round((portfolioAgg._sum.montant || 0) * 100) / 100
+    const unconsolidatedCreditNotes = Math.round((unconsolidatedCreditNotesAgg._sum.totalTTC || 0) * 100) / 100
+    const periodBalance = Math.round(runningBalance * 100) / 100
+
+    const summary: StatementSummary = {
+      unpaidInvoices,
+      uninvoicedDeliveries: uninvoicedDeliveriesTotal,
+      periodPayments,
+      portfolioAmount,
+      unconsolidatedCreditNotes,
+      periodBalance,
+    }
+
     return NextResponse.json({
       client,
       from: fromParam || null,
@@ -263,7 +354,8 @@ export async function GET(
       transactions,
       totalDebit: Math.round(totalDebit * 100) / 100,
       totalCredit: Math.round(totalCredit * 100) / 100,
-      finalBalance: Math.round(runningBalance * 100) / 100,
+      finalBalance: periodBalance,
+      summary,
     })
   } catch (error) {
     console.error('Client statement error:', error)

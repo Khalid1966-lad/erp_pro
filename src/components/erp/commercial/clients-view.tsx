@@ -37,7 +37,8 @@ import {
   ChevronLeft, ChevronRight, RefreshCw, Eye, Minus, GripVertical,
   AlertTriangle, FileText, Receipt, ShoppingCart, UserPlus, UserMinus,
   FileSpreadsheet, Download, Upload, CheckCircle2, XCircle, Loader2,
-  Truck, RotateCcw, Wallet, Printer, CalendarDays
+  Truck, RotateCcw, Wallet, Printer, CalendarDays,
+  CreditCard, Scale, BarChart3
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/stores'
@@ -2031,6 +2032,21 @@ interface StatementTransaction {
   balance: number
 }
 
+interface StatementSummary {
+  /** Montant des factures impayées */
+  unpaidInvoices: number
+  /** Montant des livraisons non encore facturées */
+  uninvoicedDeliveries: number
+  /** Montant des règlements de la période */
+  periodPayments: number
+  /** Montant des chèques/effets non remis à la banque */
+  portfolioAmount: number
+  /** Montant des avoirs non consolidés */
+  unconsolidatedCreditNotes: number
+  /** Solde de la période */
+  periodBalance: number
+}
+
 interface StatementData {
   client: { id: string; name: string; ice: string | null; phone: string | null; email: string | null; address: string | null; city: string | null; postalCode: string | null }
   from: string | null
@@ -2040,6 +2056,7 @@ interface StatementData {
   totalDebit: number
   totalCredit: number
   finalBalance: number
+  summary: StatementSummary
 }
 
 function FinancialStatementTab({ clientId }: { clientId: string }) {
@@ -2124,6 +2141,39 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
       { label: 'Solde', value: fmtM(data.finalBalance), bold: true, negative: data.finalBalance > 0 },
     ]
 
+    // Build summary sub-section HTML for print
+    let subSections = ''
+    if (data.summary) {
+      const s = data.summary
+      const balanceLabel = s.periodBalance > 0 ? 'Solde Débiteur' : s.periodBalance < 0 ? 'Solde Créditeur' : 'Solde'
+      const balanceColor = s.periodBalance > 0 ? '#dc2626' : s.periodBalance < 0 ? '#16a34a' : '#1a1a1a'
+      subSections = `
+        <div class="section-title">RÉCAPITULATIF FINANCIER</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Facture (impayées)</th>
+              <th>Livraison (non facturées)</th>
+              <th>Règlement (période)</th>
+              <th>Portefeuille (effets/chèques)</th>
+              <th>Avoir (non consolidés)</th>
+              <th class="text-right">Solde</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-right" style="${s.unpaidInvoices > 0 ? 'color:#dc2626;font-weight:600;' : ''}">${fmtM(s.unpaidInvoices)}</td>
+              <td class="text-right" style="${s.uninvoicedDeliveries > 0 ? 'color:#ea580c;font-weight:600;' : ''}">${fmtM(s.uninvoicedDeliveries)}</td>
+              <td class="text-right" style="color:#16a34a;">${fmtM(s.periodPayments)}</td>
+              <td class="text-right" style="${s.portfolioAmount > 0 ? 'color:#7c3aed;font-weight:600;' : ''}">${fmtM(s.portfolioAmount)}</td>
+              <td class="text-right" style="${s.unconsolidatedCreditNotes > 0 ? 'color:#d97706;font-weight:600;' : ''}">${fmtM(s.unconsolidatedCreditNotes)}</td>
+              <td class="text-right" style="color:${balanceColor};font-weight:700;">${fmtM(s.periodBalance)}</td>
+            </tr>
+          </tbody>
+        </table>
+      `
+    }
+
     await printDocument({
       title: 'RELEVÉ DE COMPTE',
       docNumber: '',
@@ -2139,6 +2189,7 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
       rows,
       totals,
       notes: `Relevé généré le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}. Ce document est un récapitulatif informatif.`,
+      subSections,
     })
   }
 
@@ -2146,12 +2197,23 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
     invoice: 'Facture',
     payment: 'Paiement',
     credit_note: 'Avoir',
+    rejet_effet: 'Rejet',
   }
   const typeColors: Record<string, string> = {
     invoice: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
     payment: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
     credit_note: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+    rejet_effet: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
   }
+
+  const summaryRows = data?.summary ? [
+    { label: 'Facture', sublabel: 'Impayées', value: data.summary.unpaidInvoices, icon: FileText, color: data.summary.unpaidInvoices > 0 ? 'text-red-600' : '' },
+    { label: 'Livraison', sublabel: 'Non facturées', value: data.summary.uninvoicedDeliveries, icon: Truck, color: data.summary.uninvoicedDeliveries > 0 ? 'text-orange-600' : '' },
+    { label: 'Règlement', sublabel: 'Période', value: data.summary.periodPayments, icon: CreditCard, color: 'text-green-600' },
+    { label: 'Portefeuille', sublabel: 'Effets/Chèques', value: data.summary.portfolioAmount, icon: Wallet, color: data.summary.portfolioAmount > 0 ? 'text-purple-600' : '' },
+    { label: 'Avoir', sublabel: 'Non consolidés', value: data.summary.unconsolidatedCreditNotes, icon: Receipt, color: data.summary.unconsolidatedCreditNotes > 0 ? 'text-amber-600' : '' },
+    { label: 'Solde', sublabel: data.summary.periodBalance > 0 ? 'Débiteur' : data.summary.periodBalance < 0 ? 'Créditeur' : '', value: Math.abs(data.summary.periodBalance), icon: Scale, color: data.summary.periodBalance > 0 ? 'text-red-700 font-bold' : data.summary.periodBalance < 0 ? 'text-green-700 font-bold' : '' },
+  ] : []
 
   return (
     <div className="space-y-4">
@@ -2303,6 +2365,47 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
           )}
         </CardContent>
       </Card>
+
+      {/* ═══ Récapitulatif financier ═══ */}
+      {data && summaryRows.length > 0 && (
+        <Card className="border-2 border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              Récapitulatif financier
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {summaryRows.map((row) => (
+                <div
+                  key={row.label}
+                  className="rounded-lg border bg-card p-3 text-center space-y-1 hover:shadow-sm transition-shadow"
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    <row.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      {row.label}
+                    </span>
+                  </div>
+                  <p className={`text-xs text-muted-foreground/80`}>{row.sublabel}</p>
+                  <p className={`text-sm ${row.color}`}>
+                    {fmtMoney(row.value)}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {data.summary.periodBalance !== 0 && (
+              <div className={`mt-3 pt-3 border-t text-center text-xs ${data.summary.periodBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                Solde {data.summary.periodBalance > 0 ? 'débiteur' : 'créditeur'} : {fmtMoney(data.summary.periodBalance)}&nbsp;MAD
+                {data.summary.periodBalance > 0
+                  ? ' — Le client vous doit ce montant'
+                  : ' — Vous devez ce montant au client'}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
