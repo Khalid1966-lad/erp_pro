@@ -1004,3 +1004,24 @@ Stage Summary:
 - Impossible de modifier le solde manuellement via l'API
 - Tous les documents dans la fiche client sont maintenant cliquables et ouvrent une modale de détail
 - L'impression et le téléchargement PDF sont disponibles depuis la modale
+---
+Task ID: fix-users-avatar-dialog-width
+Agent: Main Agent
+Task: Fix 3 issues: users disappearing on edit, avatar not in header, dialog too narrow
+
+Work Log:
+- Fixed `auth.userId` undefined reference in users-view.tsx line 236 — changed to `useAuthStore.getState().user?.id`
+- Fixed handleRemoveAvatar to use raw fetch with body (API requires userId in body for DELETE)
+- Added auth store update after avatar upload (handleAvatarChange) — updates setUser with new avatarUrl
+- Added auth store update after avatar remove (handleRemoveAvatar) — updates setUser with undefined avatarUrl
+- Fixed ERPHeader avatar: replaced raw `<img>` with `<AvatarImage>` component from Radix UI
+- Added AvatarImage import to erp-layout.tsx
+- Fixed doc-detail-dialog width: replaced `max-w-6xl` className with inline `style={{ maxWidth: "min(92vw, 1400px)" }}` to reliably override base Dialog `sm:max-w-lg`
+- ESLint: 0 errors
+
+Stage Summary:
+- 3 files changed: users-view.tsx, erp-layout.tsx, doc-detail-dialog.tsx
+- Auth store now properly updates after avatar changes, header avatar displays correctly
+- Document detail dialogs are now wider (up to 92vw / 1400px)
+- `auth.userId` undefined reference fixed preventing potential runtime crash
+

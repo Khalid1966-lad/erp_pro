@@ -233,8 +233,13 @@ export default function UsersView() {
       const dataUrl = await compressImage(file)
       setAvatarPreview(dataUrl)
       const body: Record<string, unknown> = { avatarUrl: dataUrl }
-      if (selectedUser && auth.userId !== selectedUser.id) body.userId = selectedUser.id
+      const storeUser = useAuthStore.getState().user
+      if (selectedUser && storeUser?.id !== selectedUser.id) body.userId = selectedUser.id
       await api.put('/users/avatar', body)
+      // Update auth store if editing own profile
+      if (!selectedUser || selectedUser.id === storeUser?.id) {
+        useAuthStore.getState().setUser({ ...storeUser!, avatarUrl: dataUrl })
+      }
       toast.success('Photo mise à jour')
       fetchUsers()
     } catch (err) {
@@ -247,15 +252,23 @@ export default function UsersView() {
   const handleRemoveAvatar = async () => {
     if (!selectedUser) return
     try {
-      const body: Record<string, unknown> = {}
-      if (currentUser?.id !== selectedUser.id) body.userId = selectedUser.id
+      const storeUser = useAuthStore.getState().user
+      const isOtherUser = storeUser?.id !== selectedUser.id
+      const body = isOtherUser ? { userId: selectedUser.id } : {}
       const { token } = useAuthStore.getState()
       await fetch('/api/users/avatar', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(body),
       })
       setAvatarPreview(null)
+      // Update auth store if editing own profile
+      if (!isOtherUser && storeUser) {
+        useAuthStore.getState().setUser({ ...storeUser, avatarUrl: undefined })
+      }
       toast.success('Photo supprimée')
       fetchUsers()
     } catch {

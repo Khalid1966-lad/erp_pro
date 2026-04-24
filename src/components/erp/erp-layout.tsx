@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   Tooltip,
   TooltipContent,
@@ -413,9 +413,7 @@ export function ERPHeader() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-full px-1 py-1 pr-3 hover:bg-accent transition-colors outline-none">
               <Avatar className="h-8 w-8">
-                {user.avatarUrl && (
-                  <img src={user.avatarUrl} alt="" className="h-full w-full rounded-full object-cover" />
-                )}
+                <AvatarImage src={user.avatarUrl || ''} alt={user.name || ''} />
                 <AvatarFallback className="text-xs bg-primary text-primary-foreground">
                   {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
                 </AvatarFallback>

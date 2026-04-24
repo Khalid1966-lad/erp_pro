@@ -365,7 +365,7 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" resizable>
+      <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'min(92vw, 1400px)' }} resizable>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {config?.label || ''}
