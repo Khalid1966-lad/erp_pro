@@ -978,3 +978,29 @@ Stage Summary:
 - Frontend affiche 6 cartes récapitulatives avec icônes et couleurs + ligne solde débiteur/créditeur
 - Le tableau récapitulatif est inclus dans l'impression A4
 - Données de test disponibles pour tester avec ABDA BATIMENTS
+---
+Task ID: 2
+Agent: main
+Task: Synchroniser le solde client + rendre les documents cliquables dans la fiche client
+
+Work Log:
+- Sync du solde ABDA BATIMENTS: 9800 MAD (inchangé car déjà à jour)
+- Créé `src/lib/client-balance.ts`: fonctions recalculateClientBalance, syncClientBalance, syncAllClientBalances
+- Modifié GET /api/clients/[id] pour auto-sync balance + nbImpayes à chaque ouverture
+- Modifié GET /api/clients/[id]/statement pour sync en background
+- Créé POST /api/clients/sync-balances endpoint admin pour sync globale
+- Protégé le champ balance contre modification manuelle dans PUT /api/clients/[id]
+- Créé 5 endpoints GET by ID: /api/quotes/[id], /api/sales-orders/[id], /api/delivery-notes/[id], /api/invoices/[id], /api/credit-notes/[id]
+- Créé composant DocDetailDialog réutilisable (doc-detail-dialog.tsx) avec:
+  - Gestion de 5 types de documents (quote, order, deliveryNote, invoice, creditNote)
+  - Affichage: info grid, lignes produits, totaux, montant en lettres
+  - Boutons Imprimer et Télécharger PDF
+- Modifié les 5 tabs documents dans ClientDetailView pour rendre les lignes cliquables
+- Lignes cliquables avec cursor-pointer et hover:bg-muted/60
+- Commit 79a17a8 poussé sur GitHub main
+
+Stage Summary:
+- Le solde client est maintenant calculé automatiquement à partir des transactions réelles
+- Impossible de modifier le solde manuellement via l'API
+- Tous les documents dans la fiche client sont maintenant cliquables et ouvrent une modale de détail
+- L'impression et le téléchargement PDF sont disponibles depuis la modale
