@@ -102,7 +102,7 @@ export function PrintHeader() {
             <img
               src={company.logoUrl}
               alt="Logo"
-              className="w-full h-full object-contain p-1"
+              className="w-full h-full block"
               onError={() => setLogoError(true)}
             />
           ) : (
