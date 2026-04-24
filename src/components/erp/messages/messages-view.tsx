@@ -687,33 +687,31 @@ export default function MessagesView() {
           >
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
           </div>
-          {/* Meta row: delete button + time + checkmark */}
-          <div className={`flex items-center gap-1.5 mt-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
+          {/* Meta row: time + checkmark + DELETE button */}
+          <div className={`flex items-center gap-2 mt-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
             <span className="text-[10px] text-muted-foreground/60">
               {formatMessageTime(new Date(msg.createdAt))}
             </span>
             {isMine && (
               <CheckCheck className="h-3 w-3 text-muted-foreground/40" />
             )}
-            {isMine && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setConfirmDeleteId(msg.id)
-                }}
-                disabled={deletingMessageId === msg.id}
-                className="inline-flex items-center justify-center h-5 w-5 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex-shrink-0"
-                title="Supprimer"
-                aria-label="Supprimer le message"
-              >
-                {deletingMessageId === msg.id ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3 w-3" />
-                )}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setConfirmDeleteId(msg.id)
+              }}
+              disabled={deletingMessageId === msg.id}
+              className="inline-flex items-center justify-center gap-1 h-6 px-1.5 rounded text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors flex-shrink-0"
+              title="Supprimer ce message"
+              aria-label="Supprimer le message"
+            >
+              {deletingMessageId === msg.id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+            </button>
           </div>
         </div>
       </div>
