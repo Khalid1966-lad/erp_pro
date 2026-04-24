@@ -592,16 +592,10 @@ export default function MessagesView() {
               <Users className="h-2.5 w-2.5 text-muted-foreground" />
             </div>
           )}
-          {/* Online indicator */}
-          {!conv.isGroup && (() => {
-            const otherParticipant = conv.participants[0]
-            const isOnline = otherParticipant?.isOnline ?? false
-            return isOnline ? (
-              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500" />
-            ) : (
-              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-gray-300 dark:bg-gray-600" />
-            )
-          })()}
+          {/* Online indicator — only show green dot when user is online */}
+          {!conv.isGroup && conv.participants[0]?.isOnline && (
+            <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500" />
+          )}
         </div>
 
         {/* Content */}
@@ -871,15 +865,9 @@ export default function MessagesView() {
                       : activeConversation.participants[0]?.name || 'Inconnu'}
                   </h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    {!activeConversation.isGroup && (() => {
-                      const otherP = activeConversation.participants[0]
-                      const isOnline = otherP?.isOnline ?? false
-                      return isOnline ? (
-                        <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" />
-                      ) : (
-                        <Circle className="h-2 w-2 fill-gray-300 text-gray-300 dark:fill-gray-600 dark:text-gray-600" />
-                      )
-                    })()}
+                    {!activeConversation.isGroup && activeConversation.participants[0]?.isOnline && (
+                      <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" />
+                    )}
                     <span className="text-xs text-muted-foreground">
                       {!activeConversation.isGroup && activeConversation.participants[0]
                         ? ROLE_LABELS[activeConversation.participants[0].role] || activeConversation.participants[0].role
