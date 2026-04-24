@@ -520,4 +520,34 @@ Work Log:
 Stage Summary:
 - Root cause: Vercel function timeout (10-60s default) was killing the restore endpoint silently, frontend fetch hung indefinitely without feedback
 - Fix: SSE streaming keeps Vercel function alive, maxDuration=300s extends timeout, AbortController gives frontend 5min deadline
+---
+Task ID: 1
+Agent: Main Agent
+Task: Add supplier financial statement (Relevé de Compte Fournisseur) — same feature as client statement but for suppliers
+
+Work Log:
+- Analyzed existing client financial statement implementation (API + UI in clients-view.tsx)
+- Examined Prisma schema for supplier models: SupplierInvoice, SupplierCreditNote, Payment (type=supplier_payment)
+- Created `src/app/api/suppliers/[id]/statement/route.ts`:
+  - GET endpoint: `/api/suppliers/[id]/statement?from=YYYY-MM-DD&to=YYYY-MM-DD`
+  - Fetches SupplierInvoices (DEBIT), SupplierCreditNotes (CREDIT), Payments type=supplier_payment (CREDIT)
+  - Calculates previous balance for date range filtering
+  - Computes running balance for each transaction
+  - Returns: supplier info, date range, previousBalance, transactions[], totalDebit, totalCredit, finalBalance
+- Updated `src/components/erp/purchasing/supplier-detail-view.tsx`:
+  - Added new imports: useCallback, Wallet, CalendarDays, Printer, Input, Label, toast, printDocument
+  - Created `SupplierFinancialStatementTab` component (mirrors client FinancialStatementTab)
+  - Features: date interval filtering (from/to), summary cards (ancien solde, total débit/crédit, solde final)
+  - Transaction table with sticky headers, type badges (Facture/Paiement/Avoir), color-coded amounts
+  - Print button using printDocument() with full A4 preview dialog
+  - Added "Relevé de Compte" tab trigger with Wallet icon to TabsList
+  - Added TabsContent for "financial" tab
+- ESLint: 0 errors
+
+Stage Summary:
+- Supplier financial statement feature fully implemented
+- API endpoint: /api/suppliers/[id]/statement with date filtering and running balance
+- UI: New "Relevé de Compte" tab in supplier detail view with date filter, summary cards, transactions table, print
+- Print: Full A4 preview with zoom, company header, period info, transaction table, totals, notes
+- Files changed: 2 new (API route), 1 modified (supplier-detail-view.tsx)
 - User now sees: real-time progress overlay with step indicators, progress bar, table-by-table tracking, clear success/error messages

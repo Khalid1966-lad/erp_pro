@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -20,8 +20,12 @@ import {
 import {
   ArrowLeft, Edit, Trash2, Phone, Mail, MapPin, Building2, Star,
   FileText, ShoppingCart, Warehouse, RotateCcw, ArrowLeftRight, Receipt, Package,
-  Inbox,
+  Inbox, Wallet, CalendarDays, Printer,
 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
+import { printDocument } from '@/lib/print-utils'
 
 // ───────────────────── Types ─────────────────────
 interface SupplierDetailProps {
@@ -207,6 +211,292 @@ function useTabData<T>(endpoint: string, field: string, supplierId: string) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  FINANCIAL STATEMENT TAB (Relevé de Compte Fournisseur)
+// ═══════════════════════════════════════════════════════════════
+
+interface SupplierStatementTransaction {
+  date: string
+  type: 'invoice' | 'payment' | 'credit_note'
+  reference: string
+  label: string
+  debit: number
+  credit: number
+  balance: number
+}
+
+interface SupplierStatementData {
+  supplier: { id: string; name: string; code: string; siret: string | null; phone: string | null; email: string | null; address: string | null; city: string | null; postalCode: string | null }
+  from: string | null
+  to: string | null
+  previousBalance: number
+  transactions: SupplierStatementTransaction[]
+  totalDebit: number
+  totalCredit: number
+  finalBalance: number
+}
+
+function SupplierFinancialStatementTab({ supplierId }: { supplierId: string }) {
+  const [data, setData] = useState<SupplierStatementData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+
+  const fetchStatement = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (fromDate) params.set('from', fromDate)
+      if (toDate) params.set('to', toDate)
+      const res = await api.get<SupplierStatementData>(`/suppliers/${supplierId}/statement?${params}`)
+      setData(res)
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur chargement relevé')
+    } finally {
+      setLoading(false)
+    }
+  }, [supplierId, fromDate, toDate])
+
+  useEffect(() => {
+    fetchStatement()
+  }, [fetchStatement])
+
+  const handlePrint = async () => {
+    if (!data || data.transactions.length === 0) {
+      toast.error('Aucune transaction à imprimer')
+      return
+    }
+
+    const fmtDateStr = (d: string) => {
+      try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) }
+      catch { return d }
+    }
+    const fmtM = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MAD'
+
+    const periodStr = data.from || data.to
+      ? `Période : ${data.from ? fmtDateStr(data.from + 'T00:00:00') : '...'} au ${data.to ? fmtDateStr(data.to + 'T00:00:00') : '...'}`
+      : 'Période : Depuis le début'
+
+    const infoGrid = [
+      { label: 'Fournisseur', value: data.supplier.name || '—' },
+      { label: 'Code', value: data.supplier.code || '—' },
+      { label: 'Téléphone', value: data.supplier.phone || '—' },
+      { label: 'Période', value: periodStr },
+    ]
+
+    const rows: Array<Array<{ value: string | number; align?: string }>> = []
+    if (data.previousBalance !== 0) {
+      rows.push([
+        { value: '', align: 'center' },
+        { value: '' },
+        { value: 'Solde précédent' },
+        { value: fmtM(data.previousBalance), align: 'right' },
+        { value: '', align: 'right' },
+        { value: fmtM(data.previousBalance), align: 'right' },
+      ])
+    }
+
+    for (const tx of data.transactions) {
+      const typeLabel = tx.type === 'invoice' ? 'Facture' : tx.type === 'credit_note' ? 'Avoir' : 'Paiement'
+      rows.push([
+        { value: fmtDateStr(tx.date), align: 'center' },
+        { value: typeLabel, align: 'center' },
+        { value: tx.label },
+        { value: tx.debit > 0 ? fmtM(tx.debit) : '', align: 'right' },
+        { value: tx.credit > 0 ? fmtM(tx.credit) : '', align: 'right' },
+        { value: fmtM(tx.balance), align: 'right' },
+      ])
+    }
+
+    const totals = [
+      { label: 'Total Débit', value: fmtM(data.totalDebit) },
+      { label: 'Total Crédit', value: fmtM(data.totalCredit) },
+      { label: 'Solde', value: fmtM(data.finalBalance), bold: true, negative: data.finalBalance > 0 },
+    ]
+
+    await printDocument({
+      title: 'RELEVÉ DE COMPTE FOURNISSEUR',
+      docNumber: '',
+      infoGrid,
+      columns: [
+        { label: 'Date', align: 'center' },
+        { label: 'Type', align: 'center' },
+        { label: 'Libellé' },
+        { label: 'Débit', align: 'right' },
+        { label: 'Crédit', align: 'right' },
+        { label: 'Solde', align: 'right' },
+      ],
+      rows,
+      totals,
+      notes: `Relevé généré le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}. Ce document est un récapitulatif informatif.`,
+    })
+  }
+
+  const typeLabels: Record<string, string> = {
+    invoice: 'Facture',
+    payment: 'Paiement',
+    credit_note: 'Avoir',
+  }
+  const typeColors: Record<string, string> = {
+    invoice: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    payment: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+    credit_note: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Date filter + Actions */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-medium whitespace-nowrap">Période :</Label>
+              </div>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-auto"
+                placeholder="Du"
+              />
+              <span className="text-muted-foreground text-sm">au</span>
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-auto"
+                placeholder="Au"
+              />
+              {(fromDate || toDate) && (
+                <Button variant="ghost" size="sm" onClick={() => { setFromDate(''); setToDate('') }}>
+                  Effacer
+                </Button>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={handlePrint} disabled={loading || !data || data.transactions.length === 0} className="gap-2">
+              <Printer className="h-4 w-4" />
+              Imprimer le relevé
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary Cards */}
+      {data && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card>
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-muted-foreground">Ancien solde</p>
+              <p className={`text-sm font-bold ${data.previousBalance > 0 ? 'text-red-600' : data.previousBalance < 0 ? 'text-green-600' : ''}`}>
+                {fmtMoney(data.previousBalance)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-muted-foreground">Total Débit</p>
+              <p className="text-sm font-bold text-red-600">{fmtMoney(data.totalDebit)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-muted-foreground">Total Crédit</p>
+              <p className="text-sm font-bold text-green-600">{fmtMoney(data.totalCredit)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-muted-foreground">Solde final</p>
+              <p className={`text-sm font-bold ${data.finalBalance > 0 ? 'text-red-600' : data.finalBalance < 0 ? 'text-green-600' : ''}`}>
+                {fmtMoney(data.finalBalance)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Transactions Table */}
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <TabSkeleton />
+          ) : !data || data.transactions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Wallet className="h-10 w-10 text-muted-foreground/30 mb-3" />
+              <p className="text-sm text-muted-foreground">Aucune transaction financière</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                Les factures, paiements et avoirs apparaîtront ici
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="sticky top-0 bg-muted z-10">
+                    <TableHead className="w-[100px]">Date</TableHead>
+                    <TableHead className="w-[100px]">Type</TableHead>
+                    <TableHead>Libellé</TableHead>
+                    <TableHead className="text-right w-[120px]">Débit</TableHead>
+                    <TableHead className="text-right w-[120px]">Crédit</TableHead>
+                    <TableHead className="text-right w-[120px]">Solde</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.previousBalance !== 0 && (
+                    <TableRow className="bg-muted/30 font-medium">
+                      <TableCell colSpan={3} className="text-sm">
+                        Solde précédent au {data.from ? fmtDate(data.from + 'T00:00:00') : 'début'}
+                      </TableCell>
+                      <TableCell className="text-right" />
+                      <TableCell className="text-right" />
+                      <TableCell className={`text-right font-bold ${data.previousBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {fmtMoney(data.previousBalance)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {data.transactions.map((tx, idx) => (
+                    <TableRow key={`${tx.type}-${tx.reference}-${idx}`}>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {fmtDate(tx.date)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${typeColors[tx.type] || ''}`}>
+                          {typeLabels[tx.type] || tx.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">{tx.label}</TableCell>
+                      <TableCell className={`text-right text-sm ${tx.debit > 0 ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                        {tx.debit > 0 ? fmtMoney(tx.debit) : '—'}
+                      </TableCell>
+                      <TableCell className={`text-right text-sm ${tx.credit > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
+                        {tx.credit > 0 ? fmtMoney(tx.credit) : '—'}
+                      </TableCell>
+                      <TableCell className={`text-right text-sm font-semibold ${tx.balance > 0 ? 'text-red-600' : tx.balance < 0 ? 'text-green-600' : ''}`}>
+                        {fmtMoney(tx.balance)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Totals row */}
+                  <TableRow className="sticky bottom-0 bg-muted font-bold border-t-2">
+                    <TableCell colSpan={3} className="text-sm">Totaux</TableCell>
+                    <TableCell className="text-right text-red-600">{fmtMoney(data.totalDebit)}</TableCell>
+                    <TableCell className="text-right text-green-600">{fmtMoney(data.totalCredit)}</TableCell>
+                    <TableCell className={`text-right ${data.finalBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {fmtMoney(data.finalBalance)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  SUPPLIER DETAIL VIEW
 // ═══════════════════════════════════════════════════════════════
 export default function SupplierDetailView({ supplier, onBack, onEdit, onDelete }: SupplierDetailProps) {
@@ -367,6 +657,10 @@ export default function SupplierDetailView({ supplier, onBack, onEdit, onDelete 
             {invoices.data.length > 0 && (
               <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">{invoices.data.length}</Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="financial" className="text-xs sm:text-sm">
+            <Wallet className="h-4 w-4 mr-1 hidden sm:inline" />
+            Relevé de Compte
           </TabsTrigger>
         </TabsList>
 
@@ -561,6 +855,11 @@ export default function SupplierDetailView({ supplier, onBack, onEdit, onDelete 
               </Table>
             </TabCard>
           )}
+        </TabsContent>
+
+        {/* ── Tab: Relevé de Compte ── */}
+        <TabsContent value="financial">
+          <SupplierFinancialStatementTab supplierId={supplier.id} />
         </TabsContent>
 
         {/* ── Tab: Factures Fournisseurs ── */}
