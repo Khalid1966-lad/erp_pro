@@ -953,3 +953,28 @@ Stage Summary:
 - 10 mouvements de stock enregistrés
 - Écritures comptables générées pour factures client et fournisseur
 - Tous les soldes cohérents: banque +80 220 (vente) - 8 154 (achat) = +72 066
+---
+Task ID: 1
+Agent: main
+Task: Ajouter un tableau récapitulatif financier à la fin du relevé de compte client
+
+Work Log:
+- Exploré le projet pour identifier les fichiers liés au relevé de compte client
+- Analysé le schéma Prisma (Invoice, CreditNote, Payment, EffetCheque, DeliveryNote, InvoiceDeliveryNote)
+- Modifié l'API `/api/clients/[id]/statement/route.ts` pour calculer et retourner un objet `summary` avec 6 indicateurs
+- Modifié le composant frontend `FinancialStatementTab` dans `clients-view.tsx` pour afficher le récapitulatif financier
+- Ajouté les imports d'icônes manquants (CreditCard, Scale, BarChart3)
+- Intégré le récapitulatif dans l'impression A4 via le paramètre `subSections`
+- Corrigé le type `rejet_effet` manquant dans typeLabels/typeColors
+- Inséré des données de test dans Neon PostgreSQL pour ABDA BATIMENTS:
+  - 1 facture impayée (FAC-202605-0002 = 54,000 MAD)
+  - 1 livraison non facturée (BL-2026-0002 = 22,200 MAD)
+  - 1 chèque en attente (25,000 MAD) + 1 effet en attente (15,000 MAD) = 40,000 MAD portefeuille
+  - 1 avoir validé non consolidé (AVR-2026-0001 = 4,200 MAD)
+- Commit bca3629 poussé sur GitHub main → Vercel auto-deploy
+
+Stage Summary:
+- API enrichie avec un objet `summary` contenant: unpaidInvoices, uninvoicedDeliveries, periodPayments, portfolioAmount, unconsolidatedCreditNotes, periodBalance
+- Frontend affiche 6 cartes récapitulatives avec icônes et couleurs + ligne solde débiteur/créditeur
+- Le tableau récapitulatif est inclus dans l'impression A4
+- Données de test disponibles pour tester avec ABDA BATIMENTS
