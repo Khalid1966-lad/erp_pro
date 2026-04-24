@@ -410,3 +410,32 @@ Stage Summary:
 - Amount in words (montant en lettres) included in financial documents
 - Credit notes and returns print with negative/red styling
 - Logistics documents (preparations, receptions, price requests) print without financial totals
+---
+Task ID: 2
+Agent: Main Agent
+Task: Version 1.0.2 release — update all version refs + rewrite comprehensive user guide
+
+Work Log:
+- Updated APP_VERSION from '1.4.0' to '1.0.2' in src/lib/version.ts
+- Updated BUILD_DATE to '2026-04-24'
+- Updated package.json version from '1.2.1' to '1.0.2'
+- Updated guide-view.tsx: version in sidebar card, version badge, and footer
+- Rewrote user guide component (1619 lines, 637 additions, 387 deletions)
+- New guide structure matches sidebar navigation exactly:
+  1. Introduction (module overview grid updated to 7 groups)
+  2. Connexion & Navigation (sidebar mock updated with all 31 views)
+  3. Tableau de bord (kept existing)
+  4. Ventes (NEW — combines 8 sub-modules: Clients, Produits, Devis, Commandes, Préparations, BL, Factures, Avoirs)
+  5. Achats (NEW — 8 sub-modules: Fournisseurs, Demandes de prix, Devis fourn., Commandes fourn., Réceptions, Retours, Avoirs fourn., Factures fourn.)
+  6. Stock (NEW — Mouvements, Alertes, Inventaires)
+  7. Production (NEW — Nomenclatures, Gammes, Postes de travail, Ordres de fabrication)
+  8. Finance (NEW — Caisses, Banque, Paiements, Comptabilité)
+  9. Impression (NEW — 13 document types, company header, footer config)
+  10. Administration (NEW — Utilisateurs with 10 roles, Journal d'audit, Paramètres with logo upload)
+- Lint passes clean
+- Committed and pushed to GitHub
+
+Stage Summary:
+- Version 1.0.2 released with all references updated
+- Comprehensive user guide now documents all 31 views across 7 sidebar groups
+- Guide covers: full sales cycle, full purchasing cycle, production workflow, finance module, print system, settings configuration
