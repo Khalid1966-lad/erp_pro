@@ -46,12 +46,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -693,44 +687,32 @@ export default function MessagesView() {
           >
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
           </div>
-          {/* Meta row: actions dropdown + time + checkmark */}
-          <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
-            {/* Actions dropdown (⋮) — always visible for own messages */}
-            {isMine && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreVertical className="h-3 w-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" side="bottom" className="w-40">
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setConfirmDeleteId(msg.id)
-                    }}
-                    disabled={deletingMessageId === msg.id}
-                  >
-                    {deletingMessageId === msg.id ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 mr-2" />
-                    )}
-                    Supprimer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+          {/* Meta row: delete button + time + checkmark */}
+          <div className={`flex items-center gap-1.5 mt-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
             <span className="text-[10px] text-muted-foreground/60">
               {formatMessageTime(new Date(msg.createdAt))}
             </span>
             {isMine && (
               <CheckCheck className="h-3 w-3 text-muted-foreground/40" />
+            )}
+            {isMine && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setConfirmDeleteId(msg.id)
+                }}
+                disabled={deletingMessageId === msg.id}
+                className="inline-flex items-center justify-center h-5 w-5 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex-shrink-0"
+                title="Supprimer"
+                aria-label="Supprimer le message"
+              >
+                {deletingMessageId === msg.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3 w-3" />
+                )}
+              </button>
             )}
           </div>
         </div>
