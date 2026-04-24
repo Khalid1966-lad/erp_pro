@@ -752,3 +752,75 @@ Stage Summary:
 - Emoji picker now fully functional in the messaging interface
 - Uses native Popover component (no new dependencies)
 - 140 emojis across 4 categories with search capability
+---
+Task ID: messaging-backend-apis
+Agent: Main Agent
+Task: Create 3 messaging backend API routes + update 2 existing routes
+
+Work Log:
+- Created `src/app/api/conversations/[id]/messages/[messageId]/route.ts`:
+  - DELETE method: verifies user is participant, verifies message belongs to conversation
+  - Only allows message sender or super_admin to delete
+  - Deletes message from DB, logs to auditLog
+  - Returns `{ success: true }` on success
+- Created `src/app/api/presence/route.ts`:
+  - POST method: updates authenticated user's `lastSeen` field to `new Date()`
+  - Returns `{ success: true }`
+- Created `src/app/api/messages/cleanup/route.ts`:
+  - POST method: deletes all messages older than 30 days
+  - Also deletes orphaned conversations (conversations with no remaining messages)
+  - Only allows super_admin (queries User.isSuperAdmin from DB)
+  - Returns `{ deletedMessages: count, deletedConversations: count }`
+- Updated `src/app/api/conversations/route.ts`:
+  - GET handler: added `lastSeen` to user select in participant query
+  - Added computed `isOnline` property (lastSeen within 30 seconds) to participant mapping
+  - Added `lastSeen` to participant response
+  - POST handler: added `lastSeen` to otherUser select, existing conversation dedup response, and new conversation response
+  - All participant objects now include `lastSeen` and `isOnline` fields
+- Updated `src/app/api/conversations/[id]/messages/route.ts`:
+  - GET handler: added lazy cleanup after fetching messages
+  - Deletes messages older than 30 days via `db.message.deleteMany`
+  - Finds and deletes orphaned conversations (no remaining messages)
+  - Wrapped in try/catch so it doesn't block the main response
+  - Logs deleted record counts to console
+
+Stage Summary:
+- 3 new API routes created: DELETE message, presence heartbeat, message cleanup
+- 2 existing routes updated: conversations list with online status, messages with lazy cleanup
+- Lint: 0 errors
+- Dev server: compiling successfully
+
+---
+Task ID: messaging-frontend-updates
+Agent: Main Agent
+Task: Update messaging frontend — presence heartbeat, delete messages, online indicators
+
+Work Log:
+- Added `Trash2` to lucide-react imports in messages-view.tsx
+- Updated `Participant` interface with `isOnline?: boolean` and `lastSeen?: string`
+- Added state variables: `hoveredMessageId` and `deletingMessageId`
+- Added `deleteMessage` callback: calls api.delete, removes from local state, refreshes conversations
+- Added presence heartbeat in polling useEffect: `api.post('/presence').catch(() => {})` before fetchConversations
+- Updated `renderMessageBubble`:
+  - Added `relative` class to bubble wrapper div
+  - Added `onMouseEnter`/`onMouseLeave` on message wrapper to track hovered message
+  - Added delete button (Trash2 icon) that appears on hover for user's own messages
+  - Delete button shows Loader2 spinner while deleting
+  - Updated useCallback deps to include hoveredMessageId, deletingMessageId, deleteMessage
+- Updated `renderConversationItem` online indicator:
+  - Replaced hardcoded green dot with conditional rendering based on participant's `isOnline` status
+  - Green dot for online, gray dot for offline
+  - No dot for group conversations (hidden behind Users icon)
+- Updated chat header online indicator:
+  - Replaced hardcoded green Circle icon with conditional rendering
+  - Green circle for online, gray circle for offline (with dark mode support)
+  - No circle shown for group conversations
+- Verified api.delete already exists in src/lib/api.ts (no changes needed)
+- Ran ESLint: 0 errors
+- Dev server: compiling successfully
+
+Stage Summary:
+- Messaging frontend updated with 3 new features: presence heartbeat, message deletion, online indicators
+- Delete button appears on hover for user's own messages with loading state
+- Online indicators in conversation list and chat header now reflect real-time presence data from backend
+- Lint: 0 errors

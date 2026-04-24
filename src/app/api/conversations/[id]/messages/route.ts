@@ -44,6 +44,31 @@ export async function GET(
       },
     })
 
+    // Lazy cleanup: delete messages older than 30 days and orphaned conversations (non-blocking)
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      const deletedMessages = await db.message.deleteMany({
+        where: { createdAt: { lt: thirtyDaysAgo } },
+      })
+      if (deletedMessages.count > 0) {
+        console.log(`[Cleanup] Deleted ${deletedMessages.count} old messages`)
+        // Also delete orphaned conversations (no remaining messages)
+        const orphanedConversations = await db.conversation.findMany({
+          where: { messages: { none: {} } },
+          select: { id: true },
+        })
+        if (orphanedConversations.length > 0) {
+          const orphanedIds = orphanedConversations.map((c) => c.id)
+          const deletedConvs = await db.conversation.deleteMany({
+            where: { id: { in: orphanedIds } },
+          })
+          console.log(`[Cleanup] Deleted ${deletedConvs.count} orphaned conversations`)
+        }
+      }
+    } catch (cleanupError) {
+      console.error('[Cleanup] Lazy cleanup failed:', cleanupError)
+    }
+
     // Reverse to get chronological order
     const chronologicalMessages = messages.reverse()
 

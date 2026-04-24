@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
             participants: {
               include: {
                 user: {
-                  select: { id: true, name: true, role: true },
+                  select: { id: true, name: true, role: true, lastSeen: true },
                 },
               },
             },
@@ -47,6 +47,10 @@ export async function GET(req: NextRequest) {
             id: cp.user.id,
             name: cp.user.name,
             role: cp.user.role,
+            lastSeen: cp.user.lastSeen,
+            isOnline: cp.user.lastSeen
+              ? new Date(cp.user.lastSeen).getTime() > Date.now() - 30 * 1000
+              : false,
           }))
 
         // Count unread messages: messages where createdAt > participant.lastReadAt
@@ -115,7 +119,7 @@ export async function POST(req: NextRequest) {
     // Verify the other user exists
     const otherUser = await db.user.findUnique({
       where: { id: participantId },
-      select: { id: true, name: true, role: true },
+      select: { id: true, name: true, role: true, lastSeen: true },
     })
     if (!otherUser) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 })
@@ -137,7 +141,7 @@ export async function POST(req: NextRequest) {
           include: {
             participants: {
               include: {
-                user: { select: { id: true, name: true, role: true } },
+                user: { select: { id: true, name: true, role: true, lastSeen: true } },
               },
             },
           },
@@ -161,7 +165,15 @@ export async function POST(req: NextRequest) {
         createdAt: conv.createdAt,
         updatedAt: conv.updatedAt,
         participants: other
-          ? [{ id: other.user.id, name: other.user.name, role: other.user.role }]
+          ? [{
+              id: other.user.id,
+              name: other.user.name,
+              role: other.user.role,
+              lastSeen: other.user.lastSeen,
+              isOnline: other.user.lastSeen
+                ? new Date(other.user.lastSeen).getTime() > Date.now() - 30 * 1000
+                : false,
+            }]
           : [],
       })
     }
@@ -180,7 +192,7 @@ export async function POST(req: NextRequest) {
       include: {
         participants: {
           include: {
-            user: { select: { id: true, name: true, role: true } },
+            user: { select: { id: true, name: true, role: true, lastSeen: true } },
           },
         },
       },
@@ -200,7 +212,15 @@ export async function POST(req: NextRequest) {
         createdAt: conversation.createdAt,
         updatedAt: conversation.updatedAt,
         participants: otherParticipant
-          ? [{ id: otherParticipant.user.id, name: otherParticipant.user.name, role: otherParticipant.user.role }]
+          ? [{
+              id: otherParticipant.user.id,
+              name: otherParticipant.user.name,
+              role: otherParticipant.user.role,
+              lastSeen: otherParticipant.user.lastSeen,
+              isOnline: otherParticipant.user.lastSeen
+                ? new Date(otherParticipant.user.lastSeen).getTime() > Date.now() - 30 * 1000
+                : false,
+            }]
           : [],
       },
       { status: 201 }

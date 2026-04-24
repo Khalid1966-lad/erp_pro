@@ -16,6 +16,7 @@ import {
   Smile,
   Circle,
   Loader2,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,6 +42,8 @@ interface Participant {
   id: string
   name: string
   role: string
+  isOnline?: boolean
+  lastSeen?: string
 }
 
 interface Conversation {
@@ -271,6 +274,8 @@ export default function MessagesView() {
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [emojiSearch, setEmojiSearch] = useState('')
   const [activeEmojiCategory, setActiveEmojiCategory] = useState(0)
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null)
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -397,6 +402,20 @@ export default function MessagesView() {
     }
   }, [fetchConversations, fetchMessages])
 
+  const deleteMessage = useCallback(async (messageId: string, conversationId: string) => {
+    setDeletingMessageId(messageId)
+    try {
+      await api.delete(`/conversations/${conversationId}/messages/${messageId}`)
+      // Remove from local state
+      setMessages((prev) => prev.filter((m) => m.id !== messageId))
+      fetchConversations()
+    } catch (err) {
+      console.error('Failed to delete message:', err)
+    } finally {
+      setDeletingMessageId(null)
+    }
+  }, [fetchConversations])
+
   const fetchUsers = useCallback(async () => {
     try {
       const data = await api.get<{ users: UserItem[] }>('/users')
@@ -433,6 +452,8 @@ export default function MessagesView() {
 
   useEffect(() => {
     pollingRef.current = setInterval(() => {
+      // Update presence heartbeat (every 15s is fine within 5s polling)
+      api.post('/presence').catch(() => {})
       fetchConversations()
       if (activeConversationId) {
         // Silently refresh messages
@@ -572,7 +593,15 @@ export default function MessagesView() {
             </div>
           )}
           {/* Online indicator */}
-          <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500" />
+          {!conv.isGroup && (() => {
+            const otherParticipant = conv.participants[0]
+            const isOnline = otherParticipant?.isOnline ?? false
+            return isOnline ? (
+              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500" />
+            ) : (
+              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-gray-300 dark:bg-gray-600" />
+            )
+          })()}
         </div>
 
         {/* Content */}
@@ -624,6 +653,8 @@ export default function MessagesView() {
         className={`flex gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'} ${
           isFirstInGroup ? 'mt-3' : 'mt-0.5'
         }`}
+        onMouseEnter={() => setHoveredMessageId(msg.id)}
+        onMouseLeave={() => setHoveredMessageId(null)}
       >
         {/* Avatar — show for other users' first message in group */}
         {!isMine && isFirstInGroup && (
@@ -634,7 +665,29 @@ export default function MessagesView() {
         {!isMine && !isFirstInGroup && <div className="w-8 flex-shrink-0" />}
 
         {/* Bubble */}
-        <div className={`max-w-[75%] md:max-w-[65%] ${isMine ? 'items-end' : 'items-start'}`}>
+        <div className={`relative max-w-[75%] md:max-w-[65%] ${isMine ? 'items-end' : 'items-start'}`}>
+          {/* Delete button for own messages */}
+          {isMine && (
+            <div 
+              className={`absolute -top-2 right-0 ${hoveredMessageId === msg.id ? 'opacity-100' : 'opacity-0'} transition-opacity`}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  deleteMessage(msg.id, msg.conversationId || '')
+                }}
+                disabled={deletingMessageId === msg.id}
+                className="h-6 w-6 flex items-center justify-center rounded-full bg-destructive/90 text-destructive-foreground hover:bg-destructive shadow-sm"
+                type="button"
+              >
+                {deletingMessageId === msg.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3 w-3" />
+                )}
+              </button>
+            </div>
+          )}
           {/* Sender name for group conversations */}
           {!isMine && activeConversation?.isGroup && isFirstInGroup && (
             <p className="text-[11px] font-medium text-muted-foreground mb-1 ml-1">
@@ -663,7 +716,7 @@ export default function MessagesView() {
         </div>
       </div>
     )
-  }, [user?.id, activeConversation?.isGroup])
+  }, [user?.id, activeConversation?.isGroup, hoveredMessageId, deletingMessageId, deleteMessage])
 
   // ── Main Render ──────────────────────────────────────────────────────────
 
@@ -818,9 +871,15 @@ export default function MessagesView() {
                       : activeConversation.participants[0]?.name || 'Inconnu'}
                   </h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className="flex items-center justify-center">
-                      <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" />
-                    </div>
+                    {!activeConversation.isGroup && (() => {
+                      const otherP = activeConversation.participants[0]
+                      const isOnline = otherP?.isOnline ?? false
+                      return isOnline ? (
+                        <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" />
+                      ) : (
+                        <Circle className="h-2 w-2 fill-gray-300 text-gray-300 dark:fill-gray-600 dark:text-gray-600" />
+                      )
+                    })()}
                     <span className="text-xs text-muted-foreground">
                       {!activeConversation.isGroup && activeConversation.participants[0]
                         ? ROLE_LABELS[activeConversation.participants[0].role] || activeConversation.participants[0].role

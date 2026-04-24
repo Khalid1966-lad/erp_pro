@@ -23,6 +23,7 @@ model User {
   blockedAt     DateTime?
   blockedBy     String?
   lastLogin     DateTime?
+  lastSeen      DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
