@@ -37,11 +37,10 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
 
   companyFetchPromise = (async () => {
     try {
-      const [settingsData, logoOk] = await Promise.all([
-        api.get<{ settingsMap: Record<string, string> }>('/settings'),
-        fetch('/api/logo').then(r => r.ok).catch(() => false),
-      ])
+      const settingsData = await api.get<{ settingsMap: Record<string, string> }>('/settings')
       const m = settingsData.settingsMap || {}
+      // Logo exists if company_logo_url is set in settings (stored in DB on Vercel)
+      const hasLogo = !!m.company_logo_url
       companyCache = {
         name: m.company_name || '',
         address: m.company_address || '',
@@ -57,7 +56,7 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
         rc: m.company_rc || '',
         legalForm: m.company_legal_form || '',
         capital: m.company_capital || '',
-        logoUrl: logoOk ? `/api/logo?t=${Date.now()}` : null,
+        logoUrl: hasLogo ? `/api/logo?t=${Date.now()}` : null,
         footerLine1: m.print_footer_line1 || '',
         footerLine2: m.print_footer_line2 || '',
         footerLine3: m.print_footer_line3 || '',

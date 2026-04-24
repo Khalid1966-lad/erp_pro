@@ -1,40 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { readFile } from 'fs/promises'
-import { existsSync, readdirSync } from 'fs'
-import path from 'path'
+import { NextResponse } from 'next/server'
+import { db } from '@/lib/db'
 
-// Serve the custom company logo from disk
+// Serve the custom company logo from database (not filesystem)
+// This works on Vercel where the filesystem is ephemeral
 export async function GET() {
   try {
-    const uploadDir = path.join(process.cwd(), 'upload')
+    // Fetch logo data from database
+    const settings = await db.setting.findMany({
+      where: { key: { in: ['company_logo_base64', 'company_logo_content_type'] } }
+    })
 
-    // Try multiple extensions in priority order
-    const extensions = ['avif', 'png', 'webp', 'jpg', 'jpeg', 'svg']
-    let logoPath: string | null = null
-    let contentType = ''
-
-    for (const ext of extensions) {
-      const candidate = path.join(uploadDir, `company-logo.${ext}`)
-      if (existsSync(candidate)) {
-        logoPath = candidate
-        const mimeMap: Record<string, string> = {
-          avif: 'image/avif',
-          png: 'image/png',
-          webp: 'image/webp',
-          jpg: 'image/jpeg',
-          jpeg: 'image/jpeg',
-          svg: 'image/svg+xml',
-        }
-        contentType = mimeMap[ext] || 'application/octet-stream'
-        break
-      }
+    const settingsMap: Record<string, string> = {}
+    for (const s of settings) {
+      settingsMap[s.key] = s.value
     }
 
-    if (!logoPath) {
+    const base64 = settingsMap['company_logo_base64']
+    const contentType = settingsMap['company_logo_content_type'] || 'image/avif'
+
+    if (!base64) {
       return NextResponse.json({ error: 'Aucun logo personnalisé' }, { status: 404 })
     }
 
-    const buffer = await readFile(logoPath)
+    // Decode base64 to binary
+    const buffer = Buffer.from(base64, 'base64')
 
     return new NextResponse(buffer, {
       status: 200,

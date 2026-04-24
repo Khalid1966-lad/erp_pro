@@ -53,11 +53,11 @@ export function PrintHeader() {
   const [logoError, setLogoError] = useState(false)
 
   useEffect(() => {
-    Promise.all([
-      api.get<{ settingsMap: Record<string, string> }>('/settings'),
-      fetch('/api/logo').then(r => r.ok).catch(() => false),
-    ]).then(([data, hasLogo]) => {
+    api.get<{ settingsMap: Record<string, string> }>('/settings')
+    .then((data) => {
       const m = data.settingsMap || {}
+      // Logo exists if company_logo_url is set in settings (stored in DB on Vercel)
+      const hasLogo = !!m.company_logo_url
       setCompany({
         name: m.company_name || '',
         address: m.company_address || '',

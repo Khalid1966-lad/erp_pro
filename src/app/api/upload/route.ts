@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir, unlink, readdir } from 'fs/promises'
-import path from 'path'
 import { getUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 
-// DELETE - Remove company logo
+// DELETE - Remove company logo from database
 export async function DELETE(req: NextRequest) {
   try {
     const authUser = await getUser(req)
@@ -15,24 +13,12 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
     }
 
-    const uploadDir = path.join(process.cwd(), 'upload')
-    const validExts = ['avif', 'png', 'webp', 'jpg', 'jpeg', 'svg']
-    let deleted = false
+    // Remove all logo-related settings from database
+    await db.setting.deleteMany({
+      where: { key: { in: ['company_logo_base64', 'company_logo_content_type', 'company_logo_url'] } }
+    })
 
-    for (const ext of validExts) {
-      const logoPath = path.join(uploadDir, `company-logo.${ext}`)
-      try {
-        await unlink(logoPath)
-        deleted = true
-      } catch { /* not found */ }
-    }
-
-    // Also clean up the setting
-    try {
-      await db.setting.deleteMany({ where: { key: { startsWith: 'company_logo' } } })
-    } catch { /* setting may not exist */ }
-
-    return NextResponse.json({ success: true, deleted })
+    return NextResponse.json({ success: true, deleted: true })
   } catch (error) {
     console.error('Logo delete error:', error)
     return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 })
@@ -75,12 +61,9 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), 'upload')
-    await mkdir(uploadDir, { recursive: true })
-
-    // Convert to AVIF using sharp (always available in the project)
+    // Convert to AVIF using sharp for compression
     let finalBuffer: Buffer
+    let finalContentType = 'image/avif'
     let finalExt = 'avif'
 
     try {
@@ -98,7 +81,7 @@ export async function POST(req: NextRequest) {
         })
         .toBuffer()
     } catch (sharpErr) {
-      console.error('Sharp processing failed, saving as PNG fallback:', sharpErr)
+      console.error('Sharp AVIF failed, trying PNG:', sharpErr)
       // Fallback: convert to PNG instead
       try {
         const sharp = (await import('sharp')).default
@@ -109,37 +92,36 @@ export async function POST(req: NextRequest) {
           })
           .png({ quality: 100 })
           .toBuffer()
+        finalContentType = 'image/png'
         finalExt = 'png'
       } catch {
-        // Sharp completely unavailable, save original
+        // Sharp completely unavailable, save original as-is
         finalBuffer = buffer
-        const extMap: Record<string, string> = {
-          'image/png': 'png',
-          'image/jpeg': 'jpg',
-          'image/webp': 'webp',
-          'image/svg+xml': 'svg',
-          'image/avif': 'avif',
-        }
-        finalExt = extMap[file.type] || 'png'
+        finalContentType = file.type
+        finalExt = file.type.split('/')[1] === 'svg+xml' ? 'svg' : file.type.split('/')[1]
       }
     }
 
-    // Clean up any old company-logo files before saving new one
-    const validExts = ['avif', 'png', 'webp', 'jpg', 'jpeg', 'svg']
-    for (const ext of validExts) {
-      const oldPath = path.join(uploadDir, `company-logo.${ext}`)
-      try { await unlink(oldPath) } catch { /* file doesn't exist, ignore */ }
-    }
+    // Convert to base64 for database storage
+    const base64 = finalBuffer.toString('base64')
 
-    // Save new logo to disk
-    const logoPath = path.join(uploadDir, `company-logo.${finalExt}`)
-    await writeFile(logoPath, finalBuffer)
+    // Save to database (not filesystem — Vercel filesystem is ephemeral)
+    await db.setting.upsert({
+      where: { key: 'company_logo_base64' },
+      update: { value: base64 },
+      create: { key: 'company_logo_base64', value: base64 },
+    })
 
-    // Update setting in database
+    await db.setting.upsert({
+      where: { key: 'company_logo_content_type' },
+      update: { value: finalContentType },
+      create: { key: 'company_logo_content_type', value: finalContentType },
+    })
+
     await db.setting.upsert({
       where: { key: 'company_logo_url' },
-      update: { value: `/api/logo` },
-      create: { key: 'company_logo_url', value: `/api/logo` },
+      update: { value: '/api/logo' },
+      create: { key: 'company_logo_url', value: '/api/logo' },
     })
 
     return NextResponse.json({
