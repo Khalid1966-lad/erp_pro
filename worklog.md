@@ -693,3 +693,37 @@ Stage Summary:
 - Backup system now covers 51/51 tables (was 50/51 — EffetCheque was missing)
 - Version 1.1.1 released with all references unified via APP_VERSION constant
 - Files changed: src/lib/backup.ts (added EffetCheque), src/lib/version.ts (version bump), package.json (version bump)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Build notification system + messaging + WebSocket real-time service
+
+Work Log:
+- Added 3 Prisma models: Notification, Conversation, ConversationParticipant, Message
+- Added 4 reverse relations to User model (notifications, conversationUsers, sentMessages)
+- Pushed schema to Neon PostgreSQL (55 models total now)
+- Created WebSocket mini-service (mini-services/ws/) on port 3003 with Socket.io
+- Created /api/notifications route: GET (list with pagination), POST (create/broadcast), PUT (mark read), DELETE
+- Created /api/conversations route: GET (list with unread counts), POST (create 1-on-1, dedup check)
+- Created /api/conversations/[id]/messages route: GET (paginated, auto-mark-read), POST (send + notify others)
+- Created src/lib/notify.ts: notify(), notifyAll(), notifyAdmins(), notifyByRole() helpers
+- Created useNotificationStore in stores.ts (Zustand) with unread count management
+- Added 'messages' to ViewId union type
+- Created notification-bell.tsx: Bell icon in header, dropdown with notification list, mark read, delete, timeAgo
+- Created messages-view.tsx: Full chat interface with conversation list, message bubbles, new conversation dialog
+- Added 'Communication' nav group with 'Messagerie' in sidebar
+- Added NotificationBell component in ERPHeader (between flex-1 spacer and user dropdown)
+- Added 4 new tables to BACKUP_TABLES: Notification, Conversation, ConversationParticipant, Message
+- Added DateTime fields for new tables to DATETIME_FIELDS map
+- Installed socket.io dependency
+- ESLint: 0 errors
+- Pushed commit ca38f26 to GitHub
+
+Stage Summary:
+- Complete notification + messaging system built across 20 files (+2832 lines)
+- Real-time capable via WebSocket mini-service on port 3003
+- Notification bell in header with unread badge, dropdown panel, type icons, mark-read
+- Full messaging: conversation list, chat bubbles, new conversation, 5s polling
+- Admin can broadcast notifications to all users
+- notify.ts helper ready for integration into any existing API route
