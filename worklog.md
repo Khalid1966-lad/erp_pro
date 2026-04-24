@@ -669,3 +669,27 @@ Stage Summary:
 - Both client and supplier views now have: ICE, Solde, Plafond de crédit
 - Credit limit system: visual indicators, filters, form fields for both entities
 - Edit button fix ensures full data loading from API
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Verify backup/restore system is up to date, bump version to 1.1.1
+
+Work Log:
+- Counted all 51 Prisma models in schema.prisma (including Backup)
+- Compared against 50 tables in BACKUP_TABLES array
+- Found missing table: EffetCheque (added in previous session but never added to backup list)
+- Added EffetCheque to BACKUP_TABLES (placed after Payment, respecting FK dependency)
+- Added EffetCheque DateTime fields to DATETIME_FIELDS map: dateEmission, dateEcheance, dateRemiseBanque, dateValidation, dateRejet, createdAt, updatedAt
+- Verified restore route (src/app/api/backup/restore/route.ts) uses shared BACKUP_TABLES/DATETIME_FIELDS — automatically consistent
+- Verified all version references use APP_VERSION constant (no hardcoded versions found)
+- Version references in: version.ts, package.json, erp-layout.tsx (sidebar footer), settings-view.tsx, guide-view.tsx, login-page.tsx, backup.ts
+- Bumped APP_VERSION from 1.1.0 to 1.1.1 in src/lib/version.ts
+- Updated BUILD_DATE to 2025-07-22
+- Updated version in package.json from 1.1.0 to 1.1.1
+- Ran ESLint: 0 errors
+
+Stage Summary:
+- Backup system now covers 51/51 tables (was 50/51 — EffetCheque was missing)
+- Version 1.1.1 released with all references unified via APP_VERSION constant
+- Files changed: src/lib/backup.ts (added EffetCheque), src/lib/version.ts (version bump), package.json (version bump)
