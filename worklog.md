@@ -727,3 +727,28 @@ Stage Summary:
 - Full messaging: conversation list, chat bubbles, new conversation, 5s polling
 - Admin can broadcast notifications to all users
 - notify.ts helper ready for integration into any existing API route
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix emojis in Communication → Messagerie
+
+Work Log:
+- Read `/home/z/my-project/src/components/erp/messages/messages-view.tsx`
+- Identified the issue: The Smile emoji button (line 905-913) had no onClick handler and no emoji picker — it was just a static icon
+- Checked that no emoji library was installed in package.json
+- Confirmed Popover UI component exists at `src/components/ui/popover.tsx`
+- Implemented a built-in emoji picker using Popover component with:
+  - 4 emoji categories: Smileys (60), Gestes (33), Cœurs (21), Objets (26)
+  - Search bar to filter emojis
+  - Category tabs for quick navigation
+  - Grid layout (8 columns) for emoji display
+  - Click-to-insert emoji into message textarea
+- Added state: `emojiSearch`, `activeEmojiCategory`
+- Added `handleInsertEmoji` callback and `filteredEmojiCategories` memo
+- Replaced the static Smile button with a Popover-based emoji picker
+- Ran `bun run lint` — passed clean with no errors
+
+Stage Summary:
+- Emoji picker now fully functional in the messaging interface
+- Uses native Popover component (no new dependencies)
+- 140 emojis across 4 categories with search capability

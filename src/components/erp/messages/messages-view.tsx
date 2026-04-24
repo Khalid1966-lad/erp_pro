@@ -33,6 +33,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -171,6 +172,27 @@ function timeAgo(date: Date): string {
   return formatDate(date)
 }
 
+// ── Emoji Data ──────────────────────────────────────────────────────────────
+
+const EMOJI_CATEGORIES = [
+  {
+    name: 'Smileys',
+    emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🫡', '🤐', '🤨', '😐', '😑', '😶', '🫥', '😏', '😒', '🙄', '😬', '😮‍💨', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐'],
+  },
+  {
+    name: 'Gestes',
+    emojis: ['👍', '👎', '👊', '✊', '🤛', '🤜', '👏', '🙌', '🫶', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄'],
+  },
+  {
+    name: 'Cœurs',
+    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'],
+  },
+  {
+    name: 'Objets',
+    emojis: ['⭐', '🌟', '✨', '⚡', '🔥', '💥', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🎯', '🚀', '💡', '📌', '📎', '✅', '❌', '⭕', '💯', '🔔', '📧', '💬', '🕐', '📅'],
+  },
+]
+
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
   admin: 'Admin',
@@ -247,6 +269,8 @@ export default function MessagesView() {
   const [showMobileChat, setShowMobileChat] = useState(false)
   const [userSearch, setUserSearch] = useState('')
   const [loadingOlder, setLoadingOlder] = useState(false)
+  const [emojiSearch, setEmojiSearch] = useState('')
+  const [activeEmojiCategory, setActiveEmojiCategory] = useState(0)
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -485,6 +509,25 @@ export default function MessagesView() {
   )
 
   // ── Auto-resize textarea ────────────────────────────────────────────────
+
+  const handleInsertEmoji = useCallback((emoji: string) => {
+    setNewMessage((prev) => prev + emoji)
+    // Focus the textarea
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }, [])
+
+  const filteredEmojiCategories = useMemo(() => {
+    if (!emojiSearch.trim()) return EMOJI_CATEGORIES
+    const q = emojiSearch.toLowerCase()
+    return EMOJI_CATEGORIES
+      .map((cat) => ({
+        ...cat,
+        emojis: cat.emojis.filter((e) => e.includes(q)),
+      }))
+      .filter((cat) => cat.emojis.length > 0)
+  }, [emojiSearch])
 
   const handleTextareaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value)
@@ -899,22 +942,82 @@ export default function MessagesView() {
                       className="min-h-[40px] max-h-[100px] resize-none rounded-xl pr-10 py-2.5 text-sm bg-muted/50 border-0 focus-visible:ring-1"
                     />
                     <div className="absolute right-2 bottom-2 flex items-center gap-0.5">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                              type="button"
-                              tabIndex={-1}
-                            >
-                              <Smile className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Émojis</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            type="button"
+                            tabIndex={-1}
+                          >
+                            <Smile className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[340px] p-0" align="end" side="top">
+                          {/* Emoji Search */}
+                          <div className="p-2 border-b">
+                            <Input
+                              placeholder="Rechercher un emoji..."
+                              value={emojiSearch}
+                              onChange={(e) => setEmojiSearch(e.target.value)}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+
+                          {/* Category Tabs */}
+                          {!emojiSearch.trim() && (
+                            <div className="flex border-b px-2 gap-1">
+                              {EMOJI_CATEGORIES.map((cat, idx) => (
+                                <button
+                                  key={cat.name}
+                                  onClick={() => setActiveEmojiCategory(idx)}
+                                  className={`px-2.5 py-1.5 text-[11px] font-medium transition-colors rounded-t-md ${
+                                    activeEmojiCategory === idx
+                                      ? 'text-primary border-b-2 border-primary bg-muted/50'
+                                      : 'text-muted-foreground hover:text-foreground'
+                                  }`}
+                                >
+                                  {cat.name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Emoji Grid */}
+                          <ScrollArea className="h-[200px] overflow-y-auto">
+                            <div className="p-2">
+                              {filteredEmojiCategories.length === 0 ? (
+                                <p className="text-xs text-muted-foreground text-center py-4">
+                                  Aucun emoji trouvé
+                                </p>
+                              ) : (
+                                filteredEmojiCategories.map((cat) => (
+                                  <div key={cat.name} className="mb-1">
+                                    {!emojiSearch.trim() && (
+                                      <p className="text-[10px] font-medium text-muted-foreground/60 px-1 py-1 uppercase tracking-wider">
+                                        {cat.name}
+                                      </p>
+                                    )}
+                                    <div className="grid grid-cols-8 gap-0.5">
+                                      {cat.emojis.map((emoji) => (
+                                        <button
+                                          key={emoji}
+                                          onClick={() => handleInsertEmoji(emoji)}
+                                          className="h-9 w-9 flex items-center justify-center text-lg hover:bg-muted rounded-md transition-colors cursor-pointer"
+                                          type="button"
+                                        >
+                                          {emoji}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </ScrollArea>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                   <Button
