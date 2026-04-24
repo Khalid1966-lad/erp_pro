@@ -13,13 +13,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
+import { Separator } from '@/components/ui/separator'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
 } from '@/components/ui/dialog'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Edit, Trash2, Star, Phone, Mail, Building2, Eye } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Star, Phone, Mail, Building2, Eye, ArrowUpDown } from 'lucide-react'
 import SupplierDetailView from './supplier-detail-view'
 import { toast } from 'sonner'
 
@@ -38,6 +39,7 @@ interface Supplier {
   deliveryDelay: number
   paymentTerms: string
   rating: number
+  balance: number
   notes: string | null
   createdAt: string
   updatedAt: string
@@ -66,6 +68,9 @@ const emptyForm: SupplierFormData = {
 }
 
 // ── Helpers ────────────────────────────────────────────
+const fmt = (n: number) =>
+  new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD' }).format(n)
+
 function Stars({ rating, onChange, size = 'sm' }: { rating: number; onChange?: (r: number) => void; size?: 'sm' | 'md' }) {
   const cls = size === 'md' ? 'h-5 w-5' : 'h-3.5 w-3.5'
   return (
@@ -88,6 +93,7 @@ export default function SuppliersView() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [balanceFilter, setBalanceFilter] = useState<'all' | 'debtor' | 'creditor'>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Supplier | null>(null)
   const [form, setForm] = useState<SupplierFormData>(emptyForm)
@@ -118,7 +124,11 @@ export default function SuppliersView() {
     s.email?.toLowerCase().includes(search.toLowerCase()) ||
     s.siret?.includes(search) ||
     s.city?.toLowerCase().includes(search.toLowerCase())
-  )
+  ).filter((s) => {
+    if (balanceFilter === 'debtor') return s.balance > 0
+    if (balanceFilter === 'creditor') return s.balance < 0
+    return true
+  })
 
   const openCreate = () => {
     setEditing(null)
@@ -294,6 +304,33 @@ export default function SuppliersView() {
         </Dialog>
       </div>
 
+      {/* Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={balanceFilter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setBalanceFilter('all')}
+        >
+          Tous
+        </Button>
+        <Button
+          variant={balanceFilter === 'debtor' ? 'default' : 'outline'}
+          size="sm"
+          className={balanceFilter === 'debtor' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
+          onClick={() => setBalanceFilter(balanceFilter === 'debtor' ? 'all' : 'debtor')}
+        >
+          Débiteurs
+        </Button>
+        <Button
+          variant={balanceFilter === 'creditor' ? 'default' : 'outline'}
+          size="sm"
+          className={balanceFilter === 'creditor' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+          onClick={() => setBalanceFilter(balanceFilter === 'creditor' ? 'all' : 'creditor')}
+        >
+          Créditeurs
+        </Button>
+      </div>
+
       {/* Table */}
       <Card>
         <CardContent className="p-0">
@@ -327,12 +364,17 @@ export default function SuppliersView() {
                     <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Délai</th>
                     <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Paiement</th>
                     <th className="text-left px-4 py-3 font-medium">Note</th>
-                    <th className="text-right px-4 py-3 font-medium">Actions</th>
+                    <th className="text-right px-4 py-3 font-medium hidden lg:table-cell">
+                      <div className="flex items-center justify-end gap-1 cursor-pointer select-none" onClick={() => {}}>
+                        Solde
+                      </div>
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium w-[100px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((s) => (
-                    <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
+                    <tr key={s.id} className="border-b hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => { setSelectedSupplier(s); setSubView('detail') }}>
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{s.code}</span>
                       </td>
@@ -364,7 +406,12 @@ export default function SuppliersView() {
                         <Badge variant="outline">{s.paymentTerms}</Badge>
                       </td>
                       <td className="px-4 py-3"><Stars rating={s.rating} /></td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right hidden lg:table-cell">
+                        <span className={s.balance > 0 ? 'text-red-600 font-medium' : s.balance < 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                          {fmt(s.balance)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSupplier(s); setSubView('detail') }}>
                             <Eye className="h-4 w-4" />

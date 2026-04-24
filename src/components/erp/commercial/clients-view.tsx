@@ -204,6 +204,7 @@ export default function ClientsView() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [categorieFilter, setCategorieFilter] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  const [balanceFilter, setBalanceFilter] = useState<'all' | 'debtor' | 'creditor'>('all')
   const [sortField, setSortField] = useState<string>('raisonSociale')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [saving, setSaving] = useState(false)
@@ -262,13 +263,15 @@ export default function ClientsView() {
     if (statusFilter) result = result.filter(c => c.statut === statusFilter)
     if (categorieFilter) result = result.filter(c => c.categorie === categorieFilter)
     if (typeFilter) result = result.filter(c => c.typeSociete === typeFilter)
+    if (balanceFilter === 'debtor') result = result.filter(c => c.balance > 0)
+    if (balanceFilter === 'creditor') result = result.filter(c => c.balance < 0)
     result.sort((a, b) => {
       const aVal = String(a[sortField as keyof Client] ?? '')
       const bVal = String(b[sortField as keyof Client] ?? '')
       return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
     })
     return result
-  }, [allClients, statusFilter, categorieFilter, typeFilter, sortField, sortDir])
+  }, [allClients, statusFilter, categorieFilter, typeFilter, balanceFilter, sortField, sortDir])
 
   const toggleSort = (field: string) => {
     if (sortField === field) {
@@ -341,12 +344,14 @@ export default function ClientsView() {
           statusFilter={statusFilter}
           categorieFilter={categorieFilter}
           typeFilter={typeFilter}
+          balanceFilter={balanceFilter}
           sortField={sortField}
           sortDir={sortDir}
           onSearch={handleSearch}
           onStatusFilter={setStatusFilter}
           onCategorieFilter={setCategorieFilter}
           onTypeFilter={setTypeFilter}
+          onBalanceFilter={setBalanceFilter}
           onSort={toggleSort}
           onCreate={goToCreate}
           onEdit={goToEdit}
@@ -376,12 +381,14 @@ interface ClientListViewProps {
   statusFilter: string | null
   categorieFilter: string | null
   typeFilter: string | null
+  balanceFilter: 'all' | 'debtor' | 'creditor'
   sortField: string
   sortDir: 'asc' | 'desc'
   onSearch: (v: string) => void
   onStatusFilter: (v: string | null) => void
   onCategorieFilter: (v: string | null) => void
   onTypeFilter: (v: string | null) => void
+  onBalanceFilter: (v: 'all' | 'debtor' | 'creditor') => void
   onSort: (field: string) => void
   onCreate: () => void
   onEdit: (c: Client) => void
@@ -392,8 +399,8 @@ interface ClientListViewProps {
 
 function ClientListView({
   clients, total, filteredCount, loading, search,
-  statusFilter, categorieFilter, typeFilter, sortField, sortDir,
-  onSearch, onStatusFilter, onCategorieFilter, onTypeFilter, onSort,
+  statusFilter, categorieFilter, typeFilter, balanceFilter, sortField, sortDir,
+  onSearch, onStatusFilter, onCategorieFilter, onTypeFilter, onBalanceFilter, onSort,
   onCreate, onEdit, onDetail, onDelete, onRefresh,
 }: ClientListViewProps) {
   const { user } = useAuthStore()
@@ -677,9 +684,9 @@ function ClientListView({
       {/* Filter Buttons */}
       <div className="flex flex-wrap gap-2">
         <Button
-          variant={statusFilter === null && typeFilter === null && categorieFilter === null ? 'default' : 'outline'}
+          variant={statusFilter === null && typeFilter === null && categorieFilter === null && balanceFilter === 'all' ? 'default' : 'outline'}
           size="sm"
-          onClick={() => { onStatusFilter(null); onTypeFilter(null); onCategorieFilter(null) }}
+          onClick={() => { onStatusFilter(null); onTypeFilter(null); onCategorieFilter(null); onBalanceFilter('all') }}
         >
           Tous
         </Button>
@@ -688,6 +695,10 @@ function ClientListView({
         <Button variant={typeFilter === "REVENDEUR" ? "default" : "outline"} size="sm" onClick={() => onTypeFilter(typeFilter === "REVENDEUR" ? null : "REVENDEUR")}>Revendeur</Button>
         <Button variant={typeFilter === "PARTICULIER" ? "default" : "outline"} size="sm" onClick={() => onTypeFilter(typeFilter === "PARTICULIER" ? null : "PARTICULIER")}>Particulier</Button>
         <Button variant={typeFilter === "AUTRES" ? "default" : "outline"} size="sm" onClick={() => onTypeFilter(typeFilter === "AUTRES" ? null : "AUTRES")}>Autres</Button>
+        <Separator orientation="vertical" className="h-8 mx-1 hidden sm:block" />
+        {/* Balance filters */}
+        <Button variant={balanceFilter === 'debtor' ? 'default' : 'outline'} size="sm" className={balanceFilter === 'debtor' ? 'bg-red-600 hover:bg-red-700 text-white' : ''} onClick={() => onBalanceFilter(balanceFilter === 'debtor' ? 'all' : 'debtor')}>Débiteurs</Button>
+        <Button variant={balanceFilter === 'creditor' ? 'default' : 'outline'} size="sm" className={balanceFilter === 'creditor' ? 'bg-green-600 hover:bg-green-700 text-white' : ''} onClick={() => onBalanceFilter(balanceFilter === 'creditor' ? 'all' : 'creditor')}>Créditeurs</Button>
         <Separator orientation="vertical" className="h-8 mx-1 hidden sm:block" />
         <Select value={categorieFilter ?? ''} onValueChange={(v) => onCategorieFilter(v === '__all__' ? null : v)}>
           <SelectTrigger className="w-auto h-8 text-sm">
@@ -2429,7 +2440,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
           </TabsTrigger>
           <TabsTrigger value="financial" className="text-xs sm:text-sm">
             <Wallet className="h-4 w-4 mr-1 hidden sm:inline" />
-            Situation financière
+            Relevé de compte
           </TabsTrigger>
         </TabsList>
 
@@ -2624,7 +2635,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
           )}
         </TabsContent>
 
-        {/* ── Tab: Situation financière ── */}
+        {/* ── Tab: Relevé de Compte ── */}
         <TabsContent value="financial">
           <FinancialStatementTab clientId={client.id} />
         </TabsContent>
