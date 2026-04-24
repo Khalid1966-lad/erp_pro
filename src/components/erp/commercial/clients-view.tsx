@@ -43,6 +43,7 @@ import {
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/stores'
 import { printDocument } from '@/lib/print-utils'
+import { DocDetailDialog } from './doc-detail-dialog'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog'
@@ -2427,6 +2428,9 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
   const invoices = useTabData<DocRow>('/invoices', 'invoices', client.id)
   const creditNotes = useTabData<DocRow>('/credit-notes', 'creditNotes', client.id)
 
+  // Document detail dialog state
+  const [docDialog, setDocDialog] = useState<{ type: 'quote' | 'order' | 'deliveryNote' | 'invoice' | 'creditNote'; id: string } | null>(null)
+
   const fullAddress = [client.address, client.postalCode, client.city, client.country]
     .filter(Boolean)
     .join(', ')
@@ -2647,7 +2651,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
                 </TableHeader>
                 <TableBody>
                   {quotes.data.map((q) => (
-                    <TableRow key={q.id}>
+                    <TableRow key={q.id} className="cursor-pointer hover:bg-muted/60 transition-colors" onClick={() => setDocDialog({ type: 'quote', id: q.id })}>
                       <TableCell className="font-medium font-mono text-sm">{q.number}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{fmtDate(q.date)}</TableCell>
                       <TableCell><DocStatusBadge status={q.status} config={quoteStatusCfg} /></TableCell>
@@ -2679,7 +2683,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
                 </TableHeader>
                 <TableBody>
                   {orders.data.map((o) => (
-                    <TableRow key={o.id}>
+                    <TableRow key={o.id} className="cursor-pointer hover:bg-muted/60 transition-colors" onClick={() => setDocDialog({ type: 'order', id: o.id })}>
                       <TableCell className="font-medium font-mono text-sm">{o.number}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{fmtDate(o.date)}</TableCell>
                       <TableCell><DocStatusBadge status={o.status} config={orderStatusCfg} /></TableCell>
@@ -2711,7 +2715,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
                 </TableHeader>
                 <TableBody>
                   {deliveryNotes.data.map((bl) => (
-                    <TableRow key={bl.id}>
+                    <TableRow key={bl.id} className="cursor-pointer hover:bg-muted/60 transition-colors" onClick={() => setDocDialog({ type: 'deliveryNote', id: bl.id })}>
                       <TableCell className="font-medium font-mono text-sm">{bl.number}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{fmtDate(bl.date)}</TableCell>
                       <TableCell><DocStatusBadge status={bl.status} config={blStatusCfg} /></TableCell>
@@ -2743,7 +2747,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
                 </TableHeader>
                 <TableBody>
                   {invoices.data.map((inv) => (
-                    <TableRow key={inv.id}>
+                    <TableRow key={inv.id} className="cursor-pointer hover:bg-muted/60 transition-colors" onClick={() => setDocDialog({ type: 'invoice', id: inv.id })}>
                       <TableCell className="font-medium font-mono text-sm">{inv.number}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{fmtDate(inv.date)}</TableCell>
                       <TableCell><DocStatusBadge status={inv.status} config={invoiceStatusCfg} /></TableCell>
@@ -2775,7 +2779,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
                 </TableHeader>
                 <TableBody>
                   {creditNotes.data.map((cn) => (
-                    <TableRow key={cn.id}>
+                    <TableRow key={cn.id} className="cursor-pointer hover:bg-muted/60 transition-colors" onClick={() => setDocDialog({ type: 'creditNote', id: cn.id })}>
                       <TableCell className="font-medium font-mono text-sm">{cn.number}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{fmtDate(cn.date)}</TableCell>
                       <TableCell><DocStatusBadge status={cn.status} config={creditNoteStatusCfg} /></TableCell>
@@ -2793,6 +2797,14 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
           <FinancialStatementTab clientId={client.id} />
         </TabsContent>
       </Tabs>
+
+      {/* ── Document Detail Dialog ── */}
+      <DocDetailDialog
+        docType={docDialog?.type || 'invoice'}
+        docId={docDialog?.id || null}
+        open={!!docDialog}
+        onOpenChange={(open) => { if (!open) setDocDialog(null) }}
+      />
     </div>
   )
 }
