@@ -143,13 +143,14 @@ function esc(s: string): string {
 /* ── Print styles ─────────────────────────────────────────────────── */
 
 const PRINT_CSS = `
-@page { size: A4; margin: 15mm; }
+@page { size: A4; margin: 0; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   color: #1a1a1a; font-size: 11px; line-height: 1.5;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
+.page-wrapper { padding: 15mm; min-height: 100vh; }
 .doc-title {
   text-align: center; font-size: 15px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 12px;
@@ -283,7 +284,7 @@ export async function printDocument(options: {
     ${buildFooterHtml(amountText, footerLines)}
   `
 
-  // Full HTML document
+  // Full HTML document — wrapper div provides margins since @page margin:0 removes browser header/footer
   const fullHtml = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -291,7 +292,7 @@ export async function printDocument(options: {
   <title>${esc(options.title)} ${esc(options.docNumber)}</title>
   <style>${PRINT_CSS}</style>
 </head>
-<body>${bodyHtml}</body>
+<body><div class="page-wrapper">${bodyHtml}</div></body>
 </html>`
 
   // Use a hidden iframe to avoid browser header/footer ("about:blank 1/1")
