@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
-  if (auth.role !== 'admin') {
+  if (auth.role !== 'admin' && auth.role !== 'super_admin') {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
-  if (auth.role !== 'admin') {
+  if (auth.role !== 'admin' && auth.role !== 'super_admin') {
     return NextResponse.json({ error: 'Accès refusé - administrateur requis' }, { status: 403 })
   }
 
@@ -147,7 +147,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
-  if (auth.role !== 'admin') {
+  if (auth.role !== 'admin' && auth.role !== 'super_admin') {
     return NextResponse.json({ error: 'Accès refusé - administrateur requis' }, { status: 403 })
   }
 

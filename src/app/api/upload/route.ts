@@ -4,6 +4,41 @@ import path from 'path'
 import { getUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 
+// DELETE - Remove company logo
+export async function DELETE(req: NextRequest) {
+  try {
+    const authUser = await getUser(req)
+    if (!authUser) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+    if (authUser.role !== 'admin' && authUser.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    }
+
+    const uploadDir = path.join(process.cwd(), 'upload')
+    const validExts = ['avif', 'png', 'webp', 'jpg', 'jpeg', 'svg']
+    let deleted = false
+
+    for (const ext of validExts) {
+      const logoPath = path.join(uploadDir, `company-logo.${ext}`)
+      try {
+        await unlink(logoPath)
+        deleted = true
+      } catch { /* not found */ }
+    }
+
+    // Also clean up the setting
+    try {
+      await db.setting.deleteMany({ where: { key: { startsWith: 'company_logo' } } })
+    } catch { /* setting may not exist */ }
+
+    return NextResponse.json({ success: true, deleted })
+  } catch (error) {
+    console.error('Logo delete error:', error)
+    return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Auth check — only admins can upload
@@ -11,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (!authUser) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
-    if (authUser.role !== 'admin') {
+    if (authUser.role !== 'admin' && authUser.role !== 'super_admin') {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
     }
 

@@ -310,9 +310,17 @@ function LogoUploadCard() {
                 variant="ghost"
                 size="sm"
                 className="text-destructive hover:text-destructive"
-                onClick={() => {
-                  setCurrentLogo(null)
-                  toast.info('Le logo par défaut sera utilisé')
+                onClick={async () => {
+                  try {
+                    await fetch('/api/upload', {
+                      method: 'DELETE',
+                      headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
+                    })
+                    setCurrentLogo(null)
+                    toast.success('Logo supprimé', { description: 'Le logo par défaut sera utilisé' })
+                  } catch {
+                    toast.error('Erreur lors de la suppression du logo')
+                  }
                 }}
               >
                 <X className="h-4 w-4 mr-1" />
