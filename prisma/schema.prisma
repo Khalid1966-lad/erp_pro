@@ -22,6 +22,7 @@ model User {
   isActive      Boolean  @default(true)
   blockedAt     DateTime?
   blockedBy     String?
+  avatarUrl     String?
   lastLogin     DateTime?
   lastSeen      DateTime?
   createdAt     DateTime @default(now())

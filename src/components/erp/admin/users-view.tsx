@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   UserCog, Plus, Search, Edit, Shield, ShieldCheck, Ban, Unlock,
-  Phone, Mail, Clock, Calendar, Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle
+  Phone, Mail, Clock, Calendar, Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle, Camera
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -39,6 +39,7 @@ interface User {
   name: string
   role: string
   phone: string | null
+  avatarUrl: string | null
   isSuperAdmin: boolean
   isBlocked: boolean
   isActive: boolean
@@ -112,6 +113,7 @@ export default function UsersView() {
   const [formRole, setFormRole] = useState('operator')
   const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -182,7 +184,83 @@ export default function UsersView() {
     setFormPassword('')
     setFormPhone(user.phone || '')
     setFormRole(user.role)
+    setAvatarPreview(user.avatarUrl || null)
     setEditOpen(true)
+  }
+
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const maxSize = 200
+          let w = img.width
+          let h = img.height
+          if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize } }
+          else { if (h > maxSize) { w = w * maxSize / h; h = maxSize } }
+          canvas.width = w
+          canvas.height = h
+          const ctx = canvas.getContext('2d')!
+          ctx.drawImage(img, 0, 0, w, h)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+          resolve(dataUrl)
+        }
+        img.onerror = reject
+        img.src = e.target?.result as string
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 500 * 1024) {
+      toast.error('Fichier trop volumineux', { description: 'Maximum 500 KB.' })
+      return
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Format non supporté', { description: 'Utilisez JPEG, PNG ou WebP.' })
+      return
+    }
+    try {
+      setAvatarUploading(true)
+      const dataUrl = await compressImage(file)
+      setAvatarPreview(dataUrl)
+      const body: Record<string, unknown> = { avatarUrl: dataUrl }
+      if (selectedUser && auth.userId !== selectedUser.id) body.userId = selectedUser.id
+      await api.put('/users/avatar', body)
+      toast.success('Photo mise à jour')
+      fetchUsers()
+    } catch (err) {
+      toast.error('Erreur', { description: 'Impossible de télécharger la photo.' })
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    if (!selectedUser) return
+    try {
+      const body: Record<string, unknown> = {}
+      if (currentUser?.id !== selectedUser.id) body.userId = selectedUser.id
+      const { token } = useAuthStore.getState()
+      await fetch('/api/users/avatar', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify(body),
+      })
+      setAvatarPreview(null)
+      toast.success('Photo supprimée')
+      fetchUsers()
+    } catch {
+      toast.error('Erreur', { description: 'Impossible de supprimer la photo.' })
+    }
   }
 
   const handleEdit = async () => {
@@ -362,8 +440,12 @@ export default function UsersView() {
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center h-9 w-9 rounded-full bg-muted text-sm font-medium shrink-0">
-                            {u.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+                          <div className="flex items-center justify-center h-9 w-9 rounded-full bg-muted text-sm font-medium shrink-0 overflow-hidden">
+                            {u.avatarUrl ? (
+                              <img src={u.avatarUrl} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              u.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'
+                            )}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
@@ -583,8 +665,8 @@ export default function UsersView() {
       </Dialog>
 
       {/* ═══ Edit Dialog ═══ */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) setAvatarPreview(null) }}>
+        <DialogContent className="sm:max-w-md" resizable>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
@@ -596,6 +678,39 @@ export default function UsersView() {
               )}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Avatar */}
+          <div className="flex justify-center">
+            <div className="relative group">
+              <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-bold text-muted-foreground">
+                    {formName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+                  </span>
+                )}
+              </div>
+              <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                {avatarUploading ? (
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                ) : (
+                  <Camera className="h-5 w-5 text-white" />
+                )}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
+              </label>
+              {avatarPreview && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:bg-red-600 transition-colors shadow"
+                  title="Supprimer la photo"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-4">
             <div className="space-y-2">

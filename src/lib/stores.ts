@@ -9,11 +9,12 @@ export interface AuthState {
     name: string
     role: string
     isSuperAdmin?: boolean
+    avatarUrl?: string
   } | null
   isAuthenticated: boolean
-  login: (token: string, user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean }) => void
+  login: (token: string, user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean; avatarUrl?: string }) => void
   logout: () => void
-  setUser: (user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean }) => void
+  setUser: (user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean; avatarUrl?: string }) => void
 }
 
 export const useAuthStore = create<AuthState>()(

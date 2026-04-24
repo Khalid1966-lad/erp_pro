@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
         isSuperAdmin: true,
         isActive: true,
         isBlocked: true,
+        avatarUrl: true,
         lastLogin: true,
         createdAt: true,
         updatedAt: true,
@@ -106,6 +107,7 @@ export async function PUT(req: NextRequest) {
         role: updated.role,
         phone: updated.phone,
         isSuperAdmin: updated.isSuperAdmin,
+        avatarUrl: updated.avatarUrl,
       },
       message: newPassword ? 'Profil et mot de passe mis à jour' : 'Profil mis à jour',
     })

@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
         isSuperAdmin: true,
         isBlocked: true,
         isActive: true,
+        avatarUrl: true,
         lastLogin: true,
         createdAt: true,
         updatedAt: true,
