@@ -13,7 +13,7 @@ import {
   ArrowRight, Info, AlertCircle, CircleDot, ArrowDown, Eye,
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
-  FileCheck, FileSpreadsheet, Cpu, Building2, Printer, type LucideIcon
+  FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -36,6 +36,7 @@ const sections: Section[] = [
   { id: 'production', label: 'Production', icon: Factory },
   { id: 'finance', label: 'Finance', icon: Landmark },
   { id: 'impression', label: 'Impression', icon: Printer },
+  { id: 'communication', label: 'Communication', icon: MessageSquare },
   { id: 'administration', label: 'Administration', icon: Settings },
 ]
 
@@ -195,6 +196,8 @@ function IntroSection() {
           { icon: Landmark, label: 'Finance', desc: 'Caisses et banque', color: 'text-blue-600 bg-blue-50' },
           { icon: Settings, label: 'Administration', desc: 'Utilisateurs et config', color: 'text-gray-500 bg-gray-50' },
           { icon: Printer, label: 'Impression', desc: 'Documents PDF', color: 'text-rose-500 bg-rose-50' },
+          { icon: MessageSquare, label: 'Communication', desc: 'Messagerie interne', color: 'text-sky-600 bg-sky-50' },
+          { icon: Bell, label: 'Notifications', desc: 'Alertes et rappels', color: 'text-amber-600 bg-amber-50' },
         ].map((m) => (
           <Card key={m.label} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4 text-center">
@@ -366,8 +369,9 @@ function ConnexionSection() {
             { title: 'Achats', items: ['Fournisseurs', 'Demandes de prix', 'Devis fournisseurs', 'Commandes fournisseurs', 'Réceptions', 'Bons de retour', 'Avoirs fournisseurs', 'Factures fournisseurs'] },
             { title: 'Stock', items: ['Mouvements', 'Alertes stock', 'Inventaires'] },
             { title: 'Production', items: ['Nomenclatures', 'Gammes', 'Postes de travail', 'Ordres de fabrication'] },
-            { title: 'Finance', items: ['Caisses', 'Banque', 'Paiements', 'Comptabilité'] },
-            { title: 'Administration', items: ['Utilisateurs', 'Journal d\'audit', 'Paramètres'] },
+            { title: 'Finance', items: ['Caisses', 'Banque', 'Paiements', 'Chèques & Effets', 'Comptabilité'] },
+            { title: 'Communication', items: ['Messagerie'] },
+            { title: 'Administration', items: ['Utilisateurs', 'Journal d\'audit', 'Paramètres', 'Guide d\'utilisation'] },
           ].map((g) => (
             <div key={g.title} className="rounded-lg border p-3">
               <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">{g.title}</p>
@@ -1122,6 +1126,31 @@ function FinanceSection() {
         </div>
       </ScreenMock>
 
+      {/* Chèques & Effets */}
+      <SubTitle>Chèques & Effets</SubTitle>
+      <Paragraph>
+        Le sous-module Chèques & Effets gère les instruments de paiement différés : chèques reçus de clients,
+        effets de commerce (lettres de change, billets à ordre). Il permet de suivre le cycle de vie complet
+        de ces titres, depuis leur réception jusqu'à leur encaissement ou leur remise à la banque.
+      </Paragraph>
+
+      <FlowDiagram steps={[
+        { label: 'Réception', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: PackageCheck },
+        { label: 'En instance', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: Clock },
+        { label: 'Remise banque', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: Building2 },
+        { label: 'Encaissé', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
+        { label: 'Rejeté', color: 'bg-red-50 border-red-200 text-red-700', icon: XCircle },
+      ]} />
+
+      <Step num={1}>Accédez à <strong>Finance → Chèques & Effets</strong> depuis la barre latérale.</Step>
+      <Step num={2}>Consultez le résumé en haut de page : total des chèques en instance, remis à la banque, encaissés et rejetés.</Step>
+      <Step num={3}>Utilisez les <strong>filtres</strong> pour afficher uniquement les chèques selon leur statut.</Step>
+      <Step num={4}>Pour remettre un chèque à la banque, sélectionnez-le et cliquez sur <strong>« Remettre à la banque »</strong>.</Step>
+
+      <TipBox type="info">
+        Les chèques non remis à la banque sont visibles dans le filtre <strong>« En instance »</strong>. Vérifiez régulièrement cette liste pour optimiser votre trésorerie.
+      </TipBox>
+
       {/* Comptabilité */}
       <SubTitle>Comptabilité</SubTitle>
       <Paragraph>
@@ -1132,6 +1161,67 @@ function FinanceSection() {
 
       <TipBox type="warning">
         Pour une comptabilité complète conforme au PCG Maroc (Plan Comptable Général), l'export vers un logiciel comptable dédié est recommandé.
+      </TipBox>
+    </div>
+  )
+}
+
+function CommunicationSection() {
+  return (
+    <div>
+      <SectionTitle icon={MessageSquare} title="Communication" />
+      <Paragraph>
+        Le module Communication permet la collaboration interne entre les utilisateurs de l'ERP.
+        Il comprend une messagerie interne pour échanger des messages en temps réel entre collègues,
+        ainsi qu'un système de notifications pour rester informé des événements importants.
+      </Paragraph>
+
+      <SubTitle>Messagerie interne</SubTitle>
+      <Paragraph>
+        La messagerie permet d'envoyer et recevoir des messages entre les utilisateurs du système.
+        Chaque conversation est privée entre deux utilisateurs.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Communication → Messagerie</strong> depuis la barre latérale.</Step>
+      <Step num={2}>La liste de vos conversations apparaît à gauche. Cliquez sur une conversation pour l'ouvrir.</Step>
+      <Step num={3}>Pour démarrer une nouvelle conversation, cliquez sur le bouton <strong>« + »</strong> en haut à droite.</Step>
+      <Step num={4}>Recherchez un utilisateur par nom, e-mail ou rôle, puis sélectionnez-le et cliquez sur <strong>« Démarrer »</strong>.</Step>
+      <Step num={5}>Saisissez votre message dans la zone de texte en bas et appuyez sur <strong>Entrée</strong> pour l'envoyer.</Step>
+
+      <TipBox type="success">
+        Les messages sont actualisés automatiquement toutes les 5 secondes. Vous pouvez continuer à travailler sur d'autres modules pendant que la messagerie fonctionne en arrière-plan.
+      </TipBox>
+
+      <SubTitle>Notifications</SubTitle>
+      <Paragraph>
+        Le système de notifications vous alerte en temps réel sur les événements importants :
+        tâches à réaliser, échéances, retards de production, livraisons, modifications de commandes, etc.
+        Les administrateurs et opérateurs sont notifiés pour chaque changement ou tâche à effectuer.
+      </Paragraph>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {[
+          { type: 'Alertes commerciales', desc: 'Nouveaux devis, commandes en retard, factures impayées', color: 'bg-rose-50 border-rose-200 text-rose-700' },
+          { type: 'Alertes stock', desc: 'Produits sous seuil minimum, ruptures imminentes', color: 'bg-amber-50 border-amber-200 text-amber-700' },
+          { type: 'Alertes production', desc: 'OF en retard, ordres à démarrer, achèvements', color: 'bg-sky-50 border-sky-200 text-sky-700' },
+          { type: 'Alertes financières', desc: 'Chèques à encaisser, échéances, relances', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        ].map((n) => (
+          <Card key={n.type} className={n.color}>
+            <CardContent className="p-4">
+              <p className="font-semibold text-sm mb-1">{n.type}</p>
+              <p className="text-xs opacity-80">{n.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Step num={1}>L'icône <strong>cloche</strong> dans la barre supérieure affiche le nombre de notifications non lues.</Step>
+      <Step num={2}>Cliquez sur la cloche pour ouvrir le panneau des notifications.</Step>
+      <Step num={3}>Chaque notification affiche le type, le message et la date. Cliquez pour la marquer comme lue.</Step>
+      <Step num={4}>Utilisez le bouton <strong>« Tout marquer comme lu »</strong> pour effacer toutes les notifications d'un coup.</Step>
+
+      <TipBox type="info">
+        Les notifications sont automatiquement créées par le système lors des événements clés (création de commande, retard de livraison, etc.).
       </TipBox>
     </div>
   )
@@ -1437,6 +1527,22 @@ function AdministrationSection() {
       <TipBox type="success">
         Les paramètres sont enregistrés immédiatement et appliqués à toutes les nouvelles opérations. Les opérations existantes conservent leurs valeurs d'origine.
       </TipBox>
+
+      <SubTitle>Sauvegarde & Restauration</SubTitle>
+      <Paragraph>
+        Le système intègre un module complet de sauvegarde et restauration des données.
+        L'administrateur peut créer des sauvegardes manuelles de l'ensemble des 51 tables de la base de données,
+        télécharger les fichiers de sauvegarde, et restaurer une sauvegarde précédente en cas de besoin.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Administration → Paramètres</strong> et descendez à la section <strong>« Sauvegarde & Restauration »</strong>.</Step>
+      <Step num={2}>Cliquez sur <strong>« Créer une sauvegarde »</strong> pour générer un instantané complet de la base de données.</Step>
+      <Step num={3}>Téléchargez le fichier de sauvegarde pour le stocker en sécurité.</Step>
+      <Step num={4}>Pour restaurer, importez un fichier de sauvegarde précédent et confirmez la restauration.</Step>
+
+      <TipBox type="warning">
+        La restauration remplace toutes les données actuelles. Assurez-vous d'avoir une sauvegarde récente avant de procéder. Cette opération est irréversible.
+      </TipBox>
     </div>
   )
 }
@@ -1451,6 +1557,7 @@ const sectionComponents: Record<string, () => JSX.Element> = {
   'stock': StockSection,
   'production': ProductionSection,
   'finance': FinanceSection,
+  'communication': CommunicationSection,
   'impression': ImpressionSection,
   'administration': AdministrationSection,
 }
