@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, Component } from 'react'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/lib/stores'
 import { format } from 'date-fns'
@@ -28,9 +28,34 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   UserCog, Plus, Search, Edit, Shield, ShieldCheck, Ban, Unlock,
-  Phone, Mail, Clock, Calendar, Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle, Camera
+  Phone, Mail, Clock, Calendar, Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, Camera
 } from 'lucide-react'
 import { toast } from 'sonner'
+
+// ─── Error boundary to prevent silent crashes ───
+class UsersErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
+  state = { hasError: false, error: null as Error | null }
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error } }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[UsersView] Error caught by boundary:', error, info)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
+          <Shield className="h-12 w-12 text-red-400" />
+          <h3 className="text-lg font-semibold">Erreur d&apos;affichage</h3>
+          <p className="text-sm text-muted-foreground max-w-md">Une erreur inattendue s&apos;est produite. Veuillez recharger la page.</p>
+          <p className="text-xs text-red-400 font-mono max-w-lg truncate">{this.state.error?.message}</p>
+          <Button variant="outline" onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}>
+            Recharger la page
+          </Button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 // ───────────────────── Types ─────────────────────
 interface User {
@@ -92,7 +117,7 @@ const roleLabelMap: Record<string, string> = {
 // ═══════════════════════════════════════════════════════════════
 //  USERS VIEW
 // ═══════════════════════════════════════════════════════════════
-export default function UsersView() {
+function UsersViewInner() {
   const { user: currentUser } = useAuthStore()
   const isSuperAdmin = currentUser?.role === 'super_admin' || currentUser?.isSuperAdmin
 
@@ -679,7 +704,7 @@ export default function UsersView() {
 
       {/* ═══ Edit Dialog ═══ */}
       <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) setAvatarPreview(null) }}>
-        <DialogContent className="sm:max-w-md" resizable>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
@@ -808,5 +833,13 @@ export default function UsersView() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function UsersView() {
+  return (
+    <UsersErrorBoundary>
+      <UsersViewInner />
+    </UsersErrorBoundary>
   )
 }
