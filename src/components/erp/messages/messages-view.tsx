@@ -46,6 +46,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -656,7 +662,7 @@ export default function MessagesView() {
     return (
       <div
         key={msg.id}
-        className={`group flex gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'} ${
+        className={`flex gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'} ${
           isFirstInGroup ? 'mt-3' : 'mt-0.5'
         }`}
       >
@@ -687,25 +693,38 @@ export default function MessagesView() {
           >
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
           </div>
-          {/* Meta row: time + checkmark + delete button (CSS group-hover, no React state) */}
-          <div className={`flex items-center gap-1.5 mt-0.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+          {/* Meta row: actions dropdown + time + checkmark */}
+          <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
+            {/* Actions dropdown (⋮) — always visible for own messages */}
             {isMine && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setConfirmDeleteId(msg.id)
-                }}
-                disabled={deletingMessageId === msg.id}
-                className="h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
-                type="button"
-                title="Supprimer le message"
-              >
-                {deletingMessageId === msg.id ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3 w-3" />
-                )}
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" side="bottom" className="w-40">
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setConfirmDeleteId(msg.id)
+                    }}
+                    disabled={deletingMessageId === msg.id}
+                  >
+                    {deletingMessageId === msg.id ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Supprimer
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             <span className="text-[10px] text-muted-foreground/60">
               {formatMessageTime(new Date(msg.createdAt))}

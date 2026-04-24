@@ -851,3 +851,23 @@ Stage Summary:
 - Online indicator properly shows green dot only for connected users
 - 30-day auto-cleanup was already working via lazy cleanup in messages GET
 - Files changed: 2 (1 new API route, 1 modified frontend component)
+---
+Task ID: 1
+Agent: main
+Task: Fix message delete button — replace broken group-hover with always-visible dropdown menu
+
+Work Log:
+- Read messages-view.tsx (1219 lines) to understand current state
+- Identified root cause: `opacity-0 group-hover:opacity-100` CSS pattern was unreliable (fails on touch devices, Tailwind v4 compatibility issues, hover area too small)
+- Installed shadcn/ui DropdownMenu component
+- Replaced invisible hover-based trash button with always-visible "⋮" (MoreVertical) dropdown trigger
+- Dropdown is inline with timestamp row, not absolute-positioned
+- Clicking "⋮" opens a dropdown menu with "Supprimer" option
+- "Supprimer" triggers existing AlertDialog confirmation dialog
+- Delete API endpoint at `/api/conversations/[id]/messages/[messageId]` verified working
+- Lint passes with no errors
+
+Stage Summary:
+- Delete functionality is now accessible via an always-visible "⋮" icon on each of the user's own messages
+- No more reliance on CSS hover effects that don't work on touch devices
+- AlertDialog confirmation still required before deletion
