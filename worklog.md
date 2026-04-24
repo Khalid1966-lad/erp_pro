@@ -458,3 +458,27 @@ Stage Summary:
 - Logo upload now works on Vercel/Neon: data stored in PostgreSQL as base64, not on ephemeral filesystem
 - 4 files changed, 54 insertions, 84 deletions
 - All logo consumers (sidebar, print header, print utils, settings preview) work via /api/logo endpoint backed by DB
+---
+Task ID: 1
+Agent: Main Agent
+Task: Add scroll and drag-to-pan support to the print preview zoom window
+
+Work Log:
+- Analyzed the existing print preview implementation in src/lib/print-utils.ts
+- Replaced the overflow:hidden container with overflow:auto for native scroll support (mouse wheel)
+- Introduced a scaled wrapper (scaledWrap) that matches the visually scaled page dimensions, enabling correct scrollbar behavior
+- The page uses position:absolute + transform:scale() + transform-origin:top left so it doesn't affect layout dimensions
+- Implemented drag-to-pan: mousedown starts panning, mousemove scrolls container, mouseup stops
+- Added grab/grabbing cursor that changes dynamically based on whether content overflows
+- Added "🖱 Glisser pour naviguer" hint in toolbar when content overflows
+- Smart centering: content is centered when it fits in viewport, left-aligned when it overflows
+- Proper cleanup of all event listeners when dialog closes
+- Added ResizeObserver to re-measure content and update layout on resize
+- Content height is measured from iframe after load to handle multi-page documents
+- Extended zoom levels to include 0.25, 0.33 (smaller) and 3 (larger)
+
+Stage Summary:
+- Print preview now supports: mouse wheel scrolling, click-and-drag panning with grab cursor
+- Visual hint appears when content overflows viewport
+- Smart centering behavior based on overflow state
+- File changed: src/lib/print-utils.ts (lines 305-513)

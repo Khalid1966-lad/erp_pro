@@ -302,37 +302,48 @@ export async function printDocument(options: {
 <body><div class="page-wrapper">${bodyHtml}</div></body>
 </html>`
 
-  // ── Full-screen preview dialog with zoom controls ──
+  // ── Full-screen preview dialog with zoom, scroll & pan ──
   const overlay = document.createElement('div')
   overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;font-family:system-ui,sans-serif;'
 
   // Toolbar
   const toolbar = document.createElement('div')
-  toolbar.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #e5e7eb;flex-shrink:0;'
+  toolbar.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #e5e7eb;flex-shrink:0;'
   toolbar.innerHTML = `
     <span style="font-size:13px;font-weight:600;color:#374151;">Aperçu — ${esc(options.title)} ${esc(options.docNumber)}</span>
     <div style="flex:1"></div>
-    <button id="print-zoom-out" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom -">−</button>
+    <span id="print-pan-hint" style="font-size:11px;color:#9ca3af;display:none;">🖱 Glisser pour naviguer</span>
+    <button id="print-zoom-out" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom −">−</button>
     <span id="print-zoom-level" style="font-size:12px;color:#6b7280;min-width:48px;text-align:center;">100%</span>
     <button id="print-zoom-in" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom +">+</button>
-    <button id="print-zoom-fit" style="padding:0 10px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#374151;" title="Ajuster">Ajuster</button>
+    <button id="print-zoom-fit" style="padding:0 10px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#374151;" title="Ajuster à l'écran">Ajuster</button>
     <div style="width:1px;height:20px;background:#e5e7eb;"></div>
     <button id="print-btn" style="display:flex;align-items:center;gap:6px;padding:0 14px;height:32px;border:none;border-radius:6px;background:#1a1a1a;color:#fff;cursor:pointer;font-size:13px;font-weight:500;">🖨 Imprimer</button>
     <button id="print-close" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Fermer">✕</button>
   `
 
-  // Scrollable iframe container
+  // Scrollable container (overflow:auto enables native mouse wheel scroll)
   const container = document.createElement('div')
-  container.style.cssText = 'flex:1;overflow:hidden;background:#f3f4f6;display:flex;justify-content:center;'
+  container.style.cssText = 'flex:1;overflow:auto;background:#f3f4f6;'
 
-  // Shadow A4 page
+  // Centering + spacing wrapper
+  const centerWrap = document.createElement('div')
+  centerWrap.style.cssText = 'display:flex;justify-content:center;align-items:flex-start;padding:20px;min-height:100%;min-width:100%;'
+
+  // Scaled wrapper – its dimensions match the visually scaled page so scrollbars appear correctly
+  const scaledWrap = document.createElement('div')
+  scaledWrap.style.cssText = 'position:relative;flex-shrink:0;'
+
+  // Actual A4 page – positioned absolutely so its layout size doesn't affect scaledWrap
   const page = document.createElement('div')
-  page.style.cssText = 'width:210mm;min-height:297mm;background:#fff;box-shadow:0 2px 20px rgba(0,0,0,0.15);margin:20px auto;transform-origin:top center;transition:transform 0.2s ease;'
+  page.style.cssText = 'position:absolute;top:0;left:0;width:210mm;min-height:297mm;background:#fff;box-shadow:0 2px 20px rgba(0,0,0,0.15);transform-origin:top left;'
 
   const iframe = document.createElement('iframe')
-  iframe.style.cssText = 'width:210mm;height:297mm;border:none;pointer-events:none;'
+  iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;'
   page.appendChild(iframe)
-  container.appendChild(page)
+  scaledWrap.appendChild(page)
+  centerWrap.appendChild(scaledWrap)
+  container.appendChild(centerWrap)
 
   overlay.appendChild(toolbar)
   overlay.appendChild(container)
@@ -347,25 +358,59 @@ export async function printDocument(options: {
     iframeDoc.close()
   }
 
-  // Zoom state
+  // ── Zoom state ──
   let zoom = 1
-  const zoomLevels = [0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 1, 1.1, 1.25, 1.5, 2]
+  const zoomLevels = [0.25, 0.33, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 1, 1.1, 1.25, 1.5, 2, 3]
   let zoomIdx = zoomLevels.indexOf(1)
+
+  // A4 dimensions in px at 96dpi
+  const A4_W = 794
+  const A4_H = 1123
+  let actualContentH = A4_H
+
+  // Measure actual iframe content height after load
+  const measureContent = () => {
+    try {
+      const doc = iframe.contentDocument
+      if (doc?.documentElement) {
+        actualContentH = Math.max(doc.documentElement.scrollHeight, A4_H)
+      }
+    } catch { /* cross-origin guard */ }
+  }
+
+  const updateLayout = () => {
+    const sw = Math.round(A4_W * zoom)
+    const sh = Math.round(actualContentH * zoom)
+    scaledWrap.style.width = sw + 'px'
+    scaledWrap.style.minHeight = sh + 'px'
+    // Center only when content fits within the viewport
+    const fits = sw + 40 <= container.clientWidth
+    centerWrap.style.justifyContent = fits ? 'center' : 'flex-start'
+  }
+
+  const updatePanHint = () => {
+    const hint = document.getElementById('print-pan-hint')
+    const hasOverflow = container.scrollHeight > container.clientHeight + 2 ||
+                        container.scrollWidth > container.clientWidth + 2
+    if (hint) hint.style.display = hasOverflow ? 'inline' : 'none'
+    if (!isPanning) {
+      container.style.cursor = hasOverflow ? 'grab' : 'default'
+    }
+  }
 
   const applyZoom = () => {
     zoom = zoomLevels[zoomIdx]
     page.style.transform = `scale(${zoom})`
-    page.parentElement.style.padding = '20px'
     document.getElementById('print-zoom-level')!.textContent = Math.round(zoom * 100) + '%'
+    updateLayout()
+    requestAnimationFrame(updatePanHint)
   }
 
   const fitZoom = () => {
     const vw = container.clientWidth - 40
     const vh = container.clientHeight - 40
-    const pw = 794 // 210mm ≈ 794px at 96dpi
-    const ph = 1123 // 297mm ≈ 1123px
-    const scaleW = vw / pw
-    const scaleH = vh / ph
+    const scaleW = vw / A4_W
+    const scaleH = vh / A4_H
     const best = Math.min(scaleW, scaleH, 1)
     // Find closest zoom level
     zoomIdx = 0
@@ -373,15 +418,60 @@ export async function printDocument(options: {
       if (zoomLevels[i] <= best) zoomIdx = i
     }
     applyZoom()
+    container.scrollLeft = 0
+    container.scrollTop = 0
   }
 
-  // Event listeners
+  // ── Drag-to-pan ──
+  let isPanning = false
+  let panStartX = 0, panStartY = 0
+  let scrollStartX = 0, scrollStartY = 0
+
+  const onMouseDown = (e: MouseEvent) => {
+    if (e.button !== 0) return // only left button
+    // Only enable pan when content overflows
+    if (container.scrollHeight <= container.clientHeight + 2 &&
+        container.scrollWidth <= container.clientWidth + 2) return
+    isPanning = true
+    panStartX = e.clientX
+    panStartY = e.clientY
+    scrollStartX = container.scrollLeft
+    scrollStartY = container.scrollTop
+    container.style.cursor = 'grabbing'
+    e.preventDefault()
+  }
+
+  const onMouseMove = (e: MouseEvent) => {
+    if (!isPanning) return
+    container.scrollLeft = scrollStartX - (e.clientX - panStartX)
+    container.scrollTop = scrollStartY - (e.clientY - panStartY)
+  }
+
+  const onMouseUp = () => {
+    if (isPanning) {
+      isPanning = false
+      updatePanHint()
+    }
+  }
+
+  container.addEventListener('mousedown', onMouseDown)
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+
+  // ── Cleanup helper ──
+  const cleanup = () => {
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+    document.removeEventListener('keydown', onKey)
+    document.body.style.overflow = ''
+  }
+
+  // ── Button events ──
   document.getElementById('print-zoom-in')!.onclick = () => { if (zoomIdx < zoomLevels.length - 1) { zoomIdx++; applyZoom() } }
   document.getElementById('print-zoom-out')!.onclick = () => { if (zoomIdx > 0) { zoomIdx--; applyZoom() } }
   document.getElementById('print-zoom-fit')!.onclick = fitZoom
 
   document.getElementById('print-btn')!.onclick = () => {
-    // Hide overlay, then use hidden iframe to print
     overlay.style.display = 'none'
     document.body.style.overflow = ''
     try {
@@ -390,23 +480,34 @@ export async function printDocument(options: {
       const win = window.open('', '_blank')
       if (win) { win.document.write(fullHtml); win.document.close(); win.print() }
     }
-    // Clean up after print dialog
-    setTimeout(() => { document.body.removeChild(overlay) }, 3000)
+    setTimeout(() => { cleanup(); try { document.body.removeChild(overlay) } catch {} }, 3000)
   }
 
   document.getElementById('print-close')!.onclick = () => {
+    cleanup()
     document.body.removeChild(overlay)
-    document.body.style.overflow = ''
   }
 
-  // Keyboard shortcuts
+  // ── Keyboard shortcuts ──
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { document.body.removeChild(overlay); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey) }
+    if (e.key === 'Escape') { cleanup(); document.body.removeChild(overlay) }
     if (e.key === '+' || e.key === '=') { if (zoomIdx < zoomLevels.length - 1) { zoomIdx++; applyZoom() } }
     if (e.key === '-') { if (zoomIdx > 0) { zoomIdx--; applyZoom() } }
   }
   document.addEventListener('keydown', onKey)
 
-  // Auto-fit to screen on open
-  setTimeout(fitZoom, 100)
+  // Measure content after iframe loads, then auto-fit
+  setTimeout(() => {
+    measureContent()
+    updateLayout()
+    fitZoom()
+  }, 150)
+
+  // Re-measure on resize
+  const resizeObs = new ResizeObserver(() => {
+    measureContent()
+    updateLayout()
+    updatePanHint()
+  })
+  resizeObs.observe(container)
 }
