@@ -1,73 +1,121 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/auth'
-import { validateBackupFile, restoreDatabase } from '@/lib/backup'
+import { validateBackupFile, restoreDatabase, type RestoreProgress } from '@/lib/backup'
+
+// Allow up to 5 minutes for restore on Vercel
+export const maxDuration = 300
 
 // ═══════════════════════════════════════════════════════════════
-// POST /api/backup/restore — Upload and restore a backup
+// POST /api/backup/restore — Upload and restore via SSE streaming
 // ═══════════════════════════════════════════════════════════════
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req)
-  if (auth instanceof NextResponse) return auth
+  if (auth instanceof Response) return auth
 
   // Admin or super_admin only
   if (auth.role !== 'admin' && auth.role !== 'super_admin') {
-    return NextResponse.json({ error: 'Accès refusé — administrateur requis' }, { status: 403 })
+    const errBody = JSON.stringify({ step: 'error', message: 'Accès refusé — administrateur requis' })
+    return new Response(errBody, { status: 403, headers: { 'Content-Type': 'application/json' } })
   }
 
+  // Parse multipart form data first (before creating the stream)
+  let fileBuffer: Buffer
+  let fileName: string
   try {
-    // Parse multipart form data
     const formData = await req.formData()
     const file = formData.get('file') as File | null
 
     if (!file) {
-      return NextResponse.json({ error: 'Fichier manquant — veuillez fournir un fichier .json.gz' }, { status: 400 })
+      const errBody = JSON.stringify({ step: 'error', message: 'Fichier manquant — veuillez fournir un fichier .json.gz' })
+      return new Response(errBody, { status: 400, headers: { 'Content-Type': 'application/json' } })
     }
 
-    // Validate file type
     if (!file.name.endsWith('.json.gz')) {
-      return NextResponse.json(
-        { error: 'Format de fichier invalide — seul .json.gz est accepté' },
-        { status: 400 }
-      )
+      const errBody = JSON.stringify({ step: 'error', message: 'Format de fichier invalide — seul .json.gz est accepté' })
+      return new Response(errBody, { status: 400, headers: { 'Content-Type': 'application/json' } })
     }
 
-    // Read file into buffer
-    const fileBuffer = Buffer.from(await file.arrayBuffer())
-
-    // Step 1: Validate the backup file
-    const validation = await validateBackupFile(fileBuffer)
-
-    if (!validation.valid) {
-      return NextResponse.json({
-        success: false,
-        message: 'Fichier de sauvegarde invalide',
-        errors: validation.errors,
-        warnings: validation.warnings,
-      }, { status: 400 })
-    }
-
-    // Step 2: Decompress and extract data for restore
-    const zlib = await import('zlib')
-    const jsonBuffer = zlib.gunzipSync(fileBuffer)
-    const parsed = JSON.parse(jsonBuffer.toString('utf-8'))
-    const data: Record<string, any[]> = parsed.data
-
-    // Step 3: Restore database
-    // Import db inside handler as required
-    const { db } = await import('@/lib/db')
-    await restoreDatabase(db, data)
-
-    return NextResponse.json({
-      success: true,
-      message: 'Restauration terminée avec succès',
-      meta: validation.meta,
-      warnings: validation.warnings.length > 0 ? validation.warnings : undefined,
-    })
+    fileBuffer = Buffer.from(await file.arrayBuffer())
+    fileName = file.name
   } catch (error) {
-    console.error('[Backup] Restore error:', error)
-    return NextResponse.json(
-      { error: 'Erreur lors de la restauration', details: error instanceof Error ? error.message : 'Erreur inconnue' },
-      { status: 500 }
-    )
+    console.error('[Backup] Restore: parse error:', error)
+    const errBody = JSON.stringify({ step: 'error', message: 'Erreur de lecture du fichier' })
+    return new Response(errBody, { status: 400, headers: { 'Content-Type': 'application/json' } })
   }
+
+  // ─── SSE Streaming Response ───
+  const encoder = new TextEncoder()
+
+  const send = (progress: RestoreProgress & { fileName?: string; warnings?: string[] }) => {
+    return encoder.encode(`data: ${JSON.stringify(progress)}\n\n`)
+  }
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        // Step 1: Validate
+        controller.enqueue(send({
+          step: 'validating',
+          message: `Validation de "${fileName}"...`,
+        }))
+
+        const validation = await validateBackupFile(fileBuffer)
+
+        if (!validation.valid) {
+          controller.enqueue(send({
+            step: 'error',
+            message: 'Fichier de sauvegarde invalide',
+          }))
+          controller.enqueue(send({
+            step: 'error',
+            message: validation.errors.join(' | '),
+          }))
+          controller.close()
+          return
+        }
+
+        controller.enqueue(send({
+          step: 'validating',
+          message: `Fichier valide — ${validation.meta?.totalRows ?? 0} lignes dans ${validation.meta?.totalTables ?? 0} tables`,
+          fileName,
+          warnings: validation.warnings,
+        }))
+
+        // Step 2: Decompress and extract data
+        const zlib = await import('zlib')
+        const jsonBuffer = zlib.gunzipSync(fileBuffer)
+        const parsed = JSON.parse(jsonBuffer.toString('utf-8'))
+        const data: Record<string, any[]> = parsed.data
+
+        // Step 3: Restore database with progress
+        const { db } = await import('@/lib/db')
+
+        await restoreDatabase(db, data, (progress: RestoreProgress) => {
+          controller.enqueue(send(progress))
+        })
+
+        // Step 4: Done
+        controller.enqueue(send({
+          step: 'done',
+          message: 'Restauration terminée avec succès !',
+        }))
+
+        controller.close()
+      } catch (error) {
+        console.error('[Backup] Restore error:', error)
+        const message = error instanceof Error ? error.message : 'Erreur inconnue'
+        controller.enqueue(send({ step: 'error', message }))
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  })
 }

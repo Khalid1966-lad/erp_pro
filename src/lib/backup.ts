@@ -107,9 +107,14 @@ const DATETIME_FIELDS: Record<string, string[]> = {
 // 1. Compute SHA256 hash of prisma/schema.prisma
 // ═══════════════════════════════════════════════════════════════
 export async function computeSchemaHash(): Promise<string> {
-  const schemaPath = 'prisma/schema.prisma'
-  const content = await fs.readFile(schemaPath, 'utf-8')
-  return crypto.createHash('sha256').update(content).digest('hex')
+  try {
+    const schemaPath = 'prisma/schema.prisma'
+    const content = await fs.readFile(schemaPath, 'utf-8')
+    return crypto.createHash('sha256').update(content).digest('hex')
+  } catch {
+    // Fallback for Vercel / environments where prisma/schema.prisma is not readable
+    return crypto.createHash('sha256').update(`gema-erp-${APP_VERSION}`).digest('hex')
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -261,18 +266,50 @@ export async function validateBackupFile(fileBuffer: Buffer): Promise<{
 // ═══════════════════════════════════════════════════════════════
 // 5. Restore database from backup data
 // ═══════════════════════════════════════════════════════════════
-export async function restoreDatabase(db: any, data: Record<string, any[]>): Promise<void> {
+export type RestoreProgress = {
+  step: 'validating' | 'deleting' | 'inserting' | 'done' | 'error'
+  message: string
+  current?: number
+  total?: number
+  table?: string
+}
+
+export async function restoreDatabase(
+  db: any,
+  data: Record<string, any[]>,
+  onProgress?: (progress: RestoreProgress) => void
+): Promise<void> {
+  const totalTables = DELETE_TABLES_ORDER.length + BACKUP_TABLES.length
+  let completed = 0
+
+  const emit = (progress: RestoreProgress) => {
+    if (onProgress) {
+      progress.current = completed
+      progress.total = totalTables
+      onProgress(progress)
+    }
+  }
+
   await db.$transaction(
     async (tx: any) => {
       // Phase 1: Delete all data in reverse FK order (children first)
+      emit({ step: 'deleting', message: 'Suppression des données existantes...' })
       for (const table of DELETE_TABLES_ORDER) {
+        emit({ step: 'deleting', message: `Suppression : ${table}`, table })
         await tx.$executeRawUnsafe(`DELETE FROM "${table}"`)
+        completed++
       }
 
       // Phase 2: Insert all data in FK-safe order (parents first)
+      emit({ step: 'inserting', message: 'Restauration des données...' })
       for (const table of BACKUP_TABLES) {
         const rows = data[table]
-        if (!rows || rows.length === 0) continue
+        if (!rows || rows.length === 0) {
+          completed++
+          continue
+        }
+
+        emit({ step: 'inserting', message: `${table} (${rows.length} lignes)`, table })
 
         // Convert DateTime string fields back to Date objects
         const datetimeFields = DATETIME_FIELDS[table]
@@ -291,9 +328,10 @@ export async function restoreDatabase(db: any, data: Record<string, any[]>): Pro
           data: processedRows,
           skipDuplicates: false,
         })
+        completed++
       }
     },
-    { timeout: 120_000 }
+    { timeout: 300_000 }
   )
 }
 

@@ -7,6 +7,9 @@ import {
   trimBackups,
 } from '@/lib/backup'
 
+// Allow up to 2 minutes for backup creation on Vercel
+export const maxDuration = 120
+
 // ═══════════════════════════════════════════════════════════════
 // GET /api/backup — List all backups
 // ═══════════════════════════════════════════════════════════════

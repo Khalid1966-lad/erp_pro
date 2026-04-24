@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import zlib from 'zlib'
 
+export const maxDuration = 60
+
 // ═══════════════════════════════════════════════════════════════
 // GET /api/backup/[id]/download — Download backup as .json.gz
 // ═══════════════════════════════════════════════════════════════
