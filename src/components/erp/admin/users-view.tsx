@@ -433,6 +433,8 @@ function UsersViewInner() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
+          autoComplete="off"
+          data-form-type="other"
         />
       </div>
 
@@ -622,6 +624,7 @@ function UsersViewInner() {
             </DialogDescription>
           </DialogHeader>
 
+          <form onSubmit={(e) => e.preventDefault()} autoComplete="off">
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="create-name">Nom complet *</Label>
@@ -630,6 +633,8 @@ function UsersViewInner() {
                 placeholder="Mohammed Alaoui"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
+                autoComplete="off"
+                data-form-type="other"
               />
             </div>
             <div className="space-y-2">
@@ -640,6 +645,8 @@ function UsersViewInner() {
                 placeholder="user@gema-erp.com"
                 value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
+                autoComplete="off"
+                data-form-type="other"
               />
             </div>
             <div className="space-y-2">
@@ -651,6 +658,8 @@ function UsersViewInner() {
                   placeholder="Minimum 6 caractères"
                   value={formPassword}
                   onChange={(e) => setFormPassword(e.target.value)}
+                  autoComplete="new-password"
+                  data-form-type="password"
                 />
                 <button
                   type="button"
@@ -668,6 +677,8 @@ function UsersViewInner() {
                 placeholder="+212 6XX XXX XXX"
                 value={formPhone}
                 onChange={(e) => setFormPhone(e.target.value)}
+                autoComplete="off"
+                data-form-type="other"
               />
             </div>
             <div className="space-y-2">
@@ -699,6 +710,7 @@ function UsersViewInner() {
               Créer
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -750,6 +762,7 @@ function UsersViewInner() {
             </div>
           </div>
 
+          <form onSubmit={(e) => e.preventDefault()} autoComplete="off">
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nom complet *</Label>
@@ -757,6 +770,8 @@ function UsersViewInner() {
                 id="edit-name"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
+                autoComplete="off"
+                data-form-type="other"
               />
             </div>
             <div className="space-y-2">
@@ -767,6 +782,8 @@ function UsersViewInner() {
                 value={formEmail}
                 disabled
                 className="bg-muted"
+                autoComplete="off"
+                data-form-type="other"
               />
               <p className="text-xs text-muted-foreground">L&apos;email ne peut pas être modifié.</p>
             </div>
@@ -782,6 +799,8 @@ function UsersViewInner() {
                   placeholder="Minimum 6 caractères"
                   value={formPassword}
                   onChange={(e) => setFormPassword(e.target.value)}
+                  autoComplete="new-password"
+                  data-form-type="password"
                 />
                 <button
                   type="button"
@@ -799,6 +818,8 @@ function UsersViewInner() {
                 placeholder="+212 6XX XXX XXX"
                 value={formPhone}
                 onChange={(e) => setFormPhone(e.target.value)}
+                autoComplete="off"
+                data-form-type="other"
               />
             </div>
             <div className="space-y-2">
@@ -830,6 +851,7 @@ function UsersViewInner() {
               Enregistrer
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
