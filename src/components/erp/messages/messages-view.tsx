@@ -285,7 +285,6 @@ export default function MessagesView() {
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [emojiSearch, setEmojiSearch] = useState('')
   const [activeEmojiCategory, setActiveEmojiCategory] = useState(0)
-  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
@@ -426,7 +425,6 @@ export default function MessagesView() {
       console.error('Failed to delete message:', err)
     } finally {
       setDeletingMessageId(null)
-      setHoveredMessageId(null)
     }
   }, [fetchConversations])
 
@@ -654,7 +652,6 @@ export default function MessagesView() {
 
   const renderMessageBubble = useCallback((msg: Message, isFirstInGroup: boolean, isLastInGroup: boolean) => {
     const isMine = msg.senderId === user?.id
-    const isHovered = hoveredMessageId === msg.id
 
     return (
       <div
@@ -662,8 +659,6 @@ export default function MessagesView() {
         className={`group flex gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'} ${
           isFirstInGroup ? 'mt-3' : 'mt-0.5'
         }`}
-        onMouseEnter={() => setHoveredMessageId(msg.id)}
-        onMouseLeave={() => setHoveredMessageId(null)}
       >
         {/* Avatar — show for other users' first message in group */}
         {!isMine && isFirstInGroup && (
@@ -692,8 +687,8 @@ export default function MessagesView() {
           >
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
           </div>
-          {/* Meta row: time + checkmark + delete button (inline, no clipping) */}
-          <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+          {/* Meta row: time + checkmark + delete button (CSS group-hover, no React state) */}
+          <div className={`flex items-center gap-1.5 mt-0.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
             {isMine && (
               <button
                 onClick={(e) => {
@@ -701,9 +696,7 @@ export default function MessagesView() {
                   setConfirmDeleteId(msg.id)
                 }}
                 disabled={deletingMessageId === msg.id}
-                className={`h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all flex-shrink-0 ${
-                  isHovered ? 'opacity-100' : 'opacity-0'
-                }`}
+                className="h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
                 type="button"
                 title="Supprimer le message"
               >
@@ -724,7 +717,7 @@ export default function MessagesView() {
         </div>
       </div>
     )
-  }, [user?.id, activeConversation?.isGroup, hoveredMessageId, deletingMessageId, deleteMessage])
+  }, [user?.id, activeConversation?.isGroup, deletingMessageId])
 
   // ── Main Render ──────────────────────────────────────────────────────────
 
