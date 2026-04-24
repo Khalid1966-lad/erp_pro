@@ -267,7 +267,7 @@ function LogoUploadCard() {
                 src={currentLogo}
                 alt="Logo entreprise"
                 fill
-                className="object-fill p-0"
+                className="object-contain p-0"
                 unoptimized
               />
             ) : (

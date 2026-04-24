@@ -107,7 +107,7 @@ function buildHeaderHtml(c: CompanyInfo): string {
   const logoH = isRect ? '60px' : '90px'
   const logoBlock = c.logoUrl
     ? `<div style="flex-shrink:0;width:${logoW};height:${logoH};overflow:hidden;">
-         <img src="${logoSrc}" alt="Logo" style="width:100%;height:100%;display:block;" onerror="this.style.display='none'">
+         <img src="${logoSrc}" alt="Logo" style="max-width:100%;max-height:100%;width:auto;height:auto;display:block;" onerror="this.style.display='none'">
        </div>`
     : ''
 
@@ -300,38 +300,111 @@ export async function printDocument(options: {
 <body><div class="page-wrapper">${bodyHtml}</div></body>
 </html>`
 
-  // Use a hidden iframe to avoid browser header/footer ("about:blank 1/1")
+  // ── Full-screen preview dialog with zoom controls ──
+  const overlay = document.createElement('div')
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;font-family:system-ui,sans-serif;'
+
+  // Toolbar
+  const toolbar = document.createElement('div')
+  toolbar.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #e5e7eb;flex-shrink:0;'
+  toolbar.innerHTML = `
+    <span style="font-size:13px;font-weight:600;color:#374151;">Aperçu — ${esc(options.title)} ${esc(options.docNumber)}</span>
+    <div style="flex:1"></div>
+    <button id="print-zoom-out" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom -">−</button>
+    <span id="print-zoom-level" style="font-size:12px;color:#6b7280;min-width:48px;text-align:center;">100%</span>
+    <button id="print-zoom-in" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom +">+</button>
+    <button id="print-zoom-fit" style="padding:0 10px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#374151;" title="Ajuster">Ajuster</button>
+    <div style="width:1px;height:20px;background:#e5e7eb;"></div>
+    <button id="print-btn" style="display:flex;align-items:center;gap:6px;padding:0 14px;height:32px;border:none;border-radius:6px;background:#1a1a1a;color:#fff;cursor:pointer;font-size:13px;font-weight:500;">🖨 Imprimer</button>
+    <button id="print-close" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Fermer">✕</button>
+  `
+
+  // Scrollable iframe container
+  const container = document.createElement('div')
+  container.style.cssText = 'flex:1;overflow:hidden;background:#f3f4f6;display:flex;justify-content:center;'
+
+  // Shadow A4 page
+  const page = document.createElement('div')
+  page.style.cssText = 'width:210mm;min-height:297mm;background:#fff;box-shadow:0 2px 20px rgba(0,0,0,0.15);margin:20px auto;transform-origin:top center;transition:transform 0.2s ease;'
+
   const iframe = document.createElement('iframe')
-  iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;border:none;'
-  document.body.appendChild(iframe)
+  iframe.style.cssText = 'width:210mm;height:297mm;border:none;pointer-events:none;'
+  page.appendChild(iframe)
+  container.appendChild(page)
 
+  overlay.appendChild(toolbar)
+  overlay.appendChild(container)
+  document.body.appendChild(overlay)
+  document.body.style.overflow = 'hidden'
+
+  // Write content into iframe
   const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
-  if (!iframeDoc) {
-    document.body.removeChild(iframe)
-    alert('Erreur lors de la préparation de l\'impression.')
-    return
+  if (iframeDoc) {
+    iframeDoc.open()
+    iframeDoc.write(fullHtml)
+    iframeDoc.close()
   }
 
-  iframeDoc.open()
-  iframeDoc.write(fullHtml)
-  iframeDoc.close()
+  // Zoom state
+  let zoom = 1
+  const zoomLevels = [0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 1, 1.1, 1.25, 1.5, 2]
+  let zoomIdx = zoomLevels.indexOf(1)
 
-  // Wait for images/fonts to load, then print
-  iframe.onload = () => {
-    setTimeout(() => {
-      try {
-        iframe.contentWindow?.print()
-      } catch {
-        // fallback: open in new tab
-        const win = window.open('', '_blank')
-        if (win) {
-          win.document.write(fullHtml)
-          win.document.close()
-          win.print()
-        }
-      }
-      // Clean up iframe after print dialog closes
-      setTimeout(() => document.body.removeChild(iframe), 2000)
-    }, 500)
+  const applyZoom = () => {
+    zoom = zoomLevels[zoomIdx]
+    page.style.transform = `scale(${zoom})`
+    page.parentElement.style.padding = '20px'
+    document.getElementById('print-zoom-level')!.textContent = Math.round(zoom * 100) + '%'
   }
+
+  const fitZoom = () => {
+    const vw = container.clientWidth - 40
+    const vh = container.clientHeight - 40
+    const pw = 794 // 210mm ≈ 794px at 96dpi
+    const ph = 1123 // 297mm ≈ 1123px
+    const scaleW = vw / pw
+    const scaleH = vh / ph
+    const best = Math.min(scaleW, scaleH, 1)
+    // Find closest zoom level
+    zoomIdx = 0
+    for (let i = 0; i < zoomLevels.length; i++) {
+      if (zoomLevels[i] <= best) zoomIdx = i
+    }
+    applyZoom()
+  }
+
+  // Event listeners
+  document.getElementById('print-zoom-in')!.onclick = () => { if (zoomIdx < zoomLevels.length - 1) { zoomIdx++; applyZoom() } }
+  document.getElementById('print-zoom-out')!.onclick = () => { if (zoomIdx > 0) { zoomIdx--; applyZoom() } }
+  document.getElementById('print-zoom-fit')!.onclick = fitZoom
+
+  document.getElementById('print-btn')!.onclick = () => {
+    // Hide overlay, then use hidden iframe to print
+    overlay.style.display = 'none'
+    document.body.style.overflow = ''
+    try {
+      iframe.contentWindow?.print()
+    } catch {
+      const win = window.open('', '_blank')
+      if (win) { win.document.write(fullHtml); win.document.close(); win.print() }
+    }
+    // Clean up after print dialog
+    setTimeout(() => { document.body.removeChild(overlay) }, 3000)
+  }
+
+  document.getElementById('print-close')!.onclick = () => {
+    document.body.removeChild(overlay)
+    document.body.style.overflow = ''
+  }
+
+  // Keyboard shortcuts
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') { document.body.removeChild(overlay); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey) }
+    if (e.key === '+' || e.key === '=') { if (zoomIdx < zoomLevels.length - 1) { zoomIdx++; applyZoom() } }
+    if (e.key === '-') { if (zoomIdx > 0) { zoomIdx--; applyZoom() } }
+  }
+  document.addEventListener('keydown', onKey)
+
+  // Auto-fit to screen on open
+  setTimeout(fitZoom, 100)
 }
