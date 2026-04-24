@@ -287,6 +287,8 @@ export default function MessagesView() {
   const [activeEmojiCategory, setActiveEmojiCategory] = useState(0)
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deletingConvId, setDeletingConvId] = useState<string | null>(null)
+  const [confirmDeleteConvId, setConfirmDeleteConvId] = useState<string | null>(null)
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -427,6 +429,24 @@ export default function MessagesView() {
       setDeletingMessageId(null)
     }
   }, [fetchConversations])
+
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    setDeletingConvId(conversationId)
+    setConfirmDeleteConvId(null)
+    try {
+      await api.delete(`/conversations/${conversationId}`)
+      if (activeConversationId === conversationId) {
+        setActiveConversationId(null)
+        setMessages([])
+        setShowMobileChat(false)
+      }
+      fetchConversations()
+    } catch (err) {
+      console.error('Failed to delete conversation:', err)
+    } finally {
+      setDeletingConvId(null)
+    }
+  }, [activeConversationId, fetchConversations])
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -585,70 +605,93 @@ export default function MessagesView() {
       : getInitials(displayName)
 
     return (
-      <button
+      <div
         key={conv.id}
-        onClick={() => handleSelectConversation(conv.id)}
-        className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors rounded-lg mx-1 mb-0.5 ${
+        className={`flex items-center gap-1 px-1 py-1 rounded-lg mx-1 mb-0.5 ${
           isActive
-            ? 'bg-accent text-accent-foreground'
-            : 'hover:bg-accent/50 text-foreground'
+            ? 'bg-accent'
+            : 'hover:bg-accent/50'
         }`}
       >
-        {/* Avatar */}
-        <div className="relative flex-shrink-0">
-          <div className={`h-11 w-11 rounded-full flex items-center justify-center text-white text-xs font-semibold ${getAvatarColor(displayName)}`}>
-            {initials}
-          </div>
-          {conv.isGroup && (
-            <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-background border-2 border-background flex items-center justify-center">
-              <Users className="h-2.5 w-2.5 text-muted-foreground" />
+        <button
+          onClick={() => handleSelectConversation(conv.id)}
+          className="w-full flex items-center gap-3 px-2 py-2 text-left rounded-lg min-w-0"
+        >
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            <div className={`h-11 w-11 rounded-full flex items-center justify-center text-white text-xs font-semibold ${getAvatarColor(displayName)}`}>
+              {initials}
             </div>
-          )}
-          {/* Online indicator — only show green dot when user is online */}
-          {!conv.isGroup && conv.participants[0]?.isOnline && (
-            <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500" />
-          )}
-        </div>
+            {conv.isGroup && (
+              <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-background border-2 border-background flex items-center justify-center">
+                <Users className="h-2.5 w-2.5 text-muted-foreground" />
+              </div>
+            )}
+            {/* Online indicator — only show green dot when user is online */}
+            {!conv.isGroup && conv.participants[0]?.isOnline && (
+              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500" />
+            )}
+          </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className={`text-sm font-semibold truncate ${isActive ? '' : 'text-foreground'}`}>
-              {displayName}
-            </span>
-            {conv.lastMessage && (
-              <span className="text-[11px] text-muted-foreground flex-shrink-0">
-                {formatConversationTime(conv.lastMessage.createdAt)}
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-sm font-semibold truncate ${isActive ? '' : 'text-foreground'}`}>
+                {displayName}
               </span>
-            )}
-          </div>
-          <div className="flex items-center justify-between gap-2 mt-0.5">
-            <p className="text-xs text-muted-foreground truncate max-w-[180px]">
-              {conv.lastMessage ? (
-                <>
-                  {conv.lastMessage.senderName && (
-                    <span className="text-muted-foreground/70">
-                      {conv.lastMessage.senderId === user?.id ? 'Vous: ' : `${conv.lastMessage.senderName.split(' ')[0]}: `}
-                    </span>
-                  )}
-                  {conv.lastMessage.content.length > 40
-                    ? conv.lastMessage.content.substring(0, 40) + '...'
-                    : conv.lastMessage.content}
-                </>
-              ) : (
-                'Aucun message'
+              {conv.lastMessage && (
+                <span className="text-[11px] text-muted-foreground flex-shrink-0">
+                  {formatConversationTime(conv.lastMessage.createdAt)}
+                </span>
               )}
-            </p>
-            {conv.unreadCount > 0 && (
-              <span className="flex-shrink-0 flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
-                {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
-              </span>
-            )}
+            </div>
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <p className="text-xs text-muted-foreground truncate max-w-[160px]">
+                {conv.lastMessage ? (
+                  <>
+                    {conv.lastMessage.senderName && (
+                      <span className="text-muted-foreground/70">
+                        {conv.lastMessage.senderId === user?.id ? 'Vous: ' : `${conv.lastMessage.senderName.split(' ')[0]}: `}
+                      </span>
+                    )}
+                    {conv.lastMessage.content.length > 40
+                      ? conv.lastMessage.content.substring(0, 40) + '...'
+                      : conv.lastMessage.content}
+                  </>
+                ) : (
+                  'Aucun message'
+                )}
+              </p>
+              {conv.unreadCount > 0 && (
+                <span className="flex-shrink-0 flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                  {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+
+        {/* Delete conversation button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            setConfirmDeleteConvId(conv.id)
+          }}
+          disabled={deletingConvId === conv.id}
+          className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground/40 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+          title="Supprimer la conversation"
+          aria-label="Supprimer la conversation"
+        >
+          {deletingConvId === conv.id ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
     )
-  }, [activeConversationId, user?.id])
+  }, [activeConversationId, user?.id, deletingConvId])
 
   const renderMessageBubble = useCallback((msg: Message, isFirstInGroup: boolean, isLastInGroup: boolean) => {
     const isMine = msg.senderId === user?.id
@@ -1174,6 +1217,45 @@ export default function MessagesView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Delete Conversation Confirmation Dialog ────────────────────── */}
+      <AlertDialog open={!!confirmDeleteConvId} onOpenChange={(open) => !open && setConfirmDeleteConvId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Supprimer la conversation
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette conversation entière ? Tous les messages seront définitivement perdus. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingConvId}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmDeleteConvId) {
+                  deleteConversation(confirmDeleteConvId)
+                }
+              }}
+              disabled={!!deletingConvId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingConvId ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Delete Message Confirmation Dialog ──────────────────────────── */}
       <AlertDialog open={!!confirmDeleteId} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
