@@ -497,9 +497,9 @@ export default function MessagesView() {
     textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden'
   }, [])
 
-  // ── Render: Conversation Item ────────────────────────────────────────────
+  // ── Render helpers (inline to avoid nested component remount on parent re-render) ──
 
-  function ConversationItem({ conv }: { conv: Conversation }) {
+  const renderConversationItem = useCallback((conv: Conversation) => {
     const isActive = conv.id === activeConversationId
     const displayName = conv.isGroup
       ? conv.name || conv.participants.map((p) => p.name.split(' ')[0]).join(', ')
@@ -510,6 +510,7 @@ export default function MessagesView() {
 
     return (
       <button
+        key={conv.id}
         onClick={() => handleSelectConversation(conv.id)}
         className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors rounded-lg mx-1 mb-0.5 ${
           isActive
@@ -569,15 +570,14 @@ export default function MessagesView() {
         </div>
       </button>
     )
-  }
+  }, [activeConversationId, user?.id])
 
-  // ── Render: Message Bubble ───────────────────────────────────────────────
-
-  function MessageBubble({ msg, isFirstInGroup, isLastInGroup }: { msg: Message; isFirstInGroup: boolean; isLastInGroup: boolean }) {
+  const renderMessageBubble = useCallback((msg: Message, isFirstInGroup: boolean, isLastInGroup: boolean) => {
     const isMine = msg.senderId === user?.id
 
     return (
       <div
+        key={msg.id}
         className={`flex gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'} ${
           isFirstInGroup ? 'mt-3' : 'mt-0.5'
         }`}
@@ -620,110 +620,7 @@ export default function MessagesView() {
         </div>
       </div>
     )
-  }
-
-  // ── Render: New Conversation Dialog ──────────────────────────────────────
-
-  function NewConversationDialog() {
-    return (
-      <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Nouvelle conversation
-            </DialogTitle>
-            <DialogDescription>
-              Sélectionnez un utilisateur pour commencer une conversation.
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Search users */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher un utilisateur..."
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          {/* Users list */}
-          <ScrollArea className="max-h-[300px] overflow-y-auto">
-            {filteredUsers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <Users className="h-8 w-8 mb-2 opacity-40" />
-                <p className="text-sm">
-                  {users.length === 0
-                    ? 'Aucun utilisateur disponible'
-                    : 'Aucun résultat trouvé'}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-0.5">
-                {filteredUsers.map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => setSelectedUserId(u.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                      selectedUserId === u.id
-                        ? 'bg-accent text-accent-foreground'
-                        : 'hover:bg-accent/50'
-                    }`}
-                  >
-                    <div className={`h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 ${getAvatarColor(u.name)}`}>
-                      {getInitials(u.name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{u.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                    </div>
-                    {ROLE_LABELS[u.role] && (
-                      <Badge variant="secondary" className="text-[10px] px-2 py-0 flex-shrink-0">
-                        {ROLE_LABELS[u.role]}
-                      </Badge>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowNewConversation(false)}>
-              Annuler
-            </Button>
-            <Button
-              onClick={() => selectedUserId && createConversation(selectedUserId)}
-              disabled={!selectedUserId}
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Démarrer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
-  // ── Render: Empty Chat Panel ─────────────────────────────────────────────
-
-  function EmptyChatPanel() {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background/50 dark:bg-muted/10">
-        <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
-          <MessageSquare className="h-10 w-10 text-muted-foreground/50" />
-        </div>
-        <h3 className="text-lg font-semibold text-muted-foreground mb-1">
-          Messagerie
-        </h3>
-        <p className="text-sm text-muted-foreground/70 max-w-[280px] text-center">
-          Sélectionnez une conversation ou commencez une nouvelle discussion
-        </p>
-      </div>
-    )
-  }
+  }, [user?.id, activeConversation?.isGroup])
 
   // ── Main Render ──────────────────────────────────────────────────────────
 
@@ -813,9 +710,7 @@ export default function MessagesView() {
               </div>
             ) : (
               <div className="py-1">
-                {filteredConversations.map((conv) => (
-                  <ConversationItem key={conv.id} conv={conv} />
-                ))}
+                {filteredConversations.map((conv) => renderConversationItem(conv))}
               </div>
             )}
           </ScrollArea>
@@ -832,7 +727,17 @@ export default function MessagesView() {
           } flex-1 flex-col min-w-0 bg-background`}
         >
           {!activeConversation ? (
-            <EmptyChatPanel />
+            <div className="flex-1 flex flex-col items-center justify-center bg-background/50 dark:bg-muted/10">
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                <MessageSquare className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-lg font-semibold text-muted-foreground mb-1">
+                Messagerie
+              </h3>
+              <p className="text-sm text-muted-foreground/70 max-w-[280px] text-center">
+                Sélectionnez une conversation ou commencez une nouvelle discussion
+              </p>
+            </div>
           ) : (
             <>
               {/* Chat Header */}
@@ -971,14 +876,7 @@ export default function MessagesView() {
                           idx === group.messages.length - 1 ||
                           group.messages[idx + 1]?.senderId !== msg.senderId
 
-                        return (
-                          <MessageBubble
-                            key={msg.id}
-                            msg={msg}
-                            isFirstInGroup={isFirstInGroup}
-                            isLastInGroup={isLastInGroup}
-                          />
-                        )
+                        return renderMessageBubble(msg, isFirstInGroup, isLastInGroup)
                       })}
                     </div>
                   ))
@@ -1041,8 +939,85 @@ export default function MessagesView() {
         </div>
       </div>
 
-      {/* New Conversation Dialog */}
-      <NewConversationDialog />
+      {/* New Conversation Dialog — inlined to avoid nested component remount on parent re-render */}
+      <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Nouvelle conversation
+            </DialogTitle>
+            <DialogDescription>
+              Sélectionnez un utilisateur pour commencer une conversation.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Search users */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher un utilisateur..."
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {/* Users list */}
+          <ScrollArea className="max-h-[300px] overflow-y-auto">
+            {filteredUsers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Users className="h-8 w-8 mb-2 opacity-40" />
+                <p className="text-sm">
+                  {users.length === 0
+                    ? 'Aucun utilisateur disponible'
+                    : 'Aucun résultat trouvé'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {filteredUsers.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => setSelectedUserId(u.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                      selectedUserId === u.id
+                        ? 'bg-accent text-accent-foreground'
+                        : 'hover:bg-accent/50'
+                    }`}
+                  >
+                    <div className={`h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 ${getAvatarColor(u.name)}`}>
+                      {getInitials(u.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{u.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                    </div>
+                    {ROLE_LABELS[u.role] && (
+                      <Badge variant="secondary" className="text-[10px] px-2 py-0 flex-shrink-0">
+                        {ROLE_LABELS[u.role]}
+                      </Badge>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowNewConversation(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => selectedUserId && createConversation(selectedUserId)}
+              disabled={!selectedUserId}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Démarrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
