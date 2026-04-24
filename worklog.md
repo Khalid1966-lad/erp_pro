@@ -824,3 +824,30 @@ Stage Summary:
 - Delete button appears on hover for user's own messages with loading state
 - Online indicators in conversation list and chat header now reflect real-time presence data from backend
 - Lint: 0 errors
+
+---
+Task ID: messaging-delete-online-fix
+Agent: Main Agent
+Task: Implement message deletion API + fix online indicator for avatars
+
+Work Log:
+- Analyzed existing messaging code: messages-view.tsx already had delete UI (Trash2 button) but no backend endpoint
+- 30-day auto-cleanup was already implemented in messages GET route (lazy cleanup)
+- Online presence system was already working (POST /api/presence heartbeat every 5s)
+- Created `src/app/api/conversations/[id]/messages/[messageId]/route.ts`:
+  - DELETE method: verifies user is participant, checks message belongs to conversation
+  - Only allows message sender or super_admin to delete
+  - Deletes message from DB via Prisma, logs to auditLog
+  - Auto-cleanup: if conversation has 0 messages remaining, deletes the conversation too
+  - Returns `{ success: true }` on success
+- Fixed online indicator in `src/components/erp/messages/messages-view.tsx`:
+  - Conversation list avatar: removed gray dot for offline users, now only shows green dot when online
+  - Chat header avatar: same fix, green dot only when online, no indicator when offline
+- Ran ESLint: 0 errors
+- Committed and pushed to GitHub (commit 41877c3)
+
+Stage Summary:
+- Message deletion now fully functional: frontend UI + backend API
+- Online indicator properly shows green dot only for connected users
+- 30-day auto-cleanup was already working via lazy cleanup in messages GET
+- Files changed: 2 (1 new API route, 1 modified frontend component)
