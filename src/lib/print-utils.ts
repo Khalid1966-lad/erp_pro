@@ -106,8 +106,8 @@ function buildHeaderHtml(c: CompanyInfo): string {
   const logoW = isRect ? '140px' : '90px'
   const logoH = isRect ? '60px' : '90px'
   const logoBlock = c.logoUrl
-    ? `<div style="flex-shrink:0;width:${logoW};height:${logoH};border:1px solid #e5e7eb;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-         <img src="${logoSrc}" alt="Logo" style="width:100%;height:100%;object-fit:contain;padding:4px;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#9ca3af\\'>Logo</span>'">
+    ? `<div style="flex-shrink:0;width:${logoW};height:${logoH};overflow:hidden;">
+         <img src="${logoSrc}" alt="Logo" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display='none'">
        </div>`
     : ''
 

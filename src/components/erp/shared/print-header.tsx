@@ -95,8 +95,8 @@ export function PrintHeader() {
       <div className="flex items-start gap-4">
         {/* Left: Logo */}
         <div className={cn(
-          "flex-shrink-0 flex items-center justify-center border rounded-md bg-muted/20 overflow-hidden",
-          company.logoShape === 'rectangle' ? "w-[140px] h-[60px]" : "w-[90px] h-[90px]"
+          "flex-shrink-0 overflow-hidden",
+          company.logoShape === 'rectangle' ? "w-[140px] h-[60px]" : "w-[90px] h-[90px] border border-border rounded-md"
         )}>
           {company.logoUrl && !logoError ? (
             <img

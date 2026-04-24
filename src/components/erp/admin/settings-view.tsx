@@ -257,8 +257,10 @@ function LogoUploadCard() {
         <div className="flex flex-col sm:flex-row gap-6 items-start">
           {/* Preview */}
           <div className={cn(
-            "bg-muted rounded-xl border-2 border-dashed border-border flex items-center justify-center shrink-0 overflow-hidden relative",
-            logoShape === 'rectangle' ? "w-40 h-16" : "w-32 h-32"
+            "bg-muted rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative",
+            logoShape === 'rectangle'
+              ? "w-40 h-16 border-0"
+              : "w-32 h-32 border-2 border-dashed border-border"
           )}>
             {currentLogo ? (
               <Image
