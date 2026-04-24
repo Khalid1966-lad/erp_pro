@@ -892,3 +892,27 @@ Stage Summary:
 - Conversation delete now clearly visible as red trash icon (admin/super_admin only)
 - Guide updated with all messaging features
 - Backup system verified as up-to-date with current schema
+---
+Task ID: 1
+Agent: Main Agent
+Task: Version 1.2.1 verification — backup system, guide, footers, push to GitHub
+
+Work Log:
+- Verified APP_VERSION = '1.2.1' in src/lib/version.ts and package.json
+- Audited all 5 files using APP_VERSION: guide-view.tsx, erp-layout.tsx, login-page.tsx, settings-view.tsx, backup.ts — all use APP_VERSION dynamically, no hardcoded versions
+- Verified user guide covers all 8 module groups (11 sections total) with all sub-modules documented
+- Verified backup system: 54/54 tables covered in BACKUP_TABLES (55 Prisma models, Backup correctly excluded)
+- Found 1 missing DateTime field: User.lastSeen not in DATETIME_FIELDS map
+- Fixed: Added 'lastSeen' to User entry in DATETIME_FIELDS (src/lib/backup.ts)
+- Verified FK-safe insert order and reverse delete order are correct
+- Verified all 5 backup API routes (create, restore with SSE, download, delete, list)
+- Verified backup-section.tsx UI component (SSE progress, abort controller, .json.gz validation)
+- Reset permission-only changes from previous session (mode 100644→100755)
+- Ran ESLint: 0 errors
+- Committed as 86828ec and pushed to origin/main
+
+Stage Summary:
+- Backup system fully up to date: 54 tables, all DateTime fields including User.lastSeen
+- Guide complete: all modules documented
+- All footers/references use APP_VERSION dynamically
+- Commit 86828ec pushed to GitHub main branch
