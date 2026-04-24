@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, hasPermission } from '@/lib/auth'
+import { syncClientBalance } from '@/lib/client-balance'
 
 export const maxDuration = 30
 
@@ -81,6 +82,11 @@ export async function GET(
     if (!client) {
       return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
     }
+
+    // Auto-sync client balance + nbImpayes from real transaction data
+    syncClientBalance(id).catch((err) => {
+      console.warn(`[Statement] Background balance sync failed for client ${id}:`, err)
+    })
 
     // Build date filters for Prisma queries
     const rangeDateFilter: Record<string, unknown> = {}

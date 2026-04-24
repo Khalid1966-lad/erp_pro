@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
 import { clientUpdateSchema } from '@/lib/validations/client'
+import { syncClientBalance } from '@/lib/client-balance'
 import { Prisma } from '@prisma/client'
 
 // GET /api/clients/[id] — Get single client with contacts and documents
@@ -17,6 +18,9 @@ export async function GET(
 
   try {
     const { id } = await params
+
+    // Auto-sync client balance + nbImpayes from real transaction data
+    const { balance: freshBalance, nbImpayes: freshNbImpayes } = await syncClientBalance(id)
 
     const client = await db.client.findUnique({
       where: { id, isDeleted: false },
@@ -38,7 +42,14 @@ export async function GET(
       return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
     }
 
-    return NextResponse.json(client)
+    // Ensure returned data has fresh balance values
+    const response = {
+      ...client,
+      balance: freshBalance,
+      nbImpayes: freshNbImpayes,
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error('Client get error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
@@ -120,6 +131,9 @@ export async function PUT(
     if (updateData.telephone !== undefined) updateData.phone = updateData.telephone
     if (updateData.seuilCredit !== undefined) updateData.creditLimit = updateData.seuilCredit
     if (updateData.conditionsPaiement) updateData.paymentTerms = updateData.conditionsPaiement
+
+    // Protect balance from manual override — it's computed from transactions
+    delete updateData.balance
 
     // Increment version
     updateData.version = { increment: 1 }
