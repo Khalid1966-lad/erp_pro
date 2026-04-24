@@ -284,7 +284,7 @@ export default function BackupSection() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (!file.name.endsWith('.json.gz') && !file.name.endsWith('.json')) {
+      if (!file.name.endsWith('.json.gz')) {
         toast.error('Format invalide', { description: 'Sélectionnez un fichier .json.gz' })
         return
       }

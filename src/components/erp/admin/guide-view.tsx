@@ -16,6 +16,7 @@ import {
   FileCheck, FileSpreadsheet, Cpu, Building2, Printer, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { APP_VERSION } from '@/lib/version'
 
 /* ─── Types ─── */
 interface Section {
@@ -1505,7 +1506,7 @@ export default function GuideView() {
                 </div>
                 <div>
                   <CardTitle className="text-base">Guide d&apos;utilisation</CardTitle>
-                  <CardDescription className="text-xs">GEMA ERP PRO v1.0.4</CardDescription>
+                  <CardDescription className="text-xs">GEMA ERP PRO v{APP_VERSION}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -1559,7 +1560,7 @@ export default function GuideView() {
             <div className="flex items-center justify-center gap-3 mt-4">
               <Badge variant="outline" className="gap-1">
                 <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" />
-                Version 1.0.4
+                Version {APP_VERSION}
               </Badge>
               <Badge variant="outline" className="gap-1">
                 <Globe className="h-3 w-3" />
@@ -1589,7 +1590,7 @@ export default function GuideView() {
           <Separator />
           <div className="text-center py-8 text-sm text-muted-foreground">
             <BookOpen className="h-8 w-8 mx-auto mb-3 text-primary/30" />
-            <p className="font-medium">GEMA ERP PRO v1.0.4 — Guide d&apos;utilisation</p>
+            <p className="font-medium">GEMA ERP PRO v{APP_VERSION} — Guide d&apos;utilisation</p>
             <p className="mt-1">Développé avec passion au Maroc.</p>
             <p className="mt-1 text-xs">&copy; {new Date().getFullYear()} JAZEL WEB AGENCY SARL. Tous droits réservés.</p>
           </div>
