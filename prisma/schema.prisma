@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  directUrl = env("DATABASE_URL")
 }
 
 // ============ AUTH & RBAC ============
@@ -1165,4 +1165,20 @@ model Setting {
   id    String @id @default(cuid())
   key   String @unique
   value String
+}
+
+// ============ BACKUP & RESTORE ============
+
+model Backup {
+  id           String   @id @default(cuid())
+  label        String?
+  appVersion   String
+  schemaHash   String
+  dataCompressed String @db.Text
+  originalSize Int
+  compressedSize Int
+  tablesInfo   String   @db.Text
+  isValid      Boolean  @default(true)
+  createdBy    String?
+  createdAt    DateTime @default(now())
 }
