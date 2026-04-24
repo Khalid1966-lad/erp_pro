@@ -34,6 +34,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
@@ -1188,7 +1189,45 @@ export default function InvoicesView() {
               <DialogFooter>
                 <Button
                   variant="outline"
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    if (!selectedInvoice) return
+                    const linesHT = selectedInvoice.lines.reduce((s, l) => s + (l.totalHT || (l.quantity * l.unitPrice)), 0)
+                    const discountAmount = selectedInvoice.discountRate > 0 ? linesHT * selectedInvoice.discountRate / 100 : 0
+                    printDocument({
+                      title: 'FACTURE',
+                      docNumber: selectedInvoice.number,
+                      infoGrid: [
+                        { label: 'Client', value: selectedInvoice.client.name },
+                        { label: 'Date', value: fmtDate(selectedInvoice.date) },
+                        { label: 'Échéance', value: fmtDate(selectedInvoice.dueDate) },
+                        { label: 'Paiement', value: selectedInvoice.paymentDate ? fmtDate(selectedInvoice.paymentDate) : statusLabels[selectedInvoice.status] || selectedInvoice.status },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'Remise', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: selectedInvoice.lines.map(line => [
+                        { value: `${line.product?.reference || ''} - ${line.product?.designation || ''}` },
+                        { value: line.quantity, align: 'right' },
+                        { value: fmtMoney(line.unitPrice), align: 'right' },
+                        { value: '0', align: 'right' },
+                        { value: fmtMoney(line.totalHT || 0), align: 'right' },
+                      ]),
+                      totals: [
+                        ...(selectedInvoice.discountRate > 0 ? [{ label: `Remise (${selectedInvoice.discountRate}%)`, value: `-${fmtMoney(discountAmount)}` }] : []),
+                        ...(selectedInvoice.shippingCost > 0 ? [{ label: 'Frais de port', value: fmtMoney(selectedInvoice.shippingCost) }] : []),
+                        { label: 'Total HT', value: fmtMoney(selectedInvoice.totalHT) },
+                        { label: 'TVA', value: fmtMoney(selectedInvoice.totalTVA) },
+                        { label: 'Total TTC', value: fmtMoney(selectedInvoice.totalTTC), bold: true },
+                      ],
+                      notes: selectedInvoice.notes || undefined,
+                      amountInWords: numberToFrenchWords(selectedInvoice.totalTTC || 0) + ' dirhams',
+                      amountInWordsLabel: 'Arrêté la présente facture à la somme de',
+                    })
+                  }}
                 >
                   <Printer className="h-4 w-4 mr-1" />
                   Imprimer

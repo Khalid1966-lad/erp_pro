@@ -28,6 +28,7 @@ import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { PrintHeader, PrintFooter, formatCurrency } from '@/components/erp/shared/print-header'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
 
 // ── Types ──────────────────────────────────────────────
 interface Product {
@@ -543,7 +544,42 @@ export default function SupplierReturnsView() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => window.print()}>
+            <Button variant="outline" onClick={() => {
+              if (!selected) return
+              printDocument({
+                title: 'BON DE RETOUR',
+                docNumber: selected.number,
+                infoGrid: [
+                  { label: 'Fournisseur', value: selected.supplier?.name || '—' },
+                  { label: 'Réception', value: selected.reception?.number || '—' },
+                  { label: 'Commande', value: selected.purchaseOrder?.number || '—' },
+                  { label: 'Créée le', value: fmtDateP(selected.createdAt) },
+                ],
+                columns: [
+                  { label: 'Produit' },
+                  { label: 'Qté', align: 'right' },
+                  { label: 'P.U. HT', align: 'right' },
+                  { label: 'TVA', align: 'right' },
+                  { label: 'Total HT', align: 'right' },
+                ],
+                rows: (selected.lines || []).map(l => [
+                  { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                  { value: l.quantity, align: 'right' },
+                  { value: fmtMoneyP(l.unitPrice), align: 'right' },
+                  { value: `${l.tvaRate}%`, align: 'right' },
+                  { value: fmtMoneyP(l.quantity * l.unitPrice), align: 'right' },
+                ]),
+                totals: [
+                  { label: 'Total HT', value: fmtMoneyP(selected.totalHT), negative: true },
+                  { label: 'TVA', value: fmtMoneyP(selected.totalTVA), negative: true },
+                  { label: 'Total TTC', value: fmtMoneyP(selected.totalTTC), bold: true, negative: true },
+                ],
+                notes: selected.reason || selected.notes || undefined,
+                negativeTotals: true,
+                amountInWords: numberToFrenchWords(selected.totalTTC),
+                amountInWordsLabel: 'Arrêté le présent bon de retour à la somme de',
+              })
+            }}>
               <Printer className="h-4 w-4 mr-1" />
               Imprimer
             </Button>

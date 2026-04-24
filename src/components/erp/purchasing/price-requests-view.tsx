@@ -27,6 +27,7 @@ import { PrintHeader } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { printDocument, fmtDate as fmtDateP } from '@/lib/print-utils'
 
 // ── Types ──────────────────────────────────────────────
 interface Product {
@@ -475,7 +476,29 @@ export default function PriceRequestsView() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => window.print()}>
+            <Button variant="outline" onClick={() => {
+              if (!selected) return
+              const statusLabel = statusConfig[selected.status]?.label || selected.status
+              printDocument({
+                title: 'DEMANDE DE PRIX',
+                docNumber: selected.number,
+                infoGrid: [
+                  { label: 'Titre', value: selected.title, colspan: 2 },
+                  { label: 'Statut', value: statusLabel },
+                  { label: "Valide jusqu'au", value: fmtDateP(selected.validUntil || '') },
+                ],
+                columns: [
+                  { label: 'Produit' },
+                  { label: 'Quantité', align: 'right' },
+                ],
+                rows: (selected.lines || []).map(l => [
+                  { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                  { value: l.quantity, align: 'right' },
+                ]),
+                totals: [],
+                notes: selected.notes || undefined,
+              })
+            }}>
               <Printer className="h-4 w-4 mr-1" />
               Imprimer
             </Button>

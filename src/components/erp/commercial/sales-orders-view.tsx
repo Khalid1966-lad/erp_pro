@@ -31,6 +31,7 @@ import {
   Truck, Package, Edit, Printer, Pencil
 } from 'lucide-react'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -1089,7 +1090,41 @@ export default function SalesOrdersView() {
               <DialogFooter>
                 <Button
                   variant="outline"
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    if (!selectedOrder) return
+                    printDocument({
+                      title: 'BON DE COMMANDE',
+                      docNumber: selectedOrder.number,
+                      infoGrid: [
+                        { label: 'Client', value: selectedOrder.client.name },
+                        { label: 'Date', value: fmtDate(selectedOrder.date) },
+                        { label: 'Livraison', value: fmtDate(selectedOrder.deliveryDate || '') },
+                        { label: 'Nb lignes', value: String(selectedOrder.lines.length) },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'Qté préparée', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: selectedOrder.lines.map(line => [
+                        { value: `${line.product?.reference || ''} - ${line.product?.designation || ''}` },
+                        { value: line.quantity, align: 'right' },
+                        { value: line.quantityPrepared || 0, align: 'right' },
+                        { value: fmtMoney(line.unitPrice), align: 'right' },
+                        { value: fmtMoney(line.totalHT || (line.quantity * line.unitPrice)), align: 'right' },
+                      ]),
+                      totals: [
+                        { label: 'Total HT', value: fmtMoney(selectedOrder.totalHT) },
+                        { label: 'TVA', value: fmtMoney(selectedOrder.totalTVA) },
+                        { label: 'Total TTC', value: fmtMoney(selectedOrder.totalTTC), bold: true },
+                      ],
+                      notes: selectedOrder.notes || undefined,
+                      amountInWords: numberToFrenchWords(selectedOrder.totalTTC || 0) + ' dirhams',
+                      amountInWordsLabel: 'Arrêté le présent bon de commande à la somme de',
+                    })
+                  }}
                 >
                   <Printer className="h-4 w-4 mr-1" />
                   Imprimer

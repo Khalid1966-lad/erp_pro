@@ -36,6 +36,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
@@ -1123,7 +1124,37 @@ export default function PreparationsView() {
               <div className="flex items-center justify-end gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    if (!selectedPrep) return
+                    printDocument({
+                      title: 'BON DE PRÉPARATION',
+                      docNumber: selectedPrep.number,
+                      infoGrid: [
+                        { label: 'Commande', value: selectedPrep.salesOrder?.number || '—' },
+                        { label: 'Client', value: selectedPrep.salesOrder?.client?.name || '—' },
+                        { label: 'Créée le', value: fmtDate(selectedPrep.createdAt) },
+                        { label: 'Complétée le', value: fmtDate(selectedPrep.completedAt || '') },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Type' },
+                        { label: 'Demandé', align: 'right' },
+                        { label: 'Stock actuel', align: 'right' },
+                        { label: 'Préparé', align: 'right' },
+                        { label: 'État', align: 'center' },
+                      ],
+                      rows: selectedPrep.lines.map(line => [
+                        { value: `${line.product.reference} - ${line.product.designation}` },
+                        { value: productTypeLabels[line.product.productType] || line.product.productType },
+                        { value: line.quantityRequested, align: 'right' },
+                        { value: line.product.currentStock, align: 'right' },
+                        { value: line.quantityPrepared, align: 'right' },
+                        { value: line.quantityPrepared >= line.quantityRequested ? '✓ Complet' : line.quantityPrepared > 0 ? 'Partiel' : '—', align: 'center' },
+                      ]),
+                      totals: [],
+                      notes: selectedPrep.notes || undefined,
+                    })
+                  }}
                 >
                   <Printer className="h-4 w-4 mr-1" />
                   Imprimer

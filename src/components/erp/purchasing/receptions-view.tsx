@@ -23,6 +23,7 @@ import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { printDocument, fmtDate as fmtDateP } from '@/lib/print-utils'
 
 // ── Types ──────────────────────────────────────────────
 interface ReceptionLine {
@@ -395,7 +396,32 @@ export default function ReceptionsView() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => window.print()}>
+            <Button variant="outline" onClick={() => {
+              if (!selectedReception) return
+              printDocument({
+                title: 'BON DE RÉCEPTION',
+                docNumber: selectedReception.number,
+                infoGrid: [
+                  { label: 'Commande', value: selectedReception.purchaseOrder?.number || '—' },
+                  { label: 'Fournisseur', value: selectedReception.purchaseOrder?.supplier?.name || '—' },
+                  { label: 'Date', value: fmtDateP(selectedReception.date || selectedReception.createdAt) },
+                ],
+                columns: [
+                  { label: 'Produit' },
+                  { label: 'Qté attendue', align: 'right' },
+                  { label: 'Qté reçue', align: 'right' },
+                  { label: 'Qualité', align: 'center' },
+                ],
+                rows: (selectedReception.lines || []).map(l => [
+                  { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                  { value: l.expectedQty ?? 0, align: 'right' },
+                  { value: l.receivedQuantity ?? 0, align: 'right' },
+                  { value: l.qualityCheck === 'conforme' ? 'Conforme' : l.qualityCheck === 'non_conforme' ? 'Non conforme' : 'Partiel', align: 'center' },
+                ]),
+                totals: [],
+                notes: selectedReception.notes || undefined,
+              })
+            }}>
               <Printer className="h-4 w-4 mr-1" />
               Imprimer
             </Button>

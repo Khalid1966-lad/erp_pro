@@ -147,40 +147,8 @@
   background: oklch(0.922 0 0);
 }
 
-/* Print styles — hide UI, show only dialog content */
+/* Print styles — basic page setup (actual printing uses new-window approach via print-utils.ts) */
 @media print {
-  /* Hide everything except the dialog overlay/content */
-  body > *:not([data-slot="dialog-overlay"]):not([data-slot="dialog-portal"]) {
-    display: none !important;
-  }
-  [data-slot="dialog-overlay"] {
-    position: static !important;
-    background: white !important;
-  }
-  [data-slot="dialog-content"] {
-    position: static !important;
-    transform: none !important;
-    max-width: 100% !important;
-    max-height: none !important;
-    width: 100% !important;
-    overflow: visible !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    animation: none !important;
-  }
-  [data-slot="dialog-content"] [data-slot="dialog-close"] {
-    display: none !important;
-  }
-  [data-slot="dialog-footer"] {
-    display: none !important;
-  }
-  /* Show scrollable content fully */
-  .overflow-auto,
-  .scrollbar-visible {
-    overflow: visible !important;
-    max-height: none !important;
-  }
   @page {
     size: A4;
     margin: 15mm;

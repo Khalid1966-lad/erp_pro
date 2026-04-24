@@ -380,3 +380,33 @@ Work Log:
 Stage Summary:
 - All 4 achats views now have print functionality with company header
 - TypeScript: 0 new errors in modified files
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix blank print page issue - replace window.print() with new-window print approach
+
+Work Log:
+- Investigated the print CSS issue: @media print rules used data-slot attributes to show only dialog content
+- Root cause: Radix UI Portal may not forward data-slot attributes to the rendered DOM, causing ALL content to be hidden by the CSS `display: none !important` rule
+- Solution: Completely replaced the print mechanism with a new-window approach
+- Created /src/lib/print-utils.ts with:
+  - printDocument() - Opens a new browser window with formatted HTML and triggers print
+  - getCompanyInfo() - Fetches and caches company settings for print headers
+  - buildHeaderHtml() - Generates company info header with logo, address, ICE, IF, CNSS
+  - buildFooterHtml() - Generates print footer with amount in words and company footer lines
+  - fmtMoney() and fmtDate() - Formatting helpers for print output
+- Updated ALL 13 document views to use the new print system:
+  - Commercial: quotes, invoices, sales-orders, delivery-notes, credit-notes, preparations
+  - Purchasing: purchase-orders, supplier-quotes, supplier-invoices, supplier-credit-notes, supplier-returns, receptions, price-requests
+- Removed all window.print() calls (0 remaining)
+- Cleaned up old @media print CSS from globals.css (kept only @page size/margin)
+- Lint passes with zero errors
+
+Stage Summary:
+- Print functionality completely rewritten using new-window approach
+- All 13 document types now open a standalone print window with proper A4 formatting
+- Company header (name, address, ICE, IF, CNSS, TVA, RC, Capital, logo) included in all prints
+- Print footer lines from settings included in all prints
+- Amount in words (montant en lettres) included in financial documents
+- Credit notes and returns print with negative/red styling
+- Logistics documents (preparations, receptions, price requests) print without financial totals

@@ -38,6 +38,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { PrintHeader } from '@/components/erp/shared/print-header'
+import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -877,7 +878,42 @@ export default function QuotesView() {
               <DialogFooter>
                 <Button
                   variant="outline"
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    if (!selectedQuote) return
+                    printDocument({
+                      title: 'DEVIS',
+                      docNumber: selectedQuote.number,
+                      infoGrid: [
+                        { label: 'Client', value: selectedQuote.client.name },
+                        { label: 'Date', value: fmtDate(selectedQuote.date) },
+                        { label: 'Validité', value: fmtDate(selectedQuote.validUntil) },
+                        { label: 'Remise', value: `${selectedQuote.discountRate}%` },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'Remise', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: selectedQuote.lines.map(l => [
+                        { value: `${l.product?.reference || ''} - ${l.product?.designation || ''}` },
+                        { value: l.quantity, align: 'right' },
+                        { value: fmtMoney(l.unitPrice), align: 'right' },
+                        { value: `${l.discount || 0}%`, align: 'right' },
+                        { value: fmtMoney(l.totalHT || 0), align: 'right' },
+                      ]),
+                      totals: [
+                        ...(selectedQuote.shippingCost > 0 ? [{ label: 'Frais de port', value: fmtMoney(selectedQuote.shippingCost) }] : []),
+                        { label: 'Total HT', value: fmtMoney(selectedQuote.totalHT) },
+                        { label: 'TVA', value: fmtMoney(selectedQuote.totalTVA) },
+                        { label: 'Total TTC', value: fmtMoney(selectedQuote.totalTTC), bold: true },
+                      ],
+                      notes: selectedQuote.notes || undefined,
+                      amountInWords: `${numberToFrenchWords(selectedQuote.totalTTC || 0)} dirhams`,
+                      amountInWordsLabel: 'Arrêté le présent devis à la somme de',
+                    })
+                  }}
                 >
                   <Printer className="h-4 w-4 mr-1" />
                   Imprimer

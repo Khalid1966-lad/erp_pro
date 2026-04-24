@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -646,7 +647,42 @@ export default function CreditNotesView() {
               />
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => window.print()}>
+                <Button variant="outline" onClick={() => {
+                  if (!selectedCN) return
+                  printDocument({
+                    title: 'AVOIR',
+                    docNumber: selectedCN.number,
+                    infoGrid: [
+                      { label: 'Client', value: selectedCN.client.name },
+                      { label: 'Facture', value: selectedCN.invoice?.number || '—' },
+                      { label: 'Date', value: fmtDate(selectedCN.date) },
+                      { label: 'Motif', value: selectedCN.reason || '—' },
+                    ],
+                    columns: [
+                      { label: 'Produit' },
+                      { label: 'Qté', align: 'right' },
+                      { label: 'P.U. HT', align: 'right' },
+                      { label: 'TVA%', align: 'right' },
+                      { label: 'Total HT', align: 'right' },
+                    ],
+                    rows: selectedCN.lines.map(line => [
+                      { value: `${line.product?.reference || ''} - ${line.product?.designation || ''}` },
+                      { value: line.quantity, align: 'right' },
+                      { value: fmtMoney(line.unitPrice), align: 'right' },
+                      { value: `${line.tvaRate}%`, align: 'right' },
+                      { value: fmtMoney(line.totalHT || 0), align: 'right' },
+                    ]),
+                    totals: [
+                      { label: 'Total HT', value: `-${fmtMoney(selectedCN.totalHT)}`, negative: true },
+                      { label: 'TVA', value: `-${fmtMoney(selectedCN.totalTVA)}`, negative: true },
+                      { label: 'Total TTC', value: `-${fmtMoney(selectedCN.totalTTC)}`, bold: true, negative: true },
+                    ],
+                    notes: selectedCN.notes || undefined,
+                    negativeTotals: true,
+                    amountInWords: numberToFrenchWords(selectedCN.totalTTC || 0) + ' dirhams',
+                    amountInWordsLabel: 'Arrêté le présent avoir à la somme de',
+                  })
+                }}>
                   <Printer className="h-4 w-4 mr-1" />
                   Imprimer
                 </Button>
