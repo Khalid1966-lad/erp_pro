@@ -482,3 +482,21 @@ Stage Summary:
 - Visual hint appears when content overflows viewport
 - Smart centering behavior based on overflow state
 - File changed: src/lib/print-utils.ts (lines 305-513)
+---
+Task ID: 2
+Agent: Main Agent
+Task: Release version 1.0.3 — update all version references
+
+Work Log:
+- Updated APP_VERSION from '1.0.2' to '1.0.3' in src/lib/version.ts
+- Updated BUILD_DATE to '2026-06-30'
+- Updated package.json version from '1.0.2' to '1.0.3'
+- Updated 3 hardcoded "v1.0.2" references in guide-view.tsx to "v1.0.3"
+- Verified layout footer (erp-layout.tsx) and login footer (login-page.tsx) use APP_VERSION dynamically — auto-updated
+- Verified print footer lines (print-utils.ts, print-header.tsx) are user-configurable — no hardcoded version
+- ESLint clean, no remaining 1.0.2 references in src/
+- Committed and pushed to GitHub
+
+Stage Summary:
+- Version 1.0.3 released with all references updated
+- Files changed: src/lib/version.ts, package.json, src/components/erp/admin/guide-view.tsx
