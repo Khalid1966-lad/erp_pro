@@ -551,3 +551,27 @@ Stage Summary:
 - Print: Full A4 preview with zoom, company header, period info, transaction table, totals, notes
 - Files changed: 2 new (API route), 1 modified (supplier-detail-view.tsx)
 - User now sees: real-time progress overlay with step indicators, progress bar, table-by-table tracking, clear success/error messages
+---
+Task ID: 1
+Agent: Main Agent
+Task: Verify backup/restore system, update to v1.0.5, unify version references
+
+Work Log:
+- Examined all 50 Prisma models in schema.prisma
+- Compared against 49 tables in BACKUP_TABLES array in src/lib/backup.ts
+- Confirmed all 49 business tables are backed up (Backup table correctly excluded)
+- Verified DATETIME_FIELDS map covers all tables with DateTime columns
+- Verified FK-safe order (parents → children) and reverse delete order (children → parents)
+- Verified restore route (SSE streaming, validation, decompression, transaction)
+- Fixed guide-view.tsx: imported APP_VERSION constant, replaced 3 hardcoded "v1.0.4" strings
+- Fixed backup-section.tsx: file selector now only accepts .json.gz (matching backend validation)
+- Bumped APP_VERSION from 1.0.4 to 1.0.5 in src/lib/version.ts
+- Updated BUILD_DATE to 2026-07-09
+- Updated version in package.json from 1.0.4 to 1.0.5
+- Ran ESLint: 0 errors
+- Pushed commit 58e3e41 to origin/main
+
+Stage Summary:
+- Backup system: 49/49 tables covered — zero gaps
+- All version references now use APP_VERSION constant (no hardcoded versions)
+- Version 1.0.5 released with unified references across 6 locations
