@@ -59,6 +59,7 @@ export type ViewId =
   | 'work-orders'
   | 'cash-registers'
   | 'bank-accounts'
+  | 'effets'
   | 'payments'
   | 'accounting'
   | 'settings'

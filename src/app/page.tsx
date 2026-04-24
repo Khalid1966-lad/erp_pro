@@ -34,6 +34,7 @@ const WorkOrdersView = dynamic(() => import('@/components/erp/production/work-or
 const CashRegistersView = dynamic(() => import('@/components/erp/finance/cash-registers-view'), { ssr: false })
 const BankAccountsView = dynamic(() => import('@/components/erp/finance/bank-accounts-view'), { ssr: false })
 const PaymentsView = dynamic(() => import('@/components/erp/finance/payments-view'), { ssr: false })
+const EffetsView = dynamic(() => import('@/components/erp/finance/effets-view'), { ssr: false })
 const AccountingView = dynamic(() => import('@/components/erp/finance/accounting-view'), { ssr: false })
 const AuditLogView = dynamic(() => import('@/components/erp/admin/audit-log-view'), { ssr: false })
 const SettingsView = dynamic(() => import('@/components/erp/admin/settings-view'), { ssr: false })
@@ -72,6 +73,7 @@ function ViewRouter() {
     case 'cash-registers': return <CashRegistersView />
     case 'bank-accounts': return <BankAccountsView />
     case 'payments': return <PaymentsView />
+    case 'effets': return <EffetsView />
     case 'accounting': return <AccountingView />
     case 'audit-log': return <AuditLogView />
     case 'settings': return <SettingsView />

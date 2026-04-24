@@ -139,6 +139,7 @@ const navigation: NavGroup[] = [
       { id: 'cash-registers', label: 'Caisses', icon: <CreditCard className="h-4 w-4" />, color: 'text-emerald-500', permission: 'cash:read' },
       { id: 'bank-accounts', label: 'Banque', icon: <Landmark className="h-4 w-4" />, color: 'text-blue-600', permission: 'bank:read' },
       { id: 'payments', label: 'Paiements', icon: <CreditCard className="h-4 w-4" />, color: 'text-violet-400', permission: 'payments:read' },
+      { id: 'effets', label: 'Effets de commerce', icon: <FileText className="h-4 w-4" />, color: 'text-orange-500', permission: 'payments:read' },
       { id: 'accounting', label: 'Comptabilité', icon: <BookOpen className="h-4 w-4" />, color: 'text-amber-600', permission: 'accounting:read' }
     ]
   },
@@ -373,6 +374,7 @@ export function ERPHeader() {
     'cash-registers': 'Caisses',
     'bank-accounts': 'Banque',
     'payments': 'Paiements',
+    'effets': 'Effets de commerce',
     'accounting': 'Comptabilité',
     'settings': 'Paramètres',
     'audit-log': "Journal d'audit",

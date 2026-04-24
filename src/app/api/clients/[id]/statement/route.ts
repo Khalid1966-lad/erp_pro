@@ -6,7 +6,7 @@ export const maxDuration = 30
 
 interface StatementTransaction {
   date: string
-  type: 'invoice' | 'payment' | 'credit_note'
+  type: 'invoice' | 'payment' | 'credit_note' | 'rejet_effet'
   reference: string
   label: string
   debit: number
@@ -85,7 +85,7 @@ export async function GET(
 
     // ─── Fetch transactions IN the date range ───
 
-    const [invoices, creditNotes, payments] = await Promise.all([
+    const [invoices, creditNotes, payments, rejetEffets] = await Promise.all([
       // Invoices (not cancelled) → DEBIT
       db.invoice.findMany({
         where: {
@@ -117,6 +117,27 @@ export async function GET(
           ...(Object.keys(rangeDateFilter).length > 0 ? { date: rangeDateFilter } : {}),
         },
         select: { date: true, reference: true, amount: true, invoice: { select: { number: true } } },
+      }),
+
+      // Rejet effets/cheques → DEBIT (reversal of payment)
+      db.effetCheque.findMany({
+        where: {
+          statut: 'rejete',
+          dateRejet: Object.keys(rangeDateFilter).length > 0 ? rangeDateFilter : undefined,
+          payment: {
+            type: 'client_payment',
+            invoice: {
+              clientId: id,
+            },
+          },
+        },
+        select: {
+          dateRejet: true,
+          type: true,
+          numero: true,
+          montant: true,
+          causeRejet: true,
+        },
       }),
     ])
 
@@ -199,8 +220,21 @@ export async function GET(
       })
     }
 
-    // ─── Sort: date ascending, then type priority (invoice=0, credit_note=1, payment=2) ───
-    const typePriority: Record<string, number> = { invoice: 0, credit_note: 1, payment: 2 }
+    for (const rej of rejetEffets) {
+      const typeLabel = rej.type === 'cheque' ? 'chèque' : 'effet'
+      transactions.push({
+        date: rej.dateRejet!.toISOString(),
+        type: 'rejet_effet',
+        reference: rej.numero,
+        label: `Rejet ${typeLabel} n°${rej.numero}${rej.causeRejet ? ` - ${rej.causeRejet}` : ''}`,
+        debit: rej.montant,
+        credit: 0,
+        balance: 0,
+      })
+    }
+
+    // ─── Sort: date ascending, then type priority (invoice=0, credit_note=1, payment=2, rejet_effet=3) ───
+    const typePriority: Record<string, number> = { invoice: 0, credit_note: 1, payment: 2, rejet_effet: 3 }
 
     transactions.sort((a, b) => {
       const dateA = new Date(a.date).getTime()

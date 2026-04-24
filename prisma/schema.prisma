@@ -1077,6 +1077,7 @@ model CashRegister {
   updatedAt     DateTime  @updatedAt
 
   cashMovements CashMovement[]
+  payments       Payment[]
 }
 
 enum CashMovementType {
@@ -1097,16 +1098,19 @@ model CashMovement {
 }
 
 model BankAccount {
-  id              String            @id @default(cuid())
-  name            String
-  iban            String
-  bic             String?
-  balance         Float             @default(0)
-  isActive        Boolean           @default(true)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id                String            @id @default(cuid())
+  name              String
+  iban              String
+  bic               String?
+  balance           Float             @default(0)
+  statementBalance  Float             @default(0)
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   bankTransactions BankTransaction[]
+  payments         Payment[]
+  effetsCheques    EffetCheque[]
 }
 
 model BankTransaction {
@@ -1134,6 +1138,14 @@ enum PaymentMethod {
   check
   bank_transfer
   card
+  effet
+}
+
+enum EffetStatut {
+  en_attente
+  remis_banque
+  valide
+  rejete
 }
 
 model Payment {
@@ -1146,7 +1158,38 @@ model Payment {
   reference       String?
   date            DateTime      @default(now())
   notes           String?
+  bankAccountId    String?
+  bankAccount      BankAccount?  @relation(fields: [bankAccountId], references: [id])
+  cashRegisterId   String?
+  cashRegister     CashRegister?  @relation(fields: [cashRegisterId], references: [id])
   createdAt       DateTime      @default(now())
+
+  effetsCheques    EffetCheque[]
+}
+
+// ============ EFFETS DE COMMERCE (Chèques & Lettres de change) ============
+
+model EffetCheque {
+  id                String      @id @default(cuid())
+  paymentId         String
+  payment           Payment     @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  bankAccountId     String?
+  bankAccount       BankAccount? @relation(fields: [bankAccountId], references: [id])
+  type              String      // cheque | effet
+  numero            String
+  statut            EffetStatut @default(en_attente)
+  montant           Float
+  beneficiaire      String?
+  banqueEmettrice   String?
+  dateEmission      DateTime    @default(now())
+  dateEcheance      DateTime?
+  dateRemiseBanque  DateTime?
+  dateValidation    DateTime?
+  dateRejet         DateTime?
+  causeRejet        String?
+  notes             String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 }
 
 model AccountingEntry {

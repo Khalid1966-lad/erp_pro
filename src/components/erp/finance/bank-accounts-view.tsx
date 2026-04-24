@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Plus, Edit, Trash2, Landmark, CheckCircle2, Circle, ArrowUpRight, ArrowDownLeft
+  Plus, Edit, Trash2, Landmark, CheckCircle2, Circle, ArrowUpRight, ArrowDownLeft, Scale
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -38,6 +38,7 @@ interface BankAccount {
   iban: string
   bic: string | null
   balance: number
+  statementBalance: number
   isActive: boolean
   _count: { bankTransactions: number }
 }
@@ -58,7 +59,8 @@ interface BankTransaction {
 const emptyAccount = {
   name: '',
   iban: '',
-  bic: ''
+  bic: '',
+  statementBalance: ''
 }
 
 const emptyTransaction = {
@@ -82,6 +84,10 @@ export default function BankAccountsView() {
   const [accountForm, setAccountForm] = useState(emptyAccount)
   const [transactionForm, setTransactionForm] = useState(emptyTransaction)
   const [saving, setSaving] = useState(false)
+
+  // Reconciliation state
+  const [reconStatementBalance, setReconStatementBalance] = useState('')
+  const [reconSaving, setReconSaving] = useState(false)
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -142,7 +148,8 @@ export default function BankAccountsView() {
     setAccountForm({
       name: acc.name,
       iban: acc.iban,
-      bic: acc.bic || ''
+      bic: acc.bic || '',
+      statementBalance: acc.statementBalance.toString()
     })
     setAccountDialogOpen(true)
   }
@@ -151,13 +158,15 @@ export default function BankAccountsView() {
     if (!accountForm.name.trim() || !accountForm.iban.trim()) return
     try {
       setSaving(true)
+      const stmtBal = accountForm.statementBalance ? parseFloat(accountForm.statementBalance) : undefined
       if (editingAccount) {
         await api.put('/finance/bank', {
           id: editingAccount.id,
           entityType: 'account',
           name: accountForm.name.trim(),
           iban: accountForm.iban.trim(),
-          bic: accountForm.bic.trim() || null
+          bic: accountForm.bic.trim() || null,
+          ...(stmtBal !== undefined ? { statementBalance: stmtBal } : {})
         })
         toast.success('Compte modifié')
       } else {
@@ -165,7 +174,8 @@ export default function BankAccountsView() {
           entityType: 'account',
           name: accountForm.name.trim(),
           iban: accountForm.iban.trim(),
-          bic: accountForm.bic.trim() || null
+          bic: accountForm.bic.trim() || null,
+          ...(stmtBal !== undefined ? { statementBalance: stmtBal } : {})
         })
         toast.success('Compte créé')
       }
@@ -243,6 +253,30 @@ export default function BankAccountsView() {
       toast.error(err.message || 'Erreur suppression')
     }
   }
+
+  const handleSaveReconciliation = async () => {
+    if (!selectedAccount) return
+    try {
+      setReconSaving(true)
+      await api.put('/finance/bank', {
+        id: selectedAccount.id,
+        entityType: 'account',
+        statementBalance: parseFloat(reconStatementBalance) || 0
+      })
+      toast.success('Solde relevé mis à jour')
+      fetchAccounts()
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur mise à jour')
+    } finally {
+      setReconSaving(false)
+    }
+  }
+
+  useEffect(() => {
+    if (selectedAccount) {
+      setReconStatementBalance(selectedAccount.statementBalance.toString())
+    }
+  }, [selectedAccount])
 
   if (loading) {
     return (
@@ -518,6 +552,63 @@ export default function BankAccountsView() {
         </Card>
       )}
 
+      {/* Bank Reconciliation Card */}
+      {selectedAccount && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Scale className="h-4 w-4 text-muted-foreground" />
+              Rapprochement bancaire
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label className="text-sm text-muted-foreground">Solde comptable</Label>
+                <div className="text-xl font-semibold">{formatCurrency(selectedAccount.balance)}</div>
+                <p className="text-xs text-muted-foreground">Calculé à partir des transactions</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm text-muted-foreground">Solde relevé bancaire</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={reconStatementBalance}
+                  onChange={(e) => setReconStatementBalance(e.target.value)}
+                  placeholder="Saisir le solde du relevé"
+                  className="max-w-[200px]"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm text-muted-foreground">Écart</Label>
+                <div className={`text-xl font-semibold ${
+                  (parseFloat(reconStatementBalance) || 0) - selectedAccount.balance === 0
+                    ? 'text-green-600'
+                    : 'text-red-600'
+                }`}>
+                  {formatCurrency((parseFloat(reconStatementBalance) || 0) - selectedAccount.balance)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {(parseFloat(reconStatementBalance) || 0) - selectedAccount.balance === 0
+                    ? 'Comptes rapprochés'
+                    : 'Différence à analyser'
+                  }
+                </p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Button
+                size="sm"
+                onClick={handleSaveReconciliation}
+                disabled={reconSaving}
+              >
+                {reconSaving ? 'Enregistrement...' : 'Enregistrer le solde relevé'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Account Dialog */}
       <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -554,6 +645,19 @@ export default function BankAccountsView() {
                 className="font-mono"
               />
             </div>
+            {editingAccount && (
+              <div className="space-y-2">
+                <Label htmlFor="acc-stmt-bal">Solde relevé bancaire</Label>
+                <Input
+                  id="acc-stmt-bal"
+                  type="number"
+                  step="0.01"
+                  value={accountForm.statementBalance}
+                  onChange={(e) => setAccountForm({ ...accountForm, statementBalance: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAccountDialogOpen(false)}>Annuler</Button>

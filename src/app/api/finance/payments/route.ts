@@ -7,10 +7,12 @@ const paymentSchema = z.object({
   invoiceId: z.string().optional(),
   type: z.enum(['client_payment', 'supplier_payment', 'cash_in', 'cash_out']),
   amount: z.number().min(0.01),
-  method: z.enum(['cash', 'check', 'bank_transfer', 'card']),
+  method: z.enum(['cash', 'check', 'bank_transfer', 'card', 'effet']),
   reference: z.string().optional(),
   date: z.string().datetime().optional(),
   notes: z.string().optional(),
+  bankAccountId: z.string().optional(),
+  cashRegisterId: z.string().optional(),
 })
 
 // GET - List payments
@@ -45,6 +47,13 @@ export async function GET(req: NextRequest) {
               client: { select: { id: true, name: true } },
             },
           },
+          bankAccount: {
+            select: { id: true, name: true },
+          },
+          cashRegister: {
+            select: { id: true, name: true },
+          },
+          effetsCheques: true,
         },
         orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
@@ -71,6 +80,17 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const data = paymentSchema.parse(body)
+
+    // Validation: bank/cash account rules based on method
+    if (data.method === 'cash') {
+      if (data.cashRegisterId && data.bankAccountId) {
+        return NextResponse.json({ error: 'Impossible de spécifier à la fois un compte bancaire et une caisse' }, { status: 400 })
+      }
+    } else if (data.method === 'check' || data.method === 'effet' || data.method === 'bank_transfer' || data.method === 'card') {
+      if (data.cashRegisterId && data.bankAccountId) {
+        return NextResponse.json({ error: 'Impossible de spécifier à la fois un compte bancaire et une caisse' }, { status: 400 })
+      }
+    }
 
     // If linked to an invoice, verify it exists
     if (data.invoiceId) {
@@ -105,6 +125,8 @@ export async function POST(req: NextRequest) {
           reference: data.reference,
           date: paymentDate,
           notes: data.notes,
+          bankAccountId: data.bankAccountId || null,
+          cashRegisterId: data.cashRegisterId || null,
         },
         include: {
           invoice: {
@@ -144,15 +166,21 @@ export async function POST(req: NextRequest) {
 
         // Update the actual financial account balance based on payment method
         if (data.method === 'cash') {
-          const cashRegister = await tx.cashRegister.findFirst({ where: { isActive: true } })
+          const cashRegId = data.cashRegisterId
+          const cashRegister = cashRegId
+            ? await tx.cashRegister.findUnique({ where: { id: cashRegId } })
+            : await tx.cashRegister.findFirst({ where: { isActive: true } })
           if (cashRegister) {
             await tx.cashRegister.update({
               where: { id: cashRegister.id },
               data: { balance: { increment: data.amount } },
             })
           }
-        } else if (data.method === 'bank_transfer' || data.method === 'check' || data.method === 'card') {
-          const bankAcct = await tx.bankAccount.findFirst({ where: { isActive: true } })
+        } else if (data.method === 'bank_transfer' || data.method === 'check' || data.method === 'card' || data.method === 'effet') {
+          const bankId = data.bankAccountId
+          const bankAcct = bankId
+            ? await tx.bankAccount.findUnique({ where: { id: bankId } })
+            : await tx.bankAccount.findFirst({ where: { isActive: true } })
           if (bankAcct) {
             await tx.bankAccount.update({
               where: { id: bankAcct.id },

@@ -1,4 +1,62 @@
 ---
+Task ID: effets-de-commerce-system
+Agent: main
+Task: Build complete Effets de Commerce (Chèques & Effets) system for GEMA ERP Pro
+
+Work Log:
+- Created `src/app/api/effets-cheques/route.ts`:
+  - GET: List all effets/cheques with filters (statut, type, bankAccountId, search)
+  - POST: Create EffetCheque linked to a Payment
+  - PUT: Status transitions (remettre_banque, valider, rejeter)
+  - Critical business logic on rejection: reverses client balance, updates invoice status, decrements bank account balance, creates accounting entry
+- Updated `src/app/api/finance/payments/route.ts`:
+  - Added `effet` to PaymentMethod enum
+  - Added optional `bankAccountId` and `cashRegisterId` fields
+  - Validation rules: bank account for check/effet/bank_transfer/card, cash register for cash
+  - Uses specified account for balance updates instead of first active
+  - GET includes bankAccount, cashRegister, and effetsCheques relations
+- Updated `src/app/api/clients/[id]/statement/route.ts`:
+  - Added `rejet_effet` transaction type
+  - Fetches rejected EffetCheque entries for client's invoices
+  - Shows as DEBIT entries (reversal of payment credit)
+- Updated `src/app/api/suppliers/[id]/statement/route.ts`:
+  - Added `rejet_effet` transaction type
+  - Fetches rejected EffetCheque entries for supplier payments
+  - Shows as CREDIT entries (reversal of debit to supplier)
+- Rewrote `src/components/erp/finance/payments-view.tsx`:
+  - Added `effet` to PaymentMethod type and labels
+  - Added bank/cash account selection based on payment method
+  - Added EffetCheque sub-form for check/effet payments
+  - Shows linked bank/cash name in payment table
+  - Auto-creates EffetCheque record after payment creation
+- Created `src/components/erp/finance/effets-view.tsx`:
+  - Summary cards (en instance, remis, validés, rejetés) with amounts
+  - Filter bar (statut, type, search)
+  - Full table with all required columns
+  - Status badges with French labels and color coding
+  - Actions: Remettre à la banque, Valider, Rejeter dialogs
+  - Rejection cause dropdown (10 French/Moroccan banking reasons)
+  - Detail dialog with all fields including rejection cause display
+- Updated `src/components/erp/finance/bank-accounts-view.tsx`:
+  - Added `statementBalance` to BankAccount interface
+  - Added bank reconciliation section below transactions
+  - Solde comptable vs Solde relevé bancaire with écart calculation
+  - Save button to update statementBalance
+  - Added statementBalance field in account edit dialog
+- Updated navigation:
+  - `src/lib/stores.ts`: Added 'effets' to ViewId union type
+  - `src/components/erp/erp-layout.tsx`: Added nav item and view label
+  - `src/app/page.tsx`: Added dynamic import and case statement
+
+Stage Summary:
+- Full Effets de Commerce system implemented across 7 files
+- Backend: CRUD API with business logic, payment integration, statement integration
+- Frontend: Complete management view with status workflows
+- Bank reconciliation feature added to bank accounts view
+- Lint: 0 errors
+- Dev server: compiling successfully
+
+---
 Task ID: ui-improvements-search-combobox
 Agent: main
 Task: Products search by designation + Quotes searchable client/product dropdowns

@@ -32,7 +32,7 @@ import { toast } from 'sonner'
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 type PaymentType = 'client_payment' | 'supplier_payment' | 'cash_in' | 'cash_out'
-type PaymentMethod = 'cash' | 'check' | 'bank_transfer' | 'card'
+type PaymentMethod = 'cash' | 'check' | 'bank_transfer' | 'card' | 'effet'
 
 interface Payment {
   id: string
@@ -44,6 +44,11 @@ interface Payment {
   date: string
   notes: string | null
   createdAt: string
+  bankAccountId?: string | null
+  cashRegisterId?: string | null
+  bankAccount?: { id: string; name: string } | null
+  cashRegister?: { id: string; name: string } | null
+  effetsCheques?: Array<{ id: string; type: string; numero: string; statut: string }>
   invoice?: {
     id: string
     number: string
@@ -56,6 +61,29 @@ interface PaymentResponse {
   total: number
   page: number
   limit: number
+}
+
+interface BankAccount {
+  id: string
+  name: string
+  isActive: boolean
+}
+
+interface CashRegister {
+  id: string
+  name: string
+  isActive: boolean
+}
+
+interface EffetFormData {
+  type: 'cheque' | 'effet'
+  numero: string
+  montant: string
+  beneficiaire: string
+  banqueEmettrice: string
+  dateEmission: string
+  dateEcheance: string
+  notes: string
 }
 
 const paymentTypeLabels: Record<PaymentType, string> = {
@@ -76,7 +104,8 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   cash: 'Espèces',
   check: 'Chèque',
   bank_transfer: 'Virement',
-  card: 'Carte'
+  card: 'Carte',
+  effet: 'Effet de commerce'
 }
 
 const MethodIcon = ({ method }: { method: PaymentMethod }) => {
@@ -85,6 +114,7 @@ const MethodIcon = ({ method }: { method: PaymentMethod }) => {
     case 'check': return <FileText className="h-4 w-4" />
     case 'bank_transfer': return <ArrowLeftRight className="h-4 w-4" />
     case 'card': return <CreditCard className="h-4 w-4" />
+    case 'effet': return <FileText className="h-4 w-4" />
     default: return null
   }
 }
@@ -96,6 +126,19 @@ const emptyPayment = {
   method: 'bank_transfer' as PaymentMethod,
   reference: '',
   date: new Date().toISOString().split('T')[0],
+  notes: '',
+  bankAccountId: '',
+  cashRegisterId: ''
+}
+
+const emptyEffet: EffetFormData = {
+  type: 'cheque',
+  numero: '',
+  montant: '',
+  beneficiaire: '',
+  banqueEmettrice: '',
+  dateEmission: new Date().toISOString().split('T')[0],
+  dateEcheance: '',
   notes: ''
 }
 
@@ -111,6 +154,25 @@ export default function PaymentsView() {
   const [form, setForm] = useState(emptyPayment)
   const [saving, setSaving] = useState(false)
 
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
+  const [cashRegisters, setCashRegisters] = useState<CashRegister[]>([])
+
+  const [effetForm, setEffetForm] = useState<EffetFormData>(emptyEffet)
+  const [showEffetForm, setShowEffetForm] = useState(false)
+
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const [banks, cashes] = await Promise.all([
+        api.get<{ accounts: BankAccount[] }>('/finance/bank').then(r => r.accounts || []),
+        api.get<{ registers: CashRegister[] }>('/finance/cash-registers').then(r => r.registers || []),
+      ])
+      setBankAccounts(banks.filter(b => b.isActive))
+      setCashRegisters(cashes.filter(c => c.isActive))
+    } catch {
+      // silently ignore
+    }
+  }, [])
+
   const fetchPayments = useCallback(async () => {
     try {
       setLoading(true)
@@ -125,7 +187,8 @@ export default function PaymentsView() {
 
   useEffect(() => {
     fetchPayments()
-  }, [fetchPayments])
+    fetchAccounts()
+  }, [fetchPayments, fetchAccounts])
 
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
@@ -155,17 +218,14 @@ export default function PaymentsView() {
     return { totalIn, totalOut, balance: totalIn - totalOut }
   }, [payments])
 
-  const methodBreakdown = useMemo(() => {
-    const counts: Record<string, number> = {}
-    payments.forEach(p => {
-      counts[p.method] = (counts[p.method] || 0) + p.amount
-    })
-    return counts
-  }, [payments])
+  const needsBankAccount = (method: PaymentMethod) => method === 'check' || method === 'effet' || method === 'bank_transfer' || method === 'card'
+  const needsCashRegister = (method: PaymentMethod) => method === 'cash'
 
   const openCreate = () => {
     setEditingPayment(null)
     setForm(emptyPayment)
+    setEffetForm(emptyEffet)
+    setShowEffetForm(false)
     setDialogOpen(true)
   }
 
@@ -178,8 +238,11 @@ export default function PaymentsView() {
       method: payment.method,
       reference: payment.reference || '',
       date: payment.date ? payment.date.split('T')[0] : new Date().toISOString().split('T')[0],
-      notes: payment.notes || ''
+      notes: payment.notes || '',
+      bankAccountId: payment.bankAccountId || '',
+      cashRegisterId: payment.cashRegisterId || ''
     })
+    setShowEffetForm(false)
     setDialogOpen(true)
   }
 
@@ -187,22 +250,53 @@ export default function PaymentsView() {
     if (!form.amount || !form.type) return
     try {
       setSaving(true)
-      const body = {
+      const body: Record<string, unknown> = {
         invoiceId: form.invoiceId || null,
         type: form.type,
         amount: parseFloat(form.amount),
         method: form.method,
         reference: form.reference || null,
         date: form.date ? new Date(form.date).toISOString() : new Date().toISOString(),
-        notes: form.notes || null
+        notes: form.notes || null,
+        bankAccountId: form.bankAccountId || null,
+        cashRegisterId: form.cashRegisterId || null
       }
+
+      let paymentId: string
+
       if (editingPayment) {
         await api.put('/finance/payments', { id: editingPayment.id, ...body })
+        paymentId = editingPayment.id
         toast.success('Paiement modifié')
       } else {
-        await api.post('/finance/payments', body)
+        const result = await api.post<Payment>('/finance/payments', body)
+        paymentId = result.id
         toast.success('Paiement enregistré')
       }
+
+      // Create EffetCheque if needed
+      if ((form.method === 'check' || form.method === 'effet') && !editingPayment) {
+        if (effetForm.numero && effetForm.montant) {
+          try {
+            await api.post('/effets-cheques', {
+              paymentId,
+              bankAccountId: form.bankAccountId || null,
+              type: form.method === 'effet' ? 'effet' : 'cheque',
+              numero: effetForm.numero,
+              montant: parseFloat(effetForm.montant),
+              beneficiaire: effetForm.beneficiaire || null,
+              banqueEmettrice: effetForm.banqueEmettrice || null,
+              dateEmission: effetForm.dateEmission ? new Date(effetForm.dateEmission).toISOString() : new Date().toISOString(),
+              dateEcheance: effetForm.dateEcheance ? new Date(effetForm.dateEcheance).toISOString() : null,
+              notes: effetForm.notes || null,
+            })
+            toast.success('Effet enregistré')
+          } catch (effetErr: any) {
+            toast.error(effetErr.message || 'Erreur enregistrement effet')
+          }
+        }
+      }
+
       setDialogOpen(false)
       fetchPayments()
     } catch (err: any) {
@@ -330,9 +424,9 @@ export default function PaymentsView() {
                   <TableHead>Type</TableHead>
                   <TableHead>Mode</TableHead>
                   <TableHead className="text-right">Montant</TableHead>
-                  <TableHead className="hidden md:table-cell">Référence</TableHead>
+                  <TableHead className="hidden md:table-cell">Compte</TableHead>
+                  <TableHead className="hidden lg:table-cell">Référence</TableHead>
                   <TableHead className="hidden lg:table-cell">Facture / Client</TableHead>
-                  <TableHead className="hidden lg:table-cell">Notes</TableHead>
                   <TableHead className="text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -366,6 +460,9 @@ export default function PaymentsView() {
                         {formatCurrency(payment.amount)}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                        {payment.bankAccount?.name || payment.cashRegister?.name || '—'}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
                         {payment.reference || '—'}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">
@@ -375,9 +472,6 @@ export default function PaymentsView() {
                             <span className="text-muted-foreground ml-1">— {payment.invoice.client.name}</span>
                           </div>
                         ) : '—'}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[180px] truncate">
-                        {payment.notes || '—'}
                       </TableCell>
                       <TableCell className="text-right pr-4">
                         <div className="flex items-center justify-end gap-1">
@@ -438,7 +532,7 @@ export default function PaymentsView() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pay-amount">Montant (€) *</Label>
+              <Label htmlFor="pay-amount">Montant (MAD) *</Label>
               <Input
                 id="pay-amount"
                 type="number"
@@ -458,7 +552,21 @@ export default function PaymentsView() {
                     type="button"
                     variant={form.method === value ? 'default' : 'outline'}
                     className="w-full justify-start gap-2"
-                    onClick={() => setForm({ ...form, method: value as PaymentMethod })}
+                    onClick={() => {
+                      const newMethod = value as PaymentMethod
+                      const newForm = { ...form, method: newMethod }
+                      // Reset account fields when switching methods
+                      if (needsBankAccount(newMethod) && needsCashRegister(form.method)) {
+                        newForm.cashRegisterId = ''
+                      } else if (needsCashRegister(newMethod) && needsBankAccount(form.method)) {
+                        newForm.bankAccountId = ''
+                      }
+                      setForm(newForm)
+                      setShowEffetForm(newMethod === 'check' || newMethod === 'effet')
+                      if (newMethod === 'check' || newMethod === 'effet') {
+                        setEffetForm({ ...emptyEffet, montant: form.amount })
+                      }
+                    }}
                   >
                     <MethodIcon method={value as PaymentMethod} />
                     {label}
@@ -466,6 +574,136 @@ export default function PaymentsView() {
                 ))}
               </div>
             </div>
+
+            {/* Compte de destination */}
+            {needsBankAccount(form.method) && (
+              <div className="space-y-2">
+                <Label>Compte bancaire de destination</Label>
+                <Select value={form.bankAccountId} onValueChange={(v) => setForm({ ...form, bankAccountId: v })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner un compte bancaire" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.length === 0 && (
+                      <SelectItem value="__none" disabled>Aucun compte actif</SelectItem>
+                    )}
+                    {bankAccounts.map((ba) => (
+                      <SelectItem key={ba.id} value={ba.id}>{ba.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {needsCashRegister(form.method) && (
+              <div className="space-y-2">
+                <Label>Caisse de destination</Label>
+                <Select value={form.cashRegisterId} onValueChange={(v) => setForm({ ...form, cashRegisterId: v })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner une caisse" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cashRegisters.length === 0 && (
+                      <SelectItem value="__none" disabled>Aucune caisse active</SelectItem>
+                    )}
+                    {cashRegisters.map((cr) => (
+                      <SelectItem key={cr.id} value={cr.id}>{cr.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* EffetCheque sub-form */}
+            {showEffetForm && !editingPayment && (
+              <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {form.method === 'effet' ? 'Détails de l\'effet de commerce' : 'Détails du chèque'}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Select
+                    value={effetForm.type}
+                    onValueChange={(v) => setEffetForm({ ...effetForm, type: v as 'cheque' | 'effet' })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cheque">Chèque</SelectItem>
+                      <SelectItem value="effet">Effet de commerce</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Numéro *</Label>
+                  <Input
+                    value={effetForm.numero}
+                    onChange={(e) => setEffetForm({ ...effetForm, numero: e.target.value })}
+                    placeholder="Numéro du chèque/effet"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Montant *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={effetForm.montant}
+                    onChange={(e) => setEffetForm({ ...effetForm, montant: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Bénéficiaire</Label>
+                  <Input
+                    value={effetForm.beneficiaire}
+                    onChange={(e) => setEffetForm({ ...effetForm, beneficiaire: e.target.value })}
+                    placeholder="Nom du bénéficiaire"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Banque émettrice</Label>
+                  <Input
+                    value={effetForm.banqueEmettrice}
+                    onChange={(e) => setEffetForm({ ...effetForm, banqueEmettrice: e.target.value })}
+                    placeholder="Banque de l'émetteur"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Date d'émission</Label>
+                    <Input
+                      type="date"
+                      value={effetForm.dateEmission}
+                      onChange={(e) => setEffetForm({ ...effetForm, dateEmission: e.target.value })}
+                    />
+                  </div>
+                  {effetForm.type === 'effet' && (
+                    <div className="space-y-2">
+                      <Label>Date d'échéance</Label>
+                      <Input
+                        type="date"
+                        value={effetForm.dateEcheance}
+                        onChange={(e) => setEffetForm({ ...effetForm, dateEcheance: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    value={effetForm.notes}
+                    onChange={(e) => setEffetForm({ ...effetForm, notes: e.target.value })}
+                    placeholder="Notes (facultatif)"
+                    rows={2}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="pay-date">Date</Label>
               <Input
