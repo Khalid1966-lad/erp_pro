@@ -59,6 +59,10 @@ export const BACKUP_TABLES = [
   'SupplierCreditNoteLine',
   'WorkOrder',
   'WorkOrderStep',
+  'Notification',
+  'Conversation',
+  'ConversationParticipant',
+  'Message',
 ]
 
 // Reversed order for deletion (children before parents)
@@ -103,6 +107,10 @@ const DATETIME_FIELDS: Record<string, string[]> = {
   SupplierCreditNote: ['date', 'createdAt', 'updatedAt'],
   WorkOrder: ['plannedDate', 'startedAt', 'completedAt', 'closedAt', 'createdAt', 'updatedAt'],
   WorkOrderStep: ['startedAt', 'completedAt'],
+  Notification: ['createdAt'],
+  Conversation: ['createdAt', 'updatedAt'],
+  ConversationParticipant: ['lastReadAt', 'createdAt'],
+  Message: ['createdAt'],
 }
 
 // ═══════════════════════════════════════════════════════════════

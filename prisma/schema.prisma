@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============ AUTH & RBAC ============
@@ -26,7 +26,10 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  auditLogs     AuditLog[]
+  auditLogs            AuditLog[]
+  notifications        Notification[]            @relation("UserNotifications")
+  conversationUsers    ConversationParticipant[]  @relation("ConversationUsers")
+  sentMessages         Message[]                   @relation("SentMessages")
 }
 
 model AuditLog {
@@ -1201,6 +1204,63 @@ model AccountingEntry {
   credit          Float     @default(0)
   documentRef     String?
   createdAt       DateTime  @default(now())
+}
+
+// ============ NOTIFICATIONS ============
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  message     String
+  type        String   @default("info")  // info, warning, error, success, task, deadline
+  category    String   @default("system") // system, order, delivery, production, payment, stock, message
+  entityType  String?  // e.g. "Invoice", "SalesOrder", "DeliveryNote"
+  entityId    String?
+  actionUrl   String?  // view ID to navigate to (e.g. "invoices", "sales-orders")
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+// ============ MESSAGING ============
+
+model Conversation {
+  id              String    @id @default(cuid())
+  isGroup         Boolean   @default(false)
+  name            String?   // for group conversations
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  participants    ConversationParticipant[]
+  messages        Message[]
+}
+
+model ConversationParticipant {
+  id              String       @id @default(cuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation("ConversationUsers", fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt      DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id              String       @id @default(cuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User         @relation("SentMessages", fields: [senderId], references: [id])
+  content         String
+  createdAt       DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 // ============ SETTINGS ============

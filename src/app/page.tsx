@@ -41,6 +41,7 @@ const SettingsView = dynamic(() => import('@/components/erp/admin/settings-view'
 const UsersView = dynamic(() => import('@/components/erp/admin/users-view'), { ssr: false })
 const ProfileView = dynamic(() => import('@/components/erp/admin/profile-view'), { ssr: false })
 const GuideView = dynamic(() => import('@/components/erp/admin/guide-view'), { ssr: false })
+const MessagesView = dynamic(() => import('@/components/erp/messages/messages-view'), { ssr: false })
 
 function ViewRouter() {
   const { currentView } = useNavStore()
@@ -80,6 +81,7 @@ function ViewRouter() {
     case 'users': return <UsersView />
     case 'profile': return <ProfileView />
     case 'guide': return <GuideView />
+    case 'messages': return <MessagesView />
     default: return <DashboardView />
   }
 }

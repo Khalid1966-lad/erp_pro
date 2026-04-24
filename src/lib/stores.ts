@@ -67,6 +67,7 @@ export type ViewId =
   | 'users'
   | 'profile'
   | 'guide'
+  | 'messages'
 
 export interface NavState {
   currentView: ViewId
@@ -82,4 +83,52 @@ export const useNavStore = create<NavState>()((set) => ({
   setCurrentView: (view) => set({ currentView: view }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open })
+}))
+
+// ═══ Notification Store ═══
+export interface NotificationItem {
+  id: string
+  title: string
+  message: string
+  type: 'info' | 'warning' | 'error' | 'success' | 'task' | 'deadline'
+  category: 'system' | 'order' | 'delivery' | 'production' | 'payment' | 'stock' | 'message'
+  entityType?: string
+  entityId?: string
+  actionUrl?: string
+  isRead: boolean
+  createdAt: string
+}
+
+export interface NotificationState {
+  unreadCount: number
+  notifications: NotificationItem[]
+  setUnreadCount: (count: number) => void
+  setNotifications: (notifications: NotificationItem[]) => void
+  addNotification: (notification: NotificationItem) => void
+  markAsRead: (ids: string[]) => void
+  clearAll: () => void
+}
+
+export const useNotificationStore = create<NotificationState>()((set) => ({
+  unreadCount: 0,
+  notifications: [],
+  setUnreadCount: (count) => set({ unreadCount: count }),
+  setNotifications: (notifications) => set({
+    notifications,
+    unreadCount: notifications.filter(n => !n.isRead).length
+  }),
+  addNotification: (notification) => set((s) => {
+    const exists = s.notifications.some(n => n.id === notification.id)
+    if (exists) return s
+    const newNotifications = [notification, ...s.notifications].slice(0, 50)
+    return {
+      notifications: newNotifications,
+      unreadCount: newNotifications.filter(n => !n.isRead).length
+    }
+  }),
+  markAsRead: (ids) => set((s) => ({
+    notifications: s.notifications.map(n => ids.includes(n.id) ? { ...n, isRead: true } : n),
+    unreadCount: Math.max(0, s.unreadCount - ids.filter(id => s.notifications.some(n => n.id === id && !n.isRead)).length)
+  })),
+  clearAll: () => set({ notifications: [], unreadCount: 0 })
 }))

@@ -55,12 +55,14 @@ import {
   ChevronDown,
   UserCog,
   FileQuestion,
-  ArrowLeftRight
+  ArrowLeftRight,
+  MessageSquare
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 import Image from 'next/image'
 import React, { useState, useEffect } from 'react'
+import { NotificationBell } from '@/components/erp/notifications/notification-bell'
 
 interface NavItem {
   id: ViewId
@@ -141,6 +143,13 @@ const navigation: NavGroup[] = [
       { id: 'payments', label: 'Paiements', icon: <CreditCard className="h-4 w-4" />, color: 'text-violet-400', permission: 'payments:read' },
       { id: 'effets', label: 'Chèques & Effets', icon: <FileText className="h-4 w-4" />, color: 'text-orange-500', permission: 'payments:read' },
       { id: 'accounting', label: 'Comptabilité', icon: <BookOpen className="h-4 w-4" />, color: 'text-amber-600', permission: 'accounting:read' }
+    ]
+  },
+  {
+    title: 'Communication',
+    icon: <MessageSquare className="h-4 w-4" />,
+    items: [
+      { id: 'messages', label: 'Messagerie', icon: <MessageSquare className="h-4 w-4" />, color: 'text-sky-500' }
     ]
   },
   {
@@ -380,7 +389,8 @@ export function ERPHeader() {
     'audit-log': "Journal d'audit",
     'users': 'Utilisateurs',
     'guide': "Guide d'utilisation",
-    'profile': 'Mon Profil'
+    'profile': 'Mon Profil',
+    'messages': 'Messagerie'
   }
 
   return (
@@ -397,7 +407,9 @@ export function ERPHeader() {
       <h1 className="font-semibold text-lg">{viewLabels[currentView] || currentView}</h1>
       <div className="flex-1" />
       {user && (
-        <DropdownMenu>
+        <>
+          <NotificationBell />
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-full px-1 py-1 pr-3 hover:bg-accent transition-colors outline-none">
               <Avatar className="h-8 w-8">
@@ -430,6 +442,7 @@ export function ERPHeader() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </>
       )}
     </header>
   )
