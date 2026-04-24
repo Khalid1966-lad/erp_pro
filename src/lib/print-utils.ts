@@ -1,6 +1,7 @@
 'use client'
 
 import { api } from '@/lib/api'
+import html2pdf from 'html2pdf.js'
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -211,9 +212,9 @@ td { font-size: 11px; }
 .sub-table td { font-size: 10px; padding: 4px 6px; }
 `
 
-/* ── Main print function ──────────────────────────────────────────── */
+/* ── Document HTML builder (shared) ───────────────────────────────── */
 
-export async function printDocument(options: {
+export type PrintOptions = {
   title: string            // e.g., "DEVIS", "FACTURE"
   docNumber: string
   infoGrid: Array<{ label: string; value: string; colspan?: number }>
@@ -225,7 +226,9 @@ export async function printDocument(options: {
   amountInWordsLabel?: string
   negativeTotals?: boolean
   subSections?: string    // Additional HTML sections below the main table
-}) {
+}
+
+export async function buildDocumentHtml(options: PrintOptions): Promise<string> {
   const company = await getCompanyInfo()
 
   // Build info grid
@@ -243,7 +246,6 @@ export async function printDocument(options: {
   }
   tableHtml += '</tr></thead><tbody>'
   for (const row of options.rows) {
-    const isNegative = options.negativeTotals && row.length > 0
     tableHtml += '<tr>'
     for (const cell of row) {
       tableHtml += `<td class="${cell.align === 'right' ? 'text-right' : cell.align === 'center' ? 'text-center' : ''}">${esc(String(cell.value))}</td>`
@@ -291,7 +293,7 @@ export async function printDocument(options: {
     ${buildFooterHtml(amountText, footerLines)}
   `
 
-  // Full HTML document — wrapper div provides margins since @page margin:0 removes browser header/footer
+  // Full HTML document
   const fullHtml = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -301,6 +303,81 @@ export async function printDocument(options: {
 </head>
 <body><div class="page-wrapper">${bodyHtml}</div></body>
 </html>`
+
+  return fullHtml
+}
+
+/* ── Direct PDF download (no print dialog) ────────────────────────── */
+
+export async function downloadPdf(options: PrintOptions): Promise<void> {
+  const fullHtml = await buildDocumentHtml(options)
+
+  // Create a hidden container
+  const container = document.createElement('div')
+  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;z-index:-1;opacity:0;pointer-events:none;'
+  document.body.appendChild(container)
+
+  // Parse HTML and extract body content
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(fullHtml, 'text/html')
+  const pageWrapper = doc.querySelector('.page-wrapper')
+  if (pageWrapper) {
+    container.innerHTML = pageWrapper.innerHTML
+  } else {
+    container.innerHTML = fullHtml
+  }
+
+  // Inject print styles temporarily (with a marker for cleanup)
+  const injectedStyle = document.createElement('style')
+  injectedStyle.setAttribute('data-pdf-gen', 'true')
+  injectedStyle.textContent = PRINT_CSS
+  document.head.appendChild(injectedStyle)
+
+  try {
+    // Wait for images to load
+    const images = container.querySelectorAll('img')
+    if (images.length > 0) {
+      await Promise.allSettled(
+        Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve()
+          return new Promise<void>((resolve) => {
+            img.onload = () => resolve()
+            img.onerror = () => resolve()
+            setTimeout(resolve, 3000)
+          })
+        })
+      )
+    }
+
+    const filename = `${options.title}_${options.docNumber || 'document'}.pdf`
+
+    await html2pdf().set({
+      margin: 0,
+      filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        letterRendering: true,
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait',
+      },
+    }).from(container).save()
+  } finally {
+    document.body.removeChild(container)
+    document.head.removeChild(injectedStyle)
+  }
+}
+
+/* ── Main print function ──────────────────────────────────────────── */
+
+export async function printDocument(options: PrintOptions) {
+  const fullHtml = await buildDocumentHtml(options)
 
   // ── Full-screen preview dialog with zoom, scroll & pan ──
   const overlay = document.createElement('div')

@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { api } from '@/lib/api'
-import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
+import { printDocument, fmtMoney, fmtDate, type PrintOptions } from '@/lib/print-utils'
 import { numberToFrenchWords } from '@/lib/number-to-words'
-import { Loader2, Printer, Download, X } from 'lucide-react'
+import { Loader2, Printer, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
@@ -156,14 +156,14 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
     setLoading(false)
   }
 
-  const handlePrint = () => {
-    if (!doc) return
+  const buildPrintOptions = (): PrintOptions | null => {
+    if (!doc) return null
     const config = DOC_CONFIG[docType]
 
     switch (docType) {
       case 'quote': {
         const d = doc as QuoteDoc
-        printDocument({
+        return {
           title: config.title,
           docNumber: d.number,
           infoGrid: [
@@ -195,13 +195,12 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
           notes: d.notes || undefined,
           amountInWords: `${numberToFrenchWords(d.totalTTC || 0)} dirhams`,
           amountInWordsLabel: 'Arrêté le présent devis à la somme de',
-        })
-        break
+        }
       }
 
       case 'order': {
         const d = doc as OrderDoc
-        printDocument({
+        return {
           title: config.title,
           docNumber: d.number,
           infoGrid: [
@@ -232,13 +231,12 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
           notes: d.notes || undefined,
           amountInWords: numberToFrenchWords(d.totalTTC || 0) + ' dirhams',
           amountInWordsLabel: 'Arrêté le présent bon de commande à la somme de',
-        })
-        break
+        }
       }
 
       case 'deliveryNote': {
         const d = doc as DeliveryNoteDoc
-        printDocument({
+        return {
           title: config.title,
           docNumber: d.number,
           infoGrid: [
@@ -275,14 +273,13 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
           notes: d.notes || undefined,
           amountInWords: numberToFrenchWords(d.totalTTC || 0) + ' dirhams',
           amountInWordsLabel: 'Arrêté le présent bon de livraison à la somme de',
-        })
-        break
+        }
       }
 
       case 'invoice': {
         const d = doc as InvoiceDoc
         const discountAmount = d.totalHT * (d.discountRate / 100)
-        printDocument({
+        return {
           title: config.title,
           docNumber: d.number,
           infoGrid: [
@@ -315,13 +312,12 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
           notes: d.notes || undefined,
           amountInWords: numberToFrenchWords(d.totalTTC || 0) + ' dirhams',
           amountInWordsLabel: 'Arrêté la présente facture à la somme de',
-        })
-        break
+        }
       }
 
       case 'creditNote': {
         const d = doc as CreditNoteDoc
-        printDocument({
+        return {
           title: config.title,
           docNumber: d.number,
           infoGrid: [
@@ -353,18 +349,15 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
           negativeTotals: true,
           amountInWords: numberToFrenchWords(d.totalTTC || 0) + ' dirhams',
           amountInWordsLabel: 'Arrêté le présent avoir à la somme de',
-        })
-        break
+        }
       }
     }
+    return null
   }
 
-  const handleDownloadPDF = () => {
-    if (!doc) return
-    const config = DOC_CONFIG[docType]
-
-    // Trigger the browser's print dialog (save as PDF)
-    handlePrint()
+  const handlePrint = () => {
+    const opts = buildPrintOptions()
+    if (opts) printDocument(opts)
   }
 
   const config = doc ? DOC_CONFIG[doc.type] : null
@@ -372,7 +365,7 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" resizable>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {config?.label || ''}
@@ -582,15 +575,6 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fermer
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleDownloadPDF}
-            disabled={!doc || loading}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Télécharger PDF
           </Button>
           <Button
             onClick={handlePrint}
