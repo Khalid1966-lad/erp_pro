@@ -671,27 +671,29 @@ export default function MessagesView() {
           </div>
         </button>
 
-        {/* Delete conversation button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            setConfirmDeleteConvId(conv.id)
-          }}
-          disabled={deletingConvId === conv.id}
-          className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground/40 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-          title="Supprimer la conversation"
-          aria-label="Supprimer la conversation"
-        >
-          {deletingConvId === conv.id ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Trash2 className="h-3.5 w-3.5" />
-          )}
-        </button>
+        {/* Delete conversation button — visible for super_admin and admin */}
+        {(user?.role === 'super_admin' || user?.role === 'admin' || user?.isSuperAdmin) && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setConfirmDeleteConvId(conv.id)
+            }}
+            disabled={deletingConvId === conv.id}
+            className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            title="Supprimer la conversation"
+            aria-label="Supprimer la conversation"
+          >
+            {deletingConvId === conv.id ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
     )
-  }, [activeConversationId, user?.id, deletingConvId])
+  }, [activeConversationId, user?.id, user?.role, user?.isSuperAdmin, deletingConvId])
 
   const renderMessageBubble = useCallback((msg: Message, isFirstInGroup: boolean, isLastInGroup: boolean) => {
     const isMine = msg.senderId === user?.id

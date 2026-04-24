@@ -1179,7 +1179,8 @@ function CommunicationSection() {
       <SubTitle>Messagerie interne</SubTitle>
       <Paragraph>
         La messagerie permet d'envoyer et recevoir des messages entre les utilisateurs du système.
-        Chaque conversation est privée entre deux utilisateurs.
+        Chaque conversation est privée entre deux utilisateurs. L'interface est divisée en deux panneaux :
+        la liste des conversations à gauche et la fenêtre de discussion à droite.
       </Paragraph>
 
       <Step num={1}>Accédez à <strong>Communication → Messagerie</strong> depuis la barre latérale.</Step>
@@ -1188,9 +1189,46 @@ function CommunicationSection() {
       <Step num={4}>Recherchez un utilisateur par nom, e-mail ou rôle, puis sélectionnez-le et cliquez sur <strong>« Démarrer »</strong>.</Step>
       <Step num={5}>Saisissez votre message dans la zone de texte en bas et appuyez sur <strong>Entrée</strong> pour l'envoyer.</Step>
 
+      <SubTitle>Fonctionnalités de la messagerie</SubTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {[
+          { feature: 'Indicateur de présence en ligne', desc: 'Un point vert s\'affiche à côté de l\'avatar lorsque l\'utilisateur est connecté', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+          { feature: 'Sélecteur d\'emojis', desc: 'Plus de 200 emojis répartis en 4 catégories : Smileys, Gestes, Cœurs, Objets', color: 'bg-amber-50 border-amber-200 text-amber-700' },
+          { feature: 'Chargement des messages anciens', desc: 'Bouton pour charger l\'historique complet d\'une conversation', color: 'bg-sky-50 border-sky-200 text-sky-700' },
+          { feature: 'Recherche de conversations', desc: 'Filtrer les conversations par nom d\'utilisateur', color: 'bg-violet-50 border-violet-200 text-violet-700' },
+        ].map((f) => (
+          <Card key={f.feature} className={f.color}>
+            <CardContent className="p-4">
+              <p className="font-semibold text-sm mb-1">{f.feature}</p>
+              <p className="text-xs opacity-80">{f.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       <TipBox type="success">
         Les messages sont actualisés automatiquement toutes les 5 secondes. Vous pouvez continuer à travailler sur d'autres modules pendant que la messagerie fonctionne en arrière-plan.
       </TipBox>
+
+      <SubTitle>Supprimer une conversation</SubTitle>
+      <Paragraph>
+        Les administrateurs (super_admin et admin) peuvent supprimer une conversation entière.
+        Cette action supprime définitivement la conversation et tous ses messages.
+      </Paragraph>
+      <Step num={1}>Dans la liste des conversations, repérez l\'icône <strong className="text-red-500">🗑️ corbeille rouge</strong> à droite du contact.</Step>
+      <Step num={2}>Cliquez sur l\'icône. Une fenêtre de confirmation apparaît.</Step>
+      <Step num={3}>Confirmez la suppression. La conversation et tous ses messages seront effacés.</Step>
+
+      <TipBox type="warning">
+        La suppression d\'une conversation est irréversible et supprime tous les messages pour tous les participants.
+      </TipBox>
+
+      <SubTitle>Supprimer un message individuel</SubTitle>
+      <Paragraph>
+        Chaque message dispose d\'une icône de suppression permettant de le retirer de la conversation.
+      </Paragraph>
+      <Step num={1}>Survolez un message pour voir l\'icône <strong className="text-red-500">🗑️</strong> de suppression.</Step>
+      <Step num={2}>Cliquez sur l\'icône et confirmez la suppression dans la boîte de dialogue.</Step>
 
       <SubTitle>Notifications</SubTitle>
       <Paragraph>
@@ -1531,7 +1569,7 @@ function AdministrationSection() {
       <SubTitle>Sauvegarde & Restauration</SubTitle>
       <Paragraph>
         Le système intègre un module complet de sauvegarde et restauration des données.
-        L'administrateur peut créer des sauvegardes manuelles de l'ensemble des 51 tables de la base de données,
+        L'administrateur peut créer des sauvegardes manuelles de l'ensemble des 53 tables de la base de données,
         télécharger les fichiers de sauvegarde, et restaurer une sauvegarde précédente en cas de besoin.
       </Paragraph>
 
