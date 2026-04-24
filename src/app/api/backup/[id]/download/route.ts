@@ -41,9 +41,8 @@ export async function GET(
       return NextResponse.json({ error: 'Sauvegarde introuvable' }, { status: 404 })
     }
 
-    // Decode base64 → Buffer → decompress gzip
-    const compressedBuffer = Buffer.from(backup.dataCompressed, 'base64')
-    const decompressedBuffer = zlib.gunzipSync(compressedBuffer)
+    // Decode base64 → raw gzip binary (keep compressed for download)
+    const gzipBuffer = Buffer.from(backup.dataCompressed, 'base64')
 
     // Generate filename with date
     const date = backup.createdAt
@@ -52,11 +51,11 @@ export async function GET(
     const labelSlug = (backup.label || 'auto').replace(/[^a-zA-Z0-9_-]/g, '_')
     const filename = `gema-erp-backup-${labelSlug}-${date}.json.gz`
 
-    return new Response(decompressedBuffer, {
+    return new Response(gzipBuffer, {
       headers: {
         'Content-Type': 'application/gzip',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': String(decompressedBuffer.byteLength),
+        'Content-Length': String(gzipBuffer.byteLength),
       },
     })
   } catch (error) {

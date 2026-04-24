@@ -61,7 +61,7 @@ function formatDate(dateStr: string): string {
 
 // ─── Restore Progress Overlay ───
 
-function RestoreProgressOverlay({ progress }: { progress: RestoreProgress }) {
+function RestoreProgressOverlay({ progress, onClose }: { progress: RestoreProgress; onClose?: () => void }) {
   const percent = progress.total && progress.current
     ? Math.round((progress.current / progress.total) * 100)
     : undefined
@@ -151,10 +151,15 @@ function RestoreProgressOverlay({ progress }: { progress: RestoreProgress }) {
 
         {/* Error state */}
         {progress.step === 'error' && (
-          <div className="text-center space-y-3">
-            <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+          <div className="text-center space-y-4">
+            <p className="text-sm text-red-600 dark:text-red-400 font-medium leading-relaxed">
               {progress.message}
             </p>
+            {onClose && (
+              <Button variant="outline" size="sm" onClick={onClose} className="mx-auto">
+                Fermer
+              </Button>
+            )}
           </div>
         )}
 
@@ -460,7 +465,7 @@ export default function BackupSection() {
     <>
       {/* Progress Overlay */}
       {restoreProgress && (
-        <RestoreProgressOverlay progress={restoreProgress} />
+        <RestoreProgressOverlay progress={restoreProgress} onClose={cancelRestore} />
       )}
 
       <div className="space-y-6">

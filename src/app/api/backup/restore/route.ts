@@ -64,11 +64,7 @@ export async function POST(req: NextRequest) {
         if (!validation.valid) {
           controller.enqueue(send({
             step: 'error',
-            message: 'Fichier de sauvegarde invalide',
-          }))
-          controller.enqueue(send({
-            step: 'error',
-            message: validation.errors.join(' | '),
+            message: `Fichier invalide — ${validation.errors.join(' ; ')}`,
           }))
           controller.close()
           return

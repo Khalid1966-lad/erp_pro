@@ -185,13 +185,16 @@ export async function validateBackupFile(fileBuffer: Buffer): Promise<{
   const warnings: string[] = []
   let meta: any = null
 
-  // Step 1: Try to decompress
+  // Step 1: Try to decompress (gzip) — fallback to raw JSON
   let jsonBuffer: Buffer
+  let isGzip = true
   try {
     jsonBuffer = zlib.gunzipSync(fileBuffer)
   } catch {
-    errors.push('Impossible de décompresser le fichier. Le format est invalide (gzip attendu).')
-    return { valid: false, errors, warnings, meta }
+    // Maybe it's a plain JSON file (not gzipped)
+    isGzip = false
+    jsonBuffer = fileBuffer
+    warnings.push('Le fichier n\'est pas compressé (gzip). Format accepté mais la compression est recommandée.')
   }
 
   // Step 2: Try to parse JSON
@@ -200,7 +203,7 @@ export async function validateBackupFile(fileBuffer: Buffer): Promise<{
     const jsonString = jsonBuffer.toString('utf-8')
     parsed = JSON.parse(jsonString)
   } catch {
-    errors.push('Impossible de lire le fichier JSON. Le contenu est corrompu.')
+    errors.push('Impossible de lire le fichier JSON. Le contenu est corrompu ou le format est invalide.')
     return { valid: false, errors, warnings, meta }
   }
 
