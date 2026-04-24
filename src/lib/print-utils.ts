@@ -294,17 +294,38 @@ export async function printDocument(options: {
 <body>${bodyHtml}</body>
 </html>`
 
-  // Open print window
-  const win = window.open('', '_blank', 'width=900,height=700')
-  if (!win) {
-    alert('Veuillez autoriser les popups pour pouvoir imprimer.')
+  // Use a hidden iframe to avoid browser header/footer ("about:blank 1/1")
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;border:none;'
+  document.body.appendChild(iframe)
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+  if (!iframeDoc) {
+    document.body.removeChild(iframe)
+    alert('Erreur lors de la préparation de l\'impression.')
     return
   }
-  win.document.write(fullHtml)
-  win.document.close()
-  win.focus()
-  // Wait for images/fonts to load
-  setTimeout(() => {
-    win.print()
-  }, 500)
+
+  iframeDoc.open()
+  iframeDoc.write(fullHtml)
+  iframeDoc.close()
+
+  // Wait for images/fonts to load, then print
+  iframe.onload = () => {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.print()
+      } catch {
+        // fallback: open in new tab
+        const win = window.open('', '_blank')
+        if (win) {
+          win.document.write(fullHtml)
+          win.document.close()
+          win.print()
+        }
+      }
+      // Clean up iframe after print dialog closes
+      setTimeout(() => document.body.removeChild(iframe), 2000)
+    }, 500)
+  }
 }
