@@ -17,6 +17,7 @@ import {
   Circle,
   Loader2,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +34,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
@@ -276,6 +287,7 @@ export default function MessagesView() {
   const [activeEmojiCategory, setActiveEmojiCategory] = useState(0)
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -404,6 +416,7 @@ export default function MessagesView() {
 
   const deleteMessage = useCallback(async (messageId: string, conversationId: string) => {
     setDeletingMessageId(messageId)
+    setConfirmDeleteId(null)
     try {
       await api.delete(`/conversations/${conversationId}/messages/${messageId}`)
       // Remove from local state
@@ -413,6 +426,7 @@ export default function MessagesView() {
       console.error('Failed to delete message:', err)
     } finally {
       setDeletingMessageId(null)
+      setHoveredMessageId(null)
     }
   }, [fetchConversations])
 
@@ -640,11 +654,12 @@ export default function MessagesView() {
 
   const renderMessageBubble = useCallback((msg: Message, isFirstInGroup: boolean, isLastInGroup: boolean) => {
     const isMine = msg.senderId === user?.id
+    const isHovered = hoveredMessageId === msg.id
 
     return (
       <div
         key={msg.id}
-        className={`flex gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'} ${
+        className={`group flex gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'} ${
           isFirstInGroup ? 'mt-3' : 'mt-0.5'
         }`}
         onMouseEnter={() => setHoveredMessageId(msg.id)}
@@ -659,29 +674,7 @@ export default function MessagesView() {
         {!isMine && !isFirstInGroup && <div className="w-8 flex-shrink-0" />}
 
         {/* Bubble */}
-        <div className={`relative max-w-[75%] md:max-w-[65%] ${isMine ? 'items-end' : 'items-start'}`}>
-          {/* Delete button for own messages */}
-          {isMine && (
-            <div 
-              className={`absolute -top-2 right-0 ${hoveredMessageId === msg.id ? 'opacity-100' : 'opacity-0'} transition-opacity`}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  deleteMessage(msg.id, msg.conversationId || '')
-                }}
-                disabled={deletingMessageId === msg.id}
-                className="h-6 w-6 flex items-center justify-center rounded-full bg-destructive/90 text-destructive-foreground hover:bg-destructive shadow-sm"
-                type="button"
-              >
-                {deletingMessageId === msg.id ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3 w-3" />
-                )}
-              </button>
-            </div>
-          )}
+        <div className={`max-w-[75%] md:max-w-[65%] ${isMine ? 'items-end' : 'items-start'}`}>
           {/* Sender name for group conversations */}
           {!isMine && activeConversation?.isGroup && isFirstInGroup && (
             <p className="text-[11px] font-medium text-muted-foreground mb-1 ml-1">
@@ -699,7 +692,28 @@ export default function MessagesView() {
           >
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
           </div>
+          {/* Meta row: time + checkmark + delete button (inline, no clipping) */}
           <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+            {isMine && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setConfirmDeleteId(msg.id)
+                }}
+                disabled={deletingMessageId === msg.id}
+                className={`h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all flex-shrink-0 ${
+                  isHovered ? 'opacity-100' : 'opacity-0'
+                }`}
+                type="button"
+                title="Supprimer le message"
+              >
+                {deletingMessageId === msg.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3 w-3" />
+                )}
+              </button>
+            )}
             <span className="text-[10px] text-muted-foreground/60">
               {formatMessageTime(new Date(msg.createdAt))}
             </span>
@@ -1168,6 +1182,45 @@ export default function MessagesView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Delete Message Confirmation Dialog ──────────────────────────── */}
+      <AlertDialog open={!!confirmDeleteId} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Supprimer le message
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce message ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingMessageId}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmDeleteId && activeConversationId) {
+                  deleteMessage(confirmDeleteId, activeConversationId)
+                }
+              }}
+              disabled={!!deletingMessageId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingMessageId ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
