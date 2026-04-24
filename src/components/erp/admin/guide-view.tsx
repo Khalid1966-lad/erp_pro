@@ -13,7 +13,7 @@ import {
   ArrowRight, Info, AlertCircle, CircleDot, ArrowDown, Eye,
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
-  FileCheck, FileSpreadsheet, Cpu, Building2, type LucideIcon
+  FileCheck, FileSpreadsheet, Cpu, Building2, Printer, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,16 +29,13 @@ const sections: Section[] = [
   { id: 'introduction', label: 'Introduction', icon: Home },
   { id: 'connexion', label: 'Connexion & Navigation', icon: LogIn },
   { id: 'tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard },
-  { id: 'clients', label: 'Gestion des Clients', icon: Users },
-  { id: 'produits', label: 'Produits', icon: Package },
-  { id: 'devis', label: 'Devis', icon: FileText },
-  { id: 'commandes', label: 'Commandes Clients', icon: ShoppingCart },
-  { id: 'factures', label: 'Factures', icon: Receipt },
-  { id: 'stock', label: 'Gestion du Stock', icon: Warehouse },
+  { id: 'ventes', label: 'Ventes', icon: ShoppingCart },
+  { id: 'achats', label: 'Achats', icon: Truck },
+  { id: 'stock', label: 'Stock', icon: Warehouse },
   { id: 'production', label: 'Production', icon: Factory },
   { id: 'finance', label: 'Finance', icon: Landmark },
-  { id: 'utilisateurs', label: 'Utilisateurs', icon: UserCog },
-  { id: 'parametres', label: 'Paramètres', icon: Settings },
+  { id: 'impression', label: 'Impression', icon: Printer },
+  { id: 'administration', label: 'Administration', icon: Settings },
 ]
 
 /* ─── Reusable small components ─── */
@@ -157,7 +154,7 @@ function ScreenMock({ title, children }: { title: string; children: React.ReactN
   )
 }
 
-/* ─── Main guide sections (rendered only when active) ─── */
+/* ─── Main guide sections ─── */
 
 function IntroSection() {
   return (
@@ -168,8 +165,8 @@ function IntroSection() {
           <h3 className="text-xl font-bold mb-2">Qu'est-ce que GEMA ERP PRO ?</h3>
           <p className="text-muted-foreground leading-relaxed">
             GEMA ERP PRO est une solution de gestion intégré (ERP) complète conçue spécialement pour les entreprises marocaines.
-            Elle couvre l'ensemble du cycle d'activité : de la gestion commerciale et des stocks, jusqu'à la production,
-            la comptabilité et l'administration. Développée avec les standards du marché marocain (ICE, TVA, CNSS, Patente),
+            Elle couvre l'ensemble du cycle d'activité : de la gestion commerciale et des achats, jusqu'à la production,
+            la finance et l'administration. Développée avec les standards du marché marocain (ICE, TVA, CNSS, Patente),
             elle s'adapte à tous les secteurs d'activité.
           </p>
         </CardContent>
@@ -178,7 +175,7 @@ function IntroSection() {
       <SubTitle>À qui s'adresse ce guide ?</SubTitle>
       <Paragraph>
         Ce guide est conçu pour les nouveaux utilisateurs de GEMA ERP PRO. Que vous soyez commercial,
-        magasinier, responsable de production ou administrateur, vous trouverez ici toutes les informations
+        magasinier, responsable de production, comptable ou administrateur, vous trouverez ici toutes les informations
         nécessaires pour maîtriser le système rapidement.
       </Paragraph>
 
@@ -190,17 +187,13 @@ function IntroSection() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
         {[
           { icon: LayoutDashboard, label: 'Tableau de bord', desc: 'KPIs et indicateurs', color: 'text-sky-500 bg-sky-50' },
-          { icon: Users, label: 'Clients', desc: 'Gestion commerciale', color: 'text-violet-500 bg-violet-50' },
-          { icon: Package, label: 'Produits', desc: 'Catalogue complet', color: 'text-amber-500 bg-amber-50' },
-          { icon: FileText, label: 'Devis', desc: 'Propositions clients', color: 'text-cyan-500 bg-cyan-50' },
-          { icon: ShoppingCart, label: 'Commandes', desc: 'Suivi des ventes', color: 'text-emerald-500 bg-emerald-50' },
-          { icon: Receipt, label: 'Factures', desc: 'Facturation et TVA', color: 'text-rose-500 bg-rose-50' },
+          { icon: ShoppingCart, label: 'Ventes', desc: 'Clients, devis, factures', color: 'text-emerald-500 bg-emerald-50' },
+          { icon: Truck, label: 'Achats', desc: 'Fournisseurs, commandes', color: 'text-amber-500 bg-amber-50' },
           { icon: Warehouse, label: 'Stock', desc: 'Mouvements et alertes', color: 'text-slate-500 bg-slate-50' },
           { icon: Factory, label: 'Production', desc: 'Fabrication et BOM', color: 'text-green-600 bg-green-50' },
           { icon: Landmark, label: 'Finance', desc: 'Caisses et banque', color: 'text-blue-600 bg-blue-50' },
-          { icon: UserCog, label: 'Utilisateurs', desc: 'Rôles et permissions', color: 'text-emerald-500 bg-emerald-50' },
-          { icon: Settings, label: 'Paramètres', desc: 'Configuration système', color: 'text-gray-500 bg-gray-50' },
-          { icon: Shield, label: 'Audit', desc: 'Traçabilité totale', color: 'text-slate-500 bg-slate-50' },
+          { icon: Settings, label: 'Administration', desc: 'Utilisateurs et config', color: 'text-gray-500 bg-gray-50' },
+          { icon: Printer, label: 'Impression', desc: 'Documents PDF', color: 'text-rose-500 bg-rose-50' },
         ].map((m) => (
           <Card key={m.label} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4 text-center">
@@ -213,6 +206,44 @@ function IntroSection() {
           </Card>
         ))}
       </div>
+
+      <SubTitle>10 rôles utilisateurs</SubTitle>
+      <Paragraph>
+        GEMA ERP PRO gère 10 rôles distincts pour contrôler précisément les accès de chaque utilisateur :
+      </Paragraph>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Rôle</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Accès principaux</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { role: 'super_admin', desc: 'Super Administrateur', access: 'Accès total + gestion utilisateurs' },
+                { role: 'admin', desc: 'Administrateur', access: 'Tous les modules sauf utilisateurs' },
+                { role: 'commercial', desc: 'Commercial', access: 'Clients, Devis, Commandes, Factures' },
+                { role: 'buyer', desc: 'Acheteur', access: 'Fournisseurs, Demandes, Commandes fournisseurs' },
+                { role: 'storekeeper', desc: 'Magasinier', access: 'Stock, Mouvements, Produits' },
+                { role: 'prod_manager', desc: 'Resp. Production', access: 'Nomenclatures, Gammes, OF' },
+                { role: 'operator', desc: 'Opérateur', access: 'Ordres de fabrication assignés' },
+                { role: 'accountant', desc: 'Comptable', access: 'Factures, Paiements, Comptabilité' },
+                { role: 'cashier', desc: 'Caissier', access: 'Caisses, Paiements reçus' },
+                { role: 'direction', desc: 'Direction', access: 'Tableau de bord, Rapports, Lecture seule' },
+              ].map((r) => (
+                <TableRow key={r.role}>
+                  <TableCell className="font-mono text-xs font-medium">{r.role}</TableCell>
+                  <TableCell className="text-sm">{r.desc}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.access}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -295,9 +326,14 @@ function ConnexionSection() {
               {[
                 { role: 'Super Admin', email: 'contact@jazelwebagency.com', pass: 'hello@erp2026', access: 'Accès total' },
                 { role: 'Admin', email: 'admin@gema-erp.com', pass: 'admin123', access: 'Gestion complète' },
-                { role: 'Commercial', email: 'commercial@gema-erp.com', pass: 'pass123', access: 'Clients, Devis, Factures' },
-                { role: 'Magasinier', email: 'magasinier@gema-erp.com', pass: 'pass123', access: 'Stock, Produits' },
-                { role: 'Acheteur', email: 'acheteur@gema-erp.com', pass: 'pass123', access: 'Fournisseurs, Achats' },
+                { role: 'Commercial', email: 'commercial@gema-erp.com', pass: 'pass123', access: 'Ventes' },
+                { role: 'Magasinier', email: 'magasinier@gema-erp.com', pass: 'pass123', access: 'Stock' },
+                { role: 'Acheteur', email: 'acheteur@gema-erp.com', pass: 'pass123', access: 'Achats' },
+                { role: 'Comptable', email: 'comptable@gema-erp.com', pass: 'pass123', access: 'Finance' },
+                { role: 'Caissier', email: 'caissier@gema-erp.com', pass: 'pass123', access: 'Caisses' },
+                { role: 'Resp. Production', email: 'production@gema-erp.com', pass: 'pass123', access: 'Production' },
+                { role: 'Opérateur', email: 'operateur@gema-erp.com', pass: 'pass123', access: 'OF assignés' },
+                { role: 'Direction', email: 'direction@gema-erp.com', pass: 'pass123', access: 'Lecture seule' },
               ].map((r) => (
                 <TableRow key={r.role}>
                   <TableCell className="font-medium">{r.role}</TableCell>
@@ -325,9 +361,12 @@ function ConnexionSection() {
         <div className="space-y-2 max-w-xs">
           {[
             { title: 'Tableau de bord', items: ['Vue d\'ensemble'] },
-            { title: 'Commercial', items: ['Clients', 'Produits', 'Devis', 'Commandes', 'Factures'] },
-            { title: 'Achats', items: ['Fournisseurs', 'Commandes fournisseur', 'Réceptions'] },
-            { title: 'Stock', items: ['Mouvements', 'Alertes', 'Inventaires'] },
+            { title: 'Ventes', items: ['Clients', 'Produits', 'Devis', 'Commandes', 'Préparations', 'Bons de livraison', 'Factures', 'Avoirs'] },
+            { title: 'Achats', items: ['Fournisseurs', 'Demandes de prix', 'Devis fournisseurs', 'Commandes fournisseurs', 'Réceptions', 'Bons de retour', 'Avoirs fournisseurs', 'Factures fournisseurs'] },
+            { title: 'Stock', items: ['Mouvements', 'Alertes stock', 'Inventaires'] },
+            { title: 'Production', items: ['Nomenclatures', 'Gammes', 'Postes de travail', 'Ordres de fabrication'] },
+            { title: 'Finance', items: ['Caisses', 'Banque', 'Paiements', 'Comptabilité'] },
+            { title: 'Administration', items: ['Utilisateurs', 'Journal d\'audit', 'Paramètres'] },
           ].map((g) => (
             <div key={g.title} className="rounded-lg border p-3">
               <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">{g.title}</p>
@@ -400,29 +439,43 @@ function DashboardSection() {
   )
 }
 
-function ClientsSection() {
+function VentesSection() {
   return (
     <div>
-      <SectionTitle icon={Users} title="Gestion des Clients" />
+      <SectionTitle icon={ShoppingCart} title="Ventes" />
       <Paragraph>
-        Le module Clients permet de gérer l'ensemble de votre portefeuille client : création, modification,
-        suivi des interactions et historique des transactions.
+        Le module Ventes couvre l'intégralité du cycle commercial client : de la gestion des clients et du catalogue produits,
+        jusqu'à la facturation et les avoirs, en passant par les devis, commandes, préparations et bons de livraison.
       </Paragraph>
 
-      <SubTitle>Créer un nouveau client</SubTitle>
-      <Paragraph>Voici un exemple complet de création d'un client avec des données marocaines :</Paragraph>
+      <SubTitle>Cycle de vente complet</SubTitle>
+      <FlowDiagram steps={[
+        { label: 'Devis', color: 'bg-cyan-50 border-cyan-200 text-cyan-700', icon: FileText },
+        { label: 'Commande', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: ShoppingCart },
+        { label: 'Préparation', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Package },
+        { label: 'BL', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: Truck },
+        { label: 'Facture', color: 'bg-rose-50 border-rose-200 text-rose-700', icon: Receipt },
+        { label: 'Paiement', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: CreditCard },
+        { label: 'Avoir', color: 'bg-orange-50 border-orange-200 text-orange-700', icon: RotateCcw },
+      ]} />
 
-      <Step num={1}>
-        <p className="text-sm text-muted-foreground mb-2">Accédez au module <strong>Clients</strong> depuis la barre latérale.</p>
-      </Step>
-      <Step num={2}>
-        <p className="text-sm text-muted-foreground mb-2">Cliquez sur le bouton <strong>« + Nouveau client »</strong>.</p>
-      </Step>
-      <Step num={3}>
-        <p className="text-sm text-muted-foreground mb-2">Remplissez les informations du client :</p>
-      </Step>
+      <TipBox type="info">
+        Chaque étape peut être convertie automatiquement en la suivante. Un devis accepté devient commande, une commande livrée génère un bon de livraison, etc.
+      </TipBox>
 
-      <ScreenMock title="Fiche client — SARL AL MOUATAZ INDUSTRIE">
+      {/* Clients */}
+      <SubTitle>Clients</SubTitle>
+      <Paragraph>
+        Le sous-module Clients gère l'ensemble de votre portefeuille client. La fiche client comporte <strong>8 onglets</strong> :
+        Identité, Coordonnées, Contacts, Commercial, Fiscal, Suivi, Relances et Production.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Ventes → Clients</strong> depuis la barre latérale.</Step>
+      <Step num={2}>Cliquez sur <strong>« + Nouveau client »</strong> pour créer un client.</Step>
+      <Step num={3}>Remplissez les 8 onglets de la fiche client selon les besoins.</Step>
+      <Step num={4}>Cliquez sur <strong>« Enregistrer »</strong> pour valider.</Step>
+
+      <ScreenMock title="Fiche client — SARL AL MOUATAZ INDUSTRIE (onglet Identité)">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Raison sociale *</label>
@@ -433,11 +486,11 @@ function ClientsSection() {
             <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm font-mono">002456789000015</div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">CNSS</label>
+            <label className="text-xs font-medium text-muted-foreground">IF (Identifiant Fiscal)</label>
             <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm font-mono">12345678</div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Patente</label>
+            <label className="text-xs font-medium text-muted-foreground">CNSS</label>
             <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm font-mono">98765432</div>
           </div>
           <div className="space-y-1">
@@ -445,115 +498,28 @@ function ClientsSection() {
             <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm">Casablanca</div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Forme juridique</label>
-            <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm">SARL</div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Régime fiscal</label>
-            <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm">IS</div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Taux TVA (%)</label>
+            <label className="text-xs font-medium text-muted-foreground">Taux TVA par défaut</label>
             <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm">20%</div>
           </div>
         </div>
       </ScreenMock>
 
-      <Step num={4}>
-        <p className="text-sm text-muted-foreground">Cliquez sur <strong>« Enregistrer »</strong> pour valider la création du client.</p>
-      </Step>
-
       <TipBox type="success">
-        L'ICE (Identifiant Commun de l'Entreprise) est obligatoire au Maroc pour toute entreprise. Vérifiez toujours sa validité sur le portail de l'Anpme.
+        L'ICE (Identifiant Commun de l'Entreprise) est obligatoire au Maroc. Vérifiez sa validité sur le portail de l'Anpme avant toute saisie.
       </TipBox>
 
-      <SubTitle>Types de clients</SubTitle>
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Champs spécifiques</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[
-                { type: 'SOCIÉTÉ', desc: 'Entreprise avec ICE, CNSS, patente', fields: 'ICE, CNSS, Patente, Régime fiscal' },
-                { type: 'REVENDEUR', desc: 'Partenaire de distribution', fields: 'Conditions commerciales, Remises' },
-                { type: 'PARTICULIER', desc: 'Client individuel', fields: 'CIN, Nom complet' },
-                { type: 'AUTRES', desc: 'Association, administration...', fields: 'Référence, Contact' },
-              ].map((t) => (
-                <TableRow key={t.type}>
-                  <TableCell><Badge variant="outline">{t.type}</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{t.desc}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{t.fields}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <SubTitle>Cycle de vie d'un client</SubTitle>
-      <FlowDiagram steps={[
-        { label: 'Prospect', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: Eye },
-        { label: 'Actif', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
-        { label: 'Inactif', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: Clock },
-        { label: 'Bloqué', color: 'bg-red-50 border-red-200 text-red-700', icon: Ban },
-      ]} />
-
-      <SubTitle>Exemples de clients</SubTitle>
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Entreprise</TableHead>
-                <TableHead>ICE</TableHead>
-                <TableHead>Ville</TableHead>
-                <TableHead>Statut</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[
-                { name: 'SARL Al Mouataz Industrie', ice: '002456789000015', city: 'Casablanca', status: 'Actif' },
-                { name: 'SA Tanger Metallurgie', ice: '001234567000033', city: 'Tanger', status: 'Actif' },
-                { name: 'AutoParts Maroc SARL', ice: '003456789000078', city: 'Rabat', status: 'Prospect' },
-                { name: 'BatiConseil SARL', ice: '004567890000044', city: 'Marrakech', status: 'Actif' },
-                { name: 'ElectroDistrib Fès', ice: '005678901000055', city: 'Fès', status: 'Inactif' },
-              ].map((c) => (
-                <TableRow key={c.ice}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell className="font-mono text-xs">{c.ice}</TableCell>
-                  <TableCell>{c.city}</TableCell>
-                  <TableCell><StatusBadge status={c.status} /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function ProduitsSection() {
-  return (
-    <div>
-      <SectionTitle icon={Package} title="Produits" />
+      {/* Produits */}
+      <SubTitle>Produits</SubTitle>
       <Paragraph>
-        Le module Produits gère le catalogue complet de votre entreprise : matières premières,
-        semi-finis et produits finis. Chaque produit dispose d'une fiche détaillée avec prix, stock et unités.
+        Le sous-module Produits gère le catalogue complet : matières premières, semi-finis et produits finis.
+        Chaque produit dispose d'une fiche avec prix HT, unité de mesure et seuil de stock minimum.
       </Paragraph>
 
-      <SubTitle>Types de produits</SubTitle>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {[
-          { type: 'Matière première', icon: CircleDot, desc: 'Matières brutes utilisées dans la fabrication. Exemples : tôle, aluminium, visserie.', color: 'text-amber-600 bg-amber-50 border-amber-200' },
-          { type: 'Semi-fini', icon: Cpu, desc: 'Produits intermédiaires en cours de fabrication. Exemples : châssis soudé, pièces découpées.', color: 'text-sky-600 bg-sky-50 border-sky-200' },
-          { type: 'Produit fini', icon: PackageCheck, desc: 'Produits prêts à la vente. Exemples : armoire industrielle, banc de travail.', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+          { type: 'Matière première', icon: CircleDot, desc: 'Tôle, aluminium, visserie...', color: 'text-amber-600 bg-amber-50 border-amber-200' },
+          { type: 'Semi-fini', icon: Cpu, desc: 'Châssis soudé, pièces découpées...', color: 'text-sky-600 bg-sky-50 border-sky-200' },
+          { type: 'Produit fini', icon: PackageCheck, desc: 'Armoire industrielle, banc de travail...', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
         ].map((p) => (
           <Card key={p.type} className={p.color}>
             <CardContent className="p-4">
@@ -565,157 +531,40 @@ function ProduitsSection() {
         ))}
       </div>
 
-      <SubTitle>Exemples de produits</SubTitle>
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Réf</TableHead>
-                <TableHead>Désignation</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead className="text-right">Prix HT</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[
-                { ref: 'MP-001', name: 'Tôle acier 2mm', type: 'Matière première', stock: '2 500 kg', price: '45,00 DH' },
-                { ref: 'MP-002', name: 'Aluminium 6061 barre 30mm', type: 'Matière première', stock: '800 m', price: '18,50 DH' },
-                { ref: 'SF-001', name: 'Châssis soudé type A', type: 'Semi-fini', stock: '25 pcs', price: '120,00 DH' },
-                { ref: 'PF-001', name: 'Armoire industrielle modulable', type: 'Produit fini', stock: '12 pcs', price: '850,00 DH' },
-                { ref: 'PF-002', name: 'Banc de travail technique', type: 'Produit fini', stock: '5 pcs', price: '1 250,00 DH' },
-              ].map((p) => (
-                <TableRow key={p.ref}>
-                  <TableCell className="font-mono text-xs font-medium">{p.ref}</TableCell>
-                  <TableCell>{p.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">{p.type}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-mono">{p.stock}</TableCell>
-                  <TableCell className="text-right font-mono">{p.price}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
       <TipBox type="info">
-        Les prix sont exprimés en <strong>Dirhams (DH)</strong>, la devise officielle du Maroc. Le prix affiché est toujours Hors Taxe (HT).
+        Les prix sont exprimés en <strong>Dirhams (MAD)</strong>, la devise officielle du Maroc. Le prix affiché est toujours Hors Taxe (HT).
       </TipBox>
-    </div>
-  )
-}
 
-function DevisSection() {
-  return (
-    <div>
-      <SectionTitle icon={FileText} title="Devis (Propositions commerciales)" />
+      {/* Devis */}
+      <SubTitle>Devis</SubTitle>
       <Paragraph>
-        Le module Devis permet de créer des propositions commerciales pour vos clients.
-        Chaque devis peut suivre un cycle de vie complet : du brouillon jusqu'à l'acceptation ou le refus.
+        Les devis sont des propositions commerciales envoyées aux clients. Chaque devis suit un cycle de vie :
+        Brouillon → Envoyé → Accepté / Refusé / Expiré.
       </Paragraph>
 
-      <SubTitle>Cycle de vie d'un devis</SubTitle>
       <FlowDiagram steps={[
         { label: 'Brouillon', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: FileText },
         { label: 'Envoyé', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: ArrowDown },
         { label: 'Accepté', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
-        { label: 'Refusé', color: 'bg-red-50 border-red-200 text-red-700', icon: XCircle },
-        { label: 'Expiré', color: 'bg-orange-50 border-orange-200 text-orange-700', icon: Clock },
+        { label: 'Refusé / Expiré', color: 'bg-red-50 border-red-200 text-red-700', icon: XCircle },
       ]} />
 
-      <TipBox type="info">
-        Un devis accepté peut être automatiquement converti en <strong>commande client</strong> en un seul clic.
-      </TipBox>
-
-      <SubTitle>Créer un devis — Exemple complet</SubTitle>
-      <Step num={1}>Accédez au module <strong>Devis</strong> et cliquez sur <strong>« + Nouveau devis »</strong>.</Step>
-      <Step num={2}>Sélectionnez le client : <strong>SARL Al Mouataz Industrie</strong>.</Step>
-      <Step num={3}>Ajoutez les lignes de produits :</Step>
-
-      <ScreenMock title="Devis DEV-2026-0042 — SARL Al Mouataz Industrie">
-        <div className="space-y-4">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Client : <strong className="text-foreground">SARL Al Mouataz Industrie</strong></span>
-            <span className="text-muted-foreground">Date : <strong className="text-foreground">15/01/2026</strong></span>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Réf</TableHead>
-                <TableHead>Désignation</TableHead>
-                <TableHead className="text-right">Qté</TableHead>
-                <TableHead className="text-right">Prix HT</TableHead>
-                <TableHead className="text-right">Total HT</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[
-                { ref: 'PF-001', name: 'Armoire industrielle modulable', qty: '3', unit: 'pcs', price: '850,00', total: '2 550,00' },
-                { ref: 'PF-002', name: 'Banc de travail technique', qty: '2', unit: 'pcs', price: '1 250,00', total: '2 500,00' },
-                { ref: 'MP-001', name: 'Tôle acier 2mm', qty: '100', unit: 'kg', price: '45,00', total: '4 500,00' },
-              ].map((l) => (
-                <TableRow key={l.ref}>
-                  <TableCell className="font-mono text-xs">{l.ref}</TableCell>
-                  <TableCell className="text-sm">{l.name}</TableCell>
-                  <TableCell className="text-right text-sm">{l.qty} {l.unit}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">{l.price}</TableCell>
-                  <TableCell className="text-right font-mono text-sm font-medium">{l.total}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Separator />
-          <div className="flex justify-end">
-            <div className="w-64 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Sous-total HT</span><span className="font-mono">9 550,00 DH</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Remise (5%)</span><span className="font-mono text-red-500">-477,50 DH</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Frais de port</span><span className="font-mono">150,00 DH</span></div>
-              <Separator />
-              <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-mono font-medium">9 222,50 DH</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">TVA (20%)</span><span className="font-mono font-medium">1 844,50 DH</span></div>
-              <Separator />
-              <div className="flex justify-between text-base"><span className="font-semibold">Total TTC</span><span className="font-bold text-primary font-mono">11 067,00 DH</span></div>
-            </div>
-          </div>
-        </div>
-      </ScreenMock>
-
-      <Step num={4}>Vérifiez les montants et cliquez sur <strong>« Enregistrer »</strong> puis <strong>« Envoyer »</strong>.</Step>
+      <Step num={1}>Accédez à <strong>Ventes → Devis</strong> et cliquez sur <strong>« + Nouveau devis »</strong>.</Step>
+      <Step num={2}>Sélectionnez le client et ajoutez les lignes de produits.</Step>
+      <Step num={3}>Le système calcule automatiquement le HT, la TVA (selon le taux du client) et le TTC.</Step>
+      <Step num={4}>Enregistrez puis envoyez le devis au client.</Step>
 
       <TipBox type="success">
-        Le système calcule automatiquement les montants HT, la TVA et le TTC en fonction du taux de TVA du client.
+        Un devis accepté peut être converti en <strong>commande client</strong> en un seul clic : les lignes, quantités et prix sont repris automatiquement.
       </TipBox>
 
-      <SubTitle>Détail du calcul</SubTitle>
-      <Card>
-        <CardContent className="p-4 space-y-2">
-          <div className="flex items-center gap-2"><Calculator className="h-4 w-4 text-muted-foreground" /><span className="text-sm font-medium">Formule de calcul</span></div>
-          <div className="bg-muted/50 rounded-lg p-3 font-mono text-sm space-y-1">
-            <p>Sous-total HT = (3 × 850) + (2 × 1 250) + (100 × 45) = 9 550,00 DH</p>
-            <p>Remise 5% = 9 550 × 0,05 = 477,50 DH</p>
-            <p>Net HT = 9 550 - 477,50 + 150 = 9 222,50 DH</p>
-            <p>TVA 20% = 9 222,50 × 0,20 = 1 844,50 DH</p>
-            <p className="font-bold text-primary">Total TTC = 9 222,50 + 1 844,50 = 11 067,00 DH</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function CommandesSection() {
-  return (
-    <div>
-      <SectionTitle icon={ShoppingCart} title="Commandes Clients" />
+      {/* Commandes */}
+      <SubTitle>Commandes</SubTitle>
       <Paragraph>
-        Les commandes clients représentent les engagements fermes de vos clients après acceptation d'un devis
-        ou commande directe. Elles déclenchent le processus de préparation et de livraison.
+        Les commandes clients représentent les engagements fermes. Elles déclenchent le processus de préparation
+        et de livraison. Le cycle : Confirmée → En préparation → Prête → Livrée → Facturée.
       </Paragraph>
 
-      <SubTitle>Cycle de vie d'une commande</SubTitle>
       <FlowDiagram steps={[
         { label: 'Confirmée', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
         { label: 'En préparation', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Package },
@@ -724,21 +573,13 @@ function CommandesSection() {
         { label: 'Facturée', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: Receipt },
       ]} />
 
-      <SubTitle>Convertir un devis en commande</SubTitle>
-      <Step num={1}>Ouvrez le devis accepté (statut <StatusBadge status="Accepté" />).</Step>
-      <Step num={2}>Cliquez sur le bouton <strong>« Convertir en commande »</strong>.</Step>
-      <Step num={3}>Vérifiez les informations transférées (client, lignes, prix).</Step>
-      <Step num={4}>Validez la création. La commande hérite du numéro et des données du devis.</Step>
-
-      <TipBox type="info">
-        La conversion est automatique : les lignes de produits, les quantités, les remises et les conditions sont reprises du devis.
-      </TipBox>
-
-      <SubTitle>Suivi de préparation</SubTitle>
+      {/* Préparations */}
+      <SubTitle>Préparations</SubTitle>
       <Paragraph>
-        Chaque commande peut être associée à une <strong>préparation</strong> qui détaille le prélèvement en stock.
-        Le magasinier indique les quantités prélevées et les éventuels manquants.
+        Les préparations détaillent le prélèvement en stock pour chaque commande. Le magasinier indique
+        les quantités réellement prélevées et signale les éventuels manquants.
       </Paragraph>
+
       <ScreenMock title="Préparation de commande CMD-2026-0089">
         <div className="space-y-3">
           <div className="flex gap-4 text-sm">
@@ -770,41 +611,22 @@ function CommandesSection() {
           </Table>
         </div>
       </ScreenMock>
-    </div>
-  )
-}
 
-function FacturesSection() {
-  return (
-    <div>
-      <SectionTitle icon={Receipt} title="Factures" />
+      {/* Bons de livraison */}
+      <SubTitle>Bons de livraison</SubTitle>
       <Paragraph>
-        Le module Factures gère la facturation client avec conformité fiscale marocaine.
-        Les factures sont générées à partir des commandes livrées ou créées manuellement.
+        Le bon de livraison (BL) est édité après la préparation complète. Il atteste la remise de la marchandise
+        au client et constitue le document de référence pour la facturation.
       </Paragraph>
 
-      <SubTitle>Types de factures</SubTitle>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {[
-          { type: 'Facture standard', icon: FileText, desc: 'Facture de vente classique liée à une commande ou devis.', color: 'bg-sky-50 border-sky-200 text-sky-700' },
-          { type: 'Facture d\'avoir', icon: RotateCcw, desc: 'Crédit pour un retour ou remise. Annule partiellement ou totalement une facture.', color: 'bg-orange-50 border-orange-200 text-orange-700' },
-          { type: 'Facture proforma', icon: FileSpreadsheet, desc: 'Document préalable non comptable. Sert de base pour les formalités douanières.', color: 'bg-violet-50 border-violet-200 text-violet-700' },
-        ].map((f) => (
-          <Card key={f.type} className={f.color}>
-            <CardContent className="p-4">
-              <f.icon className="h-5 w-5 mb-2" />
-              <p className="font-semibold text-sm mb-1">{f.type}</p>
-              <p className="text-xs opacity-80">{f.desc}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Factures */}
+      <SubTitle>Factures</SubTitle>
+      <Paragraph>
+        Les factures sont générées à partir des commandes livrées ou créées manuellement.
+        Elles respectent les obligations fiscales marocaines : numérotation séquentielle, TVA, mentions légales.
+      </Paragraph>
 
       <SubTitle>Taux de TVA au Maroc</SubTitle>
-      <Paragraph>
-        GEMA ERP PRO prend en charge tous les taux de TVA en vigueur au Maroc :
-      </Paragraph>
-
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -834,14 +656,161 @@ function FacturesSection() {
         </CardContent>
       </Card>
 
-      <SubTitle>Suivi des paiements</SubTitle>
+      <TipBox type="warning">
+        Les factures doivent respecter les obligations légales : numéro séquentiel, date, identifiant fiscal du client, détail des opérations et mentions légales complètes.
+      </TipBox>
+
+      {/* Avoirs */}
+      <SubTitle>Avoirs</SubTitle>
       <Paragraph>
-        Chaque facture peut être liée à un ou plusieurs paiements. Le système affiche automatiquement
-        le solde restant et le statut de paiement : <StatusBadge status="Payée" />, <StatusBadge status="Impayée" />, ou <StatusBadge status="Partielle" />.
+        Les avoirs sont des notes de crédit émises en cas de retour marchandise, remise commerciale
+        ou erreur de facturation. Ils viennent en déduction du montant de la facture d'origine, partiellement ou totalement.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Ventes → Avoirs</strong> et cliquez sur <strong>« + Nouvel avoir »</strong>.</Step>
+      <Step num={2}>Sélectionnez la facture d'origine concernée.</Step>
+      <Step num={3}>Indiquez les produits retournés et les quantités.</Step>
+      <Step num={4}>Enregistrez l'avoir. Le solde client sera mis à jour automatiquement.</Step>
+    </div>
+  )
+}
+
+function AchatsSection() {
+  return (
+    <div>
+      <SectionTitle icon={Truck} title="Achats" />
+      <Paragraph>
+        Le module Achats gère l'intégralité du processus d'approvisionnement : de la demande de prix
+        jusqu'à la facturation fournisseur, en passant par les devis, commandes, réceptions et retours.
+      </Paragraph>
+
+      <SubTitle>Cycle d'achat complet</SubTitle>
+      <FlowDiagram steps={[
+        { label: 'Demande de prix', color: 'bg-cyan-50 border-cyan-200 text-cyan-700', icon: FileText },
+        { label: 'Devis fournisseur', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: FileSpreadsheet },
+        { label: 'Commande', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: ShoppingCart },
+        { label: 'Réception', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: PackageCheck },
+        { label: 'Facture fournisseur', color: 'bg-rose-50 border-rose-200 text-rose-700', icon: Receipt },
+      ]} />
+
+      {/* Fournisseurs */}
+      <SubTitle>Fournisseurs</SubTitle>
+      <Paragraph>
+        Le sous-module Fournisseurs gère votre base de données fournisseurs avec les informations légales,
+        les coordonnées bancaires et les conditions commerciales (délais de livraison, remises).
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Achats → Fournisseurs</strong>.</Step>
+      <Step num={2}>Cliquez sur <strong>« + Nouveau fournisseur »</strong>.</Step>
+      <Step num={3}>Saisissez la raison sociale, l'ICE, l'adresse et les coordonnées bancaires (RIB/IBAN).</Step>
+      <Step num={4}>Enregistrez le fournisseur.</Step>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fournisseur</TableHead>
+                <TableHead>ICE</TableHead>
+                <TableHead>Ville</TableHead>
+                <TableHead>Statut</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { name: 'AcierPlus Industries', ice: '001122334400055', city: 'Tanger', status: 'Actif' },
+                { name: 'AluMaroc Distribution', ice: '002233445500066', city: 'Casablanca', status: 'Actif' },
+                { name: 'Visserie Atlas SARL', ice: '003344556600077', city: 'Fès', status: 'Actif' },
+              ].map((f) => (
+                <TableRow key={f.ice}>
+                  <TableCell className="font-medium">{f.name}</TableCell>
+                  <TableCell className="font-mono text-xs">{f.ice}</TableCell>
+                  <TableCell>{f.city}</TableCell>
+                  <TableCell><StatusBadge status={f.status} /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Demandes de prix */}
+      <SubTitle>Demandes de prix</SubTitle>
+      <Paragraph>
+        Les demandes de prix sont envoyées à un ou plusieurs fournisseurs pour obtenir des offres comparatives.
+        Elles listent les produits souhaités avec les quantités nécessaires.
+      </Paragraph>
+
+      <Step num={1}>Créez une demande de prix depuis <strong>Achats → Demandes de prix</strong>.</Step>
+      <Step num={2}>Ajoutez les produits et quantités souhaitées.</Step>
+      <Step num={3}>Sélectionnez un ou plusieurs fournisseurs destinataires.</Step>
+      <Step num={4}>Envoyez la demande. Les fournisseurs pourront y répondre via un devis fournisseur.</Step>
+
+      {/* Devis fournisseurs */}
+      <SubTitle>Devis fournisseurs</SubTitle>
+      <Paragraph>
+        Les devis fournisseurs contiennent les offres de prix reçues en réponse à vos demandes.
+        Vous pouvez comparer les offres et sélectionner la plus avantageuse avant de passer commande.
+      </Paragraph>
+
+      <TipBox type="info">
+        Pour comparer facilement les offres, utilisez le tableau de comparaison qui affiche les prix unitaires, les remises et les délais de livraison côte à côte.
+      </TipBox>
+
+      {/* Commandes fournisseurs */}
+      <SubTitle>Commandes fournisseurs</SubTitle>
+      <Paragraph>
+        Les commandes fournisseurs formalisent votre engagement d'achat auprès d'un fournisseur sélectionné.
+        Elles peuvent être créées directement ou converties depuis un devis fournisseur accepté.
+      </Paragraph>
+
+      <FlowDiagram steps={[
+        { label: 'Brouillon', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: FileText },
+        { label: 'Envoyée', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: ArrowDown },
+        { label: 'Confirmée', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
+        { label: 'Partiellement reçue', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: Package },
+        { label: 'Reçue', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: PackageCheck },
+      ]} />
+
+      {/* Réceptions */}
+      <SubTitle>Réceptions</SubTitle>
+      <Paragraph>
+        Les réceptions enregistrent l'entrée en stock des marchandises livrées par le fournisseur.
+        Le magasinier vérifie les quantités reçues et signale les éventuels écarts.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Achats → Réceptions</strong>.</Step>
+      <Step num={2}>Sélectionnez la commande fournisseur concernée.</Step>
+      <Step num={3}>Vérifiez et saisissez les quantités effectivement reçues pour chaque produit.</Step>
+      <Step num={4}>Validez : le stock est automatiquement mis à jour avec une entrée.</Step>
+
+      <TipBox type="success">
+        La réception met à jour automatiquement le stock (entrée) et le statut de la commande fournisseur (partiellement ou totalement reçue).
+      </TipBox>
+
+      {/* Bons de retour */}
+      <SubTitle>Bons de retour</SubTitle>
+      <Paragraph>
+        Les bons de retour permettent de retourner de la marchandise au fournisseur (produits défectueux,
+        non conformes ou en excédent). Un bon de retour génère une sortie de stock.
+      </Paragraph>
+
+      {/* Avoirs fournisseurs */}
+      <SubTitle>Avoirs fournisseurs</SubTitle>
+      <Paragraph>
+        Les avoirs fournisseurs sont les notes de crédit reçues du fournisseur suite à un retour
+        ou à une remise. Ils viennent en déduction de la facture fournisseur correspondante.
+      </Paragraph>
+
+      {/* Factures fournisseurs */}
+      <SubTitle>Factures fournisseurs</SubTitle>
+      <Paragraph>
+        Les factures fournisseurs enregistrent les dettes envers vos fournisseurs. Elles sont généralement
+        rapprochées des réceptions et des avoirs fournisseurs correspondants.
       </Paragraph>
 
       <TipBox type="warning">
-        Les factures doivent respecter les obligations légales marocaines : numéro séquentiel, date, identifiant fiscal du client, détail des opérations, et mentions légales.
+        Vérifiez toujours que le montant de la facture fournisseur correspond aux réceptions validées et aux avoirs appliqués avant de l'enregistrer.
       </TipBox>
     </div>
   )
@@ -850,18 +819,25 @@ function FacturesSection() {
 function StockSection() {
   return (
     <div>
-      <SectionTitle icon={Warehouse} title="Gestion du Stock" />
+      <SectionTitle icon={Warehouse} title="Stock" />
       <Paragraph>
         Le module Stock permet de suivre en temps réel les mouvements de marchandises,
-        de gérer les alertes de seuil minimum et de réaliser des inventaires.
+        de gérer les alertes de seuil minimum et de réaliser des inventaires physiques.
       </Paragraph>
 
-      <SubTitle>Types de mouvements</SubTitle>
+      {/* Mouvements */}
+      <SubTitle>Mouvements</SubTitle>
+      <Paragraph>
+        Les mouvements de stock enregistrent toutes les entrées et sorties de marchandises.
+        Chaque mouvement est tracé avec la date, la quantité, le produit, la référence du document source
+        et le type de mouvement.
+      </Paragraph>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {[
-          { type: 'Entrée', icon: ArrowDown, desc: 'Réception de marchandises (fournisseur, retour client, inventaire). Augmente le stock disponible.', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
-          { type: 'Sortie', icon: Package, desc: 'Expédition vers client, consommation production, perte. Diminue le stock disponible.', color: 'bg-red-50 border-red-200 text-red-700' },
-          { type: 'Ajustement', icon: ArrowLeftRight, desc: 'Correction manuelle suite à un inventaire ou une erreur. Peut être positif ou négatif.', color: 'bg-amber-50 border-amber-200 text-amber-700' },
+          { type: 'Entrée', icon: ArrowDown, desc: 'Réception fournisseur, retour client, ajustement positif. Augmente le stock.', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+          { type: 'Sortie', icon: Package, desc: 'Expédition client, consommation production, perte. Diminue le stock.', color: 'bg-red-50 border-red-200 text-red-700' },
+          { type: 'Ajustement', icon: ArrowLeftRight, desc: 'Correction manuelle suite à un inventaire. Peut être positif ou négatif.', color: 'bg-amber-50 border-amber-200 text-amber-700' },
         ].map((m) => (
           <Card key={m.type} className={m.color}>
             <CardContent className="p-4">
@@ -873,10 +849,16 @@ function StockSection() {
         ))}
       </div>
 
-      <SubTitle>Alertes de stock minimum</SubTitle>
+      <TipBox type="info">
+        Les mouvements sont générés automatiquement lors des réceptions (achats), préparations (ventes) et ordres de fabrication (production). Vous pouvez aussi les créer manuellement.
+      </TipBox>
+
+      {/* Alertes stock */}
+      <SubTitle>Alertes stock</SubTitle>
       <Paragraph>
         Pour chaque produit, vous pouvez définir un <strong>seuil minimum</strong>. Lorsque le stock tombe
-        en dessous de ce seuil, une alerte apparaît dans le module « Alertes stock » et sur le tableau de bord.
+        en dessous de ce seuil, une alerte apparaît dans ce module et sur le tableau de bord, vous permettant
+        de déclencher rapidement un réapprovisionnement.
       </Paragraph>
 
       <ScreenMock title="Alertes de stock — Produits sous seuil">
@@ -899,25 +881,28 @@ function StockSection() {
                 <TableCell className="text-sm font-medium">{a.name}</TableCell>
                 <TableCell className="text-right font-mono text-red-600 font-medium">{a.current}</TableCell>
                 <TableCell className="text-right font-mono text-muted-foreground">{a.min}</TableCell>
-                <TableCell><StatusBadge status="Inactif" /></TableCell>
+                <TableCell><StatusBadge status="Bloqué" /></TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </ScreenMock>
 
-      <SubTitle>Gestion des inventaires</SubTitle>
+      {/* Inventaires */}
+      <SubTitle>Inventaires</SubTitle>
       <Paragraph>
         Les inventaires permettent de vérifier l'écart entre le stock théorique (système) et le stock physique (réel).
         Un ajustement automatique est proposé après validation de l'inventaire.
       </Paragraph>
-      <Step num={1}>Créez un nouvel inventaire dans le module <strong>Inventaires</strong>.</Step>
+
+      <Step num={1}>Créez un nouvel inventaire dans <strong>Stock → Inventaires</strong>.</Step>
       <Step num={2}>Sélectionnez les produits ou catégories à inventorier.</Step>
-      <Step num={3}>Saisissez les quantités réelles constatées.</Step>
-      <Step num={4}>Validez : le système génère les écarts et les ajustements de stock.</Step>
+      <Step num={3}>Saisissez les quantités réelles constatées pour chaque produit.</Step>
+      <Step num={4}>Validez : le système calcule les écarts et propose des ajustements de stock.</Step>
+      <Step num={5}>Confirmez les ajustements pour mettre à jour le stock.</Step>
 
       <TipBox type="success">
-        Planifiez des inventaires tournants régulièrement pour maintenir la fiabilité des données de stock.
+        Planifiez des inventaires tournants régulièrement (mensuels ou trimestriels) pour maintenir la fiabilité des données de stock.
       </TipBox>
     </div>
   )
@@ -932,10 +917,19 @@ function ProductionSection() {
         ordres de fabrication, en passant par les gammes opératoires et les postes de travail.
       </Paragraph>
 
+      <SubTitle>Cycle de production</SubTitle>
+      <FlowDiagram steps={[
+        { label: 'Nomenclature', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: FileSpreadsheet },
+        { label: 'Gamme', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: FileCheck },
+        { label: 'Ordre de fabrication', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: Factory },
+        { label: 'Production', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: Cpu },
+      ]} />
+
+      {/* Nomenclatures */}
       <SubTitle>Nomenclatures (BOM — Bill of Materials)</SubTitle>
       <Paragraph>
-        Une nomenclature définit la liste des composants nécessaires pour fabriquer un produit fini.
-        Elle inclut les quantités et les liens entre matières premières et semi-finis.
+        Une nomenclature définit la liste des composants et matières premières nécessaires pour fabriquer
+        un produit fini. Elle inclut les quantités exactes et les liens entre composants.
       </Paragraph>
 
       <ScreenMock title="Nomenclature — PF-001 Armoire industrielle modulable">
@@ -953,6 +947,7 @@ function ProductionSection() {
               { name: 'Tôle acier 2mm', ref: 'MP-001', qty: '15 kg', type: 'Matière première' },
               { name: 'Aluminium 6061 barre 30mm', ref: 'MP-002', qty: '4 m', type: 'Matière première' },
               { name: 'Châssis soudé type A', ref: 'SF-001', qty: '1 pcs', type: 'Semi-fini' },
+              { name: 'Visserie M8x30', ref: 'MP-003', qty: '20 pcs', type: 'Matière première' },
             ].map((c) => (
               <TableRow key={c.ref}>
                 <TableCell className="text-sm">{c.name}</TableCell>
@@ -965,24 +960,49 @@ function ProductionSection() {
         </Table>
       </ScreenMock>
 
+      <Step num={1}>Accédez à <strong>Production → Nomenclatures</strong>.</Step>
+      <Step num={2}>Sélectionnez le produit fini concerné.</Step>
+      <Step num={3}>Ajoutez les composants avec leurs quantités unitaires.</Step>
+      <Step num={4}>Enregistrez la nomenclature.</Step>
+
+      {/* Gammes */}
       <SubTitle>Gammes opératoires</SubTitle>
       <Paragraph>
         Une gamme opératoire décrit les étapes successives de fabrication : découpe, soudure, peinture,
         assemblage, contrôle qualité, etc. Chaque étape est associée à un poste de travail et un temps estimé.
       </Paragraph>
 
-      <SubTitle>Ordres de fabrication (OF)</SubTitle>
-      <Paragraph>
-        Un ordre de fabrication est lancé pour produire une quantité déterminée d'un produit fini.
-        Il consomme les matières premières de la nomenclature et suit l'avancement via la gamme.
-      </Paragraph>
-      <FlowDiagram steps={[
-        { label: 'Planifié', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: Circle },
-        { label: 'En cours', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Cpu },
-        { label: 'Terminé', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
-        { label: 'Contrôlé', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: FileCheck },
-      ]} />
+      <ScreenMock title="Gamme — PF-001 Armoire industrielle modulable">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Étape</TableHead>
+              <TableHead>Opération</TableHead>
+              <TableHead>Poste de travail</TableHead>
+              <TableHead className="text-right">Temps estimé</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[
+              { step: '10', op: 'Découpe tôle', station: 'Découpe laser', time: '30 min' },
+              { step: '20', op: 'Pliage et formage', station: 'Presse plieuse', time: '20 min' },
+              { step: '30', op: 'Soudure', station: 'Poste soudure TIG', time: '45 min' },
+              { step: '40', op: 'Peinture poudre', station: 'Cabine peinture', time: '60 min' },
+              { step: '50', op: 'Assemblage', station: 'Poste montage', time: '40 min' },
+              { step: '60', op: 'Contrôle qualité', station: 'Labo QC', time: '15 min' },
+            ].map((g) => (
+              <TableRow key={g.step}>
+                <TableCell className="font-mono text-xs">{g.step}</TableCell>
+                <TableCell className="text-sm">{g.op}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{g.station}</TableCell>
+                <TableCell className="text-right font-mono">{g.time}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ScreenMock>
 
+      {/* Postes de travail */}
       <SubTitle>Postes de travail</SubTitle>
       <Paragraph>
         Les postes de travail représentent les ressources physiques de production : machines, ateliers,
@@ -990,7 +1010,32 @@ function ProductionSection() {
       </Paragraph>
 
       <TipBox type="info">
-        Chaque poste de travail peut avoir un coût horaire qui sert au calcul du coût de revient des produits fabriqués.
+        Chaque poste de travail peut avoir un <strong>coût horaire</strong> qui sert au calcul du coût de revient des produits fabriqués.
+      </TipBox>
+
+      {/* Ordres de fabrication */}
+      <SubTitle>Ordres de fabrication (OF)</SubTitle>
+      <Paragraph>
+        Un ordre de fabrication est lancé pour produire une quantité déterminée d'un produit fini.
+        Il consomme les matières premières de la nomenclature et suit l'avancement via la gamme opératoire.
+      </Paragraph>
+
+      <FlowDiagram steps={[
+        { label: 'Planifié', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: Circle },
+        { label: 'En cours', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Cpu },
+        { label: 'Terminé', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
+        { label: 'Contrôlé', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: FileCheck },
+      ]} />
+
+      <Step num={1}>Accédez à <strong>Production → Ordres de fabrication</strong>.</Step>
+      <Step num={2}>Cliquez sur <strong>« + Nouvel OF »</strong> et sélectionnez le produit fini.</Step>
+      <Step num={3}>Indiquez la quantité à produire. Le système calcule les composants nécessaires via la nomenclature.</Step>
+      <Step num={4}>Lancez l'OF : les matières premières sont réservées en stock.</Step>
+      <Step num={5}>Suivez l'avancement étape par étape selon la gamme opératoire.</Step>
+      <Step num={6}>À la fin, validez la production : le stock de produit fini est augmenté.</Step>
+
+      <TipBox type="warning">
+        Les composants sont réservés en stock au lancement de l'OF. Assurez-vous d'avoir suffisamment de stock avant de démarrer la production.
       </TipBox>
     </div>
   )
@@ -1001,25 +1046,36 @@ function FinanceSection() {
     <div>
       <SectionTitle icon={Landmark} title="Finance" />
       <Paragraph>
-        Le module Finance centralise la gestion des flux financiers : caisses, comptes bancaires,
-        paiements reçus et émis, ainsi qu'un aperçu de la comptabilité.
+        Le module Finance centralise la gestion des flux financiers de l'entreprise : caisses,
+        comptes bancaires, paiements reçus et émis, ainsi qu'un aperçu de la comptabilité.
       </Paragraph>
 
+      {/* Caisses */}
       <SubTitle>Caisses</SubTitle>
       <Paragraph>
         Gérez vos caisses physiques (caisse principale, caisse de dépannage) avec suivi des entrées
-        et sorties d'espèces. Chaque mouvement est tracé avec la date, le montant et la référence associée.
+        et sorties d'espèces. Chaque mouvement est tracé avec la date, le montant, le motif et la référence associée.
       </Paragraph>
 
-      <SubTitle>Comptes bancaires</SubTitle>
+      <Step num={1}>Accédez à <strong>Finance → Caisses</strong>.</Step>
+      <Step num={2}>Consultez le solde actuel et l'historique des mouvements de la caisse.</Step>
+      <Step num={3}>Ajoutez une entrée ou une sortie en spécifiant le montant et le motif.</Step>
+
+      {/* Banque */}
+      <SubTitle>Banque</SubTitle>
       <Paragraph>
         Enregistrez vos comptes bancaires pour suivre les virements, les prélèvements et les soldes.
         Associez les paiements reçus par virement aux factures correspondantes.
       </Paragraph>
 
+      <TipBox type="info">
+        Vous pouvez gérer plusieurs comptes bancaires (Attijariwafa, BMCE, BCP, CIH, etc.) et suivre les soldes individuellement.
+      </TipBox>
+
+      {/* Paiements */}
       <SubTitle>Paiements</SubTitle>
       <Paragraph>
-        Le module Paiements centralise tous les flux financiers entrants et sortants :
+        Le sous-module Paiements centralise tous les flux financiers entrants et sortants :
       </Paragraph>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -1048,9 +1104,27 @@ function FinanceSection() {
         ))}
       </div>
 
+      <ScreenMock title="Modes de paiement acceptés">
+        <div className="flex flex-wrap gap-3">
+          {[
+            { label: 'Espèces', icon: CircleDot },
+            { label: 'Chèque', icon: FileCheck },
+            { label: 'Virement bancaire', icon: Building2 },
+            { label: 'Traite', icon: FileText },
+            { label: 'Effet de commerce', icon: Receipt },
+          ].map((m) => (
+            <div key={m.label} className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/50 text-sm">
+              <m.icon className="h-4 w-4 text-muted-foreground" />
+              {m.label}
+            </div>
+          ))}
+        </div>
+      </ScreenMock>
+
+      {/* Comptabilité */}
       <SubTitle>Comptabilité</SubTitle>
       <Paragraph>
-        Le module Comptabilité offre une vue d'ensemble des écritures comptables générées automatiquement
+        Le sous-module Comptabilité offre une vue d'ensemble des écritures comptables générées automatiquement
         par les opérations commerciales (factures, paiements, avoirs). Les écritures sont classées par journal
         et par période.
       </Paragraph>
@@ -1062,20 +1136,120 @@ function FinanceSection() {
   )
 }
 
-function UtilisateursSection() {
+function ImpressionSection() {
   return (
     <div>
-      <SectionTitle icon={UserCog} title="Gestion des Utilisateurs" />
+      <SectionTitle icon={Printer} title="Impression" />
       <Paragraph>
-        Le module Utilisateurs est réservé au <strong>Super Administrateur</strong>. Il permet de créer,
-        modifier et gérer les comptes des utilisateurs du système, ainsi que leurs rôles et permissions.
+        GEMA ERP PRO permet d'imprimer <strong>tous les 13 types de documents</strong> du système
+        au format PDF professionnel. Chaque document imprimé inclut automatiquement l'en-tête de l'entreprise
+        (logo, identifiants fiscaux) et le montant en toutes lettres en français.
       </Paragraph>
 
-      <TipBox type="warning">
-        Seul le Super Administrateur (contact@jazelwebagency.com) a accès à ce module. Cette restriction garantit la sécurité du système.
-      </TipBox>
+      <SubTitle>Documents imprimables</SubTitle>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Module</TableHead>
+                <TableHead>Document</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { module: 'Ventes', doc: 'Devis client', desc: 'Proposition commerciale avec détail des lignes et totaux TVA' },
+                { module: 'Ventes', doc: 'Commande client', desc: 'Confirmation de commande avec conditions de vente' },
+                { module: 'Ventes', doc: 'Préparation', desc: 'Bon de prélèvement pour le magasinier' },
+                { module: 'Ventes', doc: 'Bon de livraison', desc: 'Document de remise de marchandise au client' },
+                { module: 'Ventes', doc: 'Facture client', desc: 'Facture de vente avec TVA et mentions légales' },
+                { module: 'Ventes', doc: 'Avoir client', desc: 'Note de crédit pour retour ou remise' },
+                { module: 'Achats', doc: 'Demande de prix', desc: 'Demande de devis envoyée aux fournisseurs' },
+                { module: 'Achats', doc: 'Commande fournisseur', desc: 'Commande d&apos;achat avec délais et conditions' },
+                { module: 'Achats', doc: 'Bon de réception', doc: 'Accusé de réception des marchandises' },
+                { module: 'Achats', doc: 'Bon de retour fournisseur', doc: 'Autorisation de retour de marchandise' },
+                { module: 'Achats', doc: 'Avoir fournisseur', desc: 'Note de crédit reçue du fournisseur' },
+                { module: 'Achats', doc: 'Facture fournisseur', desc: 'Facture d&apos;achat pour comptabilisation' },
+                { module: 'Production', doc: 'Ordre de fabrication', doc: 'Ordre de production avec nomenclature et gamme' },
+              ].map((d, i) => (
+                <TableRow key={i}>
+                  <TableCell><Badge variant="outline">{d.module}</Badge></TableCell>
+                  <TableCell className="font-medium text-sm">{d.doc}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{d.desc}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <SubTitle>Rôles et permissions</SubTitle>
+      <SubTitle>En-tête de l'entreprise</SubTitle>
+      <Paragraph>
+        Chaque document imprimé affiche automatiquement l'en-tête de votre entreprise, configurable dans les Paramètres :
+      </Paragraph>
+
+      <ScreenMock title="En-tête d'un document imprimé">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 rounded-lg bg-muted border flex items-center justify-center text-xs text-muted-foreground">Logo</div>
+              <div>
+                <p className="font-bold text-sm">JAZEL WEB AGENCY SARL</p>
+                <p className="text-xs text-muted-foreground">123, Bd Zerktouni, Casablanca</p>
+                <p className="text-xs text-muted-foreground">Tél : +212 5 22 00 00 00</p>
+                <p className="text-xs text-muted-foreground">contact@jazelwebagency.com</p>
+              </div>
+            </div>
+            <div className="text-right text-xs text-muted-foreground space-y-0.5">
+              <p><span className="font-medium">ICE :</span> 009876543000012</p>
+              <p><span className="font-medium">IF :</span> 12345678</p>
+              <p><span className="font-medium">CNSS :</span> 98765432</p>
+              <p><span className="font-medium">TVA :</span> 11223344</p>
+              <p><span className="font-medium">RC :</span> 55667788</p>
+            </div>
+          </div>
+          <Separator />
+          <p className="text-center font-bold text-base">FACTURE N° FAC-2026-0067</p>
+        </div>
+      </ScreenMock>
+
+      <SubTitle>Montant en lettres</SubTitle>
+      <Paragraph>
+        Le montant TTC est automatiquement converti en <strong>toutes lettres en français</strong> au bas de chaque document.
+        Par exemple : <em>&laquo; Onze mille soixante-sept dirhams et zéro centimes &raquo;</em>.
+      </Paragraph>
+
+      <SubTitle>Comment imprimer un document</SubTitle>
+      <Step num={1}>Ouvrez le document souhaité (devis, facture, commande, etc.).</Step>
+      <Step num={2}>Cliquez sur le bouton <strong>« Imprimer »</strong> ou <strong>« Télécharger PDF »</strong>.</Step>
+      <Step num={3}>Le PDF est généré avec l'en-tête entreprise, les données du document et le pied de page configuré.</Step>
+      <Step num={4}>Vous pouvez ensuite l'imprimer physiquement ou l'envoyer par e-mail.</Step>
+
+      <TipBox type="info">
+        Le pied de page des documents imprimés est configurable dans <strong>Administration → Paramètres</strong>. Vous pouvez y ajouter jusqu'à 4 lignes de texte personnalisé.
+      </TipBox>
+    </div>
+  )
+}
+
+function AdministrationSection() {
+  return (
+    <div>
+      <SectionTitle icon={Settings} title="Administration" />
+      <Paragraph>
+        Le module Administration est réservé aux utilisateurs <strong>super_admin</strong> et <strong>admin</strong>.
+        Il permet de gérer les comptes utilisateurs, de consulter le journal d'audit et de configurer
+        les paramètres globaux du système.
+      </Paragraph>
+
+      {/* Utilisateurs */}
+      <SubTitle>Utilisateurs</SubTitle>
+      <Paragraph>
+        Gérez les comptes des utilisateurs du système, leurs rôles et leurs permissions d'accès.
+        Le système dispose de 10 rôles prédéfinis couvrant tous les profils de l'entreprise.
+      </Paragraph>
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -1088,18 +1262,20 @@ function UtilisateursSection() {
             </TableHeader>
             <TableBody>
               {[
-                { role: 'Super Admin', desc: 'Accès total au système', access: 'Tous les modules + Gestion utilisateurs' },
-                { role: 'Admin', desc: 'Administration courante', access: 'Tous les modules sauf utilisateurs' },
-                { role: 'Commercial', desc: 'Gestion de la relation client', access: 'Clients, Devis, Commandes, Factures' },
-                { role: 'Magasinier', desc: 'Gestion des stocks', access: 'Stock, Mouvements, Produits' },
-                { role: 'Acheteur', desc: 'Gestion des achats', access: 'Fournisseurs, Commandes fournisseur, Réceptions' },
-                { role: 'Resp. Production', desc: 'Supervision de la fabrication', access: 'Production, BOM, Gammes, OF' },
-                { role: 'Opérateur', desc: 'Exécution des tâches de production', access: 'Ordres de fabrication assignés' },
-                { role: 'Comptable', desc: 'Gestion financière', access: 'Factures, Paiements, Comptabilité' },
+                { role: 'super_admin', desc: 'Super Administrateur', access: 'Accès total + gestion utilisateurs' },
+                { role: 'admin', desc: 'Administrateur', access: 'Tous les modules sauf utilisateurs' },
+                { role: 'commercial', desc: 'Commercial', access: 'Ventes : Clients, Devis, Commandes, BL, Factures' },
+                { role: 'buyer', desc: 'Acheteur', access: 'Achats : Fournisseurs, Commandes, Réceptions' },
+                { role: 'storekeeper', desc: 'Magasinier', access: 'Stock : Mouvements, Alertes, Inventaires' },
+                { role: 'prod_manager', desc: 'Resp. Production', access: 'Production : BOM, Gammes, OF' },
+                { role: 'operator', desc: 'Opérateur', access: 'Ordres de fabrication assignés uniquement' },
+                { role: 'accountant', desc: 'Comptable', access: 'Finance : Factures, Paiements, Comptabilité' },
+                { role: 'cashier', desc: 'Caissier', access: 'Caisses et paiements reçus' },
+                { role: 'direction', desc: 'Direction', access: 'Tableau de bord et rapports (lecture seule)' },
               ].map((r) => (
                 <TableRow key={r.role}>
-                  <TableCell className="font-medium">{r.role}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{r.desc}</TableCell>
+                  <TableCell className="font-mono text-xs font-medium">{r.role}</TableCell>
+                  <TableCell className="text-sm">{r.desc}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{r.access}</TableCell>
                 </TableRow>
               ))}
@@ -1108,23 +1284,58 @@ function UtilisateursSection() {
         </CardContent>
       </Card>
 
+      <TipBox type="warning">
+        Seul le <strong>Super Administrateur</strong> peut créer, modifier et supprimer des comptes utilisateurs. Le rôle <strong>admin</strong> peut consulter la liste mais pas modifier les rôles.
+      </TipBox>
+
       <SubTitle>Bloquer / Débloquer un utilisateur</SubTitle>
-      <Step num={1}>Accédez au module <strong>Utilisateurs</strong> dans la section Administration.</Step>
+      <Step num={1}>Accédez à <strong>Administration → Utilisateurs</strong>.</Step>
       <Step num={2}>Trouvez l'utilisateur dans la liste.</Step>
       <Step num={3}>Cliquez sur le bouton <strong>« Bloquer »</strong> ou <strong>« Débloquer »</strong>.</Step>
       <Step num={4}>Un utilisateur bloqué ne peut plus se connecter au système.</Step>
 
-      <TipBox type="info">
-        Le Super Administrateur peut réinitialiser le mot de passe de n'importe quel utilisateur depuis ce module.
-      </TipBox>
-    </div>
-  )
-}
+      {/* Journal d'audit */}
+      <SubTitle>Journal d'audit</SubTitle>
+      <Paragraph>
+        Le journal d'audit enregistre toutes les actions importantes effectuées dans le système :
+        connexions, créations, modifications, suppressions, changements de statut, etc.
+        Chaque entrée contient la date, l'utilisateur, l'action et l'élément concerné.
+      </Paragraph>
 
-function ParametresSection() {
-  return (
-    <div>
-      <SectionTitle icon={Settings} title="Paramètres" />
+      <ScreenMock title="Journal d'audit — Dernières actions">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Utilisateur</TableHead>
+              <TableHead>Action</TableHead>
+              <TableHead>Détail</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[
+              { date: '15/01/2026 14:32', user: 'admin', action: 'Connexion', detail: 'Adresse IP : 192.168.1.45' },
+              { date: '15/01/2026 14:35', user: 'commercial', action: 'Création', detail: 'Devis DEV-2026-0042 créé' },
+              { date: '15/01/2026 15:00', user: 'magasinier', action: 'Modification', detail: 'Réception REC-2026-0012 validée' },
+              { date: '15/01/2026 15:20', user: 'comptable', action: 'Création', detail: 'Paiement PAY-2026-0034 enregistré' },
+            ].map((e, i) => (
+              <TableRow key={i}>
+                <TableCell className="text-xs font-mono text-muted-foreground whitespace-nowrap">{e.date}</TableCell>
+                <TableCell><Badge variant="outline" className="text-xs">{e.user}</Badge></TableCell>
+                <TableCell className="text-sm">{e.action}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{e.detail}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ScreenMock>
+
+      <TipBox type="info">
+        Le journal d'audit est consultable par les rôles <strong>super_admin</strong> et <strong>admin</strong>. Il garantit une traçabilité totale des opérations.
+      </TipBox>
+
+      {/* Paramètres */}
+      <SubTitle>Paramètres</SubTitle>
       <Paragraph>
         Le module Paramètres permet de configurer les informations de l'entreprise et les valeurs par défaut
         du système. Ces paramètres s'appliquent globalement à tous les modules.
@@ -1136,6 +1347,10 @@ function ParametresSection() {
           {[
             { label: 'Raison sociale', value: 'JAZEL WEB AGENCY SARL' },
             { label: 'ICE', value: '009876543000012' },
+            { label: 'IF (Identifiant Fiscal)', value: '12345678' },
+            { label: 'CNSS', value: '98765432' },
+            { label: 'N° TVA', value: '11223344' },
+            { label: 'RC (Registre Commerce)', value: '55667788' },
             { label: 'Téléphone', value: '+212 5 22 00 00 00' },
             { label: 'Email', value: 'contact@jazelwebagency.com' },
             { label: 'Adresse', value: '123, Bd Zerktouni, Casablanca' },
@@ -1144,6 +1359,43 @@ function ParametresSection() {
             <div key={f.label} className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
               <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm">{f.value}</div>
+            </div>
+          ))}
+        </div>
+      </ScreenMock>
+
+      <SubTitle>Logo de l'entreprise</SubTitle>
+      <Paragraph>
+        Vous pouvez télécharger le logo de votre entreprise qui apparaîtra sur tous les documents imprimés
+        (devis, factures, bons de livraison, etc.).
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Administration → Paramètres → Logo</strong>.</Step>
+      <Step num={2}>Cliquez sur <strong>« Télécharger un logo »</strong>.</Step>
+      <Step num={3}>Sélectionnez un fichier image (PNG ou JPG).</Step>
+
+      <TipBox type="warning">
+        La taille maximale du logo est de <strong>500 Ko</strong>. Les formats acceptés sont PNG et JPG. Un logo trop grand sera rejeté.
+      </TipBox>
+
+      <SubTitle>Pied de page d'impression</SubTitle>
+      <Paragraph>
+        Configurez jusqu'à <strong>4 lignes de texte</strong> personnalisé qui apparaîtront en pied de page
+        de tous les documents imprimés. Cela peut inclure des mentions légales, des coordonnées bancaires,
+        ou toute autre information souhaitée.
+      </Paragraph>
+
+      <ScreenMock title="Configuration du pied de page d'impression">
+        <div className="max-w-md space-y-3">
+          {[
+            { line: 'Ligne 1', value: 'Siège social : 123, Bd Zerktouni, Casablanca' },
+            { line: 'Ligne 2', value: 'RIB : Attijariwafa 000 000 0000000000 00' },
+            { line: 'Ligne 3', value: 'N° ICE : 009876543000012 — IF : 12345678 — RC : 55667788' },
+            { line: 'Ligne 4', value: 'TVA non récupérable selon l\'article 92 du CGI' },
+          ].map((l) => (
+            <div key={l.line} className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{l.line}</label>
+              <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm">{l.value}</div>
             </div>
           ))}
         </div>
@@ -1168,6 +1420,7 @@ function ParametresSection() {
                 { param: 'Format numéro', value: 'AUTO', desc: 'Numérotation séquentielle automatique' },
                 { param: 'Langue', value: 'Français', desc: 'Langue de l\'interface' },
                 { param: 'Fuseau horaire', value: 'Africa/Casablanca', desc: 'Heure locale marocaine (GMT+1)' },
+                { param: 'Devise', value: 'MAD', desc: 'Dirham marocain' },
               ].map((p) => (
                 <TableRow key={p.param}>
                   <TableCell className="font-medium">{p.param}</TableCell>
@@ -1192,16 +1445,13 @@ const sectionComponents: Record<string, () => JSX.Element> = {
   'introduction': IntroSection,
   'connexion': ConnexionSection,
   'tableau-de-bord': DashboardSection,
-  'clients': ClientsSection,
-  'produits': ProduitsSection,
-  'devis': DevisSection,
-  'commandes': CommandesSection,
-  'factures': FacturesSection,
+  'ventes': VentesSection,
+  'achats': AchatsSection,
   'stock': StockSection,
   'production': ProductionSection,
   'finance': FinanceSection,
-  'utilisateurs': UtilisateursSection,
-  'parametres': ParametresSection,
+  'impression': ImpressionSection,
+  'administration': AdministrationSection,
 }
 
 /* ─── Main Guide View ─── */
@@ -1255,7 +1505,7 @@ export default function GuideView() {
                 </div>
                 <div>
                   <CardTitle className="text-base">Guide d&apos;utilisation</CardTitle>
-                  <CardDescription className="text-xs">GEMA ERP PRO v1.0</CardDescription>
+                  <CardDescription className="text-xs">GEMA ERP PRO v1.0.2</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -1309,7 +1559,7 @@ export default function GuideView() {
             <div className="flex items-center justify-center gap-3 mt-4">
               <Badge variant="outline" className="gap-1">
                 <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" />
-                Version 1.0
+                Version 1.0.2
               </Badge>
               <Badge variant="outline" className="gap-1">
                 <Globe className="h-3 w-3" />
@@ -1339,7 +1589,7 @@ export default function GuideView() {
           <Separator />
           <div className="text-center py-8 text-sm text-muted-foreground">
             <BookOpen className="h-8 w-8 mx-auto mb-3 text-primary/30" />
-            <p className="font-medium">GEMA ERP PRO — Guide d&apos;utilisation</p>
+            <p className="font-medium">GEMA ERP PRO v1.0.2 — Guide d&apos;utilisation</p>
             <p className="mt-1">Développé avec passion au Maroc.</p>
             <p className="mt-1 text-xs">&copy; {new Date().getFullYear()} JAZEL WEB AGENCY SARL. Tous droits réservés.</p>
           </div>
