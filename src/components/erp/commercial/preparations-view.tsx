@@ -627,7 +627,7 @@ export default function PreparationsView() {
           Create Dialog
           ═══════════════════════════════════════════════════ */}
       <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) { setCreatePreview(null); setSelectedOrderId('') } }}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
@@ -800,7 +800,7 @@ export default function PreparationsView() {
           Detail Dialog
           ═══════════════════════════════════════════════════ */}
       <Dialog open={detailOpen} onOpenChange={(open) => { setDetailOpen(open); if (!open) { setSelectedPrep(null); setStockCheckData(null) } }}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 flex-wrap">
               <ClipboardList className="h-5 w-5" />

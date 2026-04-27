@@ -291,7 +291,7 @@ export default function PriceRequestsView() {
               Nouvelle demande
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{isEditing ? 'Modifier la demande' : 'Nouvelle demande de prix'}</DialogTitle>
             </DialogHeader>
@@ -378,7 +378,7 @@ export default function PriceRequestsView() {
 
       {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileQuestion className="h-5 w-5" />

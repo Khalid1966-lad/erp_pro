@@ -312,7 +312,7 @@ export default function SupplierCreditNotesView() {
               Nouvel avoir
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{isEditing ? "Modifier l'avoir" : 'Nouvel avoir fournisseur'}</DialogTitle>
             </DialogHeader>
@@ -445,7 +445,7 @@ export default function SupplierCreditNotesView() {
 
       {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowLeftRight className="h-5 w-5" />

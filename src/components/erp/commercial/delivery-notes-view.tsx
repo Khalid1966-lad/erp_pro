@@ -853,7 +853,7 @@ export default function DeliveryNotesView() {
       {/* CREATE DIALOG                                        */}
       {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
@@ -1286,7 +1286,7 @@ export default function DeliveryNotesView() {
       {/* EDIT DIALOG                                          */}
       {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5" />
@@ -1375,7 +1375,7 @@ export default function DeliveryNotesView() {
       {/* DETAIL DIALOG                                        */}
       {/* ═══════════════════════════════════════════════════════ */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 flex-wrap">
               <Truck className="h-5 w-5" />

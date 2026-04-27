@@ -646,7 +646,7 @@ export default function SalesOrdersView() {
           setFormQuoteNumber(null)
         }
       }}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingOrder ? 'Modifier la commande' : 'Nouvelle commande client'}</DialogTitle>
           </DialogHeader>
@@ -834,7 +834,7 @@ export default function SalesOrdersView() {
 
       {/* Quote Import Selection Dialog */}
       <Dialog open={quoteImportOpen} onOpenChange={setQuoteImportOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileDown className="h-5 w-5 text-emerald-600" />
@@ -920,7 +920,7 @@ export default function SalesOrdersView() {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 flex-wrap">
               <ShoppingCart className="h-5 w-5" />

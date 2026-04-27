@@ -14,6 +14,49 @@ interface StatementTransaction {
   balance: number
 }
 
+interface StatementSummary {
+  /** Montant des factures fournisseurs impayées (non cancelées et non payées) */
+  unpaidInvoices: number
+  /** Montant des réceptions non encore facturées */
+  uninvoicedReceptions: number
+  /** Montant des règlements de la période */
+  periodPayments: number
+  /** Montant des chèques/effets non remis à la banque (en_attente) */
+  portfolioAmount: number
+  /** Montant des avoirs non consolidés (reçus mais non appliqués) */
+  unconsolidatedCreditNotes: number
+  /** Solde de la période (créditeur ou débiteur) */
+  periodBalance: number
+}
+
+/**
+ * Helper: fetch all supplier invoice numbers for a given supplier.
+ * Used to filter Payment records (which lack a direct supplierId FK).
+ */
+async function getSupplierInvoiceNumbers(supplierId: string): Promise<string[]> {
+  const invoices = await db.supplierInvoice.findMany({
+    where: { supplierId },
+    select: { number: true },
+  })
+  return invoices.map((inv) => inv.number)
+}
+
+/**
+ * Helper: filter an array of payments by checking if reference or notes
+ * contains any of the given supplier invoice numbers.
+ */
+function filterPaymentsBySupplier(
+  payments: { id: string; reference: string | null; notes: string | null; date: Date; amount: number }[],
+  invoiceNumbers: string[]
+): typeof payments {
+  if (invoiceNumbers.length === 0) return []
+  return payments.filter((pay) => {
+    const ref = (pay.reference || '').toUpperCase()
+    const note = (pay.notes || '').toUpperCase()
+    return invoiceNumbers.some((num) => ref.includes(num.toUpperCase()) || note.includes(num.toUpperCase()))
+  })
+}
+
 // GET /api/suppliers/[id]/statement?from=YYYY-MM-DD&to=YYYY-MM-DD
 export async function GET(
   req: NextRequest,
@@ -82,9 +125,12 @@ export async function GET(
       previousDateFilter.lt = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate())
     }
 
+    // Get all supplier invoice numbers for payment filtering
+    const supplierInvoiceNumbers = await getSupplierInvoiceNumbers(id)
+
     // ─── Fetch transactions IN the date range ───
 
-    const [supplierInvoices, supplierCreditNotes, payments, rejetEffets] = await Promise.all([
+    const [supplierInvoices, supplierCreditNotes, allPayments, allRejetEffets] = await Promise.all([
       // Supplier Invoices (not cancelled) → DEBIT (what we owe)
       db.supplierInvoice.findMany({
         where: {
@@ -105,17 +151,17 @@ export async function GET(
         select: { date: true, number: true, totalTTC: true },
       }),
 
-      // Payments to suppliers (supplier_payment type) → CREDIT
+      // All supplier_payment payments in the date range (will be filtered by supplier)
       db.payment.findMany({
         where: {
           type: 'supplier_payment',
           ...(Object.keys(rangeDateFilter).length > 0 ? { date: rangeDateFilter } : {}),
         },
-        select: { date: true, reference: true, amount: true, notes: true },
+        select: { id: true, date: true, reference: true, amount: true, notes: true },
         orderBy: { date: 'asc' },
       }),
 
-      // Rejet effets/cheques for supplier payments → CREDIT (reversal of debit)
+      // All rejet effets/cheques for supplier payments (will be filtered)
       db.effetCheque.findMany({
         where: {
           statut: 'rejete',
@@ -125,20 +171,37 @@ export async function GET(
           },
         },
         select: {
+          id: true,
+          paymentId: true,
           dateRejet: true,
           type: true,
           numero: true,
           montant: true,
           causeRejet: true,
+          payment: {
+            select: { reference: true, notes: true },
+          },
         },
       }),
     ])
+
+    // Filter payments to only include those linked to this supplier
+    const payments = filterPaymentsBySupplier(allPayments, supplierInvoiceNumbers)
+
+    // Filter rejetEffets to only include those linked to this supplier's payments
+    const rejetEffets = allRejetEffets.filter((rej) => {
+      const ref = (rej.payment?.reference || '').toUpperCase()
+      const note = (rej.payment?.notes || '').toUpperCase()
+      return supplierInvoiceNumbers.some(
+        (num) => ref.includes(num.toUpperCase()) || note.includes(num.toUpperCase())
+      )
+    })
 
     // ─── Calculate previous balance (all transactions BEFORE from date) ───
     let previousBalance = 0
 
     if (fromDate) {
-      const [prevInvoices, prevCreditNotes, prevPayments] = await Promise.all([
+      const [prevInvoices, prevCreditNotes, allPrevPayments] = await Promise.all([
         db.supplierInvoice.aggregate({
           where: {
             supplierId: id,
@@ -155,19 +218,22 @@ export async function GET(
           },
           _sum: { totalTTC: true },
         }),
-        db.payment.aggregate({
+        db.payment.findMany({
           where: {
             type: 'supplier_payment',
             date: previousDateFilter,
           },
-          _sum: { amount: true },
+          select: { id: true, reference: true, notes: true, amount: true },
         }),
       ])
+
+      const prevPayments = filterPaymentsBySupplier(allPrevPayments, supplierInvoiceNumbers)
+      const prevPaymentsTotal = prevPayments.reduce((sum, p) => sum + p.amount, 0)
 
       previousBalance =
         (prevInvoices._sum.totalTTC || 0) -
         (prevCreditNotes._sum.totalTTC || 0) -
-        (prevPayments._sum.amount || 0)
+        prevPaymentsTotal
     }
 
     // ─── Build transaction list ───
@@ -246,6 +312,94 @@ export async function GET(
       totalCredit += tx.credit
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // SUMMARY TABLE — Récapitulatif financier (fournisseur)
+    // ═══════════════════════════════════════════════════════════════
+
+    const [
+      // Factures impayées : non cancelées et non payées
+      unpaidInvoicesAgg,
+      // Réceptions non facturées : commandes d'achat réceptionnées sans facture liée
+      uninvoicedReceptionsData,
+      // Avoirs non consolidés : status received (ni applied ni cancelled)
+      unconsolidatedCreditNotesAgg,
+      // Effets/Chèques en portefeuille (en_attente) pour ce fournisseur
+      allPortfolioEffets,
+    ] = await Promise.all([
+      // 1) Unpaid supplier invoices (not paid, not cancelled)
+      db.supplierInvoice.aggregate({
+        where: {
+          supplierId: id,
+          status: { notIn: ['paid', 'cancelled'] },
+        },
+        _sum: { totalTTC: true },
+      }),
+
+      // 2) Purchase orders for this supplier that have receptions but NO supplier invoices linked
+      db.purchaseOrder.findMany({
+        where: {
+          supplierId: id,
+          receptions: { some: {} },
+          supplierInvoices: { none: {} },
+        },
+        select: { totalTTC: true },
+      }),
+
+      // 3) Unconsolidated credit notes (received but not applied/cancelled)
+      db.supplierCreditNote.aggregate({
+        where: {
+          supplierId: id,
+          status: 'received',
+        },
+        _sum: { totalTTC: true },
+      }),
+
+      // 4) Portfolio: chèques/effets en_attente linked to this supplier's payments
+      db.effetCheque.findMany({
+        where: {
+          statut: 'en_attente',
+          payment: {
+            type: 'supplier_payment',
+          },
+        },
+        select: {
+          montant: true,
+          payment: {
+            select: { reference: true, notes: true },
+          },
+        },
+      }),
+    ])
+
+    // Filter portfolio effets by supplier
+    const portfolioEffets = allPortfolioEffets.filter((effet) => {
+      const ref = (effet.payment?.reference || '').toUpperCase()
+      const note = (effet.payment?.notes || '').toUpperCase()
+      return supplierInvoiceNumbers.some(
+        (num) => ref.includes(num.toUpperCase()) || note.includes(num.toUpperCase())
+      )
+    })
+
+    const unpaidInvoices = Math.round((unpaidInvoicesAgg._sum.totalTTC || 0) * 100) / 100
+    const uninvoicedReceptionsTotal = Math.round(
+      uninvoicedReceptionsData.reduce((sum, po) => sum + po.totalTTC, 0) * 100
+    ) / 100
+    const periodPayments = Math.round(totalCredit * 100) / 100
+    const portfolioAmount = Math.round(
+      portfolioEffets.reduce((sum, e) => sum + e.montant, 0) * 100
+    ) / 100
+    const unconsolidatedCreditNotes = Math.round((unconsolidatedCreditNotesAgg._sum.totalTTC || 0) * 100) / 100
+    const periodBalance = Math.round(runningBalance * 100) / 100
+
+    const summary: StatementSummary = {
+      unpaidInvoices,
+      uninvoicedReceptions: uninvoicedReceptionsTotal,
+      periodPayments,
+      portfolioAmount,
+      unconsolidatedCreditNotes,
+      periodBalance,
+    }
+
     return NextResponse.json({
       supplier,
       from: fromParam || null,
@@ -254,7 +408,8 @@ export async function GET(
       transactions,
       totalDebit: Math.round(totalDebit * 100) / 100,
       totalCredit: Math.round(totalCredit * 100) / 100,
-      finalBalance: Math.round(runningBalance * 100) / 100,
+      finalBalance: periodBalance,
+      summary,
     })
   } catch (error) {
     console.error('Supplier statement error:', error)

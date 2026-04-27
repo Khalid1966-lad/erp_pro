@@ -467,7 +467,7 @@ export default function CreditNotesView() {
 
       {/* Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) setIsEditing(false); setDialogOpen(open) }}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditing ? 'Modifier l\'avoir' : 'Nouvel avoir'}</DialogTitle>
           </DialogHeader>
@@ -588,7 +588,7 @@ export default function CreditNotesView() {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RotateCcw className="h-5 w-5" />
