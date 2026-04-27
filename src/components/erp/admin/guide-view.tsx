@@ -312,64 +312,28 @@ function ConnexionSection() {
         </div>
       </ScreenMock>
 
-      <SubTitle>Comptes de démonstration</SubTitle>
-      <Paragraph>Voici les comptes disponibles pour tester le système :</Paragraph>
-
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Rôle</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Mot de passe</TableHead>
-                <TableHead>Accès</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[
-                { role: 'Super Admin', email: 'contact@jazelwebagency.com', pass: 'hello@erp2026', access: 'Accès total' },
-                { role: 'Admin', email: 'admin@gema-erp.com', pass: 'admin123', access: 'Gestion complète' },
-                { role: 'Commercial', email: 'commercial@gema-erp.com', pass: 'pass123', access: 'Ventes' },
-                { role: 'Magasinier', email: 'magasinier@gema-erp.com', pass: 'pass123', access: 'Stock' },
-                { role: 'Acheteur', email: 'acheteur@gema-erp.com', pass: 'pass123', access: 'Achats' },
-                { role: 'Comptable', email: 'comptable@gema-erp.com', pass: 'pass123', access: 'Finance' },
-                { role: 'Caissier', email: 'caissier@gema-erp.com', pass: 'pass123', access: 'Caisses' },
-                { role: 'Resp. Production', email: 'production@gema-erp.com', pass: 'pass123', access: 'Production' },
-                { role: 'Opérateur', email: 'operateur@gema-erp.com', pass: 'pass123', access: 'OF assignés' },
-                { role: 'Direction', email: 'direction@gema-erp.com', pass: 'pass123', access: 'Lecture seule' },
-              ].map((r) => (
-                <TableRow key={r.role}>
-                  <TableCell className="font-medium">{r.role}</TableCell>
-                  <TableCell className="text-xs font-mono">{r.email}</TableCell>
-                  <TableCell className="text-xs font-mono">{r.pass}</TableCell>
-                  <TableCell><Badge variant="outline">{r.access}</Badge></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <TipBox type="warning">
-        En production, modifiez immédiatement les mots de passe par défaut pour des raisons de sécurité.
-      </TipBox>
-
       <SubTitle>Navigation dans le système</SubTitle>
       <Paragraph>
         L'interface est organisée avec une <strong>barre latérale</strong> (sidebar) à gauche qui regroupe tous les modules
         par catégorie. Chaque catégorie peut être dépliée ou repliée en cliquant sur son titre.
       </Paragraph>
 
+      <SubTitle>Mode sombre</SubTitle>
+      <Paragraph>
+        GEMA ERP PRO prend en charge le <strong>mode sombre</strong>. Pour basculer entre le mode clair et sombre,
+        cliquez sur l'icône soleil/lune dans la barre d'en-tête en haut à droite de l'écran. Le choix est mémorisé
+        automatiquement pour votre prochaine session.
+      </Paragraph>
+
       <ScreenMock title="Structure de la barre latérale">
         <div className="space-y-2 max-w-xs">
           {[
             { title: 'Tableau de bord', items: ['Vue d\'ensemble'] },
-            { title: 'Ventes', items: ['Clients', 'Produits', 'Devis', 'Commandes', 'Préparations', 'Bons de livraison', 'Factures', 'Avoirs'] },
+            { title: 'Ventes', items: ['Clients', 'Devis', 'Commandes', 'Préparations', 'Bons de livraison', 'Factures', 'Avoirs'] },
             { title: 'Achats', items: ['Fournisseurs', 'Demandes de prix', 'Devis fournisseurs', 'Commandes fournisseurs', 'Réceptions', 'Bons de retour', 'Avoirs fournisseurs', 'Factures fournisseurs'] },
-            { title: 'Stock', items: ['Mouvements', 'Alertes stock', 'Inventaires'] },
-            { title: 'Production', items: ['Nomenclatures', 'Gammes', 'Postes de travail', 'Ordres de fabrication'] },
-            { title: 'Finance', items: ['Caisses', 'Banque', 'Paiements', 'Chèques & Effets', 'Comptabilité'] },
+            { title: 'Stock', items: ['Produits', 'Mouvements', 'Alertes stock', 'Inventaires'] },
+            { title: 'Production', items: ['Nomenclatures', 'Gammes', 'Postes de travail', 'Ordres de fabrication', 'Contrôle qualité'] },
+            { title: 'Finance', items: ['Caisses', 'Banque', 'Paiements', 'Chèques & Effets', 'Comptabilité', 'États financiers'] },
             { title: 'Communication', items: ['Messagerie'] },
             { title: 'Administration', items: ['Utilisateurs', 'Journal d\'audit', 'Paramètres', 'Guide d\'utilisation'] },
           ].map((g) => (
@@ -616,6 +580,11 @@ function VentesSection() {
           </Table>
         </div>
       </ScreenMock>
+
+      <TipBox type="success">
+        Une préparation validée peut être convertie directement en <strong>bon de livraison</strong> en un seul clic.
+        Les quantités préparées sont automatiquement reprises dans le BL.
+      </TipBox>
 
       {/* Bons de livraison */}
       <SubTitle>Bons de livraison</SubTitle>
@@ -1042,6 +1011,24 @@ function ProductionSection() {
       <TipBox type="warning">
         Les composants sont réservés en stock au lancement de l'OF. Assurez-vous d'avoir suffisamment de stock avant de démarrer la production.
       </TipBox>
+
+      {/* Contrôle qualité */}
+      <SubTitle>Contrôle qualité</SubTitle>
+      <Paragraph>
+        Le module Contrôle qualité permet de gérer les inspections de qualité lors des réceptions fournisseurs,
+        de la production et des inventaires. Chaque contrôle génère une fiche avec des lignes d'inspection
+        détaillant les critères vérifiés, les résultats obtenus (Conforme / Non conforme) et les observations.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Production → Contrôle qualité</strong>.</Step>
+      <Step num={2}>Cliquez sur <strong>« + Nouveau contrôle »</strong> et sélectionnez le type (Réception, Production, Inventaire).</Step>
+      <Step num={3}>Ajoutez les lignes d'inspection avec les critères, mesures et résultats.</Step>
+      <Step num={4}>Enregistrez le contrôle. Les produits non conformes peuvent déclencher des actions correctives.</Step>
+
+      <TipBox type="warning">
+        Les contrôles qualité sont sauvegardés dans les sauvegardes automatiques du système. Assurez-vous de documenter
+        tous les non-conformités pour le suivi qualité.
+      </TipBox>
     </div>
   )
 }
@@ -1162,6 +1149,31 @@ function FinanceSection() {
       <TipBox type="warning">
         Pour une comptabilité complète conforme au PCG Maroc (Plan Comptable Général), l'export vers un logiciel comptable dédié est recommandé.
       </TipBox>
+
+      {/* États financiers */}
+      <SubTitle>États financiers</SubTitle>
+      <Paragraph>
+        Le module États financiers offre des rapports détaillés pour suivre la santé financière de l'entreprise :
+      </Paragraph>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {[
+          { title: 'Extrait client', desc: 'Résumé complet des opérations, soldes et BL non facturés pour un client donné', color: 'text-violet-600 bg-violet-50' },
+          { title: 'Balance globale', desc: 'Vue d\'ensemble de tous les clients : encaissements, impayés, et solds cumulés', color: 'text-blue-600 bg-blue-50' },
+        ].map((r) => (
+          <Card key={r.title}>
+            <CardContent className="p-4">
+              <p className="font-semibold text-sm mb-1">{r.title}</p>
+              <p className="text-xs text-muted-foreground">{r.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Step num={1}>Accédez à <strong>Finance → États financiers</strong>.</Step>
+      <Step num={2}>Sélectionnez un client pour l'extrait individuel, ou consultez la balance globale.</Step>
+      <Step num={3}>Filtrez par période pour analyser une période spécifique.</Step>
+      <Step num={4}>Utilisez les données pour le suivi des relances et la prise de décision.</Step>
     </div>
   )
 }
@@ -1296,11 +1308,11 @@ function ImpressionSection() {
                 { module: 'Ventes', doc: 'Avoir client', desc: 'Note de crédit pour retour ou remise' },
                 { module: 'Achats', doc: 'Demande de prix', desc: 'Demande de devis envoyée aux fournisseurs' },
                 { module: 'Achats', doc: 'Commande fournisseur', desc: 'Commande d&apos;achat avec délais et conditions' },
-                { module: 'Achats', doc: 'Bon de réception', doc: 'Accusé de réception des marchandises' },
-                { module: 'Achats', doc: 'Bon de retour fournisseur', doc: 'Autorisation de retour de marchandise' },
+                { module: 'Achats', doc: 'Bon de réception', desc: 'Accusé de réception des marchandises' },
+                { module: 'Achats', doc: 'Bon de retour fournisseur', desc: 'Autorisation de retour de marchandise' },
                 { module: 'Achats', doc: 'Avoir fournisseur', desc: 'Note de crédit reçue du fournisseur' },
                 { module: 'Achats', doc: 'Facture fournisseur', desc: 'Facture d&apos;achat pour comptabilisation' },
-                { module: 'Production', doc: 'Ordre de fabrication', doc: 'Ordre de production avec nomenclature et gamme' },
+                { module: 'Production', doc: 'Ordre de fabrication', desc: 'Ordre de production avec nomenclature et gamme' },
               ].map((d, i) => (
                 <TableRow key={i}>
                   <TableCell><Badge variant="outline">{d.module}</Badge></TableCell>
@@ -1568,18 +1580,19 @@ function AdministrationSection() {
 
       <SubTitle>Sauvegarde & Restauration</SubTitle>
       <Paragraph>
-        Le système intègre un module complet de sauvegarde et restauration des données.
-        L'administrateur peut créer des sauvegardes manuelles de l'ensemble des 53 tables de la base de données,
-        télécharger les fichiers de sauvegarde, et restaurer une sauvegarde précédente en cas de besoin.
+        Le système de sauvegarde intégré permet de protéger vos données à tout moment. Les sauvegardes
+        sont automatiquement compressées et stockées dans la base de données. Vous pouvez également
+        restaurer une sauvegarde antérieure ou importer un fichier de sauvegarde externe.
       </Paragraph>
 
-      <Step num={1}>Accédez à <strong>Administration → Paramètres</strong> et descendez à la section <strong>« Sauvegarde & Restauration »</strong>.</Step>
-      <Step num={2}>Cliquez sur <strong>« Créer une sauvegarde »</strong> pour générer un instantané complet de la base de données.</Step>
-      <Step num={3}>Téléchargez le fichier de sauvegarde pour le stocker en sécurité.</Step>
-      <Step num={4}>Pour restaurer, importez un fichier de sauvegarde précédent et confirmez la restauration.</Step>
+      <Step num={1}>Accédez à <strong>Administration → Paramètres</strong> puis onglet <strong>« Sauvegarde »</strong>.</Step>
+      <Step num={2}>Cliquez sur <strong>« Créer une sauvegarde »</strong> pour générer un instantané complet.</Step>
+      <Step num={3}>Pour télécharger, cliquez sur l'icône de téléchargement à côté de la sauvegarde.</Step>
+      <Step num={4}>Pour restaurer, utilisez le bouton <strong>« Restaurer depuis un fichier »</strong> et sélectionnez un fichier <code className="text-xs bg-muted px-1 py-0.5 rounded">.json.gz</code>.</Step>
 
       <TipBox type="warning">
-        La restauration remplace toutes les données actuelles. Assurez-vous d'avoir une sauvegarde récente avant de procéder. Cette opération est irréversible.
+        La restauration remplace toutes les données existantes. Le système conserve automatiquement les 7 dernières sauvegardes.
+        Il est recommandé de télécharger régulièrement vos sauvegardes sur un support externe.
       </TipBox>
     </div>
   )
