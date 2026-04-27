@@ -614,9 +614,6 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                   {totalPending} en cours
                 </Badge>
               )}
-              <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={fetchAgenda} disabled={loading}>
-                <RefreshCw className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', loading && 'animate-spin')} />
-              </Button>
             </div>
           </div>
         </div>
@@ -629,21 +626,26 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
             </div>
           ) : data ? (
             <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              {/* ── Dropdown selector (shrink-0) ── */}
+              {/* ── Dropdown selector + Refresh (shrink-0) ── */}
               <div className="shrink-0 px-3 sm:px-4 py-2 border-b border-border/50 bg-muted/30">
-                <Select value={activeTab} onValueChange={setActiveTab}>
-                  <SelectTrigger className="w-full h-9 text-sm">
-                    <SelectValue placeholder="Sélectionner une vue" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TABS.map((tab) => (
-                      <SelectItem key={tab.value} value={tab.value} className="gap-2">
-                        <tab.icon className="h-4 w-4" />
-                        {tab.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger className="flex-1 h-9 text-sm">
+                      <SelectValue placeholder="Sélectionner une vue" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TABS.map((tab) => (
+                        <SelectItem key={tab.value} value={tab.value} className="gap-2">
+                          <tab.icon className="h-4 w-4" />
+                          {tab.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={fetchAgenda} disabled={loading}>
+                    <RefreshCw className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', loading && 'animate-spin')} />
+                  </Button>
+                </div>
               </div>
 
               {/* ── ScrollArea (flex-1, min-h-0) ── */}
