@@ -301,7 +301,7 @@ export async function PUT(req: NextRequest) {
           + rejectedBatches.reduce((sum, b) => sum + (b.goodQuantity + b.scrapQuantity), 0)
       }
 
-      // Create stock movement (in for production output)
+      // Create stock movement (in for production output) + LOT
       if (finalGoodQuantity > 0) {
         await db.stockMovement.create({
           data: {
@@ -319,6 +319,38 @@ export async function PUT(req: NextRequest) {
         await db.product.update({
           where: { id: existing.productId },
           data: { currentStock: { increment: finalGoodQuantity } },
+        })
+
+        // Create a stock lot for traceability
+        const lotCount = await db.lot.count()
+        const year = new Date().getFullYear()
+        const lotNumber = `LOT-${year}-${String(lotCount + 1).padStart(4, '0')}`
+
+        // Ensure uniqueness
+        const existingLot = await db.lot.findUnique({ where: { numeroLot: lotNumber } })
+        const finalLotNumber = existingLot ? `${lotNumber}-${Math.floor(Math.random() * 1000)}` : lotNumber
+
+        const lot = await db.lot.create({
+          data: {
+            numeroLot: finalLotNumber,
+            productId: existing.productId,
+            workOrderId: id,
+            quantiteInitiale: finalGoodQuantity,
+            statut: 'actif',
+            dateFabrication: new Date(),
+            notes: `Lot créé automatiquement depuis OF ${existing.number}`,
+          },
+        })
+
+        // Create initial entry mouvement
+        await db.lotMouvement.create({
+          data: {
+            lotId: lot.id,
+            type: 'entree',
+            quantite: finalGoodQuantity,
+            documentRef: existing.number,
+            notes: `Production OF ${existing.number}`,
+          },
         })
       }
 

@@ -25,10 +25,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { ProductCombobox } from '@/components/erp/shared/product-combobox'
+import LotsView, { lotStatutLabels, lotStatutColors } from '@/components/erp/production/lots-view'
 import {
   Factory, Plus, Eye, RefreshCw, Search, Calendar, ChevronLeft, ChevronRight,
   Play, CheckCircle2, XCircle, Lock, FileEdit, Clock, Package, Trash2, ArrowRight,
-  AlertTriangle, Loader2, Layers
+  AlertTriangle, Loader2, Layers, ChevronUp, ChevronDown
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { format } from 'date-fns'
@@ -166,6 +167,26 @@ const batchStatusColors: Record<BatchStatus, string> = {
 const formatCurrency = (n: number) =>
   n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
+interface StockLot {
+  id: string
+  numeroLot: string
+  productId: string
+  workOrderId: string | null
+  quantiteInitiale: number
+  statut: 'actif' | 'epuise' | 'bloque' | 'expire'
+  dateFabrication: string | null
+  dateExpiration: string | null
+  notes: string | null
+  createdAt: string
+  product: { id: string; reference: string; designation: string; unit: string }
+  workOrder?: { id: string; number: string }
+  qtySortie: number
+  qtyReservee: number
+  qtyRetour: number
+  qtyDisponible: number
+  qtyPhysique: number
+}
+
 export default function WorkOrdersView() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -173,6 +194,10 @@ export default function WorkOrdersView() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  // Stock lots section
+  const [lotsSectionOpen, setLotsSectionOpen] = useState(false)
+  const [woStockLots, setWoStockLots] = useState<StockLot[]>([])
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false)
@@ -382,11 +407,23 @@ export default function WorkOrdersView() {
     }
   }
 
+  // ---- Stock lots for work order ----
+  const fetchWoStockLots = useCallback(async (workOrderId: string) => {
+    try {
+      const data = await api.get<{ lots: StockLot[] }>(`/lots?workOrderId=${workOrderId}&limit=100`)
+      setWoStockLots(data.lots || [])
+    } catch {
+      setWoStockLots([])
+    }
+  }, [])
+
   const openDetail = (wo: WorkOrder) => {
     setSelectedWO(wo)
     setDetailOpen(true)
     // Fetch batches for this work order
     fetchBatches(wo.id)
+    // Fetch stock lots for this work order
+    fetchWoStockLots(wo.id)
     setNewBatchQty('')
     setNewBatchNotes('')
   }
@@ -542,6 +579,27 @@ export default function WorkOrdersView() {
           </Button>
         </div>
       </div>
+
+      {/* Stock Lots Section - Toggle */}
+      <Card className={lotsSectionOpen ? '' : 'cursor-pointer'} onClick={() => setLotsSectionOpen(!lotsSectionOpen)}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Layers className="h-4 w-4 text-emerald-600" />
+              Gestion des lots de stock
+              <Badge variant="secondary">{woStockLots.length}</Badge>
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setLotsSectionOpen(!lotsSectionOpen) }}>
+              {lotsSectionOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+        </CardHeader>
+        {lotsSectionOpen && (
+          <CardContent>
+            <LotsView embedded />
+          </CardContent>
+        )}
+      </Card>
 
       {/* Status Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1279,6 +1337,44 @@ export default function WorkOrdersView() {
                     )}
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Stock Lots for this Work Order (closed only) */}
+              {selectedWO.status === 'closed' && woStockLots.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-emerald-600" />
+                    Lots de stock générés
+                  </h4>
+                  <div className="rounded border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">N° Lot</TableHead>
+                          <TableHead className="text-xs text-right">Qté initiale</TableHead>
+                          <TableHead className="text-xs text-right">Disponible</TableHead>
+                          <TableHead className="text-xs text-right">Réservé</TableHead>
+                          <TableHead className="text-xs">Statut</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {woStockLots.map((lot) => (
+                          <TableRow key={lot.id}>
+                            <TableCell className="font-mono text-xs">{lot.numeroLot}</TableCell>
+                            <TableCell className="text-xs text-right">{lot.quantiteInitiale}</TableCell>
+                            <TableCell className="text-xs text-right font-medium text-green-600">{lot.qtyDisponible}</TableCell>
+                            <TableCell className="text-xs text-right text-orange-600">{lot.qtyReservee}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={lotStatutColors[lot.statut]}>
+                                {lotStatutLabels[lot.statut]}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               )}
 
               {/* Steps Table */}

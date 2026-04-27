@@ -320,6 +320,7 @@ model Product {
   deliveryNoteLines DeliveryNoteLine[]
   preparationLines  PreparationLine[]
   qualityControlLines QualityControlLine[]
+  lots             Lot[]
 }
 
 enum QuoteStatus {
@@ -1034,6 +1035,22 @@ enum ProductionBatchStatus {
   rejected
 }
 
+enum LotStatus {
+  actif
+  epuise
+  bloque
+  expire
+}
+
+enum LotMouvementType {
+  entree
+  sortie
+  reservation
+  annulation_resa
+  retour
+  ajustement
+}
+
 model WorkOrder {
   id              String           @id @default(cuid())
   number          String           @unique
@@ -1055,6 +1072,7 @@ model WorkOrder {
   steps           WorkOrderStep[]
   qualityControls  QualityControl[] @relation("QualityControlWorkOrder")
   batches         ProductionBatch[]
+  lots             Lot[]
 }
 
 model ProductionBatch {
@@ -1078,6 +1096,38 @@ enum StepStatus {
   in_progress
   completed
   skipped
+}
+
+// ============ STOCK LOTS ============
+
+model Lot {
+  id              String           @id @default(cuid())
+  numeroLot       String           @unique
+  productId       String
+  product         Product          @relation(fields: [productId], references: [id])
+  workOrderId     String?
+  workOrder       WorkOrder?       @relation(fields: [workOrderId], references: [id])
+  quantiteInitiale Float
+  statut          LotStatus        @default(actif)
+  dateFabrication DateTime?
+  dateExpiration  DateTime?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  mouvements      LotMouvement[]
+}
+
+model LotMouvement {
+  id              String             @id @default(cuid())
+  lotId           String
+  lot             Lot                @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  type            LotMouvementType
+  quantite        Float
+  documentRef     String?
+  documentId      String?
+  notes           String?
+  createdAt       DateTime           @default(now())
 }
 
 model WorkOrderStep {

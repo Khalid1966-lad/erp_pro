@@ -23,9 +23,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 import {
   Plus, Edit, Trash2, Search, Package, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Loader2,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Layers, Eye
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
 
 interface Product {
   id: string
@@ -114,6 +116,12 @@ export default function ProductsView() {
   const [saving, setSaving] = useState(false)
   const [fetchKey, setFetchKey] = useState(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Lots dialog state ──
+  const [lotsDialogOpen, setLotsDialogOpen] = useState(false)
+  const [lotsProduct, setLotsProduct] = useState<Product | null>(null)
+  const [lotsData, setLotsData] = useState<any[]>([])
+  const [lotsLoading, setLotsLoading] = useState(false)
 
   // ── Fetch distinct familles (lightweight, once) ──
   useEffect(() => {
@@ -299,6 +307,24 @@ export default function ProductsView() {
     }
   }
 
+  const fetchProductLots = useCallback(async (productId: string) => {
+    try {
+      setLotsLoading(true)
+      const data = await api.get<{ lots: any[] }>(`/lots?productId=${productId}&limit=100`)
+      setLotsData(data.lots || [])
+    } catch {
+      setLotsData([])
+    } finally {
+      setLotsLoading(false)
+    }
+  }, [])
+
+  const openLotsDialog = (product: Product) => {
+    setLotsProduct(product)
+    setLotsDialogOpen(true)
+    fetchProductLots(product.id)
+  }
+
   // ── Computed ──
   const fromItem = total > 0 ? (page - 1) * pageSize + 1 : 0
   const toItem = Math.min(page * pageSize, total)
@@ -460,6 +486,11 @@ export default function ProductsView() {
                         </td>
                         <td className="p-2 align-middle whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {product.isStockable && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700" onClick={() => openLotsDialog(product)} title="Voir les lots">
+                                <Layers className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}>
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -654,6 +685,95 @@ export default function ProductsView() {
               {saving ? 'Enregistrement...' : editingProduct ? 'Modifier' : 'Créer'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Lots Dialog */}
+      <Dialog open={lotsDialogOpen} onOpenChange={setLotsDialogOpen}>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-emerald-600" />
+              Lots de stock — {lotsProduct?.reference} - {lotsProduct?.designation}
+            </DialogTitle>
+          </DialogHeader>
+          {lotsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+              <span className="text-sm text-muted-foreground">Chargement des lots...</span>
+            </div>
+          ) : lotsData.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Layers className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p>Aucun lot de stock pour ce produit.</p>
+              <p className="text-xs mt-1">Les lots sont créés automatiquement lors de la clôture des ordres de fabrication.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 border rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground">Total lots</p>
+                  <p className="text-lg font-bold">{lotsData.length}</p>
+                </div>
+                <div className="p-3 border rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground">Disponible</p>
+                  <p className="text-lg font-bold text-green-600">{lotsData.reduce((s, l) => s + (l.qtyDisponible || 0), 0)}</p>
+                </div>
+                <div className="p-3 border rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground">Réservé</p>
+                  <p className="text-lg font-bold text-orange-600">{lotsData.reduce((s, l) => s + (l.qtyReservee || 0), 0)}</p>
+                </div>
+                <div className="p-3 border rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground">Physique</p>
+                  <p className="text-lg font-bold">{lotsData.reduce((s, l) => s + (l.qtyPhysique || 0), 0)}</p>
+                </div>
+              </div>
+
+              {/* Lots table */}
+              <div className="rounded border overflow-auto max-h-[400px]">
+                <table className="w-full text-sm">
+                  <thead className="[&_tr]:border-b bg-muted/50">
+                    <tr>
+                      <th className="p-2 text-left text-xs font-medium">N° Lot</th>
+                      <th className="p-2 text-right text-xs font-medium">Qté initiale</th>
+                      <th className="p-2 text-right text-xs font-medium">Disponible</th>
+                      <th className="p-2 text-right text-xs font-medium">Réservé</th>
+                      <th className="p-2 text-right text-xs font-medium">Physique</th>
+                      <th className="p-2 text-center text-xs font-medium">Statut</th>
+                      <th className="p-2 text-left text-xs font-medium">OF source</th>
+                      <th className="p-2 text-left text-xs font-medium">Date fabr.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lotsData.map((lot: any) => (
+                      <tr key={lot.id} className="border-b hover:bg-muted/30">
+                        <td className="p-2 font-mono text-xs">{lot.numeroLot}</td>
+                        <td className="p-2 text-right text-xs">{lot.quantiteInitiale}</td>
+                        <td className={`p-2 text-right text-xs font-medium ${(lot.qtyDisponible || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>{lot.qtyDisponible || 0}</td>
+                        <td className={`p-2 text-right text-xs ${(lot.qtyReservee || 0) > 0 ? 'text-orange-600 font-medium' : ''}`}>{lot.qtyReservee || 0}</td>
+                        <td className="p-2 text-right text-xs">{lot.qtyPhysique || 0}</td>
+                        <td className="p-2 text-center">
+                          <Badge variant="outline" className={
+                            lot.statut === 'actif' ? 'bg-green-100 text-green-800 border-green-200' :
+                            lot.statut === 'epuise' ? 'bg-gray-100 text-gray-800 border-gray-200' :
+                            lot.statut === 'bloque' ? 'bg-red-100 text-red-800 border-red-200' :
+                            'bg-amber-100 text-amber-800 border-amber-200'
+                          }>
+                            {lot.statut === 'actif' ? 'Actif' : lot.statut === 'epuise' ? 'Épuisé' : lot.statut === 'bloque' ? 'Bloqué' : 'Expiré'}
+                          </Badge>
+                        </td>
+                        <td className="p-2 text-xs text-muted-foreground">{lot.workOrder?.number || '-'}</td>
+                        <td className="p-2 text-xs text-muted-foreground">
+                          {lot.dateFabrication ? format(new Date(lot.dateFabrication), 'dd/MM/yyyy', { locale: fr }) : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
