@@ -609,11 +609,6 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                   {format(selectedDate, 'dd/MM')} ✕
                 </Badge>
               )}
-              {totalPending > 0 && (
-                <Badge variant="default" className="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-semibold">
-                  {totalPending} en cours
-                </Badge>
-              )}
             </div>
           </div>
         </div>
@@ -642,6 +637,11 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                       ))}
                     </SelectContent>
                   </Select>
+                  {totalPending > 0 && (
+                    <Badge variant="default" className="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-semibold shrink-0">
+                      {totalPending} en cours
+                    </Badge>
+                  )}
                   <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={fetchAgenda} disabled={loading}>
                     <RefreshCw className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', loading && 'animate-spin')} />
                   </Button>
