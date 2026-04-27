@@ -1389,3 +1389,38 @@ Stage Summary:
 - Frontend: Batch management integrated into work order detail dialog
 - Close action backward compatible with and without batches
 - Lint: 0 errors
+
+---
+Task ID: lots-system-complete
+Agent: Main Agent
+Task: Complete lot/batch control system - navigation, FIFO, reservation, delete
+
+Work Log:
+- Registered 'lots' ViewId in stores.ts
+- Added 'Lots de stock' nav item in erp-layout.tsx (Stock group, Layers icon, violet color)
+- Added Layers icon import in erp-layout.tsx
+- Added LotsView dynamic import and case statement in page.tsx
+- Enhanced lots-view.tsx:
+  - Added Trash2 icon import
+  - Added AlertDialogTitle import
+  - Added delete button (AlertDialog confirmation) — only visible for actif lots with no movements
+  - Added 'Annuler réservation' button in lot detail dialog (when qtyReservee > 0)
+  - Added annulation_resa type option in mouvement creation dialog
+  - Added validation for annulation_resa (max = qtyReservee)
+  - Updated submit button disabled logic for annulation_resa
+  - Updated mouvement dialog title for annulation_resa type
+- Enhanced lots API route:
+  - Added fifo_execute action: creates actual sortie movements across oldest lots (FIFO)
+  - fifo_execute also creates StockMovement records, updates product stock, marks exhausted lots
+  - Full audit logging for fifo_execute
+- Added Lot and LotMouvement to backup system (BACKUP_TABLES + DATETIME_FIELDS)
+- Lint: 0 errors, Dev server: 200 OK
+- Committed 8d672e1 and pushed to origin/main
+
+Stage Summary:
+- Lot system fully integrated into navigation sidebar (Stock → Lots de stock)
+- Lot management features: CRUD, movements (entrée/sortie/réservation/annulation/retour/ajustement)
+- FIFO allocation: plan mode (fifo_allocate) + execute mode (fifo_execute)
+- Delete lot: restricted to actif lots with no sortie/réservation movements
+- Backup system: Lot + LotMouvement tables included
+- Files changed: 6 (api/lots/route.ts, page.tsx, erp-layout.tsx, lots-view.tsx, backup.ts, stores.ts)
