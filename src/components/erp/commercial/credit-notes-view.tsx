@@ -130,7 +130,7 @@ export default function CreditNotesView() {
     try {
       const [invoicesRes, productsRes] = await Promise.all([
         api.get<{ invoices: Invoice[] }>('/invoices'),
-        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=vente&active=true'),
+        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
       ])
       // Only show invoices that are validated/sent/paid (not draft/cancelled) for creating credit notes
       setInvoices((invoicesRes.invoices || []).filter((inv) => !['draft', 'cancelled'].includes(inv.status)))

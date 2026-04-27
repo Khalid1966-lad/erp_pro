@@ -290,12 +290,14 @@ model Product {
   priceHT       Float
   tvaRate       Float       @default(20)
   unit          String      @default("unité")
-  productType   String      @default("vente")
-  currentStock  Float       @default(0)
-  minStock      Float       @default(0)
-  maxStock      Float       @default(100)
-  averageCost   Float       @default(0)
-  isActive      Boolean     @default(true)
+  productNature  String      @default("produit_fini")
+  productUsage   String      @default("vente")
+  isStockable    Boolean     @default(true)
+  currentStock   Float       @default(0)
+  minStock       Float       @default(0)
+  maxStock       Float       @default(100)
+  averageCost    Float       @default(0)
+  isActive       Boolean     @default(true)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 

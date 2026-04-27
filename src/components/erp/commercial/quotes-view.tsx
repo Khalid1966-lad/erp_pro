@@ -85,7 +85,7 @@ interface ProductOption {
   designation: string
   priceHT: number
   tvaRate: number
-  productType: string
+  productUsage: string
 }
 
 const statusLabels: Record<string, string> = {
@@ -164,7 +164,7 @@ export default function QuotesView() {
       setDropdownsLoading(true)
       const [clientsRes, productsRes] = await Promise.all([
         api.get<{ clients: ClientOption[] }>('/clients?dropdown=true&limit=5000'),
-        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=vente&active=true'),
+        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
       ])
       setAllClients(clientsRes.clients || [])
       setAllProducts(productsRes.products || [])

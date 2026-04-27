@@ -171,7 +171,7 @@ export default function SalesOrdersView() {
     try {
       const [clientsRes, productsRes] = await Promise.all([
         api.get<{ clients: Client[] }>('/clients'),
-        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=vente&active=true'),
+        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
       ])
       setClients(clientsRes.clients || [])
       setAllProducts(productsRes.products || [])

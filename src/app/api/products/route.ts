@@ -12,7 +12,9 @@ const productSchema = z.object({
   priceHT: z.number().min(0),
   tvaRate: z.number().default(20),
   unit: z.string().default('unité'),
-  productType: z.string().default('vente'),
+  productNature: z.string().default('produit_fini'),
+  productUsage: z.string().default('vente'),
+  isStockable: z.boolean().default(true),
   currentStock: z.number().default(0),
   minStock: z.number().default(0),
   maxStock: z.number().default(100),
@@ -31,7 +33,8 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const search = searchParams.get('search') || ''
-    const productType = searchParams.get('productType') || ''
+    const productUsage = searchParams.get('productUsage') || ''
+    const productNature = searchParams.get('productNature') || ''
     const famille = searchParams.get('famille') || ''
     const sousFamille = searchParams.get('sousFamille') || ''
     const activeOnly = searchParams.get('active') !== 'false'
@@ -46,8 +49,11 @@ export async function GET(req: NextRequest) {
     } else if (search) {
       where.designation = { contains: search, mode: 'insensitive' }
     }
-    if (productType) {
-      where.productType = { contains: productType }
+    if (productUsage) {
+      where.productUsage = { contains: productUsage }
+    }
+    if (productNature) {
+      where.productNature = productNature
     }
     if (famille) {
       where.famille = famille
@@ -64,7 +70,7 @@ export async function GET(req: NextRequest) {
       const products = await db.product.findMany({
         where,
         orderBy: { designation: 'asc' },
-        select: { id: true, reference: true, designation: true, priceHT: true, tvaRate: true, productType: true },
+        select: { id: true, reference: true, designation: true, priceHT: true, tvaRate: true, productUsage: true, productNature: true },
       })
       return NextResponse.json({ products, total: products.length })
     }

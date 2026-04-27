@@ -50,7 +50,7 @@ interface ProductInfo {
   reference: string
   designation: string
   currentStock: number
-  productType: string
+  productNature: string
   unit: string
 }
 
@@ -127,8 +127,8 @@ interface StockCheckResult {
     productId: string
     productReference: string
     productDesignation: string
-    productType: string
-    productTypeLabel: string
+    productNature: string
+    productNatureLabel: string
     unit: string
     stockAvailable: number
     stockAvailableAtCreation: number
@@ -158,16 +158,16 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800 border-red-200',
 }
 
-const productTypeLabels: Record<string, string> = {
-  achat: 'Achat',
+const productNatureLabels: Record<string, string> = {
+  matiere_premiere: 'Matière première',
   semi_fini: 'Semi-fini',
-  vente: 'Vente',
+  produit_fini: 'Produit fini',
 }
 
-const productTypeColors: Record<string, string> = {
-  achat: 'bg-amber-100 text-amber-800',
+const productNatureColors: Record<string, string> = {
+  matiere_premiere: 'bg-amber-100 text-amber-800',
   semi_fini: 'bg-purple-100 text-purple-800',
-  vente: 'bg-emerald-100 text-emerald-800',
+  produit_fini: 'bg-emerald-100 text-emerald-800',
 }
 
 // ═══════════════════════════════════════════════════════
@@ -708,8 +708,8 @@ export default function PreparationsView() {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Badge variant="secondary" className={`text-xs ${productTypeColors[line.product.productType] || ''}`}>
-                                  {productTypeLabels[line.product.productType] || line.product.productType}
+                                <Badge variant="secondary" className={`text-xs ${productNatureColors[line.product.productNature] || ''}`}>
+                                  {productNatureLabels[line.productNature] || line.productNature}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">{line.quantity}</TableCell>
@@ -735,7 +735,7 @@ export default function PreparationsView() {
                                       -{deficit}
                                     </Badge>
                                     <span className="text-xs text-muted-foreground">
-                                      {line.product.productType === 'achat'
+                                      {line.product.productNature === 'matiere_premiere'
                                         ? 'Achat fournisseur'
                                         : 'Production interne'}
                                     </span>
@@ -908,8 +908,8 @@ export default function PreparationsView() {
                               </div>
                             </TableCell>
                             <TableCell className="hidden sm:table-cell">
-                              <Badge variant="secondary" className={`text-xs ${productTypeColors[line.product.productType]}`}>
-                                {productTypeLabels[line.product.productType]}
+                              <Badge variant="secondary" className={`text-xs ${productNatureColors[line.product.productNature]}`}>
+                                {productNatureLabels[line.product.productNature]}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right font-medium">
@@ -1012,9 +1012,9 @@ export default function PreparationsView() {
                                 <div className="flex items-center gap-2 mt-1">
                                   <Badge
                                     variant="secondary"
-                                    className={`text-xs ${productTypeColors[alertLine.productType]}`}
+                                    className={`text-xs ${productNatureColors[alertLine.productNature]}`}
                                   >
-                                    {alertLine.productTypeLabel}
+                                    {alertLine.productNatureLabel}
                                   </Badge>
                                 </div>
                               </div>
@@ -1031,7 +1031,7 @@ export default function PreparationsView() {
                             </div>
                             {alertLine.suggestion && (
                               <div className="flex items-center gap-2">
-                                {alertLine.productType === 'achat' ? (
+                                {alertLine.productNature === 'matiere_premiere' ? (
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -1145,7 +1145,7 @@ export default function PreparationsView() {
                       ],
                       rows: selectedPrep.lines.map(line => [
                         { value: `${line.product.reference} - ${line.product.designation}` },
-                        { value: productTypeLabels[line.product.productType] || line.product.productType },
+                        { value: productNatureLabels[line.product.productNature] || line.productNature },
                         { value: line.quantityRequested, align: 'right' },
                         { value: line.product.currentStock, align: 'right' },
                         { value: line.quantityPrepared, align: 'right' },

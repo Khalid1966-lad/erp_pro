@@ -44,16 +44,18 @@ const simpleUpdateSchema = z.object({
 // Helpers
 // ═══════════════════════════════════════════════════════
 
-const PRODUCT_TYPE_LABELS: Record<string, string> = {
-  achat: 'Achat',
+const PRODUCT_NATURE_LABELS: Record<string, string> = {
+  matiere_premiere: 'Matière première',
   semi_fini: 'Semi-fini',
-  vente: 'Vente',
+  produit_fini: 'Produit fini',
+  service: 'Service',
 }
 
-const PRODUCT_TYPE_SUGGESTIONS: Record<string, { action: string; target: string }> = {
-  achat: { action: 'Commander auprès d\'un fournisseur', target: 'purchase-orders' },
+const PRODUCT_NATURE_SUGGESTIONS: Record<string, { action: string; target: string }> = {
+  matiere_premiere: { action: 'Commander auprès d\'un fournisseur', target: 'purchase-orders' },
   semi_fini: { action: 'Lancer une production', target: 'work-orders' },
-  vente: { action: 'Lancer une production', target: 'work-orders' },
+  produit_fini: { action: 'Lancer une production', target: 'work-orders' },
+  service: { action: 'Prestation interne', target: null as any },
 }
 
 function generatePrepNumber(): Promise<string> {
@@ -96,7 +98,7 @@ export async function GET(req: NextRequest) {
                   reference: true,
                   designation: true,
                   currentStock: true,
-                  productType: true,
+                  productNature: true,
                   unit: true,
                 },
               },
@@ -116,8 +118,8 @@ export async function GET(req: NextRequest) {
           productId: line.productId,
           productReference: line.product.reference,
           productDesignation: line.product.designation,
-          productType: line.product.productType,
-          productTypeLabel: PRODUCT_TYPE_LABELS[line.product.productType] || line.product.productType,
+          productNature: line.product.productNature,
+          productTypeLabel: PRODUCT_NATURE_LABELS[line.product.productNature] || line.product.productNature,
           unit: line.product.unit,
           stockAvailable: line.product.currentStock,
           stockAvailableAtCreation: line.stockAvailable,
@@ -126,7 +128,7 @@ export async function GET(req: NextRequest) {
           deficit,
           hasDeficit: deficit > 0,
           suggestion: deficit > 0
-            ? PRODUCT_TYPE_SUGGESTIONS[line.product.productType] || null
+            ? PRODUCT_NATURE_SUGGESTIONS[line.product.productNature] || null
             : null,
         }
       })
@@ -165,7 +167,7 @@ export async function GET(req: NextRequest) {
                   reference: true,
                   designation: true,
                   currentStock: true,
-                  productType: true,
+                  productNature: true,
                   unit: true,
                 },
               },
@@ -177,7 +179,7 @@ export async function GET(req: NextRequest) {
               client: { select: { id: true, name: true } },
               lines: {
                 include: {
-                  product: { select: { id: true, reference: true, designation: true, currentStock: true, productType: true, unit: true } },
+                  product: { select: { id: true, reference: true, designation: true, currentStock: true, productNature: true, unit: true } },
                 },
               },
             },
@@ -207,7 +209,7 @@ export async function GET(req: NextRequest) {
           deficit,
           hasDeficit: deficit > 0,
           suggestion: deficit > 0
-            ? PRODUCT_TYPE_SUGGESTIONS[line.product.productType] || null
+            ? PRODUCT_NATURE_SUGGESTIONS[line.product.productNature] || null
             : null,
         }
       })
@@ -250,7 +252,7 @@ export async function POST(req: NextRequest) {
       include: {
         lines: {
           include: {
-            product: { select: { id: true, reference: true, designation: true, currentStock: true, productType: true, unit: true } },
+            product: { select: { id: true, reference: true, designation: true, currentStock: true, productNature: true, unit: true } },
           },
         },
       },
@@ -321,7 +323,7 @@ export async function POST(req: NextRequest) {
               client: { select: { id: true, name: true } },
               lines: {
                 include: {
-                  product: { select: { id: true, reference: true, designation: true, currentStock: true, productType: true, unit: true } },
+                  product: { select: { id: true, reference: true, designation: true, currentStock: true, productNature: true, unit: true } },
                 },
               },
             },
@@ -362,7 +364,7 @@ export async function POST(req: NextRequest) {
                   reference: true,
                   designation: true,
                   currentStock: true,
-                  productType: true,
+                  productNature: true,
                   unit: true,
                 },
               },
@@ -374,7 +376,7 @@ export async function POST(req: NextRequest) {
               client: { select: { id: true, name: true } },
               lines: {
                 include: {
-                  product: { select: { id: true, reference: true, designation: true, currentStock: true, productType: true, unit: true } },
+                  product: { select: { id: true, reference: true, designation: true, currentStock: true, productNature: true, unit: true } },
                 },
               },
             },
@@ -422,7 +424,7 @@ export async function PUT(req: NextRequest) {
         include: {
           lines: {
             include: {
-              product: { select: { id: true, reference: true, designation: true, currentStock: true, productType: true, unit: true } },
+              product: { select: { id: true, reference: true, designation: true, currentStock: true, productNature: true, unit: true } },
             },
           },
         },
@@ -455,7 +457,7 @@ export async function PUT(req: NextRequest) {
         where: { id: lineId },
         data: { quantityPrepared },
         include: {
-          product: { select: { id: true, reference: true, designation: true, currentStock: true, productType: true, unit: true } },
+          product: { select: { id: true, reference: true, designation: true, currentStock: true, productNature: true, unit: true } },
         },
       })
 
@@ -505,7 +507,7 @@ export async function PUT(req: NextRequest) {
                   reference: true,
                   designation: true,
                   currentStock: true,
-                  productType: true,
+                  productNature: true,
                   unit: true,
                   averageCost: true,
                 },
@@ -547,7 +549,7 @@ export async function PUT(req: NextRequest) {
         quantityPrepared: number
         stockAvailable: number
         deficit: number
-        productType: string
+        productNature: string
         productTypeLabel: string
         suggestion: { action: string; target: string } | null
       }> = []
@@ -591,9 +593,9 @@ export async function PUT(req: NextRequest) {
             quantityPrepared: line.quantityPrepared,
             stockAvailable: line.product.currentStock,
             deficit,
-            productType: line.product.productType,
-            productTypeLabel: PRODUCT_TYPE_LABELS[line.product.productType] || line.product.productType,
-            suggestion: PRODUCT_TYPE_SUGGESTIONS[line.product.productType] || null,
+            productNature: line.product.productNature,
+            productTypeLabel: PRODUCT_NATURE_LABELS[line.product.productNature] || line.product.productNature,
+            suggestion: PRODUCT_NATURE_SUGGESTIONS[line.product.productNature] || null,
           })
         }
 
@@ -606,9 +608,9 @@ export async function PUT(req: NextRequest) {
             quantityPrepared: line.quantityPrepared,
             stockAvailable: line.product.currentStock,
             deficit: line.quantityRequested - line.product.currentStock,
-            productType: line.product.productType,
-            productTypeLabel: PRODUCT_TYPE_LABELS[line.product.productType] || line.product.productType,
-            suggestion: PRODUCT_TYPE_SUGGESTIONS[line.product.productType] || null,
+            productNature: line.product.productNature,
+            productTypeLabel: PRODUCT_NATURE_LABELS[line.product.productNature] || line.product.productNature,
+            suggestion: PRODUCT_NATURE_SUGGESTIONS[line.product.productNature] || null,
           })
         }
       }
@@ -674,7 +676,7 @@ export async function PUT(req: NextRequest) {
                     reference: true,
                     designation: true,
                     currentStock: true,
-                    productType: true,
+                    productNature: true,
                     unit: true,
                   },
                 },
@@ -685,7 +687,7 @@ export async function PUT(req: NextRequest) {
                 client: { select: { id: true, name: true } },
                 lines: {
                   include: {
-                    product: { select: { id: true, reference: true, designation: true, currentStock: true, productType: true, unit: true } },
+                    product: { select: { id: true, reference: true, designation: true, currentStock: true, productNature: true, unit: true } },
                   },
                 },
               },
@@ -821,7 +823,7 @@ export async function PUT(req: NextRequest) {
                 reference: true,
                 designation: true,
                 currentStock: true,
-                productType: true,
+                productNature: true,
                 unit: true,
               },
             },
@@ -832,7 +834,7 @@ export async function PUT(req: NextRequest) {
             client: { select: { id: true, name: true } },
             lines: {
               include: {
-                product: { select: { id: true, reference: true, designation: true, currentStock: true, productType: true, unit: true } },
+                product: { select: { id: true, reference: true, designation: true, currentStock: true, productNature: true, unit: true } },
               },
             },
           },

@@ -34,7 +34,9 @@ interface Product {
   priceHT: number
   tvaRate: number
   unit: string | null
-  productType: string
+  productNature: string
+  productUsage: string
+  isStockable: boolean
   minStock: number | null
   maxStock: number | null
   currentStock: number
@@ -51,22 +53,36 @@ const emptyProduct = {
   priceHT: '',
   tvaRate: '20',
   unit: 'unité',
-  productType: 'vente',
+  productNature: 'produit_fini',
+  productUsage: 'vente',
+  isStockable: true,
   minStock: '',
   maxStock: '',
   isActive: true
 }
 
-const productTypeLabels: Record<string, string> = {
-  achat: 'Achat',
-  vente: 'Vente',
-  semi_fini: 'Semi-fini'
+const natureLabels: Record<string, string> = {
+  matiere_premiere: 'Matière première',
+  semi_fini: 'Semi-fini',
+  produit_fini: 'Produit fini',
+  service: 'Service'
 }
 
-const productTypeColors: Record<string, string> = {
+const natureColors: Record<string, string> = {
+  matiere_premiere: 'bg-amber-100 text-amber-800',
+  semi_fini: 'bg-blue-100 text-blue-800',
+  produit_fini: 'bg-green-100 text-green-800',
+  service: 'bg-purple-100 text-purple-800'
+}
+
+const usageLabels: Record<string, string> = {
+  achat: 'Achat',
+  vente: 'Vente'
+}
+
+const usageColors: Record<string, string> = {
   achat: 'bg-orange-100 text-orange-800',
-  vente: 'bg-green-100 text-green-800',
-  semi_fini: 'bg-blue-100 text-blue-800'
+  vente: 'bg-emerald-100 text-emerald-800'
 }
 
 export default function ProductsView() {
@@ -97,7 +113,7 @@ export default function ProductsView() {
       const params = new URLSearchParams({ limit: '10000', active: 'false' })
       const term = searchTerm !== undefined ? searchTerm : searchRef.current
       if (term) params.set('search', term)
-      if (typeFilter) params.set('productType', typeFilter)
+      if (typeFilter) params.set('productNature', typeFilter)
       if (familleFilter) params.set('famille', familleFilter)
       const res = await api.get<{ products: Product[], total: number }>(`/products?${params}`)
       setProducts(res.products || [])
@@ -145,14 +161,11 @@ export default function ProductsView() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'))
   }, [products])
 
-  // Type counts from displayed products (multi-type support)
-  const typeCounts = useMemo(() => {
-    const counts: Record<string, number> = { achat: 0, vente: 0, semi_fini: 0 }
+  // Nature counts from displayed products
+  const natureCounts = useMemo(() => {
+    const counts: Record<string, number> = { matiere_premiere: 0, semi_fini: 0, produit_fini: 0, service: 0 }
     products.forEach(p => {
-      p.productType.split(',').forEach(t => {
-        const type = t.trim()
-        if (counts[type] !== undefined) counts[type]++
-      })
+      if (counts[p.productNature] !== undefined) counts[p.productNature]++
     })
     return counts
   }, [products])
@@ -179,7 +192,9 @@ export default function ProductsView() {
       priceHT: product.priceHT.toString(),
       tvaRate: product.tvaRate.toString(),
       unit: product.unit || 'unité',
-      productType: product.productType,
+      productNature: product.productNature,
+      productUsage: product.productUsage,
+      isStockable: product.isStockable,
       minStock: product.minStock?.toString() || '',
       maxStock: product.maxStock?.toString() || '',
       isActive: product.isActive
@@ -200,7 +215,9 @@ export default function ProductsView() {
         priceHT: parseFloat(form.priceHT),
         tvaRate: parseFloat(form.tvaRate),
         unit: form.unit || null,
-        productType: form.productType,
+        productNature: form.productNature,
+        productUsage: form.productUsage,
+        isStockable: form.isStockable,
         minStock: form.minStock ? parseInt(form.minStock) : null,
         maxStock: form.maxStock ? parseInt(form.maxStock) : null,
         isActive: form.isActive
@@ -298,20 +315,23 @@ export default function ProductsView() {
       {/* Filter Buttons */}
       <div className="flex flex-wrap gap-2">
         <Button
-          variant={typeFilter === null && familleFilter === null ? 'default' : 'outline'}
+          variant={!typeFilter ? 'default' : 'outline'}
           size="sm"
           onClick={() => { setTypeFilter(null); setFamilleFilter(null) }}
         >
-          Tous
+          Tous <span className="ml-1 text-xs opacity-70">({products.length})</span>
         </Button>
-        <Button variant={typeFilter === 'achat' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'achat' ? null : 'achat')}>
-          Achat ({typeCounts.achat})
-        </Button>
-        <Button variant={typeFilter === 'vente' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'vente' ? null : 'vente')}>
-          Vente ({typeCounts.vente})
+        <Button variant={typeFilter === 'matiere_premiere' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'matiere_premiere' ? null : 'matiere_premiere')}>
+          Mat. première <span className="ml-1 text-xs opacity-70">({natureCounts.matiere_premiere})</span>
         </Button>
         <Button variant={typeFilter === 'semi_fini' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'semi_fini' ? null : 'semi_fini')}>
-          Semi-fini ({typeCounts.semi_fini})
+          Semi-fini <span className="ml-1 text-xs opacity-70">({natureCounts.semi_fini})</span>
+        </Button>
+        <Button variant={typeFilter === 'produit_fini' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'produit_fini' ? null : 'produit_fini')}>
+          Produit fini <span className="ml-1 text-xs opacity-70">({natureCounts.produit_fini})</span>
+        </Button>
+        <Button variant={typeFilter === 'service' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'service' ? null : 'service')}>
+          Service <span className="ml-1 text-xs opacity-70">({natureCounts.service})</span>
         </Button>
         <Separator orientation="vertical" className="h-8 mx-1 hidden sm:block" />
         <Select value={familleFilter ?? '__all__'} onValueChange={(v) => setFamilleFilter(v === '__all__' ? null : v)}>
@@ -371,19 +391,24 @@ export default function ProductsView() {
                         </td>
                         <td className="p-2 align-middle whitespace-nowrap">
                           <div className="flex flex-wrap gap-1">
-                            {product.productType.split(',').map((t) => {
-                              const type = t.trim()
-                      return type ? (
-                        <Badge key={type} variant="secondary" className={productTypeColors[type] || ''}>{productTypeLabels[type] || type}</Badge>
-                      ) : null
-                    })}
+                            <Badge variant="secondary" className={natureColors[product.productNature] || ''}>{natureLabels[product.productNature] || product.productNature}</Badge>
+                            {product.productUsage.split(',').map((u) => {
+                              const usage = u.trim()
+                              return usage ? (
+                                <Badge key={usage} variant="outline" className={usageColors[usage] || ''}>{usageLabels[usage] || usage}</Badge>
+                              ) : null
+                            })}
                           </div>
                         </td>
                         <td className="p-2 align-middle whitespace-nowrap text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <span className={`font-mono font-medium ${lowStock ? 'text-red-600' : 'text-green-600'}`}>{product.currentStock}</span>
-                            {lowStock && <span className="text-xs text-red-400">≤{product.minStock}</span>}
-                          </div>
+                          {product.isStockable ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <span className={`font-mono font-medium ${lowStock ? 'text-red-600' : 'text-green-600'}`}>{product.currentStock}</span>
+                              {lowStock && <span className="text-xs text-red-400">≤{product.minStock}</span>}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </td>
                         <td className="p-2 align-middle whitespace-nowrap text-center"><Switch checked={product.isActive} disabled /></td>
                         <td className="p-2 align-middle whitespace-nowrap text-right">
@@ -435,41 +460,52 @@ export default function ProductsView() {
               <Input id="sousFamille" value={form.sousFamille} onChange={(e) => setForm({ ...form, sousFamille: e.target.value })} placeholder="Ex: Composants, Pièces..." />
             </div>
             <div className="space-y-2">
-              <Label>Type de produit</Label>
+              <Label>Nature du produit</Label>
+              <Select value={form.productNature} onValueChange={(v) => setForm({ ...form, productNature: v })}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="produit_fini">Produit fini (vendable)</SelectItem>
+                  <SelectItem value="matiere_premiere">Matière première</SelectItem>
+                  <SelectItem value="semi_fini">Semi-fini (intermédiaire)</SelectItem>
+                  <SelectItem value="service">Service / Prestation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Usage commercial</Label>
               <div className="flex items-center gap-4 mt-1">
                 <label className="flex items-center gap-2 cursor-pointer text-sm">
                   <Checkbox
-                    checked={form.productType.split(',').includes('vente')}
+                    checked={form.productUsage.split(',').includes('vente')}
                     onCheckedChange={(checked) => {
-                      const types = form.productType.split(',').filter(t => t.trim() && t.trim() !== 'vente')
-                      if (checked) types.push('vente')
-                      setForm({ ...form, productType: types.join(',') || 'vente' })
+                      const usages = form.productUsage.split(',').filter(u => u.trim() && u.trim() !== 'vente')
+                      if (checked) usages.push('vente')
+                      setForm({ ...form, productUsage: usages.join(',') || 'vente' })
                     }}
                   />
-                  <Badge variant="secondary" className={productTypeColors.vente}>Vente</Badge>
+                  <Badge variant="outline" className={usageColors.vente}>Vente</Badge>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer text-sm">
                   <Checkbox
-                    checked={form.productType.split(',').includes('achat')}
+                    checked={form.productUsage.split(',').includes('achat')}
                     onCheckedChange={(checked) => {
-                      const types = form.productType.split(',').filter(t => t.trim() && t.trim() !== 'achat')
-                      if (checked) types.push('achat')
-                      setForm({ ...form, productType: types.join(',') || 'vente' })
+                      const usages = form.productUsage.split(',').filter(u => u.trim() && u.trim() !== 'achat')
+                      if (checked) usages.push('achat')
+                      setForm({ ...form, productUsage: usages.join(',') || 'vente' })
                     }}
                   />
-                  <Badge variant="secondary" className={productTypeColors.achat}>Achat</Badge>
+                  <Badge variant="outline" className={usageColors.achat}>Achat</Badge>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer text-sm">
-                  <Checkbox
-                    checked={form.productType.split(',').includes('semi_fini')}
-                    onCheckedChange={(checked) => {
-                      const types = form.productType.split(',').filter(t => t.trim() && t.trim() !== 'semi_fini')
-                      if (checked) types.push('semi_fini')
-                      setForm({ ...form, productType: types.join(',') || 'vente' })
-                    }}
-                  />
-                  <Badge variant="secondary" className={productTypeColors.semi_fini}>Semi-fini</Badge>
-                </label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Gestion de stock</Label>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={form.isStockable}
+                  onCheckedChange={(checked) => setForm({ ...form, isStockable: checked })}
+                />
+                <span className="text-sm">{form.isStockable ? 'Produit stockable' : 'Non stockable (service)'}</span>
               </div>
             </div>
             <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Identification</h4></div>
@@ -508,14 +544,18 @@ export default function ProductsView() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="minStock">Stock minimum</Label>
-              <Input id="minStock" type="number" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} placeholder="0" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxStock">Stock maximum</Label>
-              <Input id="maxStock" type="number" value={form.maxStock} onChange={(e) => setForm({ ...form, maxStock: e.target.value })} placeholder="0" />
-            </div>
+            {form.isStockable && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="minStock">Stock minimum</Label>
+                  <Input id="minStock" type="number" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} placeholder="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxStock">Stock maximum</Label>
+                  <Input id="maxStock" type="number" value={form.maxStock} onChange={(e) => setForm({ ...form, maxStock: e.target.value })} placeholder="0" />
+                </div>
+              </>
+            )}
             <div className="flex items-center gap-3 md:col-span-2">
               <Switch checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
               <Label>Produit actif</Label>

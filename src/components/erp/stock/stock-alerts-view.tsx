@@ -18,13 +18,14 @@ interface ProductAlert {
   minStock: number
   maxStock: number
   unit: string
-  productType: string
+  productNature: string
 }
 
-const productTypeLabels: Record<string, string> = {
-  achat: 'Achat',
+const natureLabels: Record<string, string> = {
+  matiere_premiere: 'Matière première',
   semi_fini: 'Semi-fini',
-  vente: 'Vente',
+  produit_fini: 'Produit fini',
+  service: 'Service',
 }
 
 export default function StockAlertsView() {
@@ -253,7 +254,7 @@ export default function StockAlertsView() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
-                        {productTypeLabels[alert.productType] || alert.productType}
+                        {natureLabels[alert.productNature] || alert.productNature}
                       </span>
                       {isCritical ? (
                         <span className="text-xs font-medium text-red-600">

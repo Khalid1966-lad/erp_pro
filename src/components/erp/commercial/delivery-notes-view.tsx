@@ -288,7 +288,7 @@ export default function DeliveryNotesView() {
         api.get<{ orders: any[] }>('/sales-orders?status=prepared&limit=100'),
         api.get<{ orders: any[] }>('/sales-orders?status=partially_delivered&limit=100'),
         api.get<{ clients: ClientOption[] }>('/clients?limit=500'),
-        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=vente&active=true'),
+        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
       ])
       const allOrders = [...(prepData.orders || []), ...(partData.orders || [])]
       setAvailableOrders(allOrders)

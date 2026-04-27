@@ -156,7 +156,7 @@ export default function SupplierInvoicesView() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const data = await api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=achat&active=true')
+      const data = await api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=achat&active=true')
       setAllProducts(data.products || [])
     } catch { /* silent */ }
   }, [])

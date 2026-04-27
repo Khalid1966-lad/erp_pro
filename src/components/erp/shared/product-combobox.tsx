@@ -16,7 +16,8 @@ export interface ProductOption {
   priceHT?: number
   purchasePrice?: number
   tvaRate?: number
-  productType?: string
+  productUsage?: string
+  productNature?: string
 }
 
 interface ProductComboboxProps {
