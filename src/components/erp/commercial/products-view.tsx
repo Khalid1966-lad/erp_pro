@@ -112,8 +112,8 @@ export default function ProductsView() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [form, setForm] = useState(emptyProduct)
   const [saving, setSaving] = useState(false)
+  const [fetchKey, setFetchKey] = useState(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const initialized = useRef(false)
 
   // ── Fetch distinct familles (lightweight, once) ──
   useEffect(() => {
@@ -151,7 +151,6 @@ export default function ProductsView() {
     const controller = new AbortController()
     const doFetch = async () => {
       try {
-        if (!initialized.current) { initialized.current = true; return }
         setLoading(true)
         const params = new URLSearchParams({
           page: String(page),
@@ -183,7 +182,7 @@ export default function ProductsView() {
     }
     doFetch()
     return () => controller.abort()
-  }, [debouncedSearch, typeFilter, familleFilter, sortField, sortDir, page, pageSize])
+  }, [debouncedSearch, typeFilter, familleFilter, sortField, sortDir, page, pageSize, fetchKey])
 
   // ── Handlers ──
   const toggleSort = (field: string) => {
@@ -273,11 +272,9 @@ export default function ProductsView() {
         toast.success('Produit créé', { description: `${body.designation} a été ajouté.` })
       }
       setDialogOpen(false)
-      // Trigger re-fetch by toggling page briefly
-      setPage(p => p) // This won't trigger a re-fetch since value didn't change
-      // Instead, we need to actually trigger the effect. Let's use a workaround:
-      initialized.current = false
+      // Trigger re-fetch
       setPage(1)
+      setFetchKey(k => k + 1)
       // Fetch familles in case new ones were added
       api.get('/products/familles')
         .then(res => setAllFamilles((res as unknown as { familles: string[] }).familles || []))
@@ -294,8 +291,8 @@ export default function ProductsView() {
     try {
       await api.delete(`/products?id=${id}`)
       toast.success('Produit supprimé', { description: 'Le produit a été supprimé avec succès.' })
-      initialized.current = false
       setPage(1)
+      setFetchKey(k => k + 1)
     } catch (err) {
       console.error('Erreur suppression produit:', err)
       toast.error('Erreur de suppression', { description: 'Impossible de supprimer le produit.' })
@@ -341,7 +338,7 @@ export default function ProductsView() {
           <Badge variant="secondary">{total.toLocaleString('fr-FR')}</Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { initialized.current = false; setPage(1) }} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => { setPage(1); setFetchKey(k => k + 1) }} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
           <Button onClick={openCreate} size="sm">

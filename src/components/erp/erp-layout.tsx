@@ -69,6 +69,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import React, { useState, useEffect, useRef } from 'react'
 import { NotificationBell } from '@/components/erp/notifications/notification-bell'
+import { AgendaButton } from '@/components/erp/agenda/agenda-panel'
 
 interface NavItem {
   id: ViewId
@@ -492,6 +493,7 @@ export function ERPHeader() {
       <div className="flex-1" />
       {user && (
         <>
+          <AgendaButton />
           <ThemeToggle />
           <NotificationBell />
           <DropdownMenu>
