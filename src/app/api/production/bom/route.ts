@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         bom: { select: { id: true, reference: true, designation: true } },
-        component: { select: { id: true, reference: true, designation: true, currentStock: true, unit: true } },
+        component: { select: { id: true, reference: true, designation: true, currentStock: true, unit: true, productNature: true } },
       },
       orderBy: { bomId: 'asc' },
     })

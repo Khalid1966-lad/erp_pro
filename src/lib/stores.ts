@@ -69,6 +69,8 @@ export type ViewId =
   | 'profile'
   | 'guide'
   | 'messages'
+  | 'financial-reports'
+  | 'quality-control'
 
 export interface NavState {
   currentView: ViewId

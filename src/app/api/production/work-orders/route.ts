@@ -56,7 +56,14 @@ export async function GET(req: NextRequest) {
       db.workOrder.findMany({
         where,
         include: {
-          product: { select: { id: true, reference: true, designation: true } },
+          product: {
+            select: {
+              id: true,
+              reference: true,
+              designation: true,
+              routingSteps: { select: { duration: true } },
+            },
+          },
           steps: {
             include: {
               workStation: { select: { id: true, name: true } },
@@ -71,7 +78,29 @@ export async function GET(req: NextRequest) {
       db.workOrder.count({ where }),
     ])
 
-    return NextResponse.json({ workOrders, total, page, limit })
+    // Compute estimatedEndDate for each work order
+    const workOrdersWithEstimate = workOrders.map((wo) => {
+      const totalMinutes = wo.product.routingSteps.reduce((sum, rs) => sum + rs.duration, 0)
+      const workDays = totalMinutes > 0 ? Math.ceil(totalMinutes / 60 / 8) : 0
+      let estimatedEndDate: string | null = null
+      if (wo.plannedDate && workDays > 0) {
+        const startDate = new Date(wo.plannedDate)
+        const endDate = new Date(startDate)
+        // Add workDays skipping weekends
+        let daysAdded = 0
+        while (daysAdded < workDays) {
+          endDate.setDate(endDate.getDate() + 1)
+          const dayOfWeek = endDate.getDay()
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            daysAdded++
+          }
+        }
+        estimatedEndDate = endDate.toISOString()
+      }
+      return { ...wo, estimatedEndDate }
+    })
+
+    return NextResponse.json({ workOrders: workOrdersWithEstimate, total, page, limit })
   } catch (error) {
     console.error('Work orders list error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })

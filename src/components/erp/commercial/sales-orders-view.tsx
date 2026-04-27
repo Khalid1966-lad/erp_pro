@@ -28,8 +28,9 @@ import {
 import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
   Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2,
-  Truck, Package, Edit, Printer, Pencil
+  Truck, Package, Edit, Printer, Pencil, BadgeCheck
 } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
@@ -534,6 +535,7 @@ export default function SalesOrdersView() {
                   <TableHead className="hidden md:table-cell">Date</TableHead>
                   <TableHead className="hidden lg:table-cell">Livraison</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead className="hidden md:table-cell">% Livraison</TableHead>
                   <TableHead className="text-right hidden sm:table-cell">Total HT</TableHead>
                   <TableHead className="text-right hidden sm:table-cell">Total TTC</TableHead>
                   <TableHead className="text-right w-[100px]">Actions</TableHead>
@@ -542,7 +544,7 @@ export default function SalesOrdersView() {
               <TableBody>
                 {orders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {search || statusFilter !== 'all' ? 'Aucune commande trouvée.' : 'Aucune commande enregistrée.'}
                     </TableCell>
                   </TableRow>
@@ -571,6 +573,23 @@ export default function SalesOrdersView() {
                         <Badge variant="secondary" className={statusColors[order.status] || ''}>
                           {statusLabels[order.status] || order.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {(() => {
+                          if (!order.lines || order.lines.length === 0) return <span className="text-xs text-muted-foreground">—</span>
+                          const totalQty = order.lines.reduce((s, l) => s + l.quantity, 0)
+                          const totalDelivered = order.lines.reduce((s, l) => s + (l.quantityDelivered || 0), 0)
+                          if (totalQty === 0) return <span className="text-xs text-muted-foreground">—</span>
+                          const pct = Math.round((totalDelivered / totalQty) * 100)
+                          return (
+                            <div className="flex items-center gap-2 min-w-[100px]">
+                              <Progress value={pct} className="h-2 flex-1" />
+                              <span className={`text-xs font-medium ${pct >= 100 ? 'text-green-600' : pct > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                                {pct}%
+                              </span>
+                            </div>
+                          )
+                        })()}
                       </TableCell>
                       <TableCell className="text-right hidden sm:table-cell font-medium">
                         {formatCurrency(order.totalHT)}

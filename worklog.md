@@ -1076,3 +1076,80 @@ Stage Summary:
 - No more pagination limit (was 50 products) — all active products now available
 - Lint: 0 errors, dev server compiling successfully
 
+---
+Task ID: production-improvements
+Agent: Main Agent
+Task: Production improvements — stock check before OF, deadline estimation, navigation from preparations
+
+Work Log:
+- Enhanced `src/app/api/production/bom/route.ts` GET endpoint:
+  - Added `productNature` to the component select in the BOM listing
+  - Response now includes: id, reference, designation, currentStock, unit, productNature per component
+- Enhanced `src/app/api/production/work-orders/route.ts` GET endpoint:
+  - Added `routingSteps` to product select to access step durations
+  - Computes `estimatedEndDate` for each work order: plannedDate + sum(routingStep durations / 60 / 8) work days, skipping weekends
+  - Returns `estimatedEndDate` as computed field in each work order object
+- Modified `src/components/erp/production/work-orders-view.tsx`:
+  - Added BomComponentStock interface for BOM stock check data
+  - Added estimatedEndDate optional field to WorkOrder interface
+  - Added bomCheckLoading and bomCheck state for create dialog
+  - Added useEffect to fetch BOM when product selected in create dialog
+  - Added "Vérification des stocks" section in create dialog:
+    - Table showing: component name, required qty (BOM qty × OF qty), stock available, status badge
+    - OK (green) or deficit amount (red) for each component
+    - Amber warning alert if any component has insufficient stock
+    - Message explaining OF can still be created but launch will be blocked
+    - "Aucune nomenclature (BOM) définie" message when no BOM exists
+  - Added "Fin estimée" column in work orders table (hidden xl:table-cell)
+  - Red highlighting when estimated end > planned date and OF not completed/closed
+  - Added "Fin estimée" card in detail dialog (grid changed from 4-col to 5-col)
+  - Red border/bg when estimated end is late
+- Updated `src/components/erp/commercial/preparations-view.tsx`:
+  - Changed "Lancer une production" button text to "Fabriquer" for semi_fini/produit_fini products
+  - Navigation logic unchanged (navigates to work-orders via erp:navigate event)
+
+Stage Summary:
+- 4 files modified: bom API, work-orders API, work-orders view, preparations view
+- BOM API now returns productNature in component data
+- Work orders API computes estimatedEndDate from routing step durations + planned date
+- Create OF dialog shows real-time stock feasibility check from BOM data
+- Work orders table and detail dialog show estimated end date with late highlighting
+- Preparations deficit buttons updated with clearer "Fabriquer" text
+- ESLint: 0 errors
+- Dev server: compiling successfully
+---
+Task ID: financial-reports-dashboard
+Agent: Main Agent
+Task: Create Financial Reports dashboard (États financiers) for GEMA ERP Pro
+
+Work Log:
+- Created `src/app/api/finance/financial-reports/route.ts`:
+  - GET endpoint: `/api/finance/financial-reports?from=YYYY-MM-DD&to=YYYY-MM-DD`
+  - Returns global summary: totalInvoicesTTC, totalPaid, totalUnpaid, totalUninvoicedDeliveries, totalEncaissements, totalDecaissements, totalPortfolio, netBalance
+  - Returns per-client breakdown with: clientName, ICE, totalInvoicesTTC, totalPaid, totalUnpaid, uninvoicedDeliveries, balance, unpaidInvoiceCount, portfolioAmount
+  - Returns uninvoiced delivery notes list with client and sales order info
+  - Uses Prisma aggregates (groupBy, aggregate) for efficient queries
+  - Supports date range filtering with optional from/to parameters
+  - Auth: requires payments:read, invoices:read, or accounting:read permission
+- Created `src/components/erp/finance/financial-reports-view.tsx`:
+  - Header with title "États financiers" and period selector (from/to date pickers + refresh button)
+  - 7 summary cards in 4-column grid: Factures émises, Factures impayées, BL non facturés, Encaissements, Décaissements, Portefeuille effets, Solde net
+  - Color-coded cards (green for income, red for expenses/outstanding, orange for uninvoiced, sky for portfolio)
+  - Two tabs: "Position clients" and "BL non facturés"
+  - Client position table with sortable columns (7 columns): Client, Factures TTC, Payé, Reste à payer, BL non fact., Portefeuille, Solde
+  - Click client row opens detail dialog with statement data (from existing /api/clients/[id]/statement endpoint)
+  - Detail dialog shows: 4 summary cards (ancien solde, débit, crédit, solde final), 5 statement metrics (impayés, BL, paiements, portefeuille, avoirs), scrollable transaction table with running balance
+  - Uninvoiced BLs tab with client filter dropdown and table (N° BL, Date, Client, Commande, Total TTC)
+  - Responsive design, loading skeletons, dark mode support
+- Updated navigation:
+  - `src/lib/stores.ts`: Added 'financial-reports' to ViewId union type
+  - `src/components/erp/erp-layout.tsx`: Added nav item "États financiers" with BarChart3 icon in Finance group, added viewLabel
+  - `src/app/page.tsx`: Added dynamic import and case statement
+
+Stage Summary:
+- Financial Reports dashboard fully implemented across 4 files (1 new API, 1 new component, 3 modified navigation)
+- Backend: Aggregated financial data with date range filtering using Prisma groupBy/aggregate
+- Frontend: Comprehensive dashboard with summary cards, sortable client table, BL list with filter, client detail dialog
+- Client detail dialog reuses existing statement API endpoint for deep-dive analysis
+- Lint: 0 errors
+- Dev server: compiling successfully

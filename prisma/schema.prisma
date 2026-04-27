@@ -319,6 +319,7 @@ model Product {
   routingSteps      RoutingStep[]
   deliveryNoteLines DeliveryNoteLine[]
   preparationLines  PreparationLine[]
+  qualityControlLines QualityControlLine[]
 }
 
 enum QuoteStatus {
@@ -683,6 +684,7 @@ model Reception {
 
   lines            ReceptionLine[]
   supplierReturns  SupplierReturn[]
+  qualityControls  QualityControl[] @relation("QualityControlReception")
 }
 
 model ReceptionLine {
@@ -1043,6 +1045,7 @@ model WorkOrder {
   updatedAt       DateTime         @updatedAt
 
   steps           WorkOrderStep[]
+  qualityControls  QualityControl[] @relation("QualityControlWorkOrder")
 }
 
 enum StepStatus {
@@ -1067,6 +1070,67 @@ model WorkOrderStep {
   goodQuantity   Float       @default(0)
   scrapQuantity  Float       @default(0)
   notes          String?
+}
+
+// ============ QUALITY CONTROL ============
+
+enum QualityControlType {
+  reception
+  production_inter
+  production_out
+  production_final
+  inventory
+}
+
+enum QualityResult {
+  conforme
+  non_conforme
+  conditionnel
+}
+
+enum QualityControlStatus {
+  pending
+  in_progress
+  completed
+  rejected
+}
+
+model QualityControl {
+  id              String              @id @default(cuid())
+  type            QualityControlType  @default(reception)
+  status          QualityControlStatus @default(pending)
+  date            DateTime            @default(now())
+  inspector       String?
+  notes           String?
+  result          QualityResult?
+  reference       String?
+  
+  // Polymorphic link to source entity
+  receptionId     String?
+  reception       Reception?         @relation("QualityControlReception", fields: [receptionId], references: [id])
+  workOrderId     String?
+  workOrder       WorkOrder?         @relation("QualityControlWorkOrder", fields: [workOrderId], references: [id])
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  lines           QualityControlLine[]
+}
+
+model QualityControlLine {
+  id              String          @id @default(cuid())
+  qualityControlId String
+  qualityControl  QualityControl @relation(fields: [qualityControlId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product         @relation(fields: [productId], references: [id])
+  specification   String?
+  measuredValue   String?
+  unit            String?
+  minValue        Float?
+  maxValue        Float?
+  tolerance       Float?
+  result          QualityResult   @default(conforme)
+  notes           String?
 }
 
 // ============ FINANCE ============

@@ -16,8 +16,11 @@ const lineSchema = z.object({
 const createFromOrderSchema = z.object({
   salesOrderId: z.string().min(1),
   lines: z.array(z.object({
-    salesOrderLineId: z.string().min(1),
+    salesOrderLineId: z.string().optional(),
+    productId: z.string().optional(),
     quantity: z.number().min(0.01),
+    unitPrice: z.number().min(0).optional(),
+    tvaRate: z.number().min(0).optional(),
   })).min(1, 'Au moins une ligne est requise'),
   transporteur: z.string().optional(),
   vehiclePlate: z.string().optional(),
@@ -156,8 +159,9 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      // Validate each line's quantity against remaining (ordered - already delivered)
+      // Validate each order line's quantity against remaining (ordered - already delivered)
       for (const line of data.lines) {
+        if (!line.salesOrderLineId) continue // supplementary line, skip validation
         const soLine = salesOrder.lines.find((l) => l.id === line.salesOrderLineId)
         if (!soLine) {
           return NextResponse.json({ error: `Ligne de commande introuvable: ${line.salesOrderLineId}` }, { status: 400 })
@@ -167,6 +171,14 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({
             error: `Quantité ${line.quantity} dépasse le restant (${remaining}) pour ${soLine.product?.designation || 'produit'}`
           }, { status: 400 })
+        }
+      }
+
+      // Validate supplementary lines have productId, unitPrice, tvaRate
+      for (const line of data.lines) {
+        if (line.salesOrderLineId) continue // order line, already validated
+        if (!line.productId || line.unitPrice === undefined || line.tvaRate === undefined) {
+          return NextResponse.json({ error: 'Les lignes supplémentaires doivent avoir productId, unitPrice et tvaRate' }, { status: 400 })
         }
       }
 
@@ -191,19 +203,39 @@ export async function POST(req: NextRequest) {
             totalTTC: 0,
             lines: {
               create: data.lines.map((line) => {
-                const soLine = salesOrder.lines.find((l) => l.id === line.salesOrderLineId)!
-                const lineHT = line.quantity * soLine.unitPrice
-                const lineTVA = lineHT * (soLine.tvaRate / 100)
-                totalHT += lineHT
-                totalTVA += lineTVA
+                if (line.salesOrderLineId) {
+                  // Order line: get info from sales order line
+                  const soLine = salesOrder.lines.find((l) => l.id === line.salesOrderLineId)!
+                  const lineHT = line.quantity * soLine.unitPrice
+                  const lineTVA = lineHT * (soLine.tvaRate / 100)
+                  totalHT += lineHT
+                  totalTVA += lineTVA
 
-                return {
-                  salesOrderLineId: line.salesOrderLineId,
-                  productId: soLine.productId,
-                  quantity: line.quantity,
-                  unitPrice: soLine.unitPrice,
-                  tvaRate: soLine.tvaRate,
-                  totalHT: lineHT,
+                  return {
+                    salesOrderLineId: line.salesOrderLineId,
+                    productId: soLine.productId,
+                    quantity: line.quantity,
+                    unitPrice: soLine.unitPrice,
+                    tvaRate: soLine.tvaRate,
+                    totalHT: lineHT,
+                  }
+                } else {
+                  // Supplementary (free) line
+                  const unitPrice = line.unitPrice!
+                  const tvaRate = line.tvaRate!
+                  const lineHT = line.quantity * unitPrice
+                  const lineTVA = lineHT * (tvaRate / 100)
+                  totalHT += lineHT
+                  totalTVA += lineTVA
+
+                  return {
+                    salesOrderLineId: null,
+                    productId: line.productId,
+                    quantity: line.quantity,
+                    unitPrice,
+                    tvaRate,
+                    totalHT: lineHT,
+                  }
                 }
               }),
             },

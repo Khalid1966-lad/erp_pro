@@ -56,7 +56,9 @@ import {
   UserCog,
   FileQuestion,
   ArrowLeftRight,
-  MessageSquare
+  MessageSquare,
+  BarChart3,
+  ClipboardCheck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -131,7 +133,8 @@ const navigation: NavGroup[] = [
       { id: 'bom', label: 'Nomenclatures', icon: <Network className="h-4 w-4" />, color: 'text-pink-500', permission: 'bom:read' },
       { id: 'routing', label: 'Gammes', icon: <Route className="h-4 w-4" />, color: 'text-fuchsia-500', permission: 'routing:read' },
       { id: 'workstations', label: 'Postes de travail', icon: <Cog className="h-4 w-4" />, color: 'text-stone-500', permission: 'workstations:read' },
-      { id: 'work-orders', label: 'Ordres de fabrication', icon: <Factory className="h-4 w-4" />, color: 'text-green-600', permission: 'work_orders:read' }
+      { id: 'work-orders', label: 'Ordres de fabrication', icon: <Factory className="h-4 w-4" />, color: 'text-green-600', permission: 'work_orders:read' },
+      { id: 'quality-control', label: 'Contrôle qualité', icon: <ClipboardCheck className="h-4 w-4" />, color: 'text-cyan-600', permission: 'work_orders:read' }
     ]
   },
   {
@@ -142,7 +145,8 @@ const navigation: NavGroup[] = [
       { id: 'bank-accounts', label: 'Banque', icon: <Landmark className="h-4 w-4" />, color: 'text-blue-600', permission: 'bank:read' },
       { id: 'payments', label: 'Paiements', icon: <CreditCard className="h-4 w-4" />, color: 'text-violet-400', permission: 'payments:read' },
       { id: 'effets', label: 'Chèques & Effets', icon: <FileText className="h-4 w-4" />, color: 'text-orange-500', permission: 'payments:read' },
-      { id: 'accounting', label: 'Comptabilité', icon: <BookOpen className="h-4 w-4" />, color: 'text-amber-600', permission: 'accounting:read' }
+      { id: 'accounting', label: 'Comptabilité', icon: <BookOpen className="h-4 w-4" />, color: 'text-amber-600', permission: 'accounting:read' },
+      { id: 'financial-reports', label: 'États financiers', icon: <BarChart3 className="h-4 w-4" />, color: 'text-violet-500', permission: 'accounting:read' }
     ]
   },
   {
@@ -385,6 +389,8 @@ export function ERPHeader() {
     'payments': 'Paiements',
     'effets': 'Chèques & Effets',
     'accounting': 'Comptabilité',
+    'financial-reports': 'États financiers',
+    'quality-control': 'Contrôle qualité',
     'settings': 'Paramètres',
     'audit-log': "Journal d'audit",
     'users': 'Utilisateurs',

@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   ClipboardList, MoreVertical, Play, CheckCircle, XCircle, Eye, Trash2, Package,
-  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search, Printer
+  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search, Printer, Truck
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -567,6 +567,23 @@ export default function PreparationsView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(prep)}>
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {prep.status === 'completed' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                              onClick={() => {
+                                window.dispatchEvent(
+                                  new CustomEvent('erp:navigate-delivery-notes', {
+                                    detail: { salesOrderId: prep.salesOrder.id, preparationId: prep.id },
+                                  }),
+                                )
+                              }}
+                              title="Générer BL"
+                            >
+                              <Truck className="h-4 w-4" />
+                            </Button>
+                          )}
                           {(prep.status === 'pending' || prep.status === 'in_progress' || prep.status === 'cancelled') && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -1050,7 +1067,7 @@ export default function PreparationsView() {
                                     onClick={() => navigateTo('work-orders')}
                                   >
                                     <Factory className="h-3.5 w-3.5 mr-1.5" />
-                                    Lancer une production
+                                    Fabriquer
                                     <ChevronRight className="h-3.5 w-3.5 ml-1" />
                                   </Button>
                                 )}

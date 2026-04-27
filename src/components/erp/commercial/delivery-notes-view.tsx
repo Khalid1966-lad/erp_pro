@@ -432,7 +432,17 @@ export default function DeliveryNotesView() {
             quantity: deliveryQuantities[l.id],
           }))
 
-        if (lines.length === 0) {
+        // Add supplementary (free) lines
+        const supplementaryLines = editableLines
+          .filter((l) => l.productId)
+          .map((l) => ({
+            productId: l.productId,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            tvaRate: l.tvaRate,
+          }))
+
+        if (lines.length === 0 && supplementaryLines.length === 0) {
           toast.error('Sélectionnez au moins une ligne à livrer avec une quantité > 0')
           setCreating(false)
           return
@@ -444,7 +454,7 @@ export default function DeliveryNotesView() {
           vehiclePlate: createVehiclePlate || undefined,
           notes: createNotes || undefined,
           plannedDate: createPlannedDate || undefined,
-          lines,
+          lines: [...lines, ...supplementaryLines],
         })
       } else {
         // Standalone mode
@@ -1051,6 +1061,87 @@ export default function DeliveryNotesView() {
                                 <span>{formatCurrency(getOrderDeliveryTotals().totalTTC)}</span>
                               </div>
                             </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* Supplementary Lines */}
+                    {orderLinesForDelivery.length > 0 && (
+                      <div className="space-y-2 mt-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                            <Package className="h-3.5 w-3.5" />
+                            Articles supplémentaires
+                          </Label>
+                          <Button type="button" variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={addEditableLine}>
+                            <Plus className="h-3 w-3" /> Ajouter un article supplémentaire
+                          </Button>
+                        </div>
+                        {editableLines.length > 0 && (
+                          <div className="rounded-md border border-dashed">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="w-[40%]">Produit</TableHead>
+                                  <TableHead className="w-[15%] text-right">Qté</TableHead>
+                                  <TableHead className="w-[20%] text-right">P.U. HT</TableHead>
+                                  <TableHead className="w-[15%] text-right">TVA %</TableHead>
+                                  <TableHead className="w-[15%] text-right">Total HT</TableHead>
+                                  <TableHead className="w-[40px]" />
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {editableLines.map((line, idx) => (
+                                  <TableRow key={line.tempId}>
+                                    <TableCell>
+                                      <ProductCombobox
+                                        products={getFilteredProducts(1000 + idx)}
+                                        value={line.productId}
+                                        searchValue={lineSearches[1000 + idx] || ''}
+                                        onSearchChange={(val) => setLineSearches(prev => ({ ...prev, [1000 + idx]: val }))}
+                                        onSelect={(productId) => {
+                                          updateEditableLine(line.tempId, 'productId', productId)
+                                          setLineSearches(prev => ({ ...prev, [1000 + idx]: '' }))
+                                        }}
+                                      />
+                                    </TableCell>
+                                    <TableCell>
+                                      <Input type="number" min="0.01" step="1" value={line.quantity}
+                                        onChange={(e) => updateEditableLine(line.tempId, 'quantity', parseFloat(e.target.value) || 0)}
+                                        className="w-full h-8" />
+                                    </TableCell>
+                                    <TableCell>
+                                      <Input type="number" min="0" step="0.01" value={line.unitPrice}
+                                        onChange={(e) => updateEditableLine(line.tempId, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                        className="w-full h-8 text-right" />
+                                    </TableCell>
+                                    <TableCell>
+                                      <Select value={String(line.tvaRate)} onValueChange={(v) => updateEditableLine(line.tempId, 'tvaRate', parseFloat(v))}>
+                                        <SelectTrigger className="w-full h-8">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="0">0%</SelectItem>
+                                          <SelectItem value="7">7%</SelectItem>
+                                          <SelectItem value="10">10%</SelectItem>
+                                          <SelectItem value="14">14%</SelectItem>
+                                          <SelectItem value="20">20%</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </TableCell>
+                                    <TableCell className="text-right text-sm font-medium">
+                                      {line.productId ? formatCurrency(line.quantity * line.unitPrice) : '—'}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                                        onClick={() => removeEditableLine(line.tempId)}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
                           </div>
                         )}
                       </div>

@@ -25,8 +25,10 @@ import {
 } from '@/components/ui/select'
 import {
   Factory, Plus, Eye, RefreshCw, Search, Calendar, ChevronLeft, ChevronRight,
-  Play, CheckCircle2, XCircle, Lock, FileEdit, Clock, Package, Trash2, ArrowRight
+  Play, CheckCircle2, XCircle, Lock, FileEdit, Clock, Package, Trash2, ArrowRight,
+  AlertTriangle, Loader2
 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -59,6 +61,20 @@ interface WorkOrderStep {
   }
 }
 
+interface BomComponentStock {
+  id: string
+  componentId: string
+  quantity: number
+  component: {
+    id: string
+    reference: string
+    designation: string
+    currentStock: number
+    unit: string
+    productNature: string
+  }
+}
+
 interface WorkOrder {
   id: string
   number: string
@@ -73,6 +89,7 @@ interface WorkOrder {
   goodQuantity: number
   scrapQuantity: number
   totalCost: number
+  estimatedEndDate?: string | null
   product: {
     id: string
     reference: string
@@ -133,6 +150,8 @@ export default function WorkOrdersView() {
     notes: '',
   })
   const [creating, setCreating] = useState(false)
+  const [bomCheckLoading, setBomCheckLoading] = useState(false)
+  const [bomCheck, setBomCheck] = useState<BomComponentStock[]>([])
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false)
@@ -187,6 +206,33 @@ export default function WorkOrdersView() {
   }, [fetchWorkOrders])
 
   const totalPages = Math.ceil(total / 50)
+
+  // Fetch BOM for stock check when product or quantity changes
+  useEffect(() => {
+    if (!createForm.productId || !createForm.quantity) {
+      setBomCheck([])
+      return
+    }
+    const fetchBom = async () => {
+      try {
+        setBomCheckLoading(true)
+        const data = await api.get<{ boms: BomComponentStock[] }>(`/production/bom?productId=${createForm.productId}`)
+        setBomCheck(data.boms || [])
+      } catch {
+        setBomCheck([])
+      } finally {
+        setBomCheckLoading(false)
+      }
+    }
+    fetchBom()
+  }, [createForm.productId])
+
+  const ofQty = parseFloat(createForm.quantity) || 0
+  const bomCheckItems = bomCheck.map((b) => ({
+    ...b,
+    requiredQty: b.quantity * ofQty,
+  }))
+  const hasInsufficientStock = bomCheckItems.some((b) => b.requiredQty > b.component.currentStock)
 
   const handleCreate = async () => {
     if (!createForm.productId || !createForm.quantity) {
@@ -416,13 +462,14 @@ export default function WorkOrdersView() {
                     <TableHead className="hidden lg:table-cell">Date planif.</TableHead>
                     <TableHead className="hidden xl:table-cell">Date début</TableHead>
                     <TableHead className="hidden xl:table-cell">Date fin</TableHead>
+                    <TableHead className="hidden xl:table-cell">Fin estimée</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {workOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                         Aucun ordre de fabrication trouvé.
                       </TableCell>
                     </TableRow>
@@ -467,6 +514,19 @@ export default function WorkOrdersView() {
                           </TableCell>
                           <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
                             {formatDateTime(wo.completedAt)}
+                          </TableCell>
+                          <TableCell className="hidden xl:table-cell text-sm">
+                            {wo.estimatedEndDate ? (
+                              <span className={
+                                wo.plannedDate && new Date(wo.estimatedEndDate) > new Date(wo.plannedDate) && wo.status !== 'completed' && wo.status !== 'closed'
+                                  ? 'text-red-600 font-medium'
+                                  : 'text-muted-foreground'
+                              }>
+                                {formatDate(wo.estimatedEndDate)}
+                              </span>
+                            ) : (
+                              '-'
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -596,7 +656,7 @@ export default function WorkOrdersView() {
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Factory className="h-5 w-5" />
@@ -647,6 +707,80 @@ export default function WorkOrdersView() {
                 rows={2}
               />
             </div>
+
+            {/* Stock feasibility check */}
+            {createForm.productId && ofQty > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-sm font-medium">Vérification des stocks</Label>
+                  {bomCheckLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                </div>
+                {!bomCheckLoading && bomCheck.length === 0 && (
+                  <p className="text-xs text-muted-foreground pl-6">
+                    Aucune nomenclature (BOM) définie pour ce produit.
+                  </p>
+                )}
+                {!bomCheckLoading && bomCheck.length > 0 && (
+                  <>
+                    <div className="rounded border max-h-[200px] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Composant</TableHead>
+                            <TableHead className="text-xs text-right">Requis</TableHead>
+                            <TableHead className="text-xs text-right">Stock</TableHead>
+                            <TableHead className="text-xs text-center">Statut</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {bomCheckItems.map((item) => {
+                            const sufficient = item.requiredQty <= item.component.currentStock
+                            const deficit = item.component.currentStock - item.requiredQty
+                            return (
+                              <TableRow key={item.id}>
+                                <TableCell className="text-xs">
+                                  <span className="font-mono">{item.component.reference}</span>
+                                  <span className="ml-1">{item.component.designation}</span>
+                                </TableCell>
+                                <TableCell className="text-xs text-right font-medium">
+                                  {item.requiredQty.toLocaleString('fr-FR')} {item.component.unit}
+                                </TableCell>
+                                <TableCell className="text-xs text-right">
+                                  <span className={sufficient ? 'text-green-600' : 'text-red-600'}>
+                                    {item.component.currentStock.toLocaleString('fr-FR')}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-xs text-center">
+                                  {sufficient ? (
+                                    <Badge variant="secondary" className="bg-green-100 text-green-800 text-[10px]">
+                                      OK
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="bg-red-100 text-red-800 text-[10px]">
+                                      -{Math.abs(deficit).toLocaleString('fr-FR')}
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {hasInsufficientStock && (
+                      <Alert variant="destructive" className="bg-amber-50 text-amber-800 border-amber-200">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          Stock insuffisant pour certains composants. Vous pouvez créer l&apos;OF
+                          mais le lancement sera bloqué tant que le stock n&apos;est pas approvisionné.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
@@ -681,7 +815,7 @@ export default function WorkOrdersView() {
           {selectedWO && (
             <div className="space-y-6">
               {/* Timeline / Planning Gantt-like */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="p-3 border rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Créé le</p>
                   <p className="text-sm font-medium">{formatDateTime(selectedWO.createdAt)}</p>
@@ -707,6 +841,26 @@ export default function WorkOrdersView() {
                     <p className="text-sm font-medium">{formatDateTime(selectedWO.completedAt)}</p>
                   </div>
                 </div>
+                {selectedWO.estimatedEndDate && (
+                  <div className={`p-3 border rounded-lg ${
+                    selectedWO.plannedDate && new Date(selectedWO.estimatedEndDate) > new Date(selectedWO.plannedDate) && selectedWO.status !== 'completed' && selectedWO.status !== 'closed'
+                      ? 'border-red-200 bg-red-50/50'
+                      : ''
+                  }`}>
+                    <p className={`text-xs mb-1 ${
+                      selectedWO.plannedDate && new Date(selectedWO.estimatedEndDate) > new Date(selectedWO.plannedDate) && selectedWO.status !== 'completed' && selectedWO.status !== 'closed'
+                        ? 'text-red-700'
+                        : 'text-muted-foreground'
+                    }`}>Fin estimée</p>
+                    <p className={`text-sm font-medium ${
+                      selectedWO.plannedDate && new Date(selectedWO.estimatedEndDate) > new Date(selectedWO.plannedDate) && selectedWO.status !== 'completed' && selectedWO.status !== 'closed'
+                        ? 'text-red-700'
+                        : ''
+                    }`}>
+                      {formatDate(selectedWO.estimatedEndDate)}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Gantt-like progress */}
