@@ -23,6 +23,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
+import { ProductCombobox } from '@/components/erp/shared/product-combobox'
 import {
   Factory, Plus, Eye, RefreshCw, Search, Calendar, ChevronLeft, ChevronRight,
   Play, CheckCircle2, XCircle, Lock, FileEdit, Clock, Package, Trash2, ArrowRight,
@@ -152,6 +153,7 @@ export default function WorkOrdersView() {
   const [creating, setCreating] = useState(false)
   const [bomCheckLoading, setBomCheckLoading] = useState(false)
   const [bomCheck, setBomCheck] = useState<BomComponentStock[]>([])
+  const [productSearch, setProductSearch] = useState('')
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false)
@@ -190,7 +192,7 @@ export default function WorkOrdersView() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const data = await api.get<{ products: Product[] }>('/products?productUsage=vente&limit=200')
+      const data = await api.get<{ products: Product[] }>('/products?productUsage=vente&dropdown=true')
       setProducts(data.products || [])
     } catch {
       // silent
@@ -205,7 +207,14 @@ export default function WorkOrdersView() {
     fetchWorkOrders()
   }, [fetchWorkOrders])
 
-  const totalPages = Math.ceil(total / 50)
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.toLowerCase()
+    if (!q.trim()) return products
+    return products.filter(p =>
+      p.reference.toLowerCase().includes(q) ||
+      p.designation.toLowerCase().includes(q)
+    )
+  }, [products, productSearch])
 
   // Fetch BOM for stock check when product or quantity changes
   useEffect(() => {
@@ -666,18 +675,14 @@ export default function WorkOrdersView() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Produit fini *</Label>
-              <Select value={createForm.productId} onValueChange={(v) => setCreateForm({ ...createForm, productId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un produit..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.reference} - {p.designation}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ProductCombobox
+                products={filteredProducts}
+                value={createForm.productId}
+                searchValue={productSearch}
+                onSearchChange={setProductSearch}
+                onSelect={(v) => setCreateForm({ ...createForm, productId: v })}
+                placeholder="Rechercher un produit fini..."
+              />
             </div>
             <div className="space-y-2">
               <Label>Quantité à produire *</Label>

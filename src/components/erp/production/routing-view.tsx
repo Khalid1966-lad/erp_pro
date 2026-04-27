@@ -22,9 +22,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
+import { ProductCombobox } from '@/components/erp/shared/product-combobox'
 import {
   GitBranch, Plus, Trash2, Edit, ArrowUp, ArrowDown, RefreshCw, GripVertical, Clock, Search, Package
 } from 'lucide-react'
+import { useMemo } from 'react'
 import { toast } from 'sonner'
 
 interface Product {
@@ -65,6 +67,7 @@ export default function RoutingView() {
   const [steps, setSteps] = useState<RoutingStep[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingSteps, setLoadingSteps] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
 
   // Add dialog
   const [addDialogOpen, setAddDialogOpen] = useState(false)
@@ -90,7 +93,7 @@ export default function RoutingView() {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await api.get<{ products: Product[] }>('/products?productUsage=vente&limit=100')
+      const res = await api.get<{ products: Product[] }>('/products?productUsage=vente&dropdown=true')
       setProducts(res.products || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur de chargement des produits')
@@ -132,6 +135,15 @@ export default function RoutingView() {
   useEffect(() => {
     fetchSteps(selectedProductId)
   }, [selectedProductId, fetchSteps])
+
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.toLowerCase()
+    if (!q.trim()) return products
+    return products.filter(p =>
+      p.reference.toLowerCase().includes(q) ||
+      p.designation.toLowerCase().includes(q)
+    )
+  }, [products, productSearch])
 
   const selectedProduct = products.find((p) => p.id === selectedProductId)
   const totalDuration = steps.reduce((sum, s) => sum + s.duration, 0)
@@ -263,18 +275,17 @@ export default function RoutingView() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <Label>Produit fini</Label>
-              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Sélectionner un produit fini..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.reference} - {p.designation}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="mt-1">
+                <ProductCombobox
+                  products={filteredProducts}
+                  value={selectedProductId}
+                  loading={loading}
+                  searchValue={productSearch}
+                  onSearchChange={setProductSearch}
+                  onSelect={setSelectedProductId}
+                  placeholder="Rechercher un produit fini..."
+                />
+              </div>
             </div>
             <div className="flex items-end gap-2">
               <Button variant="outline" size="icon" onClick={() => { fetchProducts(); fetchSteps(selectedProductId) }} disabled={loading}>

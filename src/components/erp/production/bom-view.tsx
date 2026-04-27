@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ProductCombobox } from '@/components/erp/shared/product-combobox'
 import {
   Table,
   TableBody,
@@ -43,6 +44,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Network, Plus, Trash2, RefreshCw, Search } from 'lucide-react'
+import { useMemo } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -81,6 +83,7 @@ export default function BomView() {
   const [loadingComponents, setLoadingComponents] = useState(false)
   const [adding, setAdding] = useState(false)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
 
   // Add component form
   const [newComponentId, setNewComponentId] = useState('')
@@ -91,7 +94,7 @@ export default function BomView() {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await api.get<{ products: Product[] }>('/products?productUsage=vente&limit=100')
+      const res = await api.get<{ products: Product[] }>('/products?productUsage=vente&dropdown=true')
       setProducts(res.products || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur de chargement des produits')
@@ -173,6 +176,15 @@ export default function BomView() {
     }
   }
 
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.toLowerCase()
+    if (!q.trim()) return products
+    return products.filter(p =>
+      p.reference.toLowerCase().includes(q) ||
+      p.designation.toLowerCase().includes(q)
+    )
+  }, [products, productSearch])
+
   const filteredMaterials = materials.filter(
     (m) =>
       m.id !== selectedProductId &&
@@ -196,18 +208,17 @@ export default function BomView() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <Label>Produit fini</Label>
-              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Sélectionner un produit fini..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.reference} - {p.designation}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="mt-1">
+                <ProductCombobox
+                  products={filteredProducts}
+                  value={selectedProductId}
+                  loading={loading}
+                  searchValue={productSearch}
+                  onSearchChange={setProductSearch}
+                  onSelect={setSelectedProductId}
+                  placeholder="Rechercher un produit fini..."
+                />
+              </div>
             </div>
             <div className="flex items-end">
               <Button variant="outline" size="icon" onClick={fetchProducts} disabled={loading}>
