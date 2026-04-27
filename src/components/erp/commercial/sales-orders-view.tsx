@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -36,6 +36,7 @@ import { PrintHeader } from '@/components/erp/shared/print-header'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -135,7 +136,7 @@ export default function SalesOrdersView() {
   const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null)
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
-  const [products, setProducts] = useState<Product[]>([])
+  const [allProducts, setAllProducts] = useState<ProductOption[]>([])
 
   // Form state
   const [formClientId, setFormClientId] = useState('')
@@ -166,23 +167,25 @@ export default function SalesOrdersView() {
     }
   }
 
-  const fetchDropdowns = async () => {
+  const fetchDropdowns = useCallback(async () => {
     try {
       const [clientsRes, productsRes] = await Promise.all([
         api.get<{ clients: Client[] }>('/clients'),
-        api.get<{ products: Product[] }>('/products')
+        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=vente&active=true'),
       ])
       setClients(clientsRes.clients || [])
-      setProducts(productsRes.products || [])
+      setAllProducts(productsRes.products || [])
     } catch (err) {
       console.error('Erreur chargement dropdowns:', err)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchOrders()
     fetchDropdowns()
-  }, [statusFilter])
+  }, [statusFilter, fetchDropdowns])
+
+  const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(allProducts)
 
   const handleSearch = () => fetchOrders()
 
@@ -211,6 +214,7 @@ export default function SalesOrdersView() {
     setFormLines([emptyLine()])
     setFormQuoteId(null)
     setFormQuoteNumber(null)
+    resetLineSearches()
     setDialogOpen(true)
   }
 
@@ -227,6 +231,7 @@ export default function SalesOrdersView() {
     setFormLines(order.lines.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, tvaRate: l.tvaRate, discount: l.discount || 0 })))
     setFormQuoteId(order.quoteId || null)
     setFormQuoteNumber(order.quote?.number || null)
+    resetLineSearches()
     setDialogOpen(true)
   }
 
@@ -396,10 +401,10 @@ export default function SalesOrdersView() {
     const updated = [...formLines]
     updated[idx] = { ...updated[idx], [field]: value }
     if (field === 'productId') {
-      const prod = products.find(p => p.id === value)
+      const prod = allProducts.find(p => p.id === value)
       if (prod) {
-        updated[idx].unitPrice = prod.priceHT
-        updated[idx].tvaRate = prod.tvaRate
+        updated[idx].unitPrice = prod.priceHT || 0
+        updated[idx].tvaRate = prod.tvaRate || 20
       }
     }
     setFormLines(updated)
@@ -756,16 +761,16 @@ export default function SalesOrdersView() {
                       {formLines.map((line, idx) => (
                         <TableRow key={idx}>
                           <TableCell>
-                            <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Produit" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {products.map((p) => (
-                                  <SelectItem key={p.id} value={p.id}>{p.reference} - {p.designation}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <ProductCombobox
+                              products={getFilteredProducts(idx)}
+                              value={line.productId}
+                              searchValue={lineSearches[idx] || ''}
+                              onSearchChange={(val) => setLineSearches(prev => ({ ...prev, [idx]: val }))}
+                              onSelect={(productId) => {
+                                updateLine(idx, 'productId', productId)
+                                setLineSearches(prev => ({ ...prev, [idx]: '' }))
+                              }}
+                            />
                           </TableCell>
                           <TableCell>
                             <Input type="number" min="0.01" step="1" value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)} className="w-full" />

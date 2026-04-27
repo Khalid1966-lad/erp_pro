@@ -32,6 +32,7 @@ import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 
 // ─── Helpers ───
 
@@ -46,15 +47,7 @@ interface ClientOption {
   ville: string | null
 }
 
-interface ProductOption {
-  id: string
-  reference: string
-  designation: string
-  priceHT: number
-  tvaRate: number
-  unit: string
-  currentStock: number
-}
+// ProductOption imported from @/components/erp/shared/product-combobox
 
 interface SalesOrderOption {
   id: string
@@ -283,6 +276,7 @@ export default function DeliveryNotesView() {
     setCreateVehiclePlate('')
     setCreateNotes('')
     setCreatePlannedDate('')
+    resetLineSearches()
 
     // Fetch available data in parallel
     setLoadingOrders(true)
@@ -294,7 +288,7 @@ export default function DeliveryNotesView() {
         api.get<{ orders: any[] }>('/sales-orders?status=prepared&limit=100'),
         api.get<{ orders: any[] }>('/sales-orders?status=partially_delivered&limit=100'),
         api.get<{ clients: ClientOption[] }>('/clients?limit=500'),
-        api.get<{ products: ProductOption[] }>('/products?limit=500'),
+        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=vente&active=true'),
       ])
       const allOrders = [...(prepData.orders || []), ...(partData.orders || [])]
       setAvailableOrders(allOrders)
@@ -308,6 +302,8 @@ export default function DeliveryNotesView() {
       setLoadingProducts(false)
     }
   }
+
+  const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(availableProducts)
 
   // ─── Fetch order lines for partial delivery ───
 
@@ -515,8 +511,8 @@ export default function DeliveryNotesView() {
         if (field === 'productId' && typeof value === 'string') {
           const prod = availableProducts.find((p) => p.id === value)
           if (prod) {
-            updated.unitPrice = prod.priceHT
-            updated.tvaRate = prod.tvaRate
+            updated.unitPrice = prod.priceHT ?? 0
+            updated.tvaRate = prod.tvaRate ?? 20
           }
         }
         return updated
@@ -1125,21 +1121,17 @@ export default function DeliveryNotesView() {
                           {editableLines.map((line) => (
                             <TableRow key={line.tempId}>
                               <TableCell>
-                                <Select
+                                <ProductCombobox
+                                  products={getFilteredProducts(line.tempId)}
                                   value={line.productId}
-                                  onValueChange={(val) => updateEditableLine(line.tempId, 'productId', val)}
-                                >
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="Produit..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {availableProducts.map((p) => (
-                                      <SelectItem key={p.id} value={p.id}>
-                                        <span className="text-xs">{p.reference} - {p.designation}</span>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                  searchValue={lineSearches[line.tempId] || ''}
+                                  onSearchChange={(val) => setLineSearches(prev => ({ ...prev, [line.tempId]: val }))}
+                                  onSelect={(productId) => {
+                                    updateEditableLine(line.tempId, 'productId', productId)
+                                    setLineSearches(prev => ({ ...prev, [line.tempId]: '' }))
+                                  }}
+                                  className="h-8"
+                                />
                               </TableCell>
                               <TableCell>
                                 <Input

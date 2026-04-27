@@ -29,6 +29,7 @@ import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 
 // ── Types ──────────────────────────────────────────────
 interface Product {
@@ -103,7 +104,7 @@ export default function PurchaseOrdersView() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [products, setProducts] = useState<Product[]>([])
+  const [allProducts, setAllProducts] = useState<ProductOption[]>([])
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -136,10 +137,12 @@ export default function PurchaseOrdersView() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const data = await api.get<{ products: Product[] }>('/products')
-      setProducts(data.products || [])
+      const data = await api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=achat&active=true')
+      setAllProducts(data.products || [])
     } catch { /* silent */ }
   }, [])
+
+  const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(allProducts)
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
   useEffect(() => { fetchSuppliers(); fetchProducts() }, [fetchSuppliers, fetchProducts])
@@ -162,7 +165,7 @@ export default function PurchaseOrdersView() {
       if (i !== idx) return l
       const updated = { ...l, [field]: value }
       if (field === 'productId') {
-        const product = products.find((p) => p.id === value)
+        const product = allProducts.find((p) => p.id === value)
         if (product) {
           updated.unitPrice = product.purchasePrice || 0
           updated.tvaRate = product.tvaRate || 20
@@ -185,6 +188,7 @@ export default function PurchaseOrdersView() {
   }
 
   const openEdit = (order: PurchaseOrder) => {
+    resetLineSearches()
     setIsEditing(true)
     setSelectedOrder(order)
     setSupplierId(order.supplierId)
@@ -342,16 +346,18 @@ export default function PurchaseOrdersView() {
                         {lines.map((line, idx) => (
                           <TableRow key={idx}>
                             <TableCell>
-                              <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
-                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Produit..." /></SelectTrigger>
-                                <SelectContent>
-                                  {products.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      {p.reference} — {p.designation}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <ProductCombobox
+                                products={getFilteredProducts(idx)}
+                                value={line.productId}
+                                searchValue={lineSearches[idx] || ''}
+                                onSearchChange={(val) => setLineSearches(prev => ({ ...prev, [idx]: val }))}
+                                onSelect={(productId) => {
+                                  updateLine(idx, 'productId', productId)
+                                  setLineSearches(prev => ({ ...prev, [idx]: '' }))
+                                }}
+                                priceField="purchasePrice"
+                                className="h-8"
+                              />
                             </TableCell>
                             <TableCell>
                               <Input type="number" min={1} value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseInt(e.target.value) || 0)} className="h-8 text-right" />

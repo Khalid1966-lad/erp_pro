@@ -27,6 +27,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { PrintHeader, PrintFooter, formatCurrency } from '@/components/erp/shared/print-header'
+import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
 
@@ -120,7 +121,7 @@ export default function SupplierInvoicesView() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [selected, setSelected] = useState<SupplierInvoice | null>(null)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [products, setProducts] = useState<Product[]>([])
+  const [allProducts, setAllProducts] = useState<ProductOption[]>([])
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
@@ -155,10 +156,12 @@ export default function SupplierInvoicesView() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const data = await api.get<{ products: Product[] }>('/products')
-      setProducts(data.products || [])
+      const data = await api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=achat&active=true')
+      setAllProducts(data.products || [])
     } catch { /* silent */ }
   }, [])
+
+  const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(allProducts)
 
   const fetchPurchaseOrders = useCallback(async () => {
     try {
@@ -209,6 +212,7 @@ export default function SupplierInvoicesView() {
   const openEdit = (doc: SupplierInvoice) => {
     setSelected(doc)
     setIsEditing(true)
+    resetLineSearches()
     setSupplierId(doc.supplierId)
     setPurchaseOrderId(doc.purchaseOrderId || '')
     setDueDate(doc.dueDate ? format(new Date(doc.dueDate), 'yyyy-MM-dd') : '')
@@ -332,7 +336,7 @@ export default function SupplierInvoicesView() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button onClick={() => { resetForm(); resetLineSearches() }}>
               <Plus className="h-4 w-4 mr-2" />
               Nouvelle facture
             </Button>
@@ -403,16 +407,18 @@ export default function SupplierInvoicesView() {
                         {lines.map((line, idx) => (
                           <TableRow key={idx}>
                             <TableCell>
-                              <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
-                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Produit..." /></SelectTrigger>
-                                <SelectContent>
-                                  {products.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      {p.reference} — {p.designation}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <ProductCombobox
+                                products={getFilteredProducts(idx)}
+                                value={line.productId}
+                                searchValue={lineSearches[idx] || ''}
+                                onSearchChange={(val) => setLineSearches(prev => ({ ...prev, [idx]: val }))}
+                                onSelect={(productId) => {
+                                  updateLine(idx, 'productId', productId)
+                                  setLineSearches(prev => ({ ...prev, [idx]: '' }))
+                                }}
+                                priceField="purchasePrice"
+                                className="h-8"
+                              />
                             </TableCell>
                             <TableCell>
                               <Input type="number" min={1} value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseInt(e.target.value) || 0)} className="h-8 text-right" />

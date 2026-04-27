@@ -1048,3 +1048,31 @@ Stage Summary:
 - Dashboard sections now have always-visible scrollbars
 - All document lists support double-click to open edit (where edit dialog exists)
 - Actions buttons properly isolated from row double-click events
+---
+Task ID: product-combobox-fix
+Agent: Main Agent
+Task: Fix searchable product combobox in all commercial/purchase documents
+
+Work Log:
+- Investigated root cause: devis (quotes) used ProductCombobox (Popover+Search) + dropdown=true API, while all other documents used bare Select + paginated /products API
+- Created shared ProductCombobox component at src/components/erp/shared/product-combobox.tsx
+  - Reusable Popover-based searchable combobox with search input
+  - Supports priceField prop (priceHT for sales, purchasePrice for purchases)
+  - Includes useProductSearch hook for per-line search state management
+  - Shows up to 50 matching products with price display
+- Fixed 7 files to use shared ProductCombobox + dropdown=true API:
+  1. sales-orders-view.tsx: Added ProductCombobox, updated API to dropdown=true&productType=vente&active=true
+  2. invoices-view.tsx: Same pattern
+  3. credit-notes-view.tsx: Same pattern
+  4. delivery-notes-view.tsx: Updated standalone mode product selector
+  5. purchase-orders-view.tsx: Updated with productType=achat and priceField=purchasePrice
+  6. supplier-quotes-view.tsx: Same purchase pattern
+  7. supplier-invoices-view.tsx: Same purchase pattern
+- Each fix included: API endpoint change, state rename (products→allProducts), ProductCombobox import, search hook, lineSearches reset in openCreate/openEdit
+
+Stage Summary:
+- All commercial documents (ventes) now have searchable product combobox with all vente products loaded
+- All purchase documents (achats) now have searchable product combobox with all achat products loaded
+- No more pagination limit (was 50 products) — all active products now available
+- Lint: 0 errors, dev server compiling successfully
+

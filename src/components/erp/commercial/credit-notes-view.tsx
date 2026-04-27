@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -34,6 +34,7 @@ import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -102,7 +103,7 @@ export default function CreditNotesView() {
   const [saving, setSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [products, setProducts] = useState<Product[]>([])
+  const [allProducts, setAllProducts] = useState<ProductOption[]>([])
 
   // Form state
   const [formInvoiceId, setFormInvoiceId] = useState('')
@@ -125,24 +126,26 @@ export default function CreditNotesView() {
     }
   }
 
-  const fetchDropdowns = async () => {
+  const fetchDropdowns = useCallback(async () => {
     try {
       const [invoicesRes, productsRes] = await Promise.all([
         api.get<{ invoices: Invoice[] }>('/invoices'),
-        api.get<{ products: Product[] }>('/products')
+        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productType=vente&active=true'),
       ])
       // Only show invoices that are validated/sent/paid (not draft/cancelled) for creating credit notes
       setInvoices((invoicesRes.invoices || []).filter((inv) => !['draft', 'cancelled'].includes(inv.status)))
-      setProducts(productsRes.products || [])
+      setAllProducts(productsRes.products || [])
     } catch (err) {
       console.error('Erreur chargement dropdowns:', err)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchCreditNotes()
     fetchDropdowns()
-  }, [statusFilter])
+  }, [statusFilter, fetchDropdowns])
+
+  const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(allProducts)
 
   const handleSearch = () => fetchCreditNotes()
 
@@ -165,6 +168,7 @@ export default function CreditNotesView() {
     setFormInvoiceId('')
     setFormReason('')
     setFormLines([emptyLine()])
+    resetLineSearches()
     setDialogOpen(true)
   }
 
@@ -187,6 +191,7 @@ export default function CreditNotesView() {
         product: l.product
       }))
     )
+    resetLineSearches()
     setDialogOpen(true)
   }
 
@@ -280,10 +285,10 @@ export default function CreditNotesView() {
     const updated = [...formLines]
     updated[idx] = { ...updated[idx], [field]: value }
     if (field === 'productId') {
-      const prod = products.find(p => p.id === value)
+      const prod = allProducts.find(p => p.id === value)
       if (prod) {
-        updated[idx].unitPrice = prod.priceHT
-        updated[idx].tvaRate = prod.tvaRate
+        updated[idx].unitPrice = prod.priceHT || 0
+        updated[idx].tvaRate = prod.tvaRate || 20
       }
     }
     setFormLines(updated)
@@ -517,16 +522,16 @@ export default function CreditNotesView() {
                     {formLines.map((line, idx) => (
                       <TableRow key={idx}>
                         <TableCell>
-                          <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Produit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>{p.reference} - {p.designation}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <ProductCombobox
+                            products={getFilteredProducts(idx)}
+                            value={line.productId}
+                            searchValue={lineSearches[idx] || ''}
+                            onSearchChange={(val) => setLineSearches(prev => ({ ...prev, [idx]: val }))}
+                            onSelect={(productId) => {
+                              updateLine(idx, 'productId', productId)
+                              setLineSearches(prev => ({ ...prev, [idx]: '' }))
+                            }}
+                          />
                         </TableCell>
                         <TableCell>
                           <Input type="number" min="0.01" step="1" value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)} className="w-full" />
