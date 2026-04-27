@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer, ShoppingCart } from 'lucide-react'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -295,7 +295,19 @@ export default function PurchaseOrdersView() {
           </DialogTrigger>
           <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{isEditing ? 'Modifier la commande' : 'Nouvelle commande fournisseur'}</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                {isEditing ? (
+                  <>
+                    <ShoppingCart className="h-5 w-5" />
+                    Modifier — {selectedOrder?.number}
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-5 w-5" />
+                    Nouvelle commande fournisseur
+                  </>
+                )}
+              </DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -452,7 +464,7 @@ export default function PurchaseOrdersView() {
                 <TableBody>
                   {selectedOrder.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
-                      <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
+                      <TableCell className="text-sm">{l.product ? `${l.product.reference} — ${l.product.designation}` : (l.productId ? `ID: ${l.productId.slice(0, 8)}...` : '—')}</TableCell>
                       <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
                       <TableCell className="text-right">{l.quantityReceived?.toLocaleString('fr-FR') || 0}</TableCell>
                       <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>

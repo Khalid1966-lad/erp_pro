@@ -1002,7 +1002,7 @@ export default function DeliveryNotesView() {
                                       <div className="flex items-center gap-1.5">
                                         <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                         <div className="min-w-0">
-                                          <p className="font-medium truncate">{line.product?.designation}</p>
+                                          <p className="font-medium truncate">{line.product?.designation || (line.productId ? `ID: ${line.productId.slice(0, 8)}...` : '—')}</p>
                                           <p className="text-muted-foreground font-mono">{line.product?.reference}</p>
                                         </div>
                                       </div>
@@ -1547,7 +1547,7 @@ export default function DeliveryNotesView() {
                             <div className="flex items-center gap-1.5">
                               <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                               <div className="min-w-0">
-                                <p className="text-sm">{line.product?.designation}</p>
+                                <p className="text-sm">{line.product?.designation || (line.productId ? `ID: ${line.productId.slice(0, 8)}...` : '—')}</p>
                                 <p className="text-xs text-muted-foreground font-mono">{line.product?.reference}</p>
                               </div>
                             </div>

@@ -474,7 +474,19 @@ export default function CreditNotesView() {
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) setIsEditing(false); setDialogOpen(open) }}>
         <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isEditing ? 'Modifier l\'avoir' : 'Nouvel avoir'}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {isEditing ? (
+                <>
+                  <RotateCcw className="h-5 w-5" />
+                  Modifier — {selectedCN?.number}
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="h-5 w-5" />
+                  Nouvel avoir
+                </>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -630,7 +642,7 @@ export default function CreditNotesView() {
                 <TableBody>
                   {selectedCN.lines.map((line) => (
                     <TableRow key={line.id || line.productId}>
-                      <TableCell className="font-medium">{line.product?.reference} - {line.product?.designation}</TableCell>
+                      <TableCell className="font-medium">{line.product ? `${line.product.reference} - ${line.product.designation}` : (line.productId ? `ID: ${line.productId.slice(0, 8)}...` : '—')}</TableCell>
                       <TableCell className="text-right">{line.quantity}</TableCell>
                       <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
                       <TableCell className="text-right">{line.tvaRate}%</TableCell>

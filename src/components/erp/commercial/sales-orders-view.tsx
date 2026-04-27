@@ -653,7 +653,19 @@ export default function SalesOrdersView() {
       }}>
         <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingOrder ? 'Modifier la commande' : 'Nouvelle commande client'}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {editingOrder ? (
+                <>
+                  <ShoppingCart className="h-5 w-5" />
+                  Modifier — {editingOrder.number}
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="h-5 w-5" />
+                  Nouvelle commande client
+                </>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Client selection + Import button */}
@@ -1065,7 +1077,7 @@ export default function SalesOrdersView() {
                   <TableBody>
                     {selectedOrder.lines.map((line) => (
                       <TableRow key={line.id || line.productId}>
-                        <TableCell className="font-medium">{line.product?.reference} - {line.product?.designation}</TableCell>
+                        <TableCell className="font-medium">{line.product ? `${line.product.reference} - ${line.product.designation}` : (line.productId ? `ID: ${line.productId.slice(0, 8)}...` : '—')}</TableCell>
                         <TableCell className="text-right">{line.quantity}</TableCell>
                         <TableCell className="text-right">{line.quantityPrepared || 0}</TableCell>
                         <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>

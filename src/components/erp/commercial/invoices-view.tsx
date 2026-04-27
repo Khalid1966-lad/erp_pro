@@ -675,7 +675,19 @@ export default function InvoicesView() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingInvoice ? 'Modifier la facture' : 'Nouvelle facture'}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {editingInvoice ? (
+                <>
+                  <Receipt className="h-5 w-5" />
+                  Modifier — {editingInvoice.number}
+                </>
+              ) : (
+                <>
+                  <Receipt className="h-5 w-5" />
+                  Nouvelle facture
+                </>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Mode Toggle */}
@@ -1126,7 +1138,7 @@ export default function InvoicesView() {
                 <TableBody>
                   {selectedInvoice.lines.map((line) => (
                     <TableRow key={line.id || line.productId}>
-                      <TableCell className="font-medium">{line.product?.reference} - {line.product?.designation}</TableCell>
+                      <TableCell className="font-medium">{line.product ? `${line.product.reference} - ${line.product.designation}` : (line.productId ? `ID: ${line.productId.slice(0, 8)}...` : '—')}</TableCell>
                       <TableCell className="text-right">{line.quantity}</TableCell>
                       <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
                       <TableCell className="text-right">{line.tvaRate}%</TableCell>

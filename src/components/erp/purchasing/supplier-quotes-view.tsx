@@ -338,7 +338,19 @@ export default function SupplierQuotesView() {
           </DialogTrigger>
           <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{isEditing ? 'Modifier le devis fournisseur' : 'Nouveau devis fournisseur'}</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                {isEditing ? (
+                  <>
+                    <FileText className="h-5 w-5" />
+                    Modifier — {selected?.number}
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-5 w-5" />
+                    Nouveau devis fournisseur
+                  </>
+                )}
+              </DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -532,7 +544,7 @@ export default function SupplierQuotesView() {
                 <TableBody>
                   {selected.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
-                      <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
+                      <TableCell className="text-sm">{l.product ? `${l.product.reference} — ${l.product.designation}` : (l.productId ? `ID: ${l.productId.slice(0, 8)}...` : '—')}</TableCell>
                       <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
                       <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
                       <TableCell className="text-right">{l.tvaRate}%</TableCell>

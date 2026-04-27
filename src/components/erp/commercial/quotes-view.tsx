@@ -601,7 +601,19 @@ export default function QuotesView() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>{editingQuote ? 'Modifier le devis' : 'Nouveau devis'}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {editingQuote ? (
+                <>
+                  <FileText className="h-5 w-5" />
+                  Modifier — {editingQuote.number}
+                </>
+              ) : (
+                <>
+                  <FileText className="h-5 w-5" />
+                  Nouveau devis
+                </>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <div className="overflow-auto scrollbar-visible max-h-[calc(90vh-8rem)]">
           <div className="space-y-4">
@@ -846,7 +858,7 @@ export default function QuotesView() {
                 <TableBody>
                   {selectedQuote.lines.map((line) => (
                     <TableRow key={line.id || line.productId}>
-                      <TableCell className="font-medium">{line.product?.reference} - {line.product?.designation}</TableCell>
+                      <TableCell className="font-medium">{line.product ? `${line.product.reference} - ${line.product.designation}` : (line.productId ? `ID: ${line.productId.slice(0, 8)}...` : '—')}</TableCell>
                       <TableCell className="text-right">{line.quantity}</TableCell>
                       <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
                       <TableCell className="text-right">{line.discount || 0}%</TableCell>
