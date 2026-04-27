@@ -1234,3 +1234,37 @@ Stage Summary:
 - Full CRUD API with auth, validation, audit logging
 - Feature-rich UI with filter, summary cards, table, create/edit/detail dialogs, status workflow
 - Navigation integration left for another agent (ViewId, sidebar, lazy import, ViewRouter)
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix product list pagination + add user agenda panel
+
+Work Log:
+- Fixed product list not loading on initial render in products-view.tsx:
+  - Root cause: `initialized.current` ref guard skipped first useEffect execution
+  - Removed `initialized.current` ref and its guards
+  - Added `fetchKey` state counter for reliable re-fetching after save/delete/refresh
+  - Updated save handler, delete handler, and refresh button to use `setFetchKey(k => k + 1)`
+  - Added `fetchKey` to useEffect dependency array
+- Created agenda API endpoint `/api/agenda/route.ts`:
+  - Uses user's audit logs (last 60 days) to find related entities
+  - Fetches: quotes, sales orders, preparations, delivery notes, invoices, work orders, purchase orders, stock alerts
+  - Returns stats summary + all entity lists for the connected user
+- Created modern agenda panel component `src/components/erp/agenda/agenda-panel.tsx`:
+  - Slide-out Sheet from right side of screen
+  - 9 stat cards: active quotes, pending orders, preparations, deliveries, invoices, overdue, work orders, purchase orders, stock alerts
+  - 6 tabs: Overview, Sales (Ventes), Preparations, Invoices, Production, Alerts
+  - Upcoming due dates with color-coded urgency (red for overdue, orange for today, amber for this week)
+  - Click-to-navigate to related ERP views
+  - Real-time pending count badge on agenda button
+  - Empty states with icons for each section
+  - Loading skeleton with animation
+- Added AgendaButton to ERPHeader, placed before ThemeToggle (sun/moon button)
+- Lint: 0 errors
+- Pushed commit 2859d4c to GitHub
+
+Stage Summary:
+- Product list now loads immediately on page render (no more blank page requiring filter toggle)
+- User agenda panel accessible from header with badge count of pending items
+- Modern UI: Framer Motion animations, gradient cards, color-coded statuses, responsive design
+- Backend: Smart entity resolution via audit log history for personalized data
