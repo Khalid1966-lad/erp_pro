@@ -37,6 +37,7 @@ const sections: Section[] = [
   { id: 'finance', label: 'Finance', icon: Landmark },
   { id: 'impression', label: 'Impression', icon: Printer },
   { id: 'communication', label: 'Communication', icon: MessageSquare },
+  { id: 'agenda', label: 'Agenda & Notifications', icon: Bell },
   { id: 'administration', label: 'Administration', icon: Settings },
 ]
 
@@ -1374,6 +1375,60 @@ function ImpressionSection() {
   )
 }
 
+function AgendaNotificationsSection() {
+  return (
+    <div>
+      <SectionTitle icon={Bell} title="Agenda & Notifications" />
+      <Paragraph>
+        GEMA ERP PRO intègre un système d'agenda personnel et de notifications pour vous aider à suivre
+        vos tâches, échéances et activités importantes en temps réel.
+      </Paragraph>
+
+      <SubTitle>Agenda personnel</SubTitle>
+      <Paragraph>
+        L'agenda affiche les données qui vous concernent directement : vos devis en cours, commandes à traiter,
+        factures impayées, ordres de fabrication actifs et alertes de stock. Chaque utilisateur voit uniquement
+        les éléments sur lesquels il a travaillé.
+      </Paragraph>
+
+      <Step num={1}>Cliquez sur l'icône <strong>calendrier</strong> dans la barre d'en-tête (à côté du bouton thème).</Step>
+      <Step num={2}>Le panneau d'agenda s'ouvre depuis la droite.</Step>
+      <Step num={3}>Utilisez le <strong>menu déroulant</strong> en haut pour naviguer entre les vues : Vue d'ensemble, Ventes, Préparations, Factures, Production, Alertes et Calendrier.</Step>
+      <Step num={4}>Dans la vue <strong>Calendrier</strong>, cliquez sur un jour pour voir les événements prévus (factures, livraisons, ordres de fabrication, commandes fournisseurs).</Step>
+
+      <SubTitle>Tableau de bord de l'agenda</SubTitle>
+      <Paragraph>
+        La vue d'ensemble affiche 9 cartes de statistiques : Devis actifs, Commandes, Préparations, Livraisons,
+        Factures, En retard, Ordres de fabrication, Commandes fournisseurs et Alertes stock. En dessous,
+        les échéances à venir (factures impayées dans les 7 prochains jours) et l'activité récente.
+      </Paragraph>
+
+      <TipBox type="info">
+        Les points colorés sur le calendrier indiquent les types d'événements : <strong>rouge</strong> pour les factures,
+        <strong> bleu</strong> pour les livraisons, <strong>vert</strong> pour les ordres de fabrication, et
+        <strong>orange</strong> pour les commandes fournisseurs.
+      </TipBox>
+
+      <SubTitle>Notifications</SubTitle>
+      <Paragraph>
+        Le système de notifications vous alerte en temps réel sur les événements importants :
+        nouvelles commandes, factures en retard, alertes de stock, etc. Le nombre de notifications
+        non lues est affiché sous forme de badge rouge sur l'icône cloche dans la barre d'en-tête.
+      </Paragraph>
+
+      <Step num={1}>Cliquez sur l'icône <strong>cloche</strong> dans la barre d'en-tête.</Step>
+      <Step num={2}>Le panneau de notifications s'ouvre.</Step>
+      <Step num={3}>Cliquez sur une notification pour la marquer comme lue et accéder au contenu associé.</Step>
+      <Step num={4}>Utilisez <strong>« Tout lire »</strong> pour marquer toutes les notifications comme lues.</Step>
+
+      <TipBox type="success">
+        Les notifications sont actualisées automatiquement toutes les 30 secondes. Vous pouvez également
+        supprimer individuellement chaque notification en survolant l'élément et cliquant sur l'icône corbeille.
+      </TipBox>
+    </div>
+  )
+}
+
 function AdministrationSection() {
   return (
     <div>
@@ -1610,6 +1665,7 @@ const sectionComponents: Record<string, () => JSX.Element> = {
   'finance': FinanceSection,
   'communication': CommunicationSection,
   'impression': ImpressionSection,
+  'agenda': AgendaNotificationsSection,
   'administration': AdministrationSection,
 }
 

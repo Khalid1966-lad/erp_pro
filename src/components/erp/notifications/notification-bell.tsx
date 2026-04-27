@@ -3,7 +3,6 @@
 import {
   Bell,
   BellRing,
-  Check,
   CheckCheck,
   Info,
   AlertTriangle,
@@ -13,7 +12,6 @@ import {
   MessageSquare,
   Package,
   Truck,
-  Landmark,
   Banknote,
   Archive,
   Trash2,
@@ -22,11 +20,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useNotificationStore, type NotificationItem } from '@/lib/stores'
 import { useNavStore, type ViewId } from '@/lib/stores'
 import { useAuthStore } from '@/lib/stores'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -74,7 +72,6 @@ const categoryIcons: Record<NotificationItem['category'], { icon: typeof Package
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   const { notifications, unreadCount, setNotifications, markAsRead, clearAll } =
     useNotificationStore()
@@ -103,19 +100,6 @@ export function NotificationBell() {
     const interval = setInterval(fetchNotifications, 30_000)
     return () => clearInterval(interval)
   }, [fetchNotifications])
-
-  // ── Close on outside click ──
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [open])
 
   // ── Mark all as read ──
   const handleMarkAllRead = useCallback(async () => {
@@ -227,13 +211,13 @@ export function NotificationBell() {
   const BellIcon = unreadCount > 0 ? BellRing : Bell
 
   return (
-    <div ref={containerRef} className="relative">
+    <>
       {/* ── Bell button ── */}
       <Button
         variant="ghost"
         size="icon"
         className="relative h-8 w-8"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => setOpen(true)}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} non lues)` : ''}`}
       >
         <BellIcon className="h-4 w-4" />
@@ -247,32 +231,31 @@ export function NotificationBell() {
         )}
       </Button>
 
-      {/* ── Dropdown panel ── */}
-      {open && (
-        <div className="absolute right-0 top-full mt-2 w-[400px] rounded-lg border border-border shadow-lg bg-popover text-popover-foreground z-50 animate-in fade-in-0 zoom-in-95">
+      {/* ── Sheet panel ── */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="w-full sm:w-[400px] p-0 overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3">
-            <h2 className="text-sm font-semibold">Notifications</h2>
-            <div className="flex items-center gap-1">
-              {unreadCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={handleMarkAllRead}
-                  disabled={loading}
-                >
-                  <CheckCheck className="h-3.5 w-3.5 mr-1" />
-                  Tout marquer comme lu
-                </Button>
-              )}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-primary" />
+              <SheetTitle className="text-sm font-semibold">Notifications</SheetTitle>
             </div>
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={handleMarkAllRead}
+                disabled={loading}
+              >
+                <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                Tout lire
+              </Button>
+            )}
           </div>
 
-          <Separator />
-
           {/* Notification list */}
-          <ScrollArea className="max-h-96">
+          <ScrollArea className="flex-1 min-h-0">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-muted-foreground">
                 <Bell className="h-10 w-10 mb-3 opacity-30" />
@@ -309,7 +292,7 @@ export function NotificationBell() {
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0 pl-2">
+                    <div className="flex-1 min-w-0 overflow-hidden pl-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium truncate">{notification.title}</span>
                         <span className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
@@ -338,23 +321,8 @@ export function NotificationBell() {
               </div>
             )}
           </ScrollArea>
-
-          {/* Footer */}
-          {notifications.length > 0 && (
-            <>
-              <Separator />
-              <div className="px-4 py-2">
-                <button
-                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1 rounded-md hover:bg-accent"
-                  onClick={() => setOpen(false)}
-                >
-                  Voir tout
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }

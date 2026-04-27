@@ -1301,3 +1301,52 @@ Stage Summary:
 - Zero overflow: min-w-0, overflow-hidden, truncate on all text containers
 - Lint: 0 errors
 - Dev server: compiling successfully
+---
+Task ID: 2-a
+Agent: main
+Task: Replace agenda tabs with dropdown select menu
+
+Work Log:
+- Removed Tabs/TabsList/TabsTrigger imports
+- Added Select/SelectContent/SelectItem/SelectTrigger/SelectValue from shadcn
+- Replaced Tabs wrapper with conditional rendering based on activeTab state
+- Added Select dropdown in header area with all 7 views
+- All 7 content sections now render conditionally
+
+Stage Summary:
+- Tabs replaced with dropdown select menu
+- All content preserved identically
+- Lint: clean
+---
+Task ID: 3
+Agent: main
+Task: Update version to 1.2.4 and update user guide
+
+Work Log:
+- Updated APP_VERSION from 1.2.3 to 1.2.4 in version.ts
+- Updated BUILD_DATE
+- Added 'Agenda & Notifications' section to guide
+- Added AgendaNotificationsSection component with detailed usage instructions
+- Registered new section in sectionComponents map
+
+Stage Summary:
+- Version bumped to 1.2.4
+- Guide updated with agenda and notifications documentation
+- All version references in sidebar footer, guide, settings, login page automatically use new version via APP_VERSION constant
+---
+Task ID: 2-b
+Agent: main
+Task: Fix notification panel for mobile responsiveness
+
+Work Log:
+- Replaced absolute dropdown with Sheet component
+- Sheet slides from right, works on all screen sizes
+- Removed containerRef and click-outside handler (Sheet handles closing)
+- Added min-w-0 overflow-hidden to notification content
+- Removed unused imports (Check, Landmark, Separator)
+- Lint: clean
+
+Stage Summary:
+- Notifications now fully mobile responsive
+- Uses Sheet panel instead of dropdown
+- Lint: clean

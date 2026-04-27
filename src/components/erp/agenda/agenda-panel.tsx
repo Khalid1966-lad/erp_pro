@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import {
   CalendarDays, ChevronLeft, ChevronRight, FileText, ShoppingCart,
@@ -628,26 +628,30 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
               <AgendaSkeleton />
             </div>
           ) : data ? (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              {/* ── TabsList (shrink-0, at TOP, OUTSIDE ScrollArea) ── */}
-              <TabsList className="shrink-0 w-full h-auto bg-muted/50 border-b border-border/50 rounded-none p-0 flex-wrap justify-start gap-0">
-                {TABS.map((tab) => (
-                  <TabsTrigger
-                    key={tab.value}
-                    value={tab.value}
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:shadow-none text-[10px] sm:text-[11px] font-medium text-muted-foreground data-[state=active]:text-foreground whitespace-nowrap shrink-0"
-                  >
-                    <tab.icon className="h-3.5 w-3.5 shrink-0" />
-                    <span>{tab.label}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              {/* ── Dropdown selector (shrink-0) ── */}
+              <div className="shrink-0 px-3 sm:px-4 py-2 border-b border-border/50 bg-muted/30">
+                <Select value={activeTab} onValueChange={setActiveTab}>
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="Sélectionner une vue" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TABS.map((tab) => (
+                      <SelectItem key={tab.value} value={tab.value} className="gap-2">
+                        <tab.icon className="h-4 w-4" />
+                        {tab.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* ── ScrollArea (flex-1, min-h-0) ── */}
               <ScrollArea className="flex-1 min-h-0">
                 <div className="p-3 sm:p-4">
                   {/* ═══ Overview Tab ═══ */}
-                  <TabsContent value="overview" className="space-y-3 sm:space-y-4 mt-0">
+                  {activeTab === 'overview' && (
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Stat Cards Grid: 2 cols mobile, 3 cols sm+ */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
                       <StatCard
@@ -823,10 +827,12 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                         )}
                       </div>
                     </div>
-                  </TabsContent>
+                  </div>
+                  )}
 
                   {/* ═══ Ventes Tab ═══ */}
-                  <TabsContent value="orders" className="space-y-1 mt-0">
+                  {activeTab === 'orders' && (
+                  <div className="space-y-1">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                       Devis & Commandes
                     </h3>
@@ -887,10 +893,12 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                     {data.quotes.length === 0 && data.orders.length === 0 && (
                       <EmptyState icon={<ShoppingCart className="h-8 w-8" />} message="Aucun devis ou commande en cours" />
                     )}
-                  </TabsContent>
+                  </div>
+                  )}
 
                   {/* ═══ Préparations Tab ═══ */}
-                  <TabsContent value="preparations" className="space-y-1 mt-0">
+                  {activeTab === 'preparations' && (
+                  <div className="space-y-1">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                       Préparations en cours
                     </h3>
@@ -948,10 +956,12 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                         ))}
                       </>
                     )}
-                  </TabsContent>
+                  </div>
+                  )}
 
                   {/* ═══ Factures Tab ═══ */}
-                  <TabsContent value="invoices" className="space-y-1 mt-0">
+                  {activeTab === 'invoices' && (
+                  <div className="space-y-1">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                       Factures
                     </h3>
@@ -993,10 +1003,12 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                     ) : (
                       <EmptyState icon={<Receipt className="h-8 w-8" />} message="Aucune facture en cours" />
                     )}
-                  </TabsContent>
+                  </div>
+                  )}
 
                   {/* ═══ Production Tab ═══ */}
-                  <TabsContent value="production" className="space-y-1 mt-0">
+                  {activeTab === 'production' && (
+                  <div className="space-y-1">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                       Ordres de fabrication
                     </h3>
@@ -1058,10 +1070,12 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                         ))}
                       </>
                     )}
-                  </TabsContent>
+                  </div>
+                  )}
 
                   {/* ═══ Alertes Tab ═══ */}
-                  <TabsContent value="alerts" className="space-y-1 mt-0">
+                  {activeTab === 'alerts' && (
+                  <div className="space-y-1">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                       Alertes stock
                     </h3>
@@ -1124,10 +1138,12 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                         ))}
                       </>
                     )}
-                  </TabsContent>
+                  </div>
+                  )}
 
                   {/* ═══ Calendrier Tab ═══ */}
-                  <TabsContent value="calendar" className="mt-0 space-y-3">
+                  {activeTab === 'calendar' && (
+                  <div className="space-y-3">
                     <MiniCalendar events={calendarEvents} onDayClick={handleDayClick} />
 
                     {/* Legend */}
@@ -1190,10 +1206,11 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                         )}
                       </div>
                     )}
-                  </TabsContent>
+                  </div>
+                  )}
                 </div>
               </ScrollArea>
-            </Tabs>
+            </div>
           ) : null}
         </div>
       </SheetContent>
