@@ -54,6 +54,7 @@ export type ViewId =
   | 'stock-movements'
   | 'inventory'
   | 'stock-alerts'
+  | 'lots'
   | 'bom'
   | 'routing'
   | 'workstations'

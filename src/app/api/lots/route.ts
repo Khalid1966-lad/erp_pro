@@ -454,6 +454,123 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ allocations, remaining: 0 })
     }
 
+    // FIFO execute: actually create sortie movements from the allocation plan
+    if (action === 'fifo_execute') {
+      const { productId, quantity, documentRef, documentId, notes: execNotes } = updateData as {
+        productId: string; quantity: number; documentRef?: string; documentId?: string; notes?: string
+      }
+      if (!productId || !quantity || quantity <= 0) {
+        return NextResponse.json({ error: 'productId et quantity requis' }, { status: 400 })
+      }
+
+      // Get all active lots for this product ordered by fabrication date (oldest first = FIFO)
+      const activeLots = await db.lot.findMany({
+        where: { productId, statut: 'actif' },
+        orderBy: { dateFabrication: 'asc' },
+        include: { product: true },
+      })
+
+      const allocations: { lotId: string; numeroLot: string; quantity: number }[] = []
+      let remaining = quantity
+
+      for (const lot of activeLots) {
+        if (remaining <= 0) break
+
+        const mouvements = await db.lotMouvement.groupBy({
+          by: ['type'],
+          where: { lotId: lot.id },
+          _sum: { quantite: true },
+        })
+
+        let qtySortie = 0
+        let qtyReservee = 0
+        let qtyRetour = 0
+        for (const m of mouvements) {
+          const qty = m._sum.quantite || 0
+          if (m.type === 'sortie') qtySortie += qty
+          if (m.type === 'reservation') qtyReservee += qty
+          if (m.type === 'annulation_resa') qtyReservee -= qty
+          if (m.type === 'retour') qtyRetour += qty
+        }
+        const available = lot.quantiteInitiale - qtySortie - qtyReservee + qtyRetour
+
+        if (available > 0) {
+          const toAllocate = Math.min(available, remaining)
+
+          // Create the sortie mouvement
+          await db.lotMouvement.create({
+            data: {
+              lotId: lot.id,
+              type: 'sortie',
+              quantite: toAllocate,
+              documentRef: documentRef || undefined,
+              documentId: documentId || undefined,
+              notes: execNotes || `Sortie FIFO - ${documentRef || 'Manuel'}`,
+            },
+          })
+
+          // Create corresponding StockMovement
+          await db.stockMovement.create({
+            data: {
+              productId: lot.productId,
+              type: 'out',
+              origin: 'sale',
+              quantity: toAllocate,
+              unitCost: lot.product.averageCost,
+              documentRef: documentRef || lot.numeroLot,
+              notes: execNotes || `Sortie FIFO lot ${lot.numeroLot}`,
+            },
+          })
+
+          // Update product stock
+          await db.product.update({
+            where: { id: lot.productId },
+            data: { currentStock: { decrement: toAllocate } },
+          })
+
+          allocations.push({
+            lotId: lot.id,
+            numeroLot: lot.numeroLot,
+            quantity: toAllocate,
+          })
+          remaining -= toAllocate
+        }
+      }
+
+      // Check if lots are now exhausted
+      for (const alloc of allocations) {
+        const lotMvts = await db.lotMouvement.groupBy({
+          by: ['type'],
+          where: { lotId: alloc.lotId },
+          _sum: { quantite: true },
+        })
+        let qs = 0, qr = 0, qret = 0
+        for (const m of lotMvts) {
+          const qty = m._sum.quantite || 0
+          if (m.type === 'sortie') qs += qty
+          if (m.type === 'reservation') qr += qty
+          if (m.type === 'annulation_resa') qr -= qty
+          if (m.type === 'retour') qret += qty
+        }
+        const lotRecord = await db.lot.findUnique({ where: { id: alloc.lotId } })
+        const dispo = (lotRecord?.quantiteInitiale || 0) - qs - qr + qret
+        if (dispo <= 0 && lotRecord?.statut === 'actif') {
+          await db.lot.update({ where: { id: alloc.lotId }, data: { statut: 'epuise' } })
+        }
+      }
+
+      if (remaining > 0) {
+        return NextResponse.json({
+          error: `Stock insuffisant pour FIFO. Manquant: ${remaining}`,
+          allocated: allocations,
+          remaining,
+        }, { status: 400 })
+      }
+
+      await auditLog(auth.userId, 'fifo_execute', 'Lot', productId, null, { productId, quantity, allocations, documentRef })
+      return NextResponse.json({ allocations, remaining: 0, message: 'FIFO exécuté avec succès' })
+    }
+
     // Simple update
     const updated = await db.lot.update({
       where: { id },

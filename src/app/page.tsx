@@ -28,6 +28,7 @@ const SupplierCreditNotesView = dynamic(() => import('@/components/erp/purchasin
 const StockMovementsView = dynamic(() => import('@/components/erp/stock/stock-movements-view'), { ssr: false })
 const StockAlertsView = dynamic(() => import('@/components/erp/stock/stock-alerts-view'), { ssr: false })
 const InventoryView = dynamic(() => import('@/components/erp/stock/inventory-view'), { ssr: false })
+const LotsView = dynamic(() => import('@/components/erp/production/lots-view'), { ssr: false })
 const BomView = dynamic(() => import('@/components/erp/production/bom-view'), { ssr: false })
 const RoutingView = dynamic(() => import('@/components/erp/production/routing-view'), { ssr: false })
 const WorkstationsView = dynamic(() => import('@/components/erp/production/workstations-view'), { ssr: false })
@@ -84,6 +85,7 @@ function ViewRouter() {
     case 'stock-movements': view = <StockMovementsView />; break
     case 'stock-alerts': view = <StockAlertsView />; break
     case 'inventory': view = <InventoryView />; break
+    case 'lots': view = <LotsView />; break
     case 'bom': view = <BomView />; break
     case 'routing': view = <RoutingView />; break
     case 'workstations': view = <WorkstationsView />; break

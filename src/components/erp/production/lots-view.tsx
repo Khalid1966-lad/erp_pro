@@ -18,14 +18,14 @@ import {
 } from '@/components/ui/dialog'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTrigger
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { ProductCombobox } from '@/components/erp/shared/product-combobox'
 import {
-  Layers, Plus, Eye, RefreshCw, Search, Lock, Unlock, Package,
+  Layers, Plus, Eye, RefreshCw, Search, Lock, Unlock, Package, Trash2,
   ArrowRight, ArrowDown, ArrowUp, RotateCcw, MinusCircle, AlertTriangle, Loader2
 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -562,6 +562,37 @@ export default function LotsView({ embedded = false }: LotsViewProps) {
                                 {lot.statut === 'bloque' ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                               </Button>
                             ) : null}
+                            {lot.statut === 'actif' && lot.qtyDisponible === lot.quantiteInitiale ? (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" title="Supprimer le lot">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Supprimer le lot {lot.numeroLot} ?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Cette action est irréversible. Le stock de {lot.quantiteInitiale} {lot.product.unit} sera décrémenté.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={async () => {
+                                      try {
+                                        await api.delete(`/lots?id=${lot.id}`)
+                                        toast.success('Lot supprimé')
+                                        fetchLots()
+                                      } catch (err: any) {
+                                        toast.error(err.message || 'Erreur lors de la suppression')
+                                      }
+                                    }} className="bg-red-600 hover:bg-red-700">
+                                      Supprimer
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            ) : null}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -679,6 +710,17 @@ export default function LotsView({ embedded = false }: LotsViewProps) {
                     <MinusCircle className="h-4 w-4 mr-1" />
                     Réservation
                   </Button>
+                  {selectedLot.qtyReservee > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+                      onClick={() => openMvtDialog(selectedLot, 'annulation_resa')}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Annuler réservation
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -863,9 +905,10 @@ export default function LotsView({ embedded = false }: LotsViewProps) {
             <DialogTitle className="flex items-center gap-2">
               {mvtForm.type === 'sortie' && <ArrowRight className="h-5 w-5 text-red-600" />}
               {mvtForm.type === 'reservation' && <MinusCircle className="h-5 w-5 text-orange-600" />}
+              {mvtForm.type === 'annulation_resa' && <RotateCcw className="h-5 w-5 text-yellow-600" />}
               {mvtForm.type === 'retour' && <RotateCcw className="h-5 w-5 text-teal-600" />}
               {mvtForm.type === 'ajustement' && <AlertTriangle className="h-5 w-5 text-slate-600" />}
-              Nouveau mouvement
+              {mvtForm.type === 'annulation_resa' ? 'Annuler réservation' : 'Nouveau mouvement'}
             </DialogTitle>
           </DialogHeader>
           {selectedLot && (
@@ -886,6 +929,7 @@ export default function LotsView({ embedded = false }: LotsViewProps) {
                   <SelectContent>
                     <SelectItem value="sortie">{mouvementLabels.sortie}</SelectItem>
                     <SelectItem value="reservation">{mouvementLabels.reservation}</SelectItem>
+                    <SelectItem value="annulation_resa">{mouvementLabels.annulation_resa}</SelectItem>
                     <SelectItem value="retour">{mouvementLabels.retour}</SelectItem>
                     <SelectItem value="ajustement">{mouvementLabels.ajustement}</SelectItem>
                   </SelectContent>
@@ -905,6 +949,13 @@ export default function LotsView({ embedded = false }: LotsViewProps) {
                   parseFloat(mvtForm.quantite) > selectedLot.qtyDisponible && (
                     <p className="text-xs text-red-600">
                       Quantité supérieure au disponible ({selectedLot.qtyDisponible.toLocaleString('fr-FR')})
+                    </p>
+                  )
+                )}
+                {mvtForm.type === 'annulation_resa' && mvtForm.quantite && (
+                  parseFloat(mvtForm.quantite) > selectedLot.qtyReservee && (
+                    <p className="text-xs text-red-600">
+                      Quantité supérieure au réservé ({selectedLot.qtyReservee.toLocaleString('fr-FR')})
                     </p>
                   )
                 )}
@@ -935,6 +986,9 @@ export default function LotsView({ embedded = false }: LotsViewProps) {
               disabled={!mvtForm.quantite || submittingMvt || (
                 ['sortie', 'reservation'].includes(mvtForm.type) &&
                 parseFloat(mvtForm.quantite || '0') > (selectedLot?.qtyDisponible || 0)
+              ) || (
+                mvtForm.type === 'annulation_resa' &&
+                parseFloat(mvtForm.quantite || '0') > (selectedLot?.qtyReservee || 0)
               )}
             >
               {submittingMvt ? (

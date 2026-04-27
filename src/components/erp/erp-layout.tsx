@@ -60,6 +60,7 @@ import {
   MessageSquare,
   BarChart3,
   ClipboardCheck,
+  Layers,
   Sun,
   Moon,
 } from 'lucide-react'
@@ -128,7 +129,8 @@ const navigation: NavGroup[] = [
       { id: 'products', label: 'Produits', icon: <Package className="h-4 w-4" />, color: 'text-amber-500', permission: 'products:read' },
       { id: 'stock-movements', label: 'Mouvements', icon: <Box className="h-4 w-4" />, color: 'text-slate-400', permission: 'stock:read' },
       { id: 'stock-alerts', label: 'Alertes stock', icon: <AlertTriangle className="h-4 w-4" />, color: 'text-red-500', permission: 'stock:read' },
-      { id: 'inventory', label: 'Inventaires', icon: <ClipboardList className="h-4 w-4" />, color: 'text-yellow-500', permission: 'stock:read' }
+      { id: 'inventory', label: 'Inventaires', icon: <ClipboardList className="h-4 w-4" />, color: 'text-yellow-500', permission: 'stock:read' },
+      { id: 'lots', label: 'Lots de stock', icon: <Layers className="h-4 w-4" />, color: 'text-violet-500', permission: 'stock:read' }
     ]
   },
   {
@@ -451,6 +453,7 @@ export function ERPHeader() {
     'stock-movements': 'Mouvements de stock',
     'inventory': 'Inventaires',
     'stock-alerts': 'Alertes stock',
+    'lots': 'Lots de stock',
     'bom': 'Nomenclatures (BOM)',
     'routing': 'Gammes opératoires',
     'workstations': 'Postes de travail',
