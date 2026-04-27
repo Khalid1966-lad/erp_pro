@@ -332,20 +332,20 @@
   mix-blend-mode: screen;
 }
 
-/* Green aurora — primary */
+/* Blue aurora — primary */
 .login-aurora-1 {
   background:
-    radial-gradient(ellipse 80% 50% at 20% 80%, rgba(0, 255, 136, 0.35) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 35% 70%, rgba(0, 200, 100, 0.2) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 50% at 20% 80%, rgba(59, 130, 246, 0.35) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 35% 70%, rgba(37, 99, 235, 0.2) 0%, transparent 60%);
   animation: login-aurora-move-1 12s ease-in-out infinite;
   filter: blur(60px);
 }
 
-/* Teal / cyan aurora */
+/* Sky / cyan aurora */
 .login-aurora-2 {
   background:
-    radial-gradient(ellipse 70% 45% at 55% 75%, rgba(0, 255, 200, 0.3) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 35% at 70% 65%, rgba(0, 220, 180, 0.2) 0%, transparent 55%);
+    radial-gradient(ellipse 70% 45% at 55% 75%, rgba(56, 189, 248, 0.3) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 35% at 70% 65%, rgba(14, 165, 233, 0.2) 0%, transparent 55%);
   animation: login-aurora-move-2 15s ease-in-out infinite;
   filter: blur(70px);
 }
@@ -359,11 +359,11 @@
   filter: blur(80px);
 }
 
-/* Blue aurora */
+/* Deep blue aurora */
 .login-aurora-4 {
   background:
-    radial-gradient(ellipse 55% 35% at 40% 85%, rgba(0, 150, 255, 0.2) 0%, transparent 55%),
-    radial-gradient(ellipse 40% 25% at 60% 75%, rgba(0, 180, 255, 0.15) 0%, transparent 50%);
+    radial-gradient(ellipse 55% 35% at 40% 85%, rgba(99, 102, 241, 0.2) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 25% at 60% 75%, rgba(79, 70, 229, 0.15) 0%, transparent 50%);
   animation: login-aurora-move-4 20s ease-in-out infinite;
   filter: blur(75px);
 }
@@ -419,8 +419,8 @@
   height: 30%;
   background: linear-gradient(
     to top,
-    rgba(0, 255, 136, 0.06) 0%,
-    rgba(0, 200, 180, 0.03) 40%,
+    rgba(59, 130, 246, 0.06) 0%,
+    rgba(14, 165, 233, 0.03) 40%,
     transparent 100%
   );
   animation: login-horizon-pulse 8s ease-in-out infinite;
@@ -459,9 +459,9 @@
   border-radius: 1.25rem;
   padding: 2.5rem 2rem 2rem;
   box-shadow:
-    0 0 0 1px rgba(0, 255, 136, 0.03),
+    0 0 0 1px rgba(59, 130, 246, 0.03),
     0 8px 40px rgba(0, 0, 0, 0.5),
-    0 0 80px rgba(0, 255, 136, 0.04),
+    0 0 80px rgba(59, 130, 246, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   animation: login-card-glow 6s ease-in-out infinite;
 }
@@ -469,16 +469,16 @@
 @keyframes login-card-glow {
   0%, 100% {
     box-shadow:
-      0 0 0 1px rgba(0, 255, 136, 0.03),
+      0 0 0 1px rgba(59, 130, 246, 0.03),
       0 8px 40px rgba(0, 0, 0, 0.5),
-      0 0 80px rgba(0, 255, 136, 0.04),
+      0 0 80px rgba(59, 130, 246, 0.04),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(0, 255, 200, 0.06),
+      0 0 0 1px rgba(56, 189, 248, 0.06),
       0 8px 40px rgba(0, 0, 0, 0.5),
-      0 0 100px rgba(0, 255, 180, 0.06),
+      0 0 100px rgba(59, 130, 246, 0.06),
       inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
@@ -498,15 +498,15 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,200,180,0.05));
-  border: 1.5px solid rgba(0, 255, 136, 0.15);
-  box-shadow: 0 0 30px rgba(0, 255, 136, 0.08);
+  background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05));
+  border: 1.5px solid rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.08);
   animation: login-logo-pulse 4s ease-in-out infinite;
 }
 
 @keyframes login-logo-pulse {
-  0%, 100% { box-shadow: 0 0 30px rgba(0, 255, 136, 0.08); }
-  50% { box-shadow: 0 0 50px rgba(0, 255, 180, 0.15); }
+  0%, 100% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.08); }
+  50% { box-shadow: 0 0 50px rgba(56, 189, 248, 0.15); }
 }
 
 /* — Title — */
@@ -519,7 +519,7 @@
   font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: 0.05em;
-  background: linear-gradient(135deg, #ffffff 0%, rgba(0, 255, 180, 0.9) 50%, #ffffff 100%);
+  background: linear-gradient(135deg, #ffffff 0%, rgba(59, 130, 246, 0.9) 50%, #ffffff 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -576,9 +576,9 @@
 }
 
 .login-input:focus {
-  border-color: rgba(0, 255, 160, 0.4) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
   background: rgba(255, 255, 255, 0.06) !important;
-  box-shadow: 0 0 0 3px rgba(0, 255, 160, 0.08), 0 0 20px rgba(0, 255, 160, 0.05) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08), 0 0 20px rgba(59, 130, 246, 0.05) !important;
   outline: none !important;
 }
 
@@ -608,7 +608,7 @@
 }
 
 .login-toggle-password:hover {
-  color: rgba(0, 255, 160, 0.7);
+  color: rgba(59, 130, 246, 0.7);
 }
 
 /* — Submit Button — */
@@ -619,9 +619,9 @@
   font-weight: 600;
   font-size: 0.95rem;
   letter-spacing: 0.02em;
-  background: linear-gradient(135deg, rgba(0, 220, 130, 0.85), rgba(0, 180, 160, 0.85)) !important;
-  color: #020a1a !important;
-  border: 1px solid rgba(0, 255, 180, 0.2) !important;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(37, 99, 235, 0.85)) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -633,7 +633,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(0, 255, 180, 0.2), rgba(0, 220, 255, 0.2));
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2));
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -643,9 +643,9 @@
 }
 
 .login-submit-btn:hover:not(:disabled) {
-  box-shadow: 0 0 25px rgba(0, 255, 160, 0.2), 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.2), 0 4px 15px rgba(0, 0, 0, 0.3) !important;
   transform: translateY(-1px);
-  border-color: rgba(0, 255, 180, 0.35) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
 }
 
 .login-submit-btn:active:not(:disabled) {
@@ -710,6 +710,86 @@
     opacity: 1;
     transform: translateY(-50%) scaleY(1);
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DIALOGS — MOBILE RESPONSIVE FIX
+   Ensures all dialogs are scrollable and properly sized
+   on small screens without overflowing the viewport.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Dialog content: constrain height and add scroll on mobile */
+[data-slot="dialog-content"] {
+  max-height: min(90vh, 900px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* On very small screens, make dialogs edge-to-edge with minimal padding */
+@media (max-width: 480px) {
+  [data-slot="dialog-content"] {
+    max-height: 92vh;
+    border-radius: 0.75rem;
+    padding: 1.25rem 1rem;
+    gap: 0.75rem;
+    width: calc(100% - 1rem);
+  }
+
+  /* Dialog header: compact spacing */
+  [data-slot="dialog-header"] {
+    gap: 0.35rem;
+    padding-right: 1.5rem; /* space for close button */
+  }
+
+  /* Dialog title: smaller on mobile */
+  [data-slot="dialog-title"] {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  /* Dialog footer: sticky at bottom, compact */
+  [data-slot="dialog-footer"] {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+    position: sticky;
+    bottom: 0;
+    background: var(--background);
+    border-radius: 0 0 calc(0.75rem - 1px) calc(0.75rem - 1px);
+    padding-bottom: 0.25rem;
+  }
+
+  /* Alert dialog content: same mobile treatment */
+  [data-slot="alert-dialog-content"] {
+    max-height: 85vh;
+    overflow-y: auto;
+    width: calc(100% - 1.5rem);
+    border-radius: 0.75rem;
+    padding: 1.25rem 1rem;
+  }
+
+  [data-slot="alert-dialog-title"] {
+    font-size: 1rem;
+  }
+
+  [data-slot="alert-dialog-description"] {
+    font-size: 0.8rem;
+  }
+}
+
+/* Scrollbar inside dialogs */
+[data-slot="dialog-content"]::-webkit-scrollbar {
+  width: 6px;
+}
+[data-slot="dialog-content"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-slot="dialog-content"]::-webkit-scrollbar-thumb {
+  background-color: oklch(0.7 0 0);
+  border-radius: 3px;
+}
+.dark [data-slot="dialog-content"]::-webkit-scrollbar-thumb {
+  background-color: oklch(0.35 0 0);
 }
 
 /* ═══════════════════════════════════════════════════════════
