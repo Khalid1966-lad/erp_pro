@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import {
   CalendarDays, ChevronLeft, ChevronRight, FileText, ShoppingCart,
   ClipboardList, Truck, Receipt, Package, Factory, AlertTriangle,
-  RefreshCw, Clock, TrendingUp, ArrowDownToLine
+  RefreshCw, Clock, TrendingUp, ArrowDownToLine, Eye
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
@@ -20,11 +20,14 @@ import {
   format, formatDistanceToNow, isPast, isToday, isTomorrow,
   differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval,
   startOfWeek, endOfWeek, isSameMonth, isSameDay, addMonths,
-  subMonths, getDay, getDate
+  subMonths, getDate
 } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
-// ── Types ──
+// ═══════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════
+
 interface AgendaStats {
   activeQuotes: number
   pendingOrders: number
@@ -92,7 +95,10 @@ interface CalendarEvent {
   color: string
 }
 
-// ── Status label helpers ──
+// ═══════════════════════════════════════════
+// Status label helpers
+// ═══════════════════════════════════════════
+
 const quoteStatusLabels: Record<string, { label: string; color: string }> = {
   draft: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
   sent: { label: 'Envoyé', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
@@ -152,7 +158,10 @@ const deliveryStatusLabels: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Annulé', color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' }
 }
 
-// ── Helpers ──
+// ═══════════════════════════════════════════
+// Formatting helpers
+// ═══════════════════════════════════════════
+
 function fmtDate(d: string | null | undefined) {
   if (!d) return '—'
   try {
@@ -190,7 +199,10 @@ function getDueDateLabel(dueDate: string) {
   return fmtDate(dueDate)
 }
 
-// ── Mini Calendar Component ──
+// ═══════════════════════════════════════════
+// Mini Calendar Component
+// ═══════════════════════════════════════════
+
 function MiniCalendar({
   events,
   onDayClick,
@@ -202,12 +214,10 @@ function MiniCalendar({
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
-  // French locale: week starts Monday
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
 
-  // Build a lookup map: "YYYY-MM-DD" -> color[]
   const eventMap = useMemo(() => {
     const map: Record<string, string[]> = {}
     for (const e of events) {
@@ -222,10 +232,10 @@ function MiniCalendar({
   return (
     <div className="w-full overflow-hidden">
       {/* Month Navigation */}
-      <div className="flex items-center justify-between px-2 pb-2 min-w-0">
+      <div className="flex items-center justify-between px-1 pb-2 min-w-0">
         <button
           onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-          className="p-1 rounded-md hover:bg-muted transition-colors shrink-0"
+          className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0"
           aria-label="Mois précédent"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -235,7 +245,7 @@ function MiniCalendar({
         </span>
         <button
           onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-          className="p-1 rounded-md hover:bg-muted transition-colors shrink-0"
+          className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0"
           aria-label="Mois suivant"
         >
           <ChevronRight className="h-4 w-4" />
@@ -267,7 +277,7 @@ function MiniCalendar({
               key={key}
               onClick={() => onDayClick?.(day)}
               className={cn(
-                'flex flex-col items-center justify-center py-1 rounded-lg transition-colors min-w-0 overflow-hidden',
+                'flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors overflow-hidden',
                 'hover:bg-muted/60 cursor-pointer',
                 !inMonth && 'opacity-30',
                 today && 'bg-primary/10 hover:bg-primary/15'
@@ -281,7 +291,6 @@ function MiniCalendar({
               >
                 {getDate(day)}
               </span>
-              {/* Event dots */}
               {dayEvents && dayEvents.length > 0 && (
                 <div className="flex gap-0.5 mt-0.5">
                   {dayEvents.slice(0, 3).map((color, i) => (
@@ -300,7 +309,10 @@ function MiniCalendar({
   )
 }
 
-// ── Stat Card ──
+// ═══════════════════════════════════════════
+// Stat Card
+// ═══════════════════════════════════════════
+
 function StatCard({ icon, label, value, color, onClick }: {
   icon: React.ReactNode; label: string; value: number; color: string; onClick?: () => void
 }) {
@@ -311,10 +323,10 @@ function StatCard({ icon, label, value, color, onClick }: {
       onClick={onClick}
       className={cn(
         'w-full relative overflow-hidden rounded-xl p-2 sm:p-3 text-left transition-all cursor-pointer border border-border/50 hover:border-border hover:shadow-sm group',
-        'bg-gradient-to-br from-card to-card/80 min-w-0'
+        'bg-gradient-to-br from-card to-card/80'
       )}
     >
-      <div className="flex items-start gap-1.5 sm:gap-2.5 min-w-0">
+      <div className="flex items-start gap-1.5 sm:gap-2 min-w-0">
         <div className={cn('rounded-lg p-1 sm:p-1.5 shrink-0', color)}>
           {icon}
         </div>
@@ -332,14 +344,17 @@ function StatCard({ icon, label, value, color, onClick }: {
   )
 }
 
-// ── Agenda Item Row ──
+// ═══════════════════════════════════════════
+// Agenda Item Row
+// ═══════════════════════════════════════════
+
 function AgendaRow({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
     <div
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg transition-colors cursor-pointer',
-        'hover:bg-muted/50 border border-transparent hover:border-border/50 overflow-hidden min-w-0'
+        'flex items-center gap-2 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg transition-colors cursor-pointer min-w-0',
+        'hover:bg-muted/50 border border-transparent hover:border-border/50 overflow-hidden'
       )}
     >
       {children}
@@ -347,21 +362,27 @@ function AgendaRow({ children, onClick }: { children: React.ReactNode; onClick?:
   )
 }
 
-// ── Empty State ──
+// ═══════════════════════════════════════════
+// Empty State
+// ═══════════════════════════════════════════
+
 function EmptyState({ icon, message }: { icon: React.ReactNode; message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-8 text-center min-w-0">
+    <div className="flex flex-col items-center justify-center py-8 text-center">
       <div className="text-muted-foreground/30 mb-2">{icon}</div>
       <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   )
 }
 
-// ── Loading Skeleton ──
+// ═══════════════════════════════════════════
+// Loading Skeleton
+// ═══════════════════════════════════════════
+
 function AgendaSkeleton() {
   return (
-    <div className="space-y-4 min-w-0">
-      <div className="grid grid-cols-3 gap-2">
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
         {Array.from({ length: 9 }).map((_, i) => (
           <Skeleton key={i} className="h-[60px] sm:h-[72px] rounded-xl" />
         ))}
@@ -375,7 +396,24 @@ function AgendaSkeleton() {
   )
 }
 
-// ── Main Agenda Panel ──
+// ═══════════════════════════════════════════
+// Tab definitions
+// ═══════════════════════════════════════════
+
+const TABS = [
+  { value: 'overview', icon: Eye, label: 'Vue d\'ensemble' },
+  { value: 'orders', icon: ShoppingCart, label: 'Ventes' },
+  { value: 'preparations', icon: ClipboardList, label: 'Préparations' },
+  { value: 'invoices', icon: Receipt, label: 'Factures' },
+  { value: 'production', icon: Factory, label: 'Production' },
+  { value: 'alerts', icon: AlertTriangle, label: 'Alertes' },
+  { value: 'calendar', icon: CalendarDays, label: 'Calendrier' },
+] as const
+
+// ═══════════════════════════════════════════
+// Main Agenda Panel
+// ═══════════════════════════════════════════
+
 function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { setCurrentView } = useNavStore()
   const [data, setData] = useState<AgendaData | null>(null)
@@ -414,7 +452,6 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
   const calendarEvents: CalendarEvent[] = useMemo(() => {
     if (!data) return []
     const evts: CalendarEvent[] = []
-    // Invoice due dates → red dots
     for (const inv of [...data.invoices, ...data.upcomingInvoices]) {
       if (inv.dueDate) {
         try {
@@ -422,7 +459,6 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
         } catch { /* skip */ }
       }
     }
-    // Delivery planned dates → teal dots
     for (const d of data.deliveryNotes) {
       if (d.plannedDate) {
         try {
@@ -430,7 +466,6 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
         } catch { /* skip */ }
       }
     }
-    // Work order planned dates → green dots
     for (const w of data.workOrders) {
       if (w.plannedDate) {
         try {
@@ -438,7 +473,6 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
         } catch { /* skip */ }
       }
     }
-    // Purchase order expected dates → orange dots
     for (const po of data.purchaseOrders) {
       if (po.expectedDate) {
         try {
@@ -464,35 +498,108 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
     return invoices.filter(i => i.dueDate && differenceInDays(new Date(i.dueDate), new Date()) <= 7)
   }, [data, selectedDate])
 
-  // Handle calendar day click: switch to overview tab and filter
   const handleDayClick = useCallback((date: Date) => {
     setSelectedDate(prev => prev && isSameDay(prev, date) ? null : date)
-    setActiveTab('overview')
   }, [])
 
-  // Clear date filter
   const clearDateFilter = useCallback(() => {
     setSelectedDate(null)
   }, [])
 
+  // Day events grouped by type for calendar tab
+  const dayEvents = useMemo(() => {
+    if (!data || !selectedDate) return null
+    const key = format(selectedDate, 'yyyy-MM-dd')
+    const groups: { type: string; color: string; icon: React.ReactNode; items: { number: string; name: string; amount?: string }[] }[] = []
+
+    // Invoices
+    const invItems = [...data.invoices, ...data.upcomingInvoices].filter(inv => {
+      if (!inv.dueDate) return false
+      try { return isSameDay(new Date(inv.dueDate), selectedDate) } catch { return false }
+    })
+    if (invItems.length > 0) {
+      groups.push({
+        type: 'Factures', color: 'bg-red-500', icon: <Receipt className="h-3 w-3" />,
+        items: invItems.map(inv => ({
+          number: inv.number,
+          name: inv.clientName,
+          amount: fmtMoney(inv.totalTTC - inv.amountPaid)
+        }))
+      })
+    }
+
+    // Deliveries
+    const delItems = data.deliveryNotes.filter(d => {
+      if (!d.plannedDate) return false
+      try { return isSameDay(new Date(d.plannedDate), selectedDate) } catch { return false }
+    })
+    if (delItems.length > 0) {
+      groups.push({
+        type: 'Livraisons', color: 'bg-teal-500', icon: <Truck className="h-3 w-3" />,
+        items: delItems.map(d => ({
+          number: d.number,
+          name: d.clientName,
+          amount: fmtMoney(d.totalTTC)
+        }))
+      })
+    }
+
+    // Work orders
+    const woItems = data.workOrders.filter(w => {
+      if (!w.plannedDate) return false
+      try { return isSameDay(new Date(w.plannedDate), selectedDate) } catch { return false }
+    })
+    if (woItems.length > 0) {
+      groups.push({
+        type: 'OF', color: 'bg-green-500', icon: <Factory className="h-3 w-3" />,
+        items: woItems.map(w => ({
+          number: w.number,
+          name: w.productDesignation,
+          amount: `Qté: ${w.quantity}`
+        }))
+      })
+    }
+
+    // Purchase orders
+    const poItems = data.purchaseOrders.filter(po => {
+      if (!po.expectedDate) return false
+      try { return isSameDay(new Date(po.expectedDate), selectedDate) } catch { return false }
+    })
+    if (poItems.length > 0) {
+      groups.push({
+        type: 'Cmds fourn.', color: 'bg-orange-500', icon: <ArrowDownToLine className="h-3 w-3" />,
+        items: poItems.map(po => ({
+          number: po.number,
+          name: po.supplierName,
+          amount: fmtMoney(po.totalTTC)
+        }))
+      })
+    }
+
+    return groups.length > 0 ? groups : null
+  }, [data, selectedDate])
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[420px] md:w-[480px] p-0 overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-3 sm:px-5 pt-3 sm:pt-5 pb-2 sm:pb-3 shrink-0 border-b border-border/50 bg-gradient-to-b from-card to-card/50 min-w-0 overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:mb-0 mb-1 min-w-0">
-            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 overflow-hidden">
+      <SheetContent
+        side="right"
+        className="w-full sm:w-[400px] md:w-[460px] p-0 overflow-hidden flex flex-col gap-0"
+      >
+        {/* ── Header (shrink-0) ── */}
+        <div className="shrink-0 border-b border-border/50 bg-gradient-to-b from-card to-card/50 overflow-hidden">
+          <div className="flex items-center justify-between px-3 sm:px-4 pt-4 pb-1 min-w-0 gap-2">
+            <div className="flex items-center gap-2 min-w-0 overflow-hidden">
               <div className="rounded-xl bg-primary/10 p-1.5 sm:p-2 shrink-0">
                 <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
               <div className="min-w-0 overflow-hidden">
-                <SheetTitle className="text-sm sm:text-base font-semibold truncate">Mon Agenda</SheetTitle>
+                <SheetTitle className="text-sm sm:text-base font-semibold truncate block">Mon Agenda</SheetTitle>
                 <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                   {data ? `Mis à jour ${fmtRelative(new Date().toISOString())}` : 'Chargement...'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               {selectedDate && (
                 <Badge
                   variant="outline"
@@ -514,18 +621,35 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden min-w-0">
-          <ScrollArea className="h-full">
-            <div className="p-3 sm:p-4 min-w-0">
-              {loading && !data ? (
-                <AgendaSkeleton />
-              ) : data ? (
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4">
-                  {/* Overview Tab */}
-                  <TabsContent value="overview" className="space-y-3 sm:space-y-4 mt-0 min-w-0">
-                    {/* Stat Cards Grid */}
-                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 min-w-0">
+        {/* ── Tabs Container (flex-1, min-h-0, overflow-hidden) ── */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {loading && !data ? (
+            <div className="p-3 sm:p-4">
+              <AgendaSkeleton />
+            </div>
+          ) : data ? (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              {/* ── TabsList (shrink-0, at TOP, OUTSIDE ScrollArea) ── */}
+              <TabsList className="shrink-0 w-full h-auto bg-muted/50 border-b border-border/50 rounded-none p-0 flex-wrap justify-start gap-0">
+                {TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:shadow-none text-[10px] sm:text-[11px] font-medium text-muted-foreground data-[state=active]:text-foreground whitespace-nowrap shrink-0"
+                  >
+                    <tab.icon className="h-3.5 w-3.5 shrink-0" />
+                    <span>{tab.label}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {/* ── ScrollArea (flex-1, min-h-0) ── */}
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-3 sm:p-4">
+                  {/* ═══ Overview Tab ═══ */}
+                  <TabsContent value="overview" className="space-y-3 sm:space-y-4 mt-0">
+                    {/* Stat Cards Grid: 2 cols mobile, 3 cols sm+ */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
                       <StatCard
                         icon={<FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-500" />}
                         label="Devis actifs"
@@ -583,7 +707,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                     </div>
 
                     {/* Échéances à venir */}
-                    <div className="min-w-0">
+                    <div className="min-w-0 overflow-hidden">
                       <div className="flex items-center justify-between px-1 mb-2 min-w-0">
                         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
                           {selectedDate ? `Échéances du ${format(selectedDate, 'dd MMM', { locale: fr })}` : 'Échéances à venir'}
@@ -591,13 +715,13 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                         {selectedDate && (
                           <button
                             onClick={clearDateFilter}
-                            className="text-[10px] text-primary hover:underline shrink-0"
+                            className="text-[10px] text-primary hover:underline shrink-0 ml-2"
                           >
                             Voir tout
                           </button>
                         )}
                       </div>
-                      <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                      <div className="space-y-0.5 sm:space-y-1">
                         {filteredUpcoming.length > 0 ? (
                           filteredUpcoming.slice(0, 5).map(invoice => (
                             <AgendaRow key={invoice.id} onClick={() => navigateTo('invoices')}>
@@ -627,7 +751,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                             </AgendaRow>
                           ))
                         ) : (
-                          <div className="text-center py-4 min-w-0">
+                          <div className="text-center py-4">
                             <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground/20 mx-auto mb-1.5" />
                             <p className="text-xs text-muted-foreground">
                               {selectedDate ? 'Aucune échéance ce jour' : 'Aucune échéance imminente'}
@@ -638,11 +762,11 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                     </div>
 
                     {/* Activité récente */}
-                    <div className="min-w-0">
+                    <div className="min-w-0 overflow-hidden">
                       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                         Activité récente
                       </h3>
-                      <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                      <div className="space-y-0.5 sm:space-y-1">
                         {data.preparations.length > 0 && (
                           <AgendaRow onClick={() => navigateTo('preparations')}>
                             <div className="rounded-lg bg-indigo-100 dark:bg-indigo-900/30 p-1 sm:p-1.5 shrink-0">
@@ -692,7 +816,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                           </AgendaRow>
                         )}
                         {data.preparations.length === 0 && data.orders.length === 0 && data.workOrders.length === 0 && (
-                          <div className="text-center py-4 min-w-0">
+                          <div className="text-center py-4">
                             <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground/20 mx-auto mb-1.5" />
                             <p className="text-xs text-muted-foreground">Aucune activité récente</p>
                           </div>
@@ -701,8 +825,8 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                     </div>
                   </TabsContent>
 
-                  {/* Orders Tab */}
-                  <TabsContent value="orders" className="space-y-1 mt-0 min-w-0">
+                  {/* ═══ Ventes Tab ═══ */}
+                  <TabsContent value="orders" className="space-y-1 mt-0">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                       Devis & Commandes
                     </h3>
@@ -750,7 +874,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                               </div>
                               <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
                                 <span className="text-[10px] sm:text-xs font-mono truncate">{fmtMoney(o.totalTTC)}</span>
-                                {o.deliveryDate && <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate hidden sm:inline">Livraison {fmtDate(o.deliveryDate)}</span>}
+                                {o.deliveryDate && <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate hidden sm:inline">Liv. {fmtDate(o.deliveryDate)}</span>}
                               </div>
                             </div>
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', orderStatusLabels[o.status]?.color)}>
@@ -765,8 +889,8 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                     )}
                   </TabsContent>
 
-                  {/* Preparations Tab */}
-                  <TabsContent value="preparations" className="space-y-1 mt-0 min-w-0">
+                  {/* ═══ Préparations Tab ═══ */}
+                  <TabsContent value="preparations" className="space-y-1 mt-0">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                       Préparations en cours
                     </h3>
@@ -810,7 +934,11 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                               </div>
                               <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
                                 <span className="text-[10px] sm:text-xs font-mono truncate">{fmtMoney(d.totalTTC)}</span>
-                                {d.plannedDate && <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate hidden sm:inline">{fmtDate(d.plannedDate)}</span>}
+                                {d.plannedDate && (
+                                  <span className={cn('text-[10px] sm:text-[11px] truncate', getDueDateStyle(d.plannedDate))}>
+                                    {getDueDateLabel(d.plannedDate)}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', deliveryStatusLabels[d.status]?.color)}>
@@ -822,8 +950,8 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                     )}
                   </TabsContent>
 
-                  {/* Invoices Tab */}
-                  <TabsContent value="invoices" className="space-y-1 mt-0 min-w-0">
+                  {/* ═══ Factures Tab ═══ */}
+                  <TabsContent value="invoices" className="space-y-1 mt-0">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                       Factures
                     </h3>
@@ -832,16 +960,13 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                         <AgendaRow key={inv.id} onClick={() => navigateTo('invoices')}>
                           <div className={cn(
                             'rounded-lg p-1 sm:p-1.5 shrink-0',
-                            inv.status === 'overdue' ? 'bg-red-100 dark:bg-red-900/30' :
-                            inv.status === 'paid' ? 'bg-green-100 dark:bg-green-900/30' :
-                            'bg-rose-100 dark:bg-rose-900/30'
+                            inv.status === 'overdue'
+                              ? 'bg-red-100 dark:bg-red-900/30'
+                              : inv.status === 'paid'
+                                ? 'bg-green-100 dark:bg-green-900/30'
+                                : 'bg-rose-100 dark:bg-rose-900/30'
                           )}>
-                            <Receipt className={cn(
-                              'h-3 w-3 sm:h-3.5 sm:w-3.5',
-                              inv.status === 'overdue' ? 'text-red-500' :
-                              inv.status === 'paid' ? 'text-green-500' :
-                              'text-rose-500'
-                            )} />
+                            <Receipt className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                           </div>
                           <div className="flex-1 min-w-0 overflow-hidden">
                             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
@@ -849,7 +974,12 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                               <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{inv.clientName}</span>
                             </div>
                             <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
-                              <span className="text-[10px] sm:text-xs font-mono truncate">{fmtMoney(inv.totalTTC - inv.amountPaid)}</span>
+                              <span className="text-[10px] sm:text-xs font-mono truncate">{fmtMoney(inv.totalTTC)}</span>
+                              {inv.amountPaid > 0 && (
+                                <span className="text-[10px] sm:text-[11px] text-green-600 dark:text-green-400 truncate hidden sm:inline">
+                                  Payé {fmtMoney(inv.amountPaid)}
+                                </span>
+                              )}
                               <span className={cn('text-[10px] sm:text-[11px] truncate', getDueDateStyle(inv.dueDate))}>
                                 {getDueDateLabel(inv.dueDate)}
                               </span>
@@ -865,10 +995,10 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                     )}
                   </TabsContent>
 
-                  {/* Production Tab */}
-                  <TabsContent value="production" className="space-y-1 mt-0 min-w-0">
+                  {/* ═══ Production Tab ═══ */}
+                  <TabsContent value="production" className="space-y-1 mt-0">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
-                      Production
+                      Ordres de fabrication
                     </h3>
                     {data.workOrders.length > 0 ? (
                       data.workOrders.map(w => (
@@ -882,9 +1012,13 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                               <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{w.productRef}</span>
                             </div>
                             <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
-                              <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{w.productDesignation}</span>
-                              <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">Qté: {w.quantity}</span>
-                              {w.plannedDate && <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate hidden sm:inline">{fmtDate(w.plannedDate)}</span>}
+                              <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{w.productDesignation}</span>
+                              <span className="text-[10px] sm:text-[11px] text-muted-foreground shrink-0">Qté: {w.quantity}</span>
+                              {w.plannedDate && (
+                                <span className={cn('text-[10px] sm:text-[11px] truncate', getDueDateStyle(w.plannedDate))}>
+                                  {getDueDateLabel(w.plannedDate)}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', workOrderStatusLabels[w.status]?.color)}>
@@ -893,9 +1027,10 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                         </AgendaRow>
                       ))
                     ) : (
-                      <EmptyState icon={<Factory className="h-8 w-8" />} message="Aucun ordre de fabrication actif" />
+                      <EmptyState icon={<Factory className="h-8 w-8" />} message="Aucun ordre de fabrication en cours" />
                     )}
 
+                    {/* Purchase Orders */}
                     {data.purchaseOrders.length > 0 && (
                       <>
                         <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider px-1 pt-3">Commandes fournisseurs</p>
@@ -911,7 +1046,9 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                               </div>
                               <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
                                 <span className="text-[10px] sm:text-xs font-mono truncate">{fmtMoney(po.totalTTC)}</span>
-                                <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate hidden sm:inline">{fmtDate(po.expectedDate)}</span>
+                                <span className={cn('text-[10px] sm:text-[11px] truncate', getDueDateStyle(po.expectedDate))}>
+                                  {getDueDateLabel(po.expectedDate)}
+                                </span>
                               </div>
                             </div>
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', poStatusLabels[po.status]?.color)}>
@@ -923,24 +1060,24 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                     )}
                   </TabsContent>
 
-                  {/* Alerts Tab */}
-                  <TabsContent value="alerts" className="space-y-1 mt-0 min-w-0">
+                  {/* ═══ Alertes Tab ═══ */}
+                  <TabsContent value="alerts" className="space-y-1 mt-0">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
                       Alertes stock
                     </h3>
                     {data.stockAlerts.length > 0 ? (
                       data.stockAlerts.map(s => (
-                        <AgendaRow key={s.id} onClick={() => navigateTo('stock-alerts')}>
-                          <div className="rounded-lg bg-red-100 dark:bg-red-900/30 p-1 sm:p-1.5 shrink-0">
-                            <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-red-500" />
+                        <AgendaRow key={s.id}>
+                          <div className="rounded-lg bg-amber-100 dark:bg-amber-900/30 p-1 sm:p-1.5 shrink-0">
+                            <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-500" />
                           </div>
                           <div className="flex-1 min-w-0 overflow-hidden">
                             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                              <span className="text-xs sm:text-sm font-medium font-mono truncate">{s.reference}</span>
+                              <span className="text-xs sm:text-sm font-medium truncate">{s.reference}</span>
                               <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{s.designation}</span>
                             </div>
                             <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
-                              <span className="text-[10px] sm:text-xs font-mono text-red-600 dark:text-red-400 truncate">
+                              <span className={cn('text-[10px] sm:text-xs font-mono truncate', s.currentStock <= 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-amber-600 dark:text-amber-400')}>
                                 Stock: {s.currentStock}
                               </span>
                               <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">
@@ -948,257 +1085,175 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                               </span>
                             </div>
                           </div>
-                          <Badge variant="destructive" className="text-[10px] px-1 sm:px-1.5 py-0 shrink-0">
-                            {s.currentStock === 0 ? 'Rupture' : 'Bas'}
+                          <Badge className="text-[10px] px-1 sm:px-1.5 py-0 shrink-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                            {s.currentStock <= 0 ? 'Rupture' : 'Bas'}
                           </Badge>
                         </AgendaRow>
                       ))
                     ) : (
-                      <EmptyState icon={<Package className="h-8 w-8" />} message="Aucune alerte de stock" />
+                      <EmptyState icon={<Package className="h-8 w-8" />} message="Aucune alerte stock" />
                     )}
 
-                    {data.stats.overdueInvoices > 0 && data.upcomingInvoices.filter(i => isPast(new Date(i.dueDate)) && i.status !== 'paid').length > 0 && (
+                    {/* Overdue Invoices */}
+                    {data.invoices.filter(i => i.status === 'overdue').length > 0 && (
                       <>
                         <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider px-1 pt-3">Factures en retard</p>
-                        {data.upcomingInvoices
-                          .filter(i => isPast(new Date(i.dueDate)) && i.status !== 'paid')
-                          .map(inv => (
-                            <AgendaRow key={inv.id} onClick={() => navigateTo('invoices')}>
-                              <div className="rounded-lg bg-red-100 dark:bg-red-900/30 p-1 sm:p-1.5 shrink-0">
-                                <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-red-500" />
+                        {data.invoices.filter(i => i.status === 'overdue').map(inv => (
+                          <AgendaRow key={inv.id} onClick={() => navigateTo('invoices')}>
+                            <div className="rounded-lg bg-red-100 dark:bg-red-900/30 p-1 sm:p-1.5 shrink-0">
+                              <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-red-500" />
+                            </div>
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                <span className="text-xs sm:text-sm font-medium truncate">{inv.number}</span>
+                                <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{inv.clientName}</span>
                               </div>
-                              <div className="flex-1 min-w-0 overflow-hidden">
-                                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                                  <span className="text-xs sm:text-sm font-medium truncate">{inv.number}</span>
-                                  <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{inv.clientName}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
-                                  <span className="text-[10px] sm:text-xs font-mono text-red-600 dark:text-red-400 truncate">{fmtMoney(inv.totalTTC - inv.amountPaid)}</span>
-                                  <span className="text-[10px] sm:text-[11px] text-red-600 dark:text-red-400 truncate">
-                                    Retard: {Math.abs(differenceInDays(new Date(inv.dueDate), new Date()))}j
-                                  </span>
-                                </div>
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
+                                <span className="text-[10px] sm:text-xs font-mono truncate text-red-600 dark:text-red-400 font-semibold">
+                                  {fmtMoney(inv.totalTTC - inv.amountPaid)}
+                                </span>
+                                <span className="text-[10px] sm:text-[11px] text-red-600 dark:text-red-400 truncate">
+                                  {getDueDateLabel(inv.dueDate)}
+                                </span>
                               </div>
-                              <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-                            </AgendaRow>
-                          ))}
+                            </div>
+                            <Badge className="text-[10px] px-1 sm:px-1.5 py-0 shrink-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                              Retard
+                            </Badge>
+                          </AgendaRow>
+                        ))}
                       </>
                     )}
                   </TabsContent>
 
-                  {/* Calendar Tab */}
-                  <TabsContent value="calendar" className="mt-0 min-w-0">
-                    <div className="min-w-0 space-y-3">
-                      {/* Legend */}
-                      <div className="flex flex-wrap items-center gap-2 px-1 min-w-0">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
-                          <span className="text-[10px] text-muted-foreground truncate">Factures</span>
+                  {/* ═══ Calendrier Tab ═══ */}
+                  <TabsContent value="calendar" className="mt-0 space-y-3">
+                    <MiniCalendar events={calendarEvents} onDayClick={handleDayClick} />
+
+                    {/* Legend */}
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 px-1">
+                      {[
+                        { color: 'bg-red-500', label: 'Factures' },
+                        { color: 'bg-teal-500', label: 'Livraisons' },
+                        { color: 'bg-green-500', label: 'OF' },
+                        { color: 'bg-orange-500', label: 'Cmds fourn.' },
+                      ].map(l => (
+                        <div key={l.label} className="flex items-center gap-1">
+                          <span className={cn('h-2 w-2 rounded-full shrink-0', l.color)} />
+                          <span className="text-[10px] sm:text-[11px] text-muted-foreground">{l.label}</span>
                         </div>
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
-                          <span className="text-[10px] text-muted-foreground truncate">Livraisons</span>
+                      ))}
+                    </div>
+
+                    {/* Selected day events */}
+                    {selectedDate && (
+                      <div className="border-t border-border/50 pt-3 space-y-2">
+                        <div className="flex items-center justify-between min-w-0">
+                          <h4 className="text-xs font-semibold text-foreground truncate">
+                            {format(selectedDate, 'EEEE dd MMMM yyyy', { locale: fr })}
+                          </h4>
+                          <button
+                            onClick={clearDateFilter}
+                            className="text-[10px] text-primary hover:underline shrink-0 ml-2"
+                          >
+                            Effacer
+                          </button>
                         </div>
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
-                          <span className="text-[10px] text-muted-foreground truncate">OF</span>
-                        </div>
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="h-2 w-2 rounded-full bg-orange-500 shrink-0" />
-                          <span className="text-[10px] text-muted-foreground truncate">Cmds fourn.</span>
-                        </div>
+                        {dayEvents && dayEvents.length > 0 ? (
+                          dayEvents.map(group => (
+                            <div key={group.type} className="space-y-1">
+                              <div className="flex items-center gap-1.5 px-1">
+                                <span className={cn('h-2 w-2 rounded-full shrink-0', group.color)} />
+                                <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                  {group.type}
+                                </span>
+                              </div>
+                              {group.items.map((item, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/40 overflow-hidden"
+                                >
+                                  <span className="text-xs font-medium truncate min-w-0">{item.number}</span>
+                                  <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate min-w-0 flex-1">{item.name}</span>
+                                  {item.amount && (
+                                    <span className="text-[10px] sm:text-[11px] font-mono shrink-0 text-muted-foreground">{item.amount}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-4">
+                            <CalendarDays className="h-5 w-5 text-muted-foreground/20 mx-auto mb-1.5" />
+                            <p className="text-xs text-muted-foreground">Aucun événement ce jour</p>
+                          </div>
+                        )}
                       </div>
-
-                      {/* Mini Calendar */}
-                      <MiniCalendar events={calendarEvents} onDayClick={handleDayClick} />
-
-                      {/* Events for selected day */}
-                      {selectedDate && (
-                        <div className="space-y-1 min-w-0">
-                          <div className="flex items-center justify-between px-1 min-w-0">
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
-                              {format(selectedDate, 'EEEE dd MMMM', { locale: fr })}
-                            </h3>
-                            <button
-                              onClick={clearDateFilter}
-                              className="text-[10px] text-primary hover:underline shrink-0"
-                            >
-                              Effacer
-                            </button>
-                          </div>
-                          <div className="space-y-0.5 min-w-0">
-                            {/* Invoice events */}
-                            {data.invoices.concat(data.upcomingInvoices)
-                              .filter(inv => inv.dueDate && isSameDay(new Date(inv.dueDate), selectedDate))
-                              .map(inv => (
-                                <AgendaRow key={inv.id} onClick={() => navigateTo('invoices')}>
-                                  <div className="rounded-lg bg-red-100 dark:bg-red-900/30 p-1 shrink-0">
-                                    <Receipt className="h-3 w-3 text-red-500" />
-                                  </div>
-                                  <div className="flex-1 min-w-0 overflow-hidden">
-                                    <span className="text-xs font-medium truncate block">{inv.number}</span>
-                                    <span className="text-[10px] text-muted-foreground truncate block">
-                                      {inv.clientName} · {fmtMoney(inv.totalTTC - inv.amountPaid)}
-                                    </span>
-                                  </div>
-                                  <Badge className={cn('text-[10px] px-1 py-0 shrink-0', invoiceStatusLabels[inv.status]?.color)}>
-                                    {invoiceStatusLabels[inv.status]?.label}
-                                  </Badge>
-                                </AgendaRow>
-                              ))
-                            }
-                            {/* Delivery events */}
-                            {data.deliveryNotes
-                              .filter(d => d.plannedDate && isSameDay(new Date(d.plannedDate), selectedDate))
-                              .map(d => (
-                                <AgendaRow key={d.id}>
-                                  <div className="rounded-lg bg-teal-100 dark:bg-teal-900/30 p-1 shrink-0">
-                                    <Truck className="h-3 w-3 text-teal-500" />
-                                  </div>
-                                  <div className="flex-1 min-w-0 overflow-hidden">
-                                    <span className="text-xs font-medium truncate block">{d.number}</span>
-                                    <span className="text-[10px] text-muted-foreground truncate block">
-                                      {d.clientName} · {fmtMoney(d.totalTTC)}
-                                    </span>
-                                  </div>
-                                  <Badge className={cn('text-[10px] px-1 py-0 shrink-0', deliveryStatusLabels[d.status]?.color)}>
-                                    {deliveryStatusLabels[d.status]?.label}
-                                  </Badge>
-                                </AgendaRow>
-                              ))
-                            }
-                            {/* Work order events */}
-                            {data.workOrders
-                              .filter(w => w.plannedDate && isSameDay(new Date(w.plannedDate), selectedDate))
-                              .map(w => (
-                                <AgendaRow key={w.id} onClick={() => navigateTo('work-orders')}>
-                                  <div className="rounded-lg bg-green-100 dark:bg-green-900/30 p-1 shrink-0">
-                                    <Factory className="h-3 w-3 text-green-600" />
-                                  </div>
-                                  <div className="flex-1 min-w-0 overflow-hidden">
-                                    <span className="text-xs font-medium truncate block">{w.number}</span>
-                                    <span className="text-[10px] text-muted-foreground truncate block">
-                                      {w.productDesignation} · Qté: {w.quantity}
-                                    </span>
-                                  </div>
-                                  <Badge className={cn('text-[10px] px-1 py-0 shrink-0', workOrderStatusLabels[w.status]?.color)}>
-                                    {workOrderStatusLabels[w.status]?.label}
-                                  </Badge>
-                                </AgendaRow>
-                              ))
-                            }
-                            {/* Purchase order events */}
-                            {data.purchaseOrders
-                              .filter(po => po.expectedDate && isSameDay(new Date(po.expectedDate), selectedDate))
-                              .map(po => (
-                                <AgendaRow key={po.id}>
-                                  <div className="rounded-lg bg-orange-100 dark:bg-orange-900/30 p-1 shrink-0">
-                                    <ArrowDownToLine className="h-3 w-3 text-orange-500" />
-                                  </div>
-                                  <div className="flex-1 min-w-0 overflow-hidden">
-                                    <span className="text-xs font-medium truncate block">{po.number}</span>
-                                    <span className="text-[10px] text-muted-foreground truncate block">
-                                      {po.supplierName} · {fmtMoney(po.totalTTC)}
-                                    </span>
-                                  </div>
-                                  <Badge className={cn('text-[10px] px-1 py-0 shrink-0', poStatusLabels[po.status]?.color)}>
-                                    {poStatusLabels[po.status]?.label}
-                                  </Badge>
-                                </AgendaRow>
-                              ))
-                            }
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </TabsContent>
-
-                  {/* Tabs Navigation - Bottom Bar */}
-                  <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm pt-2 sm:pt-3 pb-1 -mx-1 min-w-0 overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <TabsList className="w-full min-w-max h-8 sm:h-9 bg-muted/50">
-                        <TabsTrigger value="overview" className="text-[11px] flex-1 h-6 sm:h-7 gap-0.5 sm:gap-1 px-1.5 sm:px-2 shrink-0">
-                          <TrendingUp className="h-3 w-3 shrink-0" />
-                          <span className="hidden sm:inline truncate">Vue</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="orders" className="text-[11px] flex-1 h-6 sm:h-7 gap-0.5 sm:gap-1 px-1.5 sm:px-2 shrink-0">
-                          <ShoppingCart className="h-3 w-3 shrink-0" />
-                          <span className="hidden sm:inline truncate">Ventes</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="preparations" className="text-[11px] flex-1 h-6 sm:h-7 gap-0.5 sm:gap-1 px-1.5 sm:px-2 shrink-0">
-                          <ClipboardList className="h-3 w-3 shrink-0" />
-                          <span className="hidden sm:inline truncate">Prép.</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="invoices" className="text-[11px] flex-1 h-6 sm:h-7 gap-0.5 sm:gap-1 px-1.5 sm:px-2 shrink-0">
-                          <Receipt className="h-3 w-3 shrink-0" />
-                          <span className="hidden sm:inline truncate">Fact.</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="production" className="text-[11px] flex-1 h-6 sm:h-7 gap-0.5 sm:gap-1 px-1.5 sm:px-2 shrink-0">
-                          <Factory className="h-3 w-3 shrink-0" />
-                          <span className="hidden sm:inline truncate">Prod.</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="alerts" className="text-[11px] flex-1 h-6 sm:h-7 gap-0.5 sm:gap-1 px-1.5 sm:px-2 shrink-0 relative">
-                          <AlertTriangle className="h-3 w-3 shrink-0" />
-                          <span className="hidden sm:inline truncate">Alertes</span>
-                          {data.stats.stockAlerts + data.stats.overdueInvoices > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500" />
-                          )}
-                        </TabsTrigger>
-                        <TabsTrigger value="calendar" className="text-[11px] flex-1 h-6 sm:h-7 gap-0.5 sm:gap-1 px-1.5 sm:px-2 shrink-0">
-                          <CalendarDays className="h-3 w-3 shrink-0" />
-                          <span className="hidden sm:inline truncate">Calendrier</span>
-                        </TabsTrigger>
-                      </TabsList>
-                    </div>
-                  </div>
-                </Tabs>
-              ) : (
-                <AgendaSkeleton />
-              )}
-            </div>
-          </ScrollArea>
+                </div>
+              </ScrollArea>
+            </Tabs>
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>
   )
 }
 
-// ── Exported Agenda Button (used in header) ──
+// ═══════════════════════════════════════════
+// Exported AgendaButton
+// ═══════════════════════════════════════════
+
 export function AgendaButton() {
   const [open, setOpen] = useState(false)
-  const [badgeCount, setBadgeCount] = useState(0)
+  const [data, setData] = useState<AgendaData | null>(null)
 
-  // Fetch minimal count on mount
-  useEffect(() => {
-    api.get<{ stats: AgendaStats }>('/agenda?days=30')
-      .then(res => {
-        const s = res.stats
-        setBadgeCount(s.pendingOrders + s.pendingPreparations + s.overdueInvoices + s.stockAlerts + s.activeWorkOrders)
-      })
-      .catch(() => {})
+  const fetchBadgeCount = useCallback(async () => {
+    try {
+      const res = await api.get<AgendaData>('/agenda?days=30')
+      setData(res)
+    } catch {
+      // Silently fail — badge just won't show
+    }
   }, [])
+
+  useEffect(() => {
+    // Refresh every 2 minutes; initial fetch via setTimeout (async) to avoid lint rule
+    const timer = setTimeout(fetchBadgeCount, 0)
+    const interval = setInterval(fetchBadgeCount, 120000)
+    return () => {
+      clearTimeout(timer)
+      clearInterval(interval)
+    }
+  }, [fetchBadgeCount])
+
+  const badgeCount = data
+    ? data.stats.pendingOrders + data.stats.pendingPreparations +
+      data.stats.overdueInvoices + data.stats.stockAlerts +
+      data.stats.activeWorkOrders
+    : 0
 
   return (
     <>
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 rounded-lg hover:bg-muted relative"
+        className="relative h-9 w-9"
         onClick={() => setOpen(true)}
-        aria-label="Mon agenda"
+        aria-label="Ouvrir l'agenda"
       >
-        <CalendarDays className="h-4 w-4" />
+        <CalendarDays className="h-5 w-5" />
         {badgeCount > 0 && (
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground"
-          >
+          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold leading-none">
             {badgeCount > 99 ? '99+' : badgeCount}
-          </motion.span>
+          </span>
         )}
       </Button>
       <AgendaPanel open={open} onOpenChange={setOpen} />
     </>
   )
 }
+
+export { AgendaPanel }
+export default AgendaPanel

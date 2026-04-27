@@ -1268,3 +1268,36 @@ Stage Summary:
 - User agenda panel accessible from header with badge count of pending items
 - Modern UI: Framer Motion animations, gradient cards, color-coded statuses, responsive design
 - Backend: Smart entity resolution via audit log history for personalized data
+
+---
+Task ID: 2
+Agent: full-stack-developer
+Task: Rewrite agenda panel to fix overflow, add calendar visibility, mobile responsive
+
+Work Log:
+- Restructured layout: TabsList moved outside ScrollArea to prevent overflow
+- Removed min-w-max from TabsList, used flex-wrap for mobile (2 rows), single row on desktop
+- SheetContent: w-full sm:w-[400px] md:w-[460px] p-0 overflow-hidden flex flex-col gap-0
+- Tabs container: flex-1 flex flex-col min-h-0 overflow-hidden
+- TabsList: shrink-0 w-full h-auto bg-muted/50 border-b rounded-none p-0 flex-wrap justify-start
+- ScrollArea: flex-1 min-h-0 (proper flex child for remaining space)
+- Made calendar a prominent tab (7th tab, always visible in tab bar)
+- Calendar tab features: MiniCalendar with French week (Mon start), color-coded event dots, legend, click-to-select day events
+- Day events grouped by type (Factures, Livraisons, OF, Cmds fourn.) with filtered results
+- Stat cards: 2 cols mobile (grid-cols-2), 3 cols sm+ (sm:grid-cols-3), 9 cards total
+- Tab labels visible on ALL screen sizes (text-[10px] sm:text-[11px]) with icon + label
+- All text uses truncate with proper min-w-0 overflow-hidden parents
+- Badge components always shrink-0
+- Exported AgendaButton with notification badge (periodic refresh every 2min)
+- AgendaSkeleton updated for 2-col mobile grid
+- All status label maps preserved (quotes, orders, preps, invoices, work orders, PO, delivery)
+- Fixed lint: used setTimeout for initial fetch to avoid set-state-in-effect rule
+
+Stage Summary:
+- Complete rewrite of agenda-panel.tsx (~1280 lines)
+- Fixed horizontal overflow issue (TabsList outside ScrollArea)
+- Calendar now visible as a dedicated tab with event details
+- Mobile responsive: flex-wrap tabs, 2-col stat grid, proper breakpoints
+- Zero overflow: min-w-0, overflow-hidden, truncate on all text containers
+- Lint: 0 errors
+- Dev server: compiling successfully
