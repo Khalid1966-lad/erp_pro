@@ -568,3 +568,122 @@
     height: 64px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR — PREMIUM NAVIGATION STYLES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Active nav item — accent background + left bar */
+.sidebar-nav-active {
+  background: oklch(0.96 0 0);
+}
+
+.dark .sidebar-nav-active {
+  background: oklch(0.25 0 0);
+}
+
+/* Active bar slide-in animation */
+.sidebar-active-bar {
+  animation: sidebar-bar-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes sidebar-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scaleY(1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CARDS — PREMIUM HOVER & INTERACTION STYLES
+   ═══════════════════════════════════════════════════════════ */
+
+/* KPI Card hover lift */
+.kpi-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 6px -1px oklch(0 0 0 / 5%),
+    0 10px 20px -2px oklch(0 0 0 / 4%);
+}
+
+.dark .kpi-card:hover {
+  box-shadow:
+    0 4px 6px -1px oklch(0 0 0 / 20%),
+    0 10px 20px -2px oklch(0 0 0 / 15%);
+}
+
+/* Chart card hover */
+.chart-card {
+  transition: box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chart-card:hover {
+  box-shadow:
+    0 2px 4px -1px oklch(0 0 0 / 3%),
+    0 6px 16px -2px oklch(0 0 0 / 3%);
+}
+
+.dark .chart-card:hover {
+  box-shadow:
+    0 2px 4px -1px oklch(0 0 0 / 15%),
+    0 6px 16px -2px oklch(0 0 0 / 10%);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KPI COUNTER — ANIMATED NUMBER DISPLAY
+   ═══════════════════════════════════════════════════════════ */
+
+.kpi-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BADGES — ENHANCED STYLES
+   ═══════════════════════════════════════════════════════════ */
+
+.badge-pulse {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLE — ROW HOVER ENHANCEMENT
+   ═══════════════════════════════════════════════════════════ */
+
+.table-row-hover {
+  transition: background-color 0.15s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAGGERED ENTRANCE ANIMATIONS
+   ═══════════════════════════════════════════════════════════ */
+
+.stagger-in {
+  animation: stagger-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+@keyframes stagger-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

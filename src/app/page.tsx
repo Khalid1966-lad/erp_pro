@@ -2,6 +2,7 @@
 
 import { useAuthStore, useNavStore } from '@/lib/stores'
 import dynamic from 'next/dynamic'
+import { AnimatePresence, motion } from 'framer-motion'
 
 import LoginPage from '@/components/erp/login-page'
 import { ERPSidebar, ERPHeader } from '@/components/erp/erp-layout'
@@ -45,49 +46,79 @@ const GuideView = dynamic(() => import('@/components/erp/admin/guide-view'), { s
 const MessagesView = dynamic(() => import('@/components/erp/messages/messages-view'), { ssr: false })
 const QualityControlView = dynamic(() => import('@/components/erp/production/quality-control-view'), { ssr: false })
 
+// ── Page transition variants ─────────────────────────────────────────────────
+
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+}
+
+const pageTransition = {
+  duration: 0.25,
+  ease: [0.16, 1, 0.3, 1],
+}
+
 function ViewRouter() {
   const { currentView } = useNavStore()
 
+  let view: React.ReactNode
   switch (currentView) {
-    case 'dashboard': return <DashboardView />
-    case 'clients': return <ClientsView />
-    case 'products': return <ProductsView />
-    case 'quotes': return <QuotesView />
-    case 'sales-orders': return <SalesOrdersView />
-    case 'preparations': return <PreparationsView />
-    case 'invoices': return <InvoicesView />
-    case 'credit-notes': return <CreditNotesView />
-    case 'delivery-notes': return <DeliveryNotesView />
-    case 'suppliers': return <SuppliersView />
-    case 'purchase-orders': return <PurchaseOrdersView />
-    case 'receptions': return <ReceptionsView />
-    case 'price-requests': return <PriceRequestsView />
-    case 'supplier-quotes': return <SupplierQuotesView />
-    case 'supplier-invoices': return <SupplierInvoicesView />
-    case 'supplier-returns': return <SupplierReturnsView />
-    case 'supplier-credit-notes': return <SupplierCreditNotesView />
-    case 'stock-movements': return <StockMovementsView />
-    case 'stock-alerts': return <StockAlertsView />
-    case 'inventory': return <InventoryView />
-    case 'bom': return <BomView />
-    case 'routing': return <RoutingView />
-    case 'workstations': return <WorkstationsView />
-    case 'work-orders': return <WorkOrdersView />
-    case 'cash-registers': return <CashRegistersView />
-    case 'bank-accounts': return <BankAccountsView />
-    case 'payments': return <PaymentsView />
-    case 'effets': return <EffetsView />
-    case 'accounting': return <AccountingView />
-    case 'financial-reports': return <FinancialReportsView />
-    case 'audit-log': return <AuditLogView />
-    case 'settings': return <SettingsView />
-    case 'users': return <UsersView />
-    case 'profile': return <ProfileView />
-    case 'guide': return <GuideView />
-    case 'messages': return <MessagesView />
-    case 'quality-control': return <QualityControlView />
-    default: return <DashboardView />
+    case 'dashboard': view = <DashboardView />; break
+    case 'clients': view = <ClientsView />; break
+    case 'products': view = <ProductsView />; break
+    case 'quotes': view = <QuotesView />; break
+    case 'sales-orders': view = <SalesOrdersView />; break
+    case 'preparations': view = <PreparationsView />; break
+    case 'invoices': view = <InvoicesView />; break
+    case 'credit-notes': view = <CreditNotesView />; break
+    case 'delivery-notes': view = <DeliveryNotesView />; break
+    case 'suppliers': view = <SuppliersView />; break
+    case 'purchase-orders': view = <PurchaseOrdersView />; break
+    case 'receptions': view = <ReceptionsView />; break
+    case 'price-requests': view = <PriceRequestsView />; break
+    case 'supplier-quotes': view = <SupplierQuotesView />; break
+    case 'supplier-invoices': view = <SupplierInvoicesView />; break
+    case 'supplier-returns': view = <SupplierReturnsView />; break
+    case 'supplier-credit-notes': view = <SupplierCreditNotesView />; break
+    case 'stock-movements': view = <StockMovementsView />; break
+    case 'stock-alerts': view = <StockAlertsView />; break
+    case 'inventory': view = <InventoryView />; break
+    case 'bom': view = <BomView />; break
+    case 'routing': view = <RoutingView />; break
+    case 'workstations': view = <WorkstationsView />; break
+    case 'work-orders': view = <WorkOrdersView />; break
+    case 'cash-registers': view = <CashRegistersView />; break
+    case 'bank-accounts': view = <BankAccountsView />; break
+    case 'payments': view = <PaymentsView />; break
+    case 'effets': view = <EffetsView />; break
+    case 'accounting': view = <AccountingView />; break
+    case 'financial-reports': view = <FinancialReportsView />; break
+    case 'audit-log': view = <AuditLogView />; break
+    case 'settings': view = <SettingsView />; break
+    case 'users': view = <UsersView />; break
+    case 'profile': view = <ProfileView />; break
+    case 'guide': view = <GuideView />; break
+    case 'messages': view = <MessagesView />; break
+    case 'quality-control': view = <QualityControlView />; break
+    default: view = <DashboardView />; break
   }
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={currentView}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={pageTransition}
+        className="h-full"
+      >
+        {view}
+      </motion.div>
+    </AnimatePresence>
+  )
 }
 
 function ERPApp() {

@@ -2,6 +2,7 @@
 
 import { useAuthStore, useNavStore, type ViewId } from '@/lib/stores'
 import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -58,12 +59,15 @@ import {
   ArrowLeftRight,
   MessageSquare,
   BarChart3,
-  ClipboardCheck
+  ClipboardCheck,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 import Image from 'next/image'
-import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import React, { useState, useEffect, useRef } from 'react'
 import { NotificationBell } from '@/components/erp/notifications/notification-bell'
 
 interface NavItem {
@@ -187,7 +191,6 @@ function SidebarLogo() {
   const [logoSrc, setLogoSrc] = useState('/logo.png')
 
   useEffect(() => {
-    // Check if a custom logo was uploaded (stored in settings as company_logo_url)
     fetch('/api/settings')
       .then(r => r.json())
       .then(data => {
@@ -198,7 +201,7 @@ function SidebarLogo() {
       .catch(() => {})
   }, [])
 
-  const size = sidebarOpen ? 'w-8 h-8' : 'w-8 h-8'
+  const size = sidebarOpen ? 'w-9 h-9' : 'w-8 h-8'
 
   return (
     <div className={cn('relative shrink-0', size)}>
@@ -233,7 +236,10 @@ function SidebarContent() {
       <div className="flex items-center gap-3 px-3 h-14 border-b border-border shrink-0">
         <SidebarLogo />
         {sidebarOpen && (
-          <span className="font-bold text-base tracking-tight truncate">GEMA ERP PRO</span>
+          <div className="flex flex-col overflow-hidden">
+            <span className="font-bold text-sm tracking-tight truncate">GEMA ERP PRO</span>
+            <span className="text-[10px] text-muted-foreground truncate">Production & Gestion</span>
+          </div>
         )}
       </div>
 
@@ -256,48 +262,57 @@ function SidebarContent() {
                   <button
                     onClick={() => toggleGroup(group.title)}
                     className={cn(
-                      'flex items-center w-full gap-2 px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors'
+                      'flex items-center w-full gap-2 px-2 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors rounded-md',
+                      hasActiveItem && !isCollapsed && 'text-foreground/70'
                     )}
                   >
-                    <ChevronDown className={cn('h-3 w-3 transition-transform', isCollapsed && '-rotate-90')} />
+                    <ChevronDown className={cn('h-3 w-3 transition-transform duration-200', isCollapsed && '-rotate-90')} />
                     <span>{group.title}</span>
                   </button>
                 ) : (
-                  <div className="h-px bg-border my-2" />
+                  <div className="h-px bg-border/60 my-2" />
                 )}
 
                 {!isCollapsed && (
-                  <div className="space-y-0.5">
-                    {visibleItems.map((item) => (
-                      <Tooltip key={item.id} delayDuration={0}>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => setCurrentView(item.id)}
-                            className={cn(
-                              'flex items-center gap-3 w-full px-2 py-1.5 text-sm rounded-md transition-colors',
-                              currentView === item.id
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                            )}
-                          >
-                            {currentView === item.id
-                              ? item.icon
-                              : React.isValidElement(item.icon)
-                                ? React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, {
-                                    className: cn('h-4 w-4', item.color),
-                                  })
-                                : item.icon
-                            }
-                            {sidebarOpen && <span>{item.label}</span>}
-                          </button>
-                        </TooltipTrigger>
-                        {!sidebarOpen && (
-                          <TooltipContent side="right">
-                            {item.label}
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    ))}
+                  <div className="space-y-0.5 mt-0.5">
+                    {visibleItems.map((item) => {
+                      const isActive = currentView === item.id
+                      return (
+                        <Tooltip key={item.id} delayDuration={0}>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => setCurrentView(item.id)}
+                              className={cn(
+                                'sidebar-nav-item relative flex items-center gap-3 w-full px-3 py-[7px] text-[13px] rounded-lg transition-all duration-150 group',
+                                isActive
+                                  ? 'sidebar-nav-active font-medium text-foreground'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                              )}
+                            >
+                              {/* Active indicator bar */}
+                              {isActive && (
+                                <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
+                              )}
+                              {/* Icon */}
+                              <span className={cn(
+                                'shrink-0 transition-colors',
+                                isActive
+                                  ? 'text-primary'
+                                  : item.color
+                              )}>
+                                {item.icon}
+                              </span>
+                              {sidebarOpen && <span className="truncate">{item.label}</span>}
+                            </button>
+                          </TooltipTrigger>
+                          {!sidebarOpen && (
+                            <TooltipContent side="right" className="font-medium">
+                              {item.label}
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -309,11 +324,11 @@ function SidebarContent() {
       {/* Version footer */}
       <div className="border-t border-border px-4 py-2 shrink-0">
         {sidebarOpen ? (
-          <p className="text-[10px] text-muted-foreground text-center">
+          <p className="text-[10px] text-muted-foreground/60 text-center">
             GEMA ERP PRO v{APP_VERSION}
           </p>
         ) : (
-          <p className="text-[9px] text-muted-foreground text-center leading-none">v{APP_VERSION}</p>
+          <p className="text-[9px] text-muted-foreground/50 text-center leading-none">v{APP_VERSION}</p>
         )}
       </div>
     </div>
@@ -328,8 +343,8 @@ export function ERPSidebar() {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          'hidden md:flex flex-col h-screen sticky top-0 border-r border-border bg-card transition-all duration-200 shrink-0 overflow-hidden',
-          sidebarOpen ? 'w-64' : 'w-16'
+          'hidden md:flex flex-col h-screen sticky top-0 border-r border-border bg-card transition-[width] duration-200 ease-out shrink-0 overflow-hidden',
+          sidebarOpen ? 'w-[260px]' : 'w-[62px]'
         )}
       >
         <SidebarContent />
@@ -346,12 +361,52 @@ export function ERPSidebar() {
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0 overflow-hidden">
+        <SheetContent side="left" className="w-[260px] p-0 overflow-hidden">
           <SheetTitle className="sr-only">Navigation GEMA ERP PRO</SheetTitle>
           <SidebarContent />
         </SheetContent>
       </Sheet>
     </>
+  )
+}
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme()
+  const mounted = useRef(false)
+
+  useEffect(() => {
+    mounted.current = true
+  }, [])
+
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+        <Sun className="h-4 w-4" />
+      </Button>
+    )
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-8 w-8 rounded-lg hover:bg-muted"
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      aria-label={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+    >
+      <motion.div
+        key={theme}
+        initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
+        animate={{ rotate: 0, opacity: 1, scale: 1 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {theme === 'dark' ? (
+          <Moon className="h-4 w-4" />
+        ) : (
+          <Sun className="h-4 w-4" />
+        )}
+      </motion.div>
+    </Button>
   )
 }
 
@@ -400,25 +455,34 @@ export function ERPHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border px-4 md:px-6 flex items-center gap-4">
+    <header className="sticky top-0 z-40 h-14 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 border-b border-border/60 px-4 md:px-6 flex items-center gap-3">
       <Button
         variant="ghost"
         size="icon"
-        className="hidden md:flex h-8 w-8"
+        className="hidden md:flex h-8 w-8 rounded-lg hover:bg-muted"
         onClick={toggleSidebar}
       >
         <Menu className="h-4 w-4" />
       </Button>
       <div className="md:hidden w-8" />
-      <h1 className="font-semibold text-lg">{viewLabels[currentView] || currentView}</h1>
+      <motion.h1
+        key={currentView}
+        className="font-semibold text-base"
+        initial={{ opacity: 0, x: -8 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {viewLabels[currentView] || currentView}
+      </motion.h1>
       <div className="flex-1" />
       {user && (
         <>
+          <ThemeToggle />
           <NotificationBell />
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 rounded-full px-1 py-1 pr-3 hover:bg-accent transition-colors outline-none">
-              <Avatar className="h-8 w-8">
+            <button className="flex items-center gap-2 rounded-full px-1 py-1 pr-3 hover:bg-accent/60 transition-colors outline-none">
+              <Avatar className="h-8 w-8 ring-2 ring-border/50">
                 <AvatarImage src={user.avatarUrl || ''} alt={user.name || ''} />
                 <AvatarFallback className="text-xs bg-primary text-primary-foreground">
                   {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
