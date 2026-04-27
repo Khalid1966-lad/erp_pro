@@ -389,7 +389,7 @@ export async function printDocument(options: PrintOptions) {
   toolbar.innerHTML = `
     <span style="font-size:13px;font-weight:600;color:#374151;">Aperçu — ${esc(options.title)} ${esc(options.docNumber)}</span>
     <div style="flex:1"></div>
-    <span id="print-pan-hint" style="font-size:11px;color:#9ca3af;display:none;">🖱 Glisser pour naviguer</span>
+    <span id="print-pan-hint" style="font-size:11px;color:#9ca3af;display:inline;">🖱 Double-clic pour zoomer</span>
     <button id="print-zoom-out" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom −">−</button>
     <span id="print-zoom-level" style="font-size:12px;color:#6b7280;min-width:48px;text-align:center;">100%</span>
     <button id="print-zoom-in" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom +">+</button>
@@ -466,10 +466,8 @@ export async function printDocument(options: PrintOptions) {
   }
 
   const updatePanHint = () => {
-    const hint = document.getElementById('print-pan-hint')
     const hasOverflow = container.scrollHeight > container.clientHeight + 2 ||
                         container.scrollWidth > container.clientWidth + 2
-    if (hint) hint.style.display = hasOverflow ? 'inline' : 'none'
     if (!isPanning) {
       container.style.cursor = hasOverflow ? 'grab' : 'default'
     }
@@ -535,10 +533,27 @@ export async function printDocument(options: PrintOptions) {
   document.addEventListener('mousemove', onMouseMove)
   document.addEventListener('mouseup', onMouseUp)
 
+  // ── Double-click to toggle zoom (fit ↔ 100%) ──
+  let lastClickTime = 0
+  const onDblClick = (e: MouseEvent) => {
+    // If current zoom is close to 100%, fit to screen; otherwise go to 100%
+    if (zoom >= 0.95 && zoom <= 1.05) {
+      fitZoom()
+    } else {
+      zoomIdx = zoomLevels.indexOf(1)
+      applyZoom()
+      // Scroll to center
+      container.scrollLeft = (scaledWrap.scrollWidth - container.clientWidth) / 2
+      container.scrollTop = 0
+    }
+  }
+  container.addEventListener('dblclick', onDblClick)
+
   // ── Cleanup helper ──
   const cleanup = () => {
     document.removeEventListener('mousemove', onMouseMove)
     document.removeEventListener('mouseup', onMouseUp)
+    container.removeEventListener('dblclick', onDblClick)
     document.removeEventListener('keydown', onKey)
     document.body.style.overflow = ''
   }

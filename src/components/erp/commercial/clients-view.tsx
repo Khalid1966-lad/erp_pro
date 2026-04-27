@@ -2153,12 +2153,12 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
         <table>
           <thead>
             <tr>
-              <th>Facture (impayées)</th>
-              <th>Livraison (non facturées)</th>
-              <th>Règlement (période)</th>
-              <th>Portefeuille (effets/chèques)</th>
-              <th>Avoir (non consolidés)</th>
-              <th class="text-right">Solde</th>
+              <th style="width:18%">Facture (impayées)</th>
+              <th style="width:18%">Livraison (non facturées)</th>
+              <th style="width:18%">Règlement (période)</th>
+              <th style="width:12%">Portefeuille</th>
+              <th style="width:18%">Avoir (non consolidés)</th>
+              <th style="width:16%" class="text-right">Solde</th>
             </tr>
           </thead>
           <tbody>
