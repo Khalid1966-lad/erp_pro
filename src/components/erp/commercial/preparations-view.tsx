@@ -1052,7 +1052,7 @@ export default function PreparationsView() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="bg-white border-amber-300 text-amber-700 hover:bg-amber-50"
+                                    className="bg-background border-amber-300 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30"
                                     onClick={() => navigateTo('purchase-orders')}
                                   >
                                     <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
@@ -1063,7 +1063,7 @@ export default function PreparationsView() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
+                                    className="bg-background border-blue-300 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                                     onClick={() => navigateTo('work-orders')}
                                   >
                                     <Factory className="h-3.5 w-3.5 mr-1.5" />

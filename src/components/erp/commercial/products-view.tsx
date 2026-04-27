@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,7 +21,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Edit, Trash2, Search, Package, ArrowUpDown, RefreshCw, Loader2 } from 'lucide-react'
+import {
+  Plus, Edit, Trash2, Search, Package, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Loader2,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Product {
@@ -69,10 +72,10 @@ const natureLabels: Record<string, string> = {
 }
 
 const natureColors: Record<string, string> = {
-  matiere_premiere: 'bg-amber-100 text-amber-800',
-  semi_fini: 'bg-blue-100 text-blue-800',
-  produit_fini: 'bg-green-100 text-green-800',
-  service: 'bg-purple-100 text-purple-800'
+  matiere_premiere: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  semi_fini: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  produit_fini: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  service: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
 }
 
 const usageLabels: Record<string, string> = {
@@ -81,98 +84,138 @@ const usageLabels: Record<string, string> = {
 }
 
 const usageColors: Record<string, string> = {
-  achat: 'bg-orange-100 text-orange-800',
-  vente: 'bg-emerald-100 text-emerald-800'
+  achat: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  vente: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
 }
 
+const PAGE_SIZE_OPTIONS = [25, 50, 100]
+
 export default function ProductsView() {
+  // ── Data state ──
   const [products, setProducts] = useState<Product[]>([])
   const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [allFamilles, setAllFamilles] = useState<string[]>([])
+
+  // ── UI state ──
+  const [searchInput, setSearchInput] = useState('')           // immediate input value
+  const [debouncedSearch, setDebouncedSearch] = useState('')   // debounced value for API
   const [searching, setSearching] = useState(false)
-  const [search, setSearch] = useState('')
-  const searchRef = useRef<string>('')
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [familleFilter, setFamilleFilter] = useState<string | null>(null)
-  const [sortField, setSortField] = useState<string>('reference')
+  const [sortField, setSortField] = useState('reference')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [pageSize, setPageSize] = useState(50)
+  const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [form, setForm] = useState(emptyProduct)
   const [saving, setSaving] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const initialized = useRef(false)
 
-  // Fetch products from server with search and filters
-  const fetchProducts = useCallback(async (searchTerm?: string) => {
-    try {
-      if (searchTerm !== undefined) {
-        setSearching(true)
-      } else {
-        setLoading(true)
-      }
-      const params = new URLSearchParams({ limit: '10000', active: 'false' })
-      const term = searchTerm !== undefined ? searchTerm : searchRef.current
-      if (term) params.set('search', term)
-      if (typeFilter) params.set('productNature', typeFilter)
-      if (familleFilter) params.set('famille', familleFilter)
-      const res = await api.get<{ products: Product[], total: number }>(`/products?${params}`)
-      setProducts(res.products || [])
-      setTotal(res.total || 0)
-    } catch (err) {
-      console.error('Erreur chargement produits:', err)
-      toast.error('Erreur de chargement', { description: 'Impossible de charger la liste des produits.' })
-    } finally {
-      setLoading(false)
-      setSearching(false)
-    }
-  }, [typeFilter, familleFilter])
-
-  // Debounced search — only by designation
-  const handleSearch = useCallback((value: string) => {
-    setSearch(value)
-    searchRef.current = value
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      fetchProducts(value)
-    }, 400)
-  }, [fetchProducts])
-
-  // Initial load + re-fetch when type/famille filters change
+  // ── Fetch distinct familles (lightweight, once) ──
   useEffect(() => {
-    fetchProducts()
+    api.get('/products/familles')
+      .then(res => setAllFamilles((res as unknown as { familles: string[] }).familles || []))
+      .catch(() => {
+        api.get('/products?limit=10000&active=false')
+          .then(res => {
+            const s = new Set<string>()
+            ;((res as { products?: { famille: string | null }[] }).products || []).forEach(p => { if (p.famille) s.add(p.famille) })
+            setAllFamilles(Array.from(s).sort((a, b) => a.localeCompare(b, 'fr')))
+          })
+          .catch(() => {})
+      })
+  }, [])
+
+  // ── Debounce search input ──
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!searchInput) {
+      setDebouncedSearch('')
+      setSearching(false)
+      return
+    }
+    setSearching(true)
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchInput)
+      setSearching(false)
+    }, 400)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [fetchProducts])
+  }, [searchInput])
 
-  // Client-side sorting only (filtering done server-side)
-  const sortedProducts = useMemo(() => {
-    const result = [...products]
-    result.sort((a, b) => {
-      const aVal = String(a[sortField as keyof Product] ?? '')
-      const bVal = String(b[sortField as keyof Product] ?? '')
-      return sortDir === 'asc' ? aVal.localeCompare(bVal, 'fr') : bVal.localeCompare(aVal, 'fr')
-    })
-    return result
-  }, [products, sortField, sortDir])
+  // ── Main fetch: triggers on any query param change ──
+  useEffect(() => {
+    const controller = new AbortController()
+    const doFetch = async () => {
+      try {
+        if (!initialized.current) { initialized.current = true; return }
+        setLoading(true)
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(pageSize),
+          active: 'false',
+          sortField,
+          sortDir,
+        })
+        if (debouncedSearch) params.set('search', debouncedSearch)
+        if (typeFilter) params.set('productNature', typeFilter)
+        if (familleFilter) params.set('famille', familleFilter)
+        const res = await api.get<{ products: Product[]; total: number; page: number; totalPages: number }>(
+          `/products?${params}`,
+          { signal: controller.signal }
+        )
+        if (!controller.signal.aborted) {
+          setProducts(res.products || [])
+          setTotal(res.total || 0)
+          setTotalPages(res.totalPages || 1)
+          setPage(res.page || page)
+        }
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        console.error('Erreur chargement produits:', err)
+        toast.error('Erreur de chargement', { description: 'Impossible de charger la liste des produits.' })
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }
+    doFetch()
+    return () => controller.abort()
+  }, [debouncedSearch, typeFilter, familleFilter, sortField, sortDir, page, pageSize])
 
-  // Unique familles from current results
-  const familles = useMemo(() => {
-    const set = new Set<string>()
-    products.forEach(p => { if (p.famille) set.add(p.famille) })
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'))
-  }, [products])
-
-  // Nature counts from displayed products
-  const natureCounts = useMemo(() => {
-    const counts: Record<string, number> = { matiere_premiere: 0, semi_fini: 0, produit_fini: 0, service: 0 }
-    products.forEach(p => {
-      if (counts[p.productNature] !== undefined) counts[p.productNature]++
-    })
-    return counts
-  }, [products])
-
+  // ── Handlers ──
   const toggleSort = (field: string) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortField(field); setSortDir('asc') }
+    setPage(1)
+  }
+
+  const changeTypeFilter = (val: string | null) => {
+    setTypeFilter(val)
+    setFamilleFilter(null)
+    setPage(1)
+  }
+
+  const changeFamilleFilter = (val: string | null) => {
+    setFamilleFilter(val)
+    setPage(1)
+  }
+
+  const changePageSize = (size: number) => {
+    setPageSize(size)
+    setPage(1)
+  }
+
+  const goToPage = (p: number) => {
+    const clamped = Math.max(1, Math.min(p, totalPages))
+    if (clamped !== page) setPage(clamped)
+  }
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />
   }
 
   const openCreate = () => {
@@ -230,7 +273,15 @@ export default function ProductsView() {
         toast.success('Produit créé', { description: `${body.designation} a été ajouté.` })
       }
       setDialogOpen(false)
-      fetchProducts()
+      // Trigger re-fetch by toggling page briefly
+      setPage(p => p) // This won't trigger a re-fetch since value didn't change
+      // Instead, we need to actually trigger the effect. Let's use a workaround:
+      initialized.current = false
+      setPage(1)
+      // Fetch familles in case new ones were added
+      api.get('/products/familles')
+        .then(res => setAllFamilles((res as unknown as { familles: string[] }).familles || []))
+        .catch(() => {})
     } catch (err) {
       console.error('Erreur sauvegarde produit:', err)
       toast.error('Erreur de sauvegarde', { description: 'Impossible de sauvegarder le produit.' })
@@ -243,16 +294,20 @@ export default function ProductsView() {
     try {
       await api.delete(`/products?id=${id}`)
       toast.success('Produit supprimé', { description: 'Le produit a été supprimé avec succès.' })
-      fetchProducts()
+      initialized.current = false
+      setPage(1)
     } catch (err) {
       console.error('Erreur suppression produit:', err)
       toast.error('Erreur de suppression', { description: 'Impossible de supprimer le produit.' })
     }
   }
 
-  const fmt = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
+  // ── Computed ──
+  const fromItem = total > 0 ? (page - 1) * pageSize + 1 : 0
+  const toItem = Math.min(page * pageSize, total)
 
-  if (loading) {
+  // ── Loading skeleton ──
+  if (loading && products.length === 0) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -269,7 +324,7 @@ export default function ProductsView() {
         </div>
         <Card className="overflow-hidden">
           <div className="space-y-3 p-4">
-            {Array.from({ length: 15 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
           </div>
         </Card>
       </div>
@@ -283,13 +338,11 @@ export default function ProductsView() {
         <div className="flex items-center gap-2">
           <Package className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Produits</h2>
-          <Badge variant="secondary">
-            {total}
-          </Badge>
+          <Badge variant="secondary">{total.toLocaleString('fr-FR')}</Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => fetchProducts()}>
-            <RefreshCw className="h-4 w-4" />
+          <Button variant="outline" size="sm" onClick={() => { initialized.current = false; setPage(1) }} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4 mr-1" />
@@ -298,13 +351,13 @@ export default function ProductsView() {
         </div>
       </div>
 
-      {/* Search — by designation only */}
+      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Rechercher par désignation..."
-          value={search}
-          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Rechercher par référence ou désignation..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="pl-9"
         />
         {searching && (
@@ -312,78 +365,71 @@ export default function ProductsView() {
         )}
       </div>
 
-      {/* Filter Buttons */}
+      {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant={!typeFilter ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => { setTypeFilter(null); setFamilleFilter(null) }}
-        >
-          Tous <span className="ml-1 text-xs opacity-70">({products.length})</span>
+        <Button variant={!typeFilter ? 'default' : 'outline'} size="sm" onClick={() => changeTypeFilter(null)}>
+          Tous
         </Button>
-        <Button variant={typeFilter === 'matiere_premiere' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'matiere_premiere' ? null : 'matiere_premiere')}>
-          Mat. première <span className="ml-1 text-xs opacity-70">({natureCounts.matiere_premiere})</span>
-        </Button>
-        <Button variant={typeFilter === 'semi_fini' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'semi_fini' ? null : 'semi_fini')}>
-          Semi-fini <span className="ml-1 text-xs opacity-70">({natureCounts.semi_fini})</span>
-        </Button>
-        <Button variant={typeFilter === 'produit_fini' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'produit_fini' ? null : 'produit_fini')}>
-          Produit fini <span className="ml-1 text-xs opacity-70">({natureCounts.produit_fini})</span>
-        </Button>
-        <Button variant={typeFilter === 'service' ? 'default' : 'outline'} size="sm" onClick={() => setTypeFilter(typeFilter === 'service' ? null : 'service')}>
-          Service <span className="ml-1 text-xs opacity-70">({natureCounts.service})</span>
-        </Button>
+        {(['matiere_premiere', 'semi_fini', 'produit_fini', 'service'] as const).map(nature => (
+          <Button key={nature} variant={typeFilter === nature ? 'default' : 'outline'} size="sm"
+            onClick={() => changeTypeFilter(typeFilter === nature ? null : nature)}>
+            {natureLabels[nature]}
+          </Button>
+        ))}
         <Separator orientation="vertical" className="h-8 mx-1 hidden sm:block" />
-        <Select value={familleFilter ?? '__all__'} onValueChange={(v) => setFamilleFilter(v === '__all__' ? null : v)}>
+        <Select value={familleFilter ?? '__all__'} onValueChange={(v) => changeFamilleFilter(v === '__all__' ? null : v)}>
           <SelectTrigger className="w-auto h-8 text-sm">
             <SelectValue placeholder="Famille..." />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Toutes les familles</SelectItem>
-            {familles.map(f => (
+            {allFamilles.map(f => (
               <SelectItem key={f} value={f}>{f}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Table — scrollable with always-visible horizontal scrollbar and sticky header */}
+      {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <div
-            className="overflow-auto scrollbar-visible"
-            style={{ maxHeight: 'calc(100vh - 300px)', minHeight: '300px' }}
-          >
+          <div className="overflow-auto scrollbar-visible" style={{ maxHeight: 'calc(100vh - 340px)', minHeight: '300px' }}>
             <table className="w-full caption-bottom text-sm" style={{ minWidth: 900 }}>
               <thead className="[&_tr]:border-b">
                 <tr className="hover:bg-muted/50 border-b transition-colors">
-                  <th className="cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[100px]" onClick={() => toggleSort('reference')}>
-                    <div className="flex items-center gap-1">Référence<ArrowUpDown className="h-3 w-3" /></div>
+                  {[
+                    { key: 'reference', label: 'Référence' },
+                    { key: 'designation', label: 'Désignation' },
+                    { key: 'famille', label: 'Famille' },
+                  ].map(col => (
+                    <th key={col.key} className="cursor-pointer select-none sticky top-0 bg-muted/80 dark:bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[100px]"
+                      onClick={() => toggleSort(col.key)}>
+                      <div className="flex items-center gap-1">{col.label} <SortIcon field={col.key} /></div>
+                    </th>
+                  ))}
+                  <th className="sticky top-0 bg-muted/80 dark:bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[100px]">Type</th>
+                  <th className="text-center cursor-pointer select-none sticky top-0 bg-muted/80 dark:bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[90px]"
+                    onClick={() => toggleSort('currentStock')}>
+                    <div className="flex items-center justify-center gap-1">Stock <SortIcon field="currentStock" /></div>
                   </th>
-                  <th className="cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[200px]" onClick={() => toggleSort('designation')}>
-                    <div className="flex items-center gap-1">Désignation<ArrowUpDown className="h-3 w-3" /></div>
-                  </th>
-                  <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[110px]">Famille</th>
-                  <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[100px]">Type</th>
-                  <th className="text-center cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[90px]" onClick={() => toggleSort('currentStock')}>
-                    <div className="flex items-center justify-center gap-1">Stock<ArrowUpDown className="h-3 w-3" /></div>
-                  </th>
-                  <th className="text-center sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[60px]">Actif</th>
-                  <th className="text-right sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap w-[100px]">Actions</th>
+                  <th className="text-center sticky top-0 bg-muted/80 dark:bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[60px]">Actif</th>
+                  <th className="text-right sticky top-0 bg-muted/80 dark:bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap w-[100px]">Actions</th>
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
-                {sortedProducts.length === 0 ? (
+                {products.length === 0 ? (
                   <tr className="hover:bg-muted/50 border-b transition-colors">
                     <td colSpan={7} className="p-2 align-middle text-center py-8 text-muted-foreground">
-                      {search || typeFilter || familleFilter ? 'Aucun produit trouvé.' : 'Aucun produit enregistré.'}
+                      {debouncedSearch || typeFilter || familleFilter ? 'Aucun produit trouvé.' : 'Aucun produit enregistré.'}
                     </td>
                   </tr>
                 ) : (
-                  sortedProducts.map((product) => {
+                  products.map((product) => {
                     const lowStock = product.minStock !== null && product.minStock > 0 && product.currentStock <= product.minStock
                     return (
-                      <tr key={product.id} className={`hover:bg-muted/50 border-b transition-colors cursor-pointer ${!product.isActive ? 'opacity-50' : ''}`} onDoubleClick={() => openEdit(product)}>
+                      <tr key={product.id}
+                        className={`hover:bg-muted/50 border-b transition-colors cursor-pointer table-row-hover ${!product.isActive ? 'opacity-50' : ''}`}
+                        onDoubleClick={() => openEdit(product)}>
                         <td className="p-2 align-middle whitespace-nowrap font-mono text-xs">{product.reference}</td>
                         <td className="p-2 align-middle whitespace-nowrap"><span className="font-medium">{product.designation}</span></td>
                         <td className="p-2 align-middle whitespace-nowrap">
@@ -391,7 +437,9 @@ export default function ProductsView() {
                         </td>
                         <td className="p-2 align-middle whitespace-nowrap">
                           <div className="flex flex-wrap gap-1">
-                            <Badge variant="secondary" className={natureColors[product.productNature] || ''}>{natureLabels[product.productNature] || product.productNature}</Badge>
+                            <Badge variant="secondary" className={natureColors[product.productNature] || ''}>
+                              {natureLabels[product.productNature] || product.productNature}
+                            </Badge>
                             {product.productUsage.split(',').map((u) => {
                               const usage = u.trim()
                               return usage ? (
@@ -403,25 +451,33 @@ export default function ProductsView() {
                         <td className="p-2 align-middle whitespace-nowrap text-center">
                           {product.isStockable ? (
                             <div className="flex items-center justify-center gap-1">
-                              <span className={`font-mono font-medium ${lowStock ? 'text-red-600' : 'text-green-600'}`}>{product.currentStock}</span>
+                              <span className={`font-mono font-medium ${lowStock ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>{product.currentStock}</span>
                               {lowStock && <span className="text-xs text-red-400">≤{product.minStock}</span>}
                             </div>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
-                        <td className="p-2 align-middle whitespace-nowrap text-center"><Switch checked={product.isActive} disabled /></td>
+                        <td className="p-2 align-middle whitespace-nowrap text-center">
+                          <Switch checked={product.isActive} disabled />
+                        </td>
                         <td className="p-2 align-middle whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Supprimer le produit</AlertDialogTitle>
-                                  <AlertDialogDescription>Êtes-vous sûr de vouloir supprimer <strong>{product.reference} - {product.designation}</strong> ? Cette action est irréversible.</AlertDialogDescription>
+                                  <AlertDialogDescription>
+                                    Êtes-vous sûr de vouloir supprimer <strong>{product.reference} - {product.designation}</strong> ? Cette action est irréversible.
+                                  </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Annuler</AlertDialogCancel>
@@ -437,11 +493,56 @@ export default function ProductsView() {
                 )}
               </tbody>
             </table>
+            {loading && products.length > 0 && (
+              <div className="flex items-center justify-center py-3 border-t">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+                <span className="text-xs text-muted-foreground">Chargement...</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
+      {/* Pagination */}
+      {total > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span>{fromItem.toLocaleString('fr-FR')}–{toItem.toLocaleString('fr-FR')} sur {total.toLocaleString('fr-FR')}</span>
+            <Select value={String(pageSize)} onValueChange={(v) => changePageSize(parseInt(v))}>
+              <SelectTrigger className="w-[70px] h-7 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map(s => (
+                  <SelectItem key={s} value={String(s)}>{s}/p</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page <= 1} onClick={() => goToPage(1)}>
+              <ChevronsLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            {generatePageButtons(page, totalPages).map((p, i) =>
+              p === '...' ? (
+                <span key={`dots-${i}`} className="px-1 text-muted-foreground text-xs">…</span>
+              ) : (
+                <Button key={p} variant={p === page ? 'default' : 'outline'} size="icon" className="h-7 w-7 text-xs"
+                  onClick={() => goToPage(p as number)}>{p}</Button>
+              )
+            )}
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages} onClick={() => goToPage(page + 1)}>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages} onClick={() => goToPage(totalPages)}>
+              <ChevronsRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit/Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent resizable className="sm:max-w-3xl lg:max-w-4xl max-h-[90vh]">
           <DialogHeader>
@@ -449,125 +550,125 @@ export default function ProductsView() {
           </DialogHeader>
           <div className="overflow-auto scrollbar-visible max-h-[calc(90vh-8rem)]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Classification</h4></div>
-            <div className="space-y-2">
-              <Label htmlFor="famille">Famille</Label>
-              <Input id="famille" list="familles-list" value={form.famille} onChange={(e) => setForm({ ...form, famille: e.target.value })} placeholder="Ex: Électronique, Mécanique..." />
-              <datalist id="familles-list">{familles.map(f => <option key={f} value={f} />)}</datalist>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sousFamille">Sous-famille</Label>
-              <Input id="sousFamille" value={form.sousFamille} onChange={(e) => setForm({ ...form, sousFamille: e.target.value })} placeholder="Ex: Composants, Pièces..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Nature du produit</Label>
-              <Select value={form.productNature} onValueChange={(v) => setForm({ ...form, productNature: v })}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="produit_fini">Produit fini (vendable)</SelectItem>
-                  <SelectItem value="matiere_premiere">Matière première</SelectItem>
-                  <SelectItem value="semi_fini">Semi-fini (intermédiaire)</SelectItem>
-                  <SelectItem value="service">Service / Prestation</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Usage commercial</Label>
-              <div className="flex items-center gap-4 mt-1">
-                <label className="flex items-center gap-2 cursor-pointer text-sm">
-                  <Checkbox
-                    checked={form.productUsage.split(',').includes('vente')}
-                    onCheckedChange={(checked) => {
-                      const usages = form.productUsage.split(',').filter(u => u.trim() && u.trim() !== 'vente')
-                      if (checked) usages.push('vente')
-                      setForm({ ...form, productUsage: usages.join(',') || 'vente' })
-                    }}
-                  />
-                  <Badge variant="outline" className={usageColors.vente}>Vente</Badge>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-sm">
-                  <Checkbox
-                    checked={form.productUsage.split(',').includes('achat')}
-                    onCheckedChange={(checked) => {
-                      const usages = form.productUsage.split(',').filter(u => u.trim() && u.trim() !== 'achat')
-                      if (checked) usages.push('achat')
-                      setForm({ ...form, productUsage: usages.join(',') || 'vente' })
-                    }}
-                  />
-                  <Badge variant="outline" className={usageColors.achat}>Achat</Badge>
-                </label>
+              <div className="md:col-span-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b border-border pb-2">Classification</h4></div>
+              <div className="space-y-2">
+                <Label htmlFor="famille">Famille</Label>
+                <Input id="famille" list="familles-list" value={form.famille} onChange={(e) => setForm({ ...form, famille: e.target.value })} placeholder="Ex: Électronique, Mécanique..." />
+                <datalist id="familles-list">{allFamilles.map(f => <option key={f} value={f} />)}</datalist>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sousFamille">Sous-famille</Label>
+                <Input id="sousFamille" value={form.sousFamille} onChange={(e) => setForm({ ...form, sousFamille: e.target.value })} placeholder="Ex: Composants, Pièces..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Nature du produit</Label>
+                <Select value={form.productNature} onValueChange={(v) => setForm({ ...form, productNature: v })}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="produit_fini">Produit fini (vendable)</SelectItem>
+                    <SelectItem value="matiere_premiere">Matière première</SelectItem>
+                    <SelectItem value="semi_fini">Semi-fini (intermédiaire)</SelectItem>
+                    <SelectItem value="service">Service / Prestation</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Usage commercial</Label>
+                <div className="flex items-center gap-4 mt-1">
+                  {(['vente', 'achat'] as const).map(u => (
+                    <label key={u} className="flex items-center gap-2 cursor-pointer text-sm">
+                      <Checkbox
+                        checked={form.productUsage.split(',').includes(u)}
+                        onCheckedChange={(checked) => {
+                          const usages = form.productUsage.split(',').filter(x => x.trim() && x.trim() !== u)
+                          if (checked) usages.push(u)
+                          setForm({ ...form, productUsage: usages.join(',') || 'vente' })
+                        }}
+                      />
+                      <Badge variant="outline" className={usageColors[u]}>{usageLabels[u]}</Badge>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Gestion de stock</Label>
+                <div className="flex items-center gap-3">
+                  <Switch checked={form.isStockable} onCheckedChange={(checked) => setForm({ ...form, isStockable: checked })} />
+                  <span className="text-sm">{form.isStockable ? 'Produit stockable' : 'Non stockable (service)'}</span>
+                </div>
+              </div>
+              <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b border-border pb-2">Identification</h4></div>
+              <div className="space-y-2">
+                <Label htmlFor="reference">Référence *</Label>
+                <Input id="reference" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="REF-001" className="font-mono" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="designation">Désignation *</Label>
+                <Input id="designation" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} placeholder="Nom du produit" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="description">Description</Label>
+                <Input id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description du produit" />
+              </div>
+              <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b border-border pb-2">Tarification & Stock</h4></div>
+              <div className="space-y-2">
+                <Label htmlFor="priceHT">Prix HT (MAD) *</Label>
+                <Input id="priceHT" type="number" step="0.01" value={form.priceHT} onChange={(e) => setForm({ ...form, priceHT: e.target.value })} placeholder="0.00" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tvaRate">Taux TVA (%)</Label>
+                <Select value={form.tvaRate} onValueChange={(v) => setForm({ ...form, tvaRate: v })}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0%</SelectItem><SelectItem value="7">7%</SelectItem><SelectItem value="10">10%</SelectItem><SelectItem value="14">14%</SelectItem><SelectItem value="20">20%</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unit">Unité</Label>
+                <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unité">Unité</SelectItem><SelectItem value="kg">Kg</SelectItem><SelectItem value="litre">Litre</SelectItem><SelectItem value="mètre">Mètre</SelectItem><SelectItem value="m²">M²</SelectItem><SelectItem value="m³">M³</SelectItem><SelectItem value="palette">Palette</SelectItem><SelectItem value="lot">Lot</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.isStockable && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="minStock">Stock minimum</Label>
+                    <Input id="minStock" type="number" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} placeholder="0" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="maxStock">Stock maximum</Label>
+                    <Input id="maxStock" type="number" value={form.maxStock} onChange={(e) => setForm({ ...form, maxStock: e.target.value })} placeholder="0" />
+                  </div>
+                </>
+              )}
+              <div className="flex items-center gap-3 md:col-span-2">
+                <Switch checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
+                <Label>Produit actif</Label>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Gestion de stock</Label>
-              <div className="flex items-center gap-3">
-                <Switch
-                  checked={form.isStockable}
-                  onCheckedChange={(checked) => setForm({ ...form, isStockable: checked })}
-                />
-                <span className="text-sm">{form.isStockable ? 'Produit stockable' : 'Non stockable (service)'}</span>
-              </div>
-            </div>
-            <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Identification</h4></div>
-            <div className="space-y-2">
-              <Label htmlFor="reference">Référence *</Label>
-              <Input id="reference" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="REF-001" className="font-mono" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="designation">Désignation *</Label>
-              <Input id="designation" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} placeholder="Nom du produit" />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="description">Description</Label>
-              <Input id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description du produit" />
-            </div>
-            <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Tarification & Stock</h4></div>
-            <div className="space-y-2">
-              <Label htmlFor="priceHT">Prix HT (MAD) *</Label>
-              <Input id="priceHT" type="number" step="0.01" value={form.priceHT} onChange={(e) => setForm({ ...form, priceHT: e.target.value })} placeholder="0.00" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tvaRate">Taux TVA (%)</Label>
-              <Select value={form.tvaRate} onValueChange={(v) => setForm({ ...form, tvaRate: v })}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">0%</SelectItem><SelectItem value="7">7%</SelectItem><SelectItem value="10">10%</SelectItem><SelectItem value="14">14%</SelectItem><SelectItem value="20">20%</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="unit">Unité</Label>
-              <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unité">Unité</SelectItem><SelectItem value="kg">Kg</SelectItem><SelectItem value="litre">Litre</SelectItem><SelectItem value="mètre">Mètre</SelectItem><SelectItem value="m²">M²</SelectItem><SelectItem value="m³">M³</SelectItem><SelectItem value="palette">Palette</SelectItem><SelectItem value="lot">Lot</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {form.isStockable && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="minStock">Stock minimum</Label>
-                  <Input id="minStock" type="number" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} placeholder="0" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="maxStock">Stock maximum</Label>
-                  <Input id="maxStock" type="number" value={form.maxStock} onChange={(e) => setForm({ ...form, maxStock: e.target.value })} placeholder="0" />
-                </div>
-              </>
-            )}
-            <div className="flex items-center gap-3 md:col-span-2">
-              <Switch checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
-              <Label>Produit actif</Label>
-            </div>
-            </div>
-            </div>
-            <DialogFooter>
+          </div>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleSave} disabled={!form.reference.trim() || !form.designation.trim() || saving}>{saving ? 'Enregistrement...' : editingProduct ? 'Modifier' : 'Créer'}</Button>
+            <Button onClick={handleSave} disabled={!form.reference.trim() || !form.designation.trim() || saving}>
+              {saving ? 'Enregistrement...' : editingProduct ? 'Modifier' : 'Créer'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   )
+}
+
+function generatePageButtons(current: number, total: number): (number | string)[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | string)[] = [1]
+  if (current > 3) pages.push('...')
+  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) pages.push(i)
+  if (current < total - 2) pages.push('...')
+  pages.push(total)
+  return pages
 }

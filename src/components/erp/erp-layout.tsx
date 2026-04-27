@@ -270,10 +270,24 @@ function SidebarContent() {
                     <span>{group.title}</span>
                   </button>
                 ) : (
-                  <div className="h-px bg-border/60 my-2" />
+                  /* Collapsed mode: show group icon with tooltip instead of a divider */
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <div className={cn(
+                        'flex items-center justify-center w-full py-1.5 rounded-md cursor-default',
+                        hasActiveItem && 'text-foreground/70'
+                      )}>
+                        <span className="shrink-0 text-muted-foreground/50">{group.icon}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-semibold text-xs">
+                      {group.title}
+                    </TooltipContent>
+                  </Tooltip>
                 )}
 
-                {!isCollapsed && (
+                {/* Show items always when collapsed, only when not collapsed when open */}
+                {(sidebarOpen ? !isCollapsed : true) && (
                   <div className="space-y-0.5 mt-0.5">
                     {visibleItems.map((item) => {
                       const isActive = currentView === item.id
@@ -284,6 +298,7 @@ function SidebarContent() {
                               onClick={() => setCurrentView(item.id)}
                               className={cn(
                                 'sidebar-nav-item relative flex items-center gap-3 w-full px-3 py-[7px] text-[13px] rounded-lg transition-all duration-150 group',
+                                !sidebarOpen && 'justify-center px-2',
                                 isActive
                                   ? 'sidebar-nav-active font-medium text-foreground'
                                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'

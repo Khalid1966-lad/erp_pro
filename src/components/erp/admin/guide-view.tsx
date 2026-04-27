@@ -142,8 +142,8 @@ function StatusBadge({ status }: { status: string }) {
 
 function ScreenMock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border bg-white shadow-sm overflow-hidden mb-6">
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b">
+    <div className="rounded-xl border bg-card dark:bg-card shadow-sm overflow-hidden mb-6">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/50 border-b">
         <div className="flex gap-1.5">
           <div className="w-3 h-3 rounded-full bg-red-400" />
           <div className="w-3 h-3 rounded-full bg-yellow-400" />

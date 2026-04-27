@@ -146,6 +146,120 @@
 .scrollbar-visible::-webkit-scrollbar-corner {
   background: oklch(0.922 0 0);
 }
+/* Dark mode scrollbar */
+.dark .scrollbar-visible {
+  scrollbar-color: oklch(0.4 0 0) oklch(0.2 0 0);
+}
+.dark .scrollbar-visible::-webkit-scrollbar-track {
+  background: oklch(0.2 0 0);
+}
+.dark .scrollbar-visible::-webkit-scrollbar-thumb {
+  background-color: oklch(0.4 0 0);
+  border-color: oklch(0.2 0 0);
+}
+.dark .scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(0.5 0 0);
+}
+.dark .scrollbar-visible::-webkit-scrollbar-corner {
+  background: oklch(0.2 0 0);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DARK MODE — BADGE & STATUS COLOR OVERRIDES
+   Fixes: bg-{color}-100 text-{color}-800 patterns that become
+   invisible in dark mode (dark text on dark background).
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Status text colors ── */
+.dark .text-green-600 { color: oklch(0.723 0.219 149.579); }
+.dark .text-red-600 { color: oklch(0.577 0.245 27.325); }
+.dark .text-red-500 { color: oklch(0.637 0.237 25.331); }
+.dark .text-blue-600 { color: oklch(0.546 0.245 262.881); }
+.dark .text-emerald-600 { color: oklch(0.596 0.145 163.225); }
+.dark .text-orange-600 { color: oklch(0.646 0.222 41.116); }
+.dark .text-amber-600 { color: oklch(0.666 0.179 58.318); }
+.dark .text-violet-600 { color: oklch(0.541 0.281 293.009); }
+.dark .text-purple-600 { color: oklch(0.541 0.281 293.009); }
+.dark .text-pink-600 { color: oklch(0.585 0.241 354.308); }
+.dark .text-teal-600 { color: oklch(0.596 0.145 163.225); }
+.dark .text-cyan-600 { color: oklch(0.546 0.245 262.881); }
+.dark .text-sky-600 { color: oklch(0.546 0.245 262.881); }
+.dark .text-lime-600 { color: oklch(0.648 0.2 131.684); }
+.dark .text-yellow-600 { color: oklch(0.666 0.179 58.318); }
+.dark .text-stone-600 { color: oklch(0.666 0.021 25.677); }
+.dark .text-slate-600 { color: oklch(0.554 0.019 257.417); }
+.dark .text-gray-600 { color: oklch(0.554 0.019 257.417); }
+
+/* ── Badge bg+text combos (bg-100 + text-800 pattern) ── */
+.dark .bg-amber-100 { background-color: oklch(0.55 0.163 48.998 / 0.25); }
+.dark .bg-blue-100 { background-color: oklch(0.55 0.213 259.815 / 0.25); }
+.dark .bg-green-100 { background-color: oklch(0.55 0.17 163.683 / 0.25); }
+.dark .bg-purple-100 { background-color: oklch(0.55 0.243 285.947 / 0.25); }
+.dark .bg-orange-100 { background-color: oklch(0.55 0.195 47.604 / 0.25); }
+.dark .bg-emerald-100 { background-color: oklch(0.55 0.17 163.683 / 0.25); }
+.dark .bg-red-100 { background-color: oklch(0.55 0.2 27.325 / 0.25); }
+.dark .bg-pink-100 { background-color: oklch(0.55 0.222 342.259 / 0.25); }
+.dark .bg-teal-100 { background-color: oklch(0.55 0.145 177.887 / 0.25); }
+.dark .bg-cyan-100 { background-color: oklch(0.55 0.193 227.392 / 0.25); }
+.dark .bg-sky-100 { background-color: oklch(0.55 0.193 227.392 / 0.25); }
+.dark .bg-violet-100 { background-color: oklch(0.55 0.243 285.947 / 0.25); }
+.dark .bg-indigo-100 { background-color: oklch(0.55 0.213 259.815 / 0.25); }
+.dark .bg-lime-100 { background-color: oklch(0.55 0.2 131.684 / 0.25); }
+.dark .bg-yellow-100 { background-color: oklch(0.55 0.179 58.318 / 0.25); }
+.dark .bg-rose-100 { background-color: oklch(0.55 0.2 27.325 / 0.25); }
+.dark .bg-fuchsia-100 { background-color: oklch(0.55 0.243 285.947 / 0.25); }
+
+/* ── Badge text colors (text-800 pattern) ── */
+.dark .text-amber-800 { color: oklch(0.85 0.12 85); }
+.dark .text-blue-800 { color: oklch(0.75 0.15 255); }
+.dark .text-green-800 { color: oklch(0.78 0.14 155); }
+.dark .text-purple-800 { color: oklch(0.78 0.16 290); }
+.dark .text-orange-800 { color: oklch(0.82 0.14 60); }
+.dark .text-emerald-800 { color: oklch(0.78 0.14 155); }
+.dark .text-red-800 { color: oklch(0.78 0.16 30); }
+.dark .text-pink-800 { color: oklch(0.78 0.16 340); }
+.dark .text-teal-800 { color: oklch(0.78 0.12 170); }
+.dark .text-cyan-800 { color: oklch(0.78 0.14 240); }
+.dark .text-sky-800 { color: oklch(0.78 0.14 240); }
+.dark .text-violet-800 { color: oklch(0.78 0.16 290); }
+.dark .text-indigo-800 { color: oklch(0.78 0.15 260); }
+.dark .text-lime-800 { color: oklch(0.78 0.15 130); }
+.dark .text-yellow-800 { color: oklch(0.82 0.14 65); }
+.dark .text-rose-800 { color: oklch(0.78 0.16 25); }
+.dark .text-fuchsia-800 { color: oklch(0.78 0.16 295); }
+
+/* ── Info cards (bg-50 + text-600 pattern) ── */
+.dark .bg-blue-50 { background-color: oklch(0.55 0.213 259.815 / 0.15); }
+.dark .bg-emerald-50 { background-color: oklch(0.55 0.17 163.683 / 0.15); }
+.dark .bg-amber-50 { background-color: oklch(0.55 0.163 48.998 / 0.15); }
+.dark .bg-red-50 { background-color: oklch(0.55 0.2 27.325 / 0.15); }
+.dark .bg-violet-50 { background-color: oklch(0.55 0.243 285.947 / 0.15); }
+.dark .bg-green-50 { background-color: oklch(0.55 0.17 163.683 / 0.15); }
+.dark .bg-orange-50 { background-color: oklch(0.55 0.195 47.604 / 0.15); }
+.dark .bg-teal-50 { background-color: oklch(0.55 0.145 177.887 / 0.15); }
+
+/* ── Hardcoded status badge backgrounds ── */
+.dark .bg-slate-100 { background-color: oklch(0.4 0.019 257.417 / 0.25); }
+.dark .bg-gray-100 { background-color: oklch(0.4 0.019 257.417 / 0.25); }
+.dark .bg-slate-200 { background-color: oklch(0.4 0.019 257.417 / 0.35); }
+.dark .bg-gray-200 { background-color: oklch(0.4 0.019 257.417 / 0.35); }
+
+/* ── Missing gray/slate text colors ── */
+.dark .text-gray-900 { color: oklch(0.7 0 0); }
+.dark .text-gray-800 { color: oklch(0.75 0 0); }
+.dark .text-gray-700 { color: oklch(0.8 0 0); }
+.dark .text-gray-500 { color: oklch(0.554 0.019 257.417); }
+.dark .text-slate-700 { color: oklch(0.8 0.014 257.417); }
+.dark .text-slate-500 { color: oklch(0.554 0.019 257.417); }
+
+/* ── Missing bg-50 patterns ── */
+.dark .bg-gray-50 { background-color: oklch(0.4 0.019 257.417 / 0.15); }
+.dark .bg-slate-50 { background-color: oklch(0.4 0.014 257.417 / 0.15); }
+
+/* ── Missing border colors ── */
+.dark .border-gray-200 { border-color: oklch(1 0 0 / 15%); }
+.dark .border-slate-200 { border-color: oklch(1 0 0 / 15%); }
+.dark .border-gray-300 { border-color: oklch(1 0 0 / 20%); }
 
 /* Print styles — basic page setup (actual printing uses new-window approach via print-utils.ts) */
 @media print {

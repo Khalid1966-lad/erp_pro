@@ -38,16 +38,24 @@ export async function GET(req: NextRequest) {
     const famille = searchParams.get('famille') || ''
     const sousFamille = searchParams.get('sousFamille') || ''
     const activeOnly = searchParams.get('active') !== 'false'
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50')))
     const searchDesignation = searchParams.get('searchDesignation') || ''
     const dropdown = searchParams.get('dropdown') === 'true'
+    const sortField = searchParams.get('sortField') || 'reference'
+    const sortDir = searchParams.get('sortDir') || 'asc'
 
     const where: Record<string, unknown> = {}
     if (searchDesignation) {
-      where.designation = { contains: searchDesignation, mode: 'insensitive' }
+      where.OR = [
+        { designation: { contains: searchDesignation, mode: 'insensitive' } },
+        { reference: { contains: searchDesignation, mode: 'insensitive' } },
+      ]
     } else if (search) {
-      where.designation = { contains: search, mode: 'insensitive' }
+      where.OR = [
+        { designation: { contains: search, mode: 'insensitive' } },
+        { reference: { contains: search, mode: 'insensitive' } },
+      ]
     }
     if (productUsage) {
       where.productUsage = { contains: productUsage }
@@ -75,10 +83,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ products, total: products.length })
     }
 
+    // Build sort order from query params
+    const validSortFields = ['reference', 'designation', 'famille', 'productNature', 'currentStock', 'priceHT', 'createdAt', 'updatedAt']
+    const finalSortField = validSortFields.includes(sortField) ? sortField : 'reference'
+    const finalSortDir: 'asc' | 'desc' = sortDir === 'desc' ? 'desc' : 'asc'
+
+    // Numeric fields need Prisma number sorting
+    const numericFields = ['currentStock', 'priceHT']
+    const orderBy = numericFields.includes(finalSortField)
+      ? { [finalSortField]: finalSortDir as 'asc' | 'desc' }
+      : { [finalSortField]: finalSortDir as 'asc' | 'desc' }
+
     const [products, total] = await Promise.all([
       db.product.findMany({
         where,
-        orderBy: { createdAt: 'asc' },
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
       }),

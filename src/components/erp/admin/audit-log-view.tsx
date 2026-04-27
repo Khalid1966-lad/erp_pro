@@ -478,7 +478,7 @@ export default function AuditLogView() {
                                           <div
                                             key={field}
                                             className={`flex items-start gap-2 text-sm p-2 rounded border ${
-                                              changed ? 'bg-amber-50 border-amber-200' : 'bg-white'
+                                              changed ? 'bg-amber-50 border-amber-200' : 'bg-background'
                                             }`}
                                           >
                                             <span className="font-mono text-xs font-medium text-muted-foreground min-w-[80px]">{field}</span>
