@@ -328,7 +328,7 @@ export default function ProductsView() {
             className="overflow-auto scrollbar-visible"
             style={{ maxHeight: 'calc(100vh - 300px)', minHeight: '300px' }}
           >
-            <table className="w-full caption-bottom text-sm" style={{ minWidth: 1200 }}>
+            <table className="w-full caption-bottom text-sm" style={{ minWidth: 900 }}>
               <thead className="[&_tr]:border-b">
                 <tr className="hover:bg-muted/50 border-b transition-colors">
                   <th className="cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[100px]" onClick={() => toggleSort('reference')}>
@@ -338,15 +338,10 @@ export default function ProductsView() {
                     <div className="flex items-center gap-1">Désignation<ArrowUpDown className="h-3 w-3" /></div>
                   </th>
                   <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[110px]">Famille</th>
-                  <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[110px]">Sous-famille</th>
                   <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[100px]">Type</th>
-                  <th className="text-right cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap" onClick={() => toggleSort('priceHT')}>
-                    <div className="flex items-center justify-end gap-1">Prix HT<ArrowUpDown className="h-3 w-3" /></div>
-                  </th>
                   <th className="text-center cursor-pointer select-none sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[90px]" onClick={() => toggleSort('currentStock')}>
                     <div className="flex items-center justify-center gap-1">Stock<ArrowUpDown className="h-3 w-3" /></div>
                   </th>
-                  <th className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[60px]">TVA</th>
                   <th className="text-center sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap min-w-[60px]">Actif</th>
                   <th className="text-right sticky top-0 bg-muted/80 backdrop-blur-sm z-10 text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap w-[100px]">Actions</th>
                 </tr>
@@ -354,7 +349,7 @@ export default function ProductsView() {
               <tbody className="[&_tr:last-child]:border-0">
                 {sortedProducts.length === 0 ? (
                   <tr className="hover:bg-muted/50 border-b transition-colors">
-                    <td colSpan={10} className="p-2 align-middle text-center py-8 text-muted-foreground">
+                    <td colSpan={7} className="p-2 align-middle text-center py-8 text-muted-foreground">
                       {search || typeFilter || familleFilter ? 'Aucun produit trouvé.' : 'Aucun produit enregistré.'}
                     </td>
                   </tr>
@@ -362,24 +357,21 @@ export default function ProductsView() {
                   sortedProducts.map((product) => {
                     const lowStock = product.minStock !== null && product.minStock > 0 && product.currentStock <= product.minStock
                     return (
-                      <tr key={product.id} className={`hover:bg-muted/50 border-b transition-colors ${!product.isActive ? 'opacity-50' : ''}`}>
+                      <tr key={product.id} className={`hover:bg-muted/50 border-b transition-colors cursor-pointer ${!product.isActive ? 'opacity-50' : ''}`} onDoubleClick={() => openEdit(product)}>
                         <td className="p-2 align-middle whitespace-nowrap font-mono text-xs">{product.reference}</td>
                         <td className="p-2 align-middle whitespace-nowrap"><span className="font-medium">{product.designation}</span></td>
                         <td className="p-2 align-middle whitespace-nowrap">
                           <Badge variant="outline" className="font-normal text-xs">{product.famille || '—'}</Badge>
                         </td>
-                        <td className="p-2 align-middle whitespace-nowrap text-muted-foreground text-xs">{product.sousFamille || '—'}</td>
                         <td className="p-2 align-middle whitespace-nowrap">
                           <Badge variant="secondary" className={productTypeColors[product.productType]}>{productTypeLabels[product.productType]}</Badge>
                         </td>
-                        <td className="p-2 align-middle whitespace-nowrap text-right font-medium">{fmt(product.priceHT)}</td>
                         <td className="p-2 align-middle whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-1">
                             <span className={`font-mono font-medium ${lowStock ? 'text-red-600' : 'text-green-600'}`}>{product.currentStock}</span>
                             {lowStock && <span className="text-xs text-red-400">≤{product.minStock}</span>}
                           </div>
                         </td>
-                        <td className="p-2 align-middle whitespace-nowrap text-muted-foreground">{product.tvaRate}%</td>
                         <td className="p-2 align-middle whitespace-nowrap text-center"><Switch checked={product.isActive} disabled /></td>
                         <td className="p-2 align-middle whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">

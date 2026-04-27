@@ -503,7 +503,7 @@ export default function QuotesView() {
                   </TableRow>
                 ) : (
                   filteredQuotes.map((quote) => (
-                    <TableRow key={quote.id}>
+                    <TableRow key={quote.id} className="cursor-pointer" onDoubleClick={() => openEdit(quote)}>
                       <TableCell className="font-mono font-medium">{quote.number}</TableCell>
                       <TableCell>{quote.client.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
@@ -524,12 +524,12 @@ export default function QuotesView() {
                         {formatCurrency(quote.totalTTC)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(quote)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           {(quote.status === 'draft' || quote.status === 'rejected' || quote.status === 'expired') && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(quote)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(quote) }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}

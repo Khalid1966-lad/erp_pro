@@ -469,14 +469,14 @@ export default function ReceptionsView() {
                     const allConforme = r.lines?.every((l) => l.qualityCheck === 'conforme')
                     const qualityStatus = hasNonConforme ? 'non_conforme' : allConforme ? 'conforme' : 'partiel'
                     return (
-                      <TableRow key={r.id}>
+                      <TableRow key={r.id} className="cursor-pointer">
                         <TableCell className="font-medium font-mono text-sm">{r.number}</TableCell>
                         <TableCell className="hidden md:table-cell font-mono text-sm">{r.purchaseOrder?.number || '—'}</TableCell>
                         <TableCell className="hidden lg:table-cell">{r.purchaseOrder?.supplier?.name || '—'}</TableCell>
                         <TableCell className="text-sm">{fmtDate(r.date || r.createdAt)}</TableCell>
                         <TableCell><QualityBadge quality={qualityStatus} /></TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedReception(r); setDetailOpen(true) }}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelectedReception(r); setDetailOpen(true) }}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         </TableCell>

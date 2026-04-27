@@ -756,7 +756,7 @@ export default function DeliveryNotesView() {
                   deliveryNotes.map((note) => {
                     const deliveryPct = getOrderDeliveryPercentage(note)
                     return (
-                      <TableRow key={note.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(note)}>
+                      <TableRow key={note.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(note)} onDoubleClick={() => openEditDialog(note)}>
                         <TableCell>
                           <span className="font-mono font-medium">{note.number}</span>
                         </TableCell>

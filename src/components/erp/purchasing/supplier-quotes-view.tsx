@@ -623,7 +623,7 @@ export default function SupplierQuotesView() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className="cursor-pointer" onDoubleClick={() => openEdit(item)}>
                       <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
@@ -631,11 +631,11 @@ export default function SupplierQuotesView() {
                       <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(item); setDetailOpen(true) }}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelected(item); setDetailOpen(true) }}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           {item.status === 'received' && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(item) }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
@@ -643,7 +643,7 @@ export default function SupplierQuotesView() {
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"
                               disabled={transitioning === item.id}
-                              onClick={() => handleTransition(item.id, 'accepted')}
+                              onClick={(e) => { e.stopPropagation(); handleTransition(item.id, 'accepted') }}
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               Accepter
@@ -653,7 +653,7 @@ export default function SupplierQuotesView() {
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1 text-destructive hover:text-destructive"
                               disabled={transitioning === item.id}
-                              onClick={() => handleTransition(item.id, 'rejected')}
+                              onClick={(e) => { e.stopPropagation(); handleTransition(item.id, 'rejected') }}
                             >
                               <XCircle className="h-3.5 w-3.5" />
                               Rejeter
@@ -662,7 +662,7 @@ export default function SupplierQuotesView() {
                           {item.status === 'received' && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>

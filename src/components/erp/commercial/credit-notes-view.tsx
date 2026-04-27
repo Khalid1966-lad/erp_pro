@@ -382,7 +382,7 @@ export default function CreditNotesView() {
                   </TableRow>
                 ) : (
                   creditNotes.map((cn) => (
-                    <TableRow key={cn.id}>
+                    <TableRow key={cn.id} className="cursor-pointer" onDoubleClick={() => openEdit(cn)}>
                       <TableCell className="font-mono font-medium">{cn.number}</TableCell>
                       <TableCell className="font-mono text-sm text-muted-foreground">{cn.invoice.number}</TableCell>
                       <TableCell>{cn.client.name}</TableCell>
@@ -401,12 +401,12 @@ export default function CreditNotesView() {
                         -{formatCurrency(cn.totalTTC)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(cn)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           {cn.status === 'draft' && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cn)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(cn) }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}

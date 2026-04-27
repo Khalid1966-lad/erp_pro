@@ -543,7 +543,7 @@ export default function PriceRequestsView() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className="cursor-pointer" onDoubleClick={() => openEdit(item)}>
                       <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell className="max-w-48 truncate">{item.title}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
@@ -552,11 +552,11 @@ export default function PriceRequestsView() {
                       <TableCell className="hidden lg:table-cell text-right">{item.supplierQuotes?.length || 0}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetail(item)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleViewDetail(item) }}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           {item.status === 'draft' && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(item) }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
@@ -564,7 +564,7 @@ export default function PriceRequestsView() {
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"
                               disabled={transitioning === item.id}
-                              onClick={() => handleTransition(item.id, 'sent')}
+                              onClick={(e) => { e.stopPropagation(); handleTransition(item.id, 'sent') }}
                             >
                               <Send className="h-3.5 w-3.5" />
                               Envoyer
@@ -574,7 +574,7 @@ export default function PriceRequestsView() {
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"
                               disabled={transitioning === item.id}
-                              onClick={() => handleTransition(item.id, 'closed')}
+                              onClick={(e) => { e.stopPropagation(); handleTransition(item.id, 'closed') }}
                             >
                               <XCircle className="h-3.5 w-3.5" />
                               Fermer
@@ -583,7 +583,7 @@ export default function PriceRequestsView() {
                           {item.status === 'draft' && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>

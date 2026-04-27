@@ -829,7 +829,7 @@ export default function DashboardView() {
                   <p className="text-sm">Aucune alerte de stock</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[360px]">
+                <div className="overflow-y-auto scrollbar-visible max-h-[360px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -885,7 +885,7 @@ export default function DashboardView() {
                       })}
                     </TableBody>
                   </Table>
-                </ScrollArea>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -912,7 +912,7 @@ export default function DashboardView() {
                   <p className="text-sm">Aucune activité récente</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[360px]">
+                <div className="overflow-y-auto scrollbar-visible max-h-[360px]">
                   <div className="space-y-1">
                     {data!.recentActivity.map((activity) => (
                       <div
@@ -949,7 +949,7 @@ export default function DashboardView() {
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               )}
             </CardContent>
           </Card>

@@ -543,7 +543,7 @@ export default function PurchaseOrdersView() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((o) => (
-                    <TableRow key={o.id}>
+                    <TableRow key={o.id} className="cursor-pointer" onDoubleClick={() => openEdit(o)}>
                       <TableCell className="font-medium font-mono text-sm">{o.number}</TableCell>
                       <TableCell><StatusBadge status={o.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{o.supplier?.name || '—'}</TableCell>
@@ -551,11 +551,11 @@ export default function PurchaseOrdersView() {
                       <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(o.totalTTC)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedOrder(o); setDetailOpen(true) }}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelectedOrder(o); setDetailOpen(true) }}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           {(o.status === 'draft' || o.status === 'sent') && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(o)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(o) }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
@@ -563,7 +563,7 @@ export default function PurchaseOrdersView() {
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"
                               disabled={transitioning === o.id}
-                              onClick={() => handleTransition(o.id, 'sent')}
+                              onClick={(e) => { e.stopPropagation(); handleTransition(o.id, 'sent') }}
                             >
                               <Send className="h-3.5 w-3.5" />
                               Envoyer
@@ -573,7 +573,7 @@ export default function PurchaseOrdersView() {
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"
                               disabled={transitioning === o.id}
-                              onClick={() => handleTransition(o.id, 'received')}
+                              onClick={(e) => { e.stopPropagation(); handleTransition(o.id, 'received') }}
                             >
                               <CircleDot className="h-3.5 w-3.5" />
                               Marquer reçue
@@ -582,7 +582,7 @@ export default function PurchaseOrdersView() {
                           {o.status === 'draft' && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>

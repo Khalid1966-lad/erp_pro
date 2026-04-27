@@ -566,7 +566,7 @@ export default function InvoicesView() {
                   </TableRow>
                 ) : (
                   invoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
+                    <TableRow key={invoice.id} className="cursor-pointer" onDoubleClick={() => openEdit(invoice)}>
                       <TableCell className="font-mono font-medium">{invoice.number}</TableCell>
                       <TableCell>
                         <div>
@@ -602,12 +602,12 @@ export default function InvoicesView() {
                         {formatCurrency(invoice.totalTTC)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(invoice)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           {invoice.status === 'draft' && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(invoice)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(invoice) }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}

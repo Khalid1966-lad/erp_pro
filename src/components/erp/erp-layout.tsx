@@ -92,7 +92,6 @@ const navigation: NavGroup[] = [
     icon: <ShoppingCart className="h-4 w-4" />,
     items: [
       { id: 'clients', label: 'Clients', icon: <Users className="h-4 w-4" />, color: 'text-violet-500', permission: 'clients:read' },
-      { id: 'products', label: 'Produits', icon: <Package className="h-4 w-4" />, color: 'text-amber-500', permission: 'products:read' },
       { id: 'quotes', label: 'Devis', icon: <FileText className="h-4 w-4" />, color: 'text-cyan-500', permission: 'quotes:read' },
       { id: 'sales-orders', label: 'Commandes', icon: <ShoppingCart className="h-4 w-4" />, color: 'text-emerald-500', permission: 'sales_orders:read' },
       { id: 'preparations', label: 'Préparations', icon: <ClipboardList className="h-4 w-4" />, color: 'text-blue-500', permission: 'preparations:read' },
@@ -119,6 +118,7 @@ const navigation: NavGroup[] = [
     title: 'Stock',
     icon: <Box className="h-4 w-4" />,
     items: [
+      { id: 'products', label: 'Produits', icon: <Package className="h-4 w-4" />, color: 'text-amber-500', permission: 'products:read' },
       { id: 'stock-movements', label: 'Mouvements', icon: <Box className="h-4 w-4" />, color: 'text-slate-400', permission: 'stock:read' },
       { id: 'stock-alerts', label: 'Alertes stock', icon: <AlertTriangle className="h-4 w-4" />, color: 'text-red-500', permission: 'stock:read' },
       { id: 'inventory', label: 'Inventaires', icon: <ClipboardList className="h-4 w-4" />, color: 'text-yellow-500', permission: 'stock:read' }

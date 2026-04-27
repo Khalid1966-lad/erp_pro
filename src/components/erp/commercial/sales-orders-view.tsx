@@ -543,7 +543,7 @@ export default function SalesOrdersView() {
                   </TableRow>
                 ) : (
                   orders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow key={order.id} className="cursor-pointer" onDoubleClick={() => openEdit(order)}>
                       <TableCell>
                         <div className="flex flex-col gap-0.5">
                           <span className="font-mono font-medium">{order.number}</span>
@@ -574,12 +574,12 @@ export default function SalesOrdersView() {
                         {formatCurrency(order.totalTTC)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(order)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           {order.status === 'pending' && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(order)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(order) }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}

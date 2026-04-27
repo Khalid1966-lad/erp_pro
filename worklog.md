@@ -1025,3 +1025,26 @@ Stage Summary:
 - Document detail dialogs are now wider (up to 92vw / 1400px)
 - `auth.userId` undefined reference fixed preventing potential runtime crash
 
+---
+Task ID: ui-navigation-products-dblclick
+Agent: Main Agent
+Task: Move Products to Stock menu, fix dashboard scrolling, add double-click edit to all document lists
+
+Work Log:
+- Moved "Produits" from Ventes to Stock group in sidebar (first item in Stock)
+- Dashboard: replaced ScrollArea with overflow-y-auto scrollbar-visible for "Alertes stock" and "Activité récente" sections
+- Products list: removed Sous-famille, Prix HT, TVA columns from table
+- Products list: added onDoubleClick to open edit dialog + cursor-pointer class
+- Sales (Ventes) double-click edit added to: quotes, sales-orders, delivery-notes, invoices, credit-notes
+- Sales preparations: already had cursor-pointer + onClick (no openEdit exists - detail only)
+- Purchases (Achats) double-click edit added to: price-requests, supplier-quotes, purchase-orders, supplier-invoices, supplier-returns, supplier-credit-notes
+- Purchases receptions: cursor-pointer only (no edit dialog exists)
+- All action buttons: added e.stopPropagation() to prevent double-click firing on button clicks
+- ESLint: 0 errors, dev server compiling successfully
+
+Stage Summary:
+- 15 files modified across sidebar, dashboard, and all document list views
+- Products moved to Stock section (first item)
+- Dashboard sections now have always-visible scrollbars
+- All document lists support double-click to open edit (where edit dialog exists)
+- Actions buttons properly isolated from row double-click events
