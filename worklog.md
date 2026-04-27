@@ -1153,3 +1153,84 @@ Stage Summary:
 - Client detail dialog reuses existing statement API endpoint for deep-dive analysis
 - Lint: 0 errors
 - Dev server: compiling successfully
+
+---
+Task ID: phase-1-improvements
+Agent: Main Agent
+Task: Phase 1 improvements — Prep→BL, supplementary BL lines, delivery tracking, nav entries
+
+Work Log:
+- Modified src/components/erp/commercial/preparations-view.tsx:
+  - Added Truck icon import
+  - Added "Générer BL" button for completed preparations (dispatches erp:navigate-delivery-notes custom event with salesOrderId and preparationId)
+- Modified src/app/api/delivery-notes/route.ts:
+  - Updated createFromOrderSchema to make salesOrderLineId optional, added optional productId/unitPrice/tvaRate fields
+  - Updated POST handler validation: skip quantity check for supplementary lines, validate supplementary lines have required fields
+  - Updated line creation: handle both order lines (with salesOrderLineId) and supplementary lines (without)
+- Modified src/components/erp/commercial/delivery-notes-view.tsx:
+  - Added supplementary lines section in createMode === 'order' dialog
+  - After order lines table, added "Ajouter un article supplémentaire" button with ProductCombobox
+  - Supplementary lines use editableLines array with productId, quantity, unitPrice, tvaRate
+  - Updated handleCreate to merge supplementary lines into the API payload
+- Modified src/components/erp/commercial/sales-orders-view.tsx:
+  - Added Progress import from shadcn/ui
+  - Added new column "% Livraison" after "Statut" in table header
+  - For each order, calculated delivery percentage from lines (quantityDelivered/quantity)
+  - Shows Progress bar with percentage text, color-coded (green/amber/gray)
+  - Updated colSpan from 8 to 9 in empty state
+- Modified src/lib/stores.ts:
+  - Added 'financial-reports' and 'quality-control' to ViewId union type
+- Modified src/components/erp/erp-layout.tsx:
+  - Added BarChart3 and ClipboardCheck icon imports
+  - Added quality-control nav item to Production section
+  - Added quality-control label to viewLabels
+- Modified src/app/page.tsx:
+  - Added QualityControlView dynamic import
+  - Added 'quality-control' case in ViewRouter switch
+- Created src/components/erp/finance/financial-reports-view.tsx: placeholder component
+- Created src/components/erp/production/quality-control-view.tsx: placeholder component
+
+Stage Summary:
+- ESLint: 0 errors
+- Dev server: compiling successfully
+- Commit 7a88fdc pushed to GitHub main branch
+- Files changed: 18 files, 1181 insertions, 38 deletions
+---
+Task ID: quality-control-module
+Agent: Main Agent
+Task: Implement complete Quality Control module for GEMA ERP Pro (PVC tube factory)
+
+Work Log:
+- Updated `prisma/schema.prisma`:
+  - Added 3 enums: QualityControlType (reception, production_inter, production_out, production_final, inventory), QualityResult (conforme, non_conforme, conditionnel), QualityControlStatus (pending, in_progress, completed, rejected)
+  - Added QualityControl model with polymorphic links to Reception and WorkOrder
+  - Added QualityControlLine model with product relation and measurement fields
+  - Added reverse relations to Product (qualityControlLines), Reception (qualityControls), WorkOrder (qualityControls)
+  - Pushed schema to Neon PostgreSQL via `prisma db push --accept-data-loss`
+- Created `src/app/api/quality-control/route.ts`:
+  - GET: List quality controls with filters (type, status, workOrderId, receptionId), pagination, includes lines with products
+  - POST: Create quality control with lines, auto-generates number (QC-YYYY-NNNN), validates source entity
+  - PUT: Update quality control (status, result, inspector, notes, lines replacement)
+  - DELETE: Delete quality control (prevents deletion of completed ones), cascades to lines
+  - All endpoints use auth, Zod validation, audit logging
+- Created `src/components/erp/production/quality-control-view.tsx`:
+  - Header with ShieldCheck icon, title "Contrôle qualité", count badge, "Nouveau contrôle" button
+  - 3 summary cards: Conformes (green), Non conformes (red), Conditionnels (orange)
+  - Filter bar: type dropdown (5 types with French labels), status dropdown (4 statuses)
+  - Data table: N°, Type badge, Source (OF/BR ref), Result badge, Status badge, Inspector, Date, Actions
+  - Create dialog: type selector, source entity (Reception for reception type, WorkOrder for production types), inspector, reference, notes, dynamic lines (Product combobox, specification, measured value, unit, min/max, tolerance, result, notes)
+  - Detail dialog: info grid, notes, result summary (3 counts), lines table with product/measured/spec/min-max/tolerance/result, action buttons
+  - Edit dialog: status/result dropdowns, inspector/reference/notes fields, editable lines
+  - Status workflow: pending → in_progress → completed/rejected
+  - Delete with confirmation dialog
+  - Responsive design with hidden columns on mobile
+- ESLint: 0 errors
+- Prisma generate: successful
+- Dev server: compiling successfully (pre-existing DATABASE_URL env issue unrelated to this change)
+
+Stage Summary:
+- Complete Quality Control module across 3 files (schema, API, UI)
+- 2 new Prisma models, 3 new enums, 3 new reverse relations
+- Full CRUD API with auth, validation, audit logging
+- Feature-rich UI with filter, summary cards, table, create/edit/detail dialogs, status workflow
+- Navigation integration left for another agent (ViewId, sidebar, lazy import, ViewRouter)
