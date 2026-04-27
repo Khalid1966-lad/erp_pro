@@ -1026,6 +1026,14 @@ enum WorkOrderStatus {
   cancelled
 }
 
+enum ProductionBatchStatus {
+  pending
+  in_progress
+  quality_check
+  completed
+  rejected
+}
+
 model WorkOrder {
   id              String           @id @default(cuid())
   number          String           @unique
@@ -1046,6 +1054,23 @@ model WorkOrder {
 
   steps           WorkOrderStep[]
   qualityControls  QualityControl[] @relation("QualityControlWorkOrder")
+  batches         ProductionBatch[]
+}
+
+model ProductionBatch {
+  id              String                @id @default(cuid())
+  workOrderId     String
+  workOrder       WorkOrder             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  batchNumber     String                @unique
+  quantity        Float
+  goodQuantity    Float                 @default(0)
+  scrapQuantity   Float                 @default(0)
+  status          ProductionBatchStatus @default(pending)
+  notes           String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 }
 
 enum StepStatus {

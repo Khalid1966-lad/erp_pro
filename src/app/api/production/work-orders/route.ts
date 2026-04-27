@@ -70,6 +70,9 @@ export async function GET(req: NextRequest) {
             },
             orderBy: { stepOrder: 'asc' },
           },
+          batches: {
+            orderBy: { createdAt: 'asc' },
+          },
         },
         orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
@@ -281,14 +284,31 @@ export async function PUT(req: NextRequest) {
 
       const closeData = closeWorkOrderSchema.parse(body)
 
+      // If batches exist, use batch totals; otherwise use closeData (backward compatibility)
+      const existingBatches = await db.productionBatch.findMany({
+        where: { workOrderId: id },
+      })
+
+      let finalGoodQuantity = closeData.goodQuantity
+      let finalScrapQuantity = closeData.scrapQuantity
+
+      if (existingBatches.length > 0) {
+        // Sum completed batches' quantities
+        const completedBatches = existingBatches.filter((b) => b.status === 'completed')
+        const rejectedBatches = existingBatches.filter((b) => b.status === 'rejected')
+        finalGoodQuantity = completedBatches.reduce((sum, b) => sum + b.goodQuantity, 0)
+        finalScrapQuantity = completedBatches.reduce((sum, b) => sum + b.scrapQuantity, 0)
+          + rejectedBatches.reduce((sum, b) => sum + (b.goodQuantity + b.scrapQuantity), 0)
+      }
+
       // Create stock movement (in for production output)
-      if (closeData.goodQuantity > 0) {
+      if (finalGoodQuantity > 0) {
         await db.stockMovement.create({
           data: {
             productId: existing.productId,
             type: 'in',
             origin: 'production_output',
-            quantity: closeData.goodQuantity,
+            quantity: finalGoodQuantity,
             unitCost: existing.product.averageCost,
             documentRef: existing.number,
             notes: `OF ${existing.number} - Production ${existing.product.designation}`,
@@ -298,7 +318,7 @@ export async function PUT(req: NextRequest) {
         // Update product stock
         await db.product.update({
           where: { id: existing.productId },
-          data: { currentStock: { increment: closeData.goodQuantity } },
+          data: { currentStock: { increment: finalGoodQuantity } },
         })
       }
 
@@ -307,8 +327,8 @@ export async function PUT(req: NextRequest) {
         data: {
           status: 'closed',
           closedAt: new Date(),
-          goodQuantity: closeData.goodQuantity,
-          scrapQuantity: closeData.scrapQuantity,
+          goodQuantity: finalGoodQuantity,
+          scrapQuantity: finalScrapQuantity,
           notes: closeData.notes || existing.notes,
         },
         include: { product: true, steps: { include: { workStation: true } } },

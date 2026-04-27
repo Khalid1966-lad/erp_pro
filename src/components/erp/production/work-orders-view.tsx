@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,7 +28,7 @@ import { ProductCombobox } from '@/components/erp/shared/product-combobox'
 import {
   Factory, Plus, Eye, RefreshCw, Search, Calendar, ChevronLeft, ChevronRight,
   Play, CheckCircle2, XCircle, Lock, FileEdit, Clock, Package, Trash2, ArrowRight,
-  AlertTriangle, Loader2
+  AlertTriangle, Loader2, Layers
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { format } from 'date-fns'
@@ -36,6 +37,7 @@ import { toast } from 'sonner'
 
 type WorkOrderStatus = 'draft' | 'planned' | 'in_progress' | 'completed' | 'closed' | 'cancelled'
 type StepStatus = 'pending' | 'in_progress' | 'completed' | 'skipped'
+type BatchStatus = 'pending' | 'in_progress' | 'quality_check' | 'completed' | 'rejected'
 
 interface Product {
   id: string
@@ -76,6 +78,19 @@ interface BomComponentStock {
   }
 }
 
+interface ProductionBatch {
+  id: string
+  workOrderId: string
+  batchNumber: string
+  quantity: number
+  goodQuantity: number
+  scrapQuantity: number
+  status: BatchStatus
+  notes: string | null
+  startedAt: string | null
+  completedAt: string | null
+}
+
 interface WorkOrder {
   id: string
   number: string
@@ -97,6 +112,7 @@ interface WorkOrder {
     designation: string
   }
   steps: WorkOrderStep[]
+  batches?: ProductionBatch[]
 }
 
 const statusLabels: Record<WorkOrderStatus, string> = {
@@ -129,6 +145,22 @@ const stepStatusColors: Record<StepStatus, string> = {
   in_progress: 'bg-orange-100 text-orange-700',
   completed: 'bg-green-100 text-green-700',
   skipped: 'bg-gray-100 text-gray-500',
+}
+
+const batchStatusLabels: Record<BatchStatus, string> = {
+  pending: 'En attente',
+  in_progress: 'En cours',
+  quality_check: 'Contrôle qualité',
+  completed: 'Terminé',
+  rejected: 'Rejeté',
+}
+
+const batchStatusColors: Record<BatchStatus, string> = {
+  pending: 'bg-slate-100 text-slate-700 border-slate-200',
+  in_progress: 'bg-orange-100 text-orange-700 border-orange-200',
+  quality_check: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  completed: 'bg-green-100 text-green-700 border-green-200',
+  rejected: 'bg-red-100 text-red-700 border-red-200',
 }
 
 const formatCurrency = (n: number) =>
@@ -170,6 +202,15 @@ export default function WorkOrdersView() {
 
   // Step action
   const [stepActionLoading, setStepActionLoading] = useState<string | null>(null)
+
+  // Batch management
+  const [batches, setBatches] = useState<ProductionBatch[]>([])
+  const [batchLoading, setBatchLoading] = useState(false)
+  const [newBatchQty, setNewBatchQty] = useState('')
+  const [newBatchNotes, setNewBatchNotes] = useState('')
+  const [batchActionLoading, setBatchActionLoading] = useState<string | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejectBatchId, setRejectBatchId] = useState<string | null>(null)
 
   const fetchWorkOrders = useCallback(async () => {
     try {
@@ -344,6 +385,10 @@ export default function WorkOrdersView() {
   const openDetail = (wo: WorkOrder) => {
     setSelectedWO(wo)
     setDetailOpen(true)
+    // Fetch batches for this work order
+    fetchBatches(wo.id)
+    setNewBatchQty('')
+    setNewBatchNotes('')
   }
 
   const openCloseDialog = (wo: WorkOrder) => {
@@ -360,6 +405,87 @@ export default function WorkOrdersView() {
     if (steps.length === 0) return 0
     const completed = steps.filter((s) => s.status === 'completed' || s.status === 'skipped').length
     return Math.round((completed / steps.length) * 100)
+  }
+
+  // ---- Batch management handlers ----
+  const fetchBatches = useCallback(async (workOrderId: string) => {
+    try {
+      setBatchLoading(true)
+      const data = await api.get<{ batches: ProductionBatch[] }>(
+        `/production/batches?workOrderId=${workOrderId}`
+      )
+      setBatches(data.batches || [])
+    } catch {
+      setBatches([])
+    } finally {
+      setBatchLoading(false)
+    }
+  }, [])
+
+  const handleCreateBatch = async () => {
+    if (!selectedWO || !newBatchQty) {
+      toast.error('Veuillez indiquer une quantité pour le lot')
+      return
+    }
+    try {
+      await api.post('/production/batches', {
+        workOrderId: selectedWO.id,
+        quantity: parseFloat(newBatchQty),
+        notes: newBatchNotes || undefined,
+      })
+      toast.success('Lot créé')
+      setNewBatchQty('')
+      setNewBatchNotes('')
+      fetchBatches(selectedWO.id)
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la création du lot')
+    }
+  }
+
+  const handleBatchAction = async (batchId: string, action: string, extraData?: Record<string, unknown>) => {
+    try {
+      setBatchActionLoading(batchId)
+      await api.put('/production/batches', { id: batchId, action, ...extraData })
+      const labels: Record<string, string> = {
+        start: 'Lot démarré',
+        complete: 'Lot terminé',
+        reject: 'Lot rejeté',
+        update: 'Lot mis à jour',
+      }
+      toast.success(labels[action] || 'Action effectuée')
+      if (selectedWO) fetchBatches(selectedWO.id)
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur')
+    } finally {
+      setBatchActionLoading(null)
+    }
+  }
+
+  const handleDeleteBatch = async (batchId: string) => {
+    try {
+      await api.delete(`/production/batches?id=${batchId}`)
+      toast.success('Lot supprimé')
+      if (selectedWO) fetchBatches(selectedWO.id)
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la suppression')
+    }
+  }
+
+  const handleRejectBatch = async () => {
+    if (!rejectBatchId || !rejectReason.trim()) {
+      toast.error('Veuillez indiquer la raison du rejet')
+      return
+    }
+    await handleBatchAction(rejectBatchId, 'reject', { notes: rejectReason })
+    setRejectBatchId(null)
+    setRejectReason('')
+  }
+
+  const handleBatchQuantityBlur = (batch: ProductionBatch, field: 'goodQuantity' | 'scrapQuantity', value: string) => {
+    const numVal = parseFloat(value)
+    if (isNaN(numVal) || numVal < 0) return
+    if (numVal === batch[field]) return
+    handleBatchAction(batch.id, 'update', { [field]: numVal })
   }
 
   const formatDate = (date: string | null) => {
@@ -940,6 +1066,221 @@ export default function WorkOrdersView() {
                 </div>
               )}
 
+              {/* Contrôle des Lots - Batch Management */}
+              {['planned', 'in_progress', 'completed', 'closed'].includes(selectedWO.status) && (
+                <Card>
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Layers className="h-4 w-4" />
+                        Contrôle des Lots
+                      </span>
+                      <Badge variant="secondary">{batches.length} lot{batches.length > 1 ? 's' : ''}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    {/* Summary bar */}
+                    {batches.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                        <div className="p-2 bg-muted rounded-md text-center">
+                          <p className="text-xs text-muted-foreground">Lots créés</p>
+                          <p className="text-sm font-bold">{batches.length}</p>
+                        </div>
+                        <div className="p-2 bg-green-50 rounded-md text-center">
+                          <p className="text-xs text-green-700">Lots terminés</p>
+                          <p className="text-sm font-bold text-green-700">{batches.filter(b => b.status === 'completed').length}</p>
+                        </div>
+                        <div className="p-2 bg-green-50 rounded-md text-center">
+                          <p className="text-xs text-green-700">Qté bonne totale</p>
+                          <p className="text-sm font-bold text-green-700">{batches.filter(b => b.status === 'completed').reduce((s, b) => s + b.goodQuantity, 0).toLocaleString('fr-FR')}</p>
+                        </div>
+                        <div className="p-2 bg-red-50 rounded-md text-center">
+                          <p className="text-xs text-red-700">Rebut total</p>
+                          <p className="text-sm font-bold text-red-700">{batches.filter(b => b.status === 'completed').reduce((s, b) => s + b.scrapQuantity, 0).toLocaleString('fr-FR')}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New batch form */}
+                    {['planned', 'in_progress'].includes(selectedWO.status) && (
+                      <div className="flex flex-col sm:flex-row items-end gap-2 mb-4 p-3 border rounded-lg bg-muted/30">
+                        <div className="flex-1 space-y-1">
+                          <Label className="text-xs">Qté lot</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            placeholder="0"
+                            value={newBatchQty}
+                            onChange={(e) => setNewBatchQty(e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <Label className="text-xs">Notes</Label>
+                          <Input
+                            placeholder="Notes optionnelles"
+                            value={newBatchNotes}
+                            onChange={(e) => setNewBatchNotes(e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <Button size="sm" onClick={handleCreateBatch} disabled={!newBatchQty} className="h-8">
+                          <Plus className="h-3 w-3 mr-1" />
+                          Nouveau Lot
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Batch list */}
+                    {batchLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : batches.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        Aucun lot créé. {['planned', 'in_progress'].includes(selectedWO.status) && 'Ajoutez un lot pour suivre la production.'}
+                      </p>
+                    ) : (
+                      <div className="border rounded-md overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs">N° Lot</TableHead>
+                                <TableHead className="text-xs text-right">Qté prévue</TableHead>
+                                <TableHead className="text-xs text-right">Qté bonne</TableHead>
+                                <TableHead className="text-xs text-right">Rebut</TableHead>
+                                <TableHead className="text-xs">Statut</TableHead>
+                                <TableHead className="hidden sm:table-cell text-xs">Début</TableHead>
+                                <TableHead className="text-xs text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {batches.map((batch) => (
+                                <TableRow key={batch.id}>
+                                  <TableCell className="font-mono text-xs font-medium">{batch.batchNumber}</TableCell>
+                                  <TableCell className="text-xs text-right">{batch.quantity.toLocaleString('fr-FR')}</TableCell>
+                                  <TableCell className="text-right">
+                                    {['in_progress', 'quality_check'].includes(batch.status) ? (
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        defaultValue={batch.goodQuantity}
+                                        onBlur={(e) => handleBatchQuantityBlur(batch, 'goodQuantity', e.target.value)}
+                                        disabled={batchActionLoading === batch.id}
+                                        className="h-7 w-20 text-xs text-right"
+                                      />
+                                    ) : (
+                                      <span className={cn(
+                                        'text-xs font-medium',
+                                        batch.status === 'completed' ? 'text-green-700' : ''
+                                      )}>
+                                        {batch.goodQuantity.toLocaleString('fr-FR')}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {['in_progress', 'quality_check'].includes(batch.status) ? (
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        defaultValue={batch.scrapQuantity}
+                                        onBlur={(e) => handleBatchQuantityBlur(batch, 'scrapQuantity', e.target.value)}
+                                        disabled={batchActionLoading === batch.id}
+                                        className="h-7 w-20 text-xs text-right"
+                                      />
+                                    ) : (
+                                      <span className={cn(
+                                        'text-xs',
+                                        batch.status === 'completed' && batch.scrapQuantity > 0 ? 'text-red-600' : 'text-muted-foreground'
+                                      )}>
+                                        {batch.scrapQuantity.toLocaleString('fr-FR')}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={cn('text-[10px]', batchStatusColors[batch.status])}>
+                                      {batchStatusLabels[batch.status]}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                                    {batch.startedAt ? format(new Date(batch.startedAt), 'HH:mm dd/MM', { locale: fr }) : '-'}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                      {batch.status === 'pending' && (
+                                        <>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 text-orange-600 hover:text-orange-700"
+                                            disabled={batchActionLoading === batch.id}
+                                            onClick={() => handleBatchAction(batch.id, 'start')}
+                                            title="Démarrer lot"
+                                          >
+                                            <Play className="h-3.5 w-3.5" />
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" title="Supprimer">
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Supprimer le lot {batch.batchNumber}</AlertDialogTitle>
+                                                <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteBatch(batch.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                  Supprimer
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </>
+                                      )}
+                                      {['in_progress', 'quality_check'].includes(batch.status) && (
+                                        <>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 text-green-600 hover:text-green-700"
+                                            disabled={batchActionLoading === batch.id}
+                                            onClick={() => handleBatchAction(batch.id, 'complete')}
+                                            title="Terminer lot"
+                                          >
+                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 text-red-500 hover:text-red-600"
+                                            disabled={batchActionLoading === batch.id}
+                                            onClick={() => { setRejectBatchId(batch.id); setRejectReason('') }}
+                                            title="Rejeter lot"
+                                          >
+                                            <XCircle className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Steps Table */}
               {selectedWO.steps.length > 0 && (
                 <div>
@@ -1057,6 +1398,35 @@ export default function WorkOrdersView() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Batch Dialog */}
+      <Dialog open={!!rejectBatchId} onOpenChange={(open) => { if (!open) setRejectBatchId(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-red-500" />
+              Rejeter le lot
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Raison du rejet *</Label>
+              <Textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Indiquez la raison du rejet..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectBatchId(null)}>Annuler</Button>
+            <Button onClick={handleRejectBatch} className="bg-red-600 hover:bg-red-700">
+              Rejeter
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

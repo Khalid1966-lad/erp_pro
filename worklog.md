@@ -1350,3 +1350,42 @@ Stage Summary:
 - Notifications now fully mobile responsive
 - Uses Sheet panel instead of dropdown
 - Lint: clean
+---
+Task ID: production-batch-tracking
+Agent: Main Agent
+Task: Implement Production Batch/Lot Tracking System for Work Orders
+
+Work Log:
+- Added `ProductionBatchStatus` enum to prisma/schema.prisma (pending, in_progress, quality_check, completed, rejected)
+- Added `ProductionBatch` model with fields: id, workOrderId, batchNumber (unique), quantity, goodQuantity, scrapQuantity, status, notes, startedAt, completedAt, timestamps
+- Added `batches ProductionBatch[]` relation to existing WorkOrder model
+- Ran `bun run db:push` — schema synced to Neon PostgreSQL
+- Created `src/app/api/production/batches/route.ts`:
+  - GET: List batches for a work order (?workOrderId required)
+  - POST: Create batch with auto-generated batch number LOT-{WO_NUMBER}-{seq}
+  - PUT: Batch actions — start (pending→in_progress), complete (in_progress→completed), reject (with reason), update (goodQuantity/scrapQuantity/notes)
+  - DELETE: Only pending batches, only for non-closed WOs
+- Updated `src/app/api/production/work-orders/route.ts`:
+  - GET handler: added `batches` to include (ordered by createdAt asc)
+  - Close action: when batches exist, sums completed batches' goodQuantity/scrapQuantity instead of using closeData values; backward compatible (no batches = old behavior)
+- Updated `src/components/erp/production/work-orders-view.tsx`:
+  - Added `BatchStatus` type and `ProductionBatch` interface
+  - Added `batchStatusLabels` and `batchStatusColors` maps
+  - Added batch management state: batches list, loading, new batch form, action loading, reject reason
+  - Added `fetchBatches`, `handleCreateBatch`, `handleBatchAction`, `handleDeleteBatch`, `handleRejectBatch`, `handleBatchQuantityBlur` handlers
+  - Added `Layers` icon import, `cn` utility import
+  - Added "Contrôle des Lots" Card section in detail dialog (visible for planned/in_progress/completed/closed WOs):
+    - Summary bar: total batches, completed batches, total good qty, total scrap qty
+    - New batch form (only for planned/in_progress WOs): quantity input, notes input, create button
+    - Batch list table: batch number, planned qty, good qty (editable for in_progress), scrap qty (editable), status badge, start date, action buttons
+    - Actions per status: pending (start/delete), in_progress (complete/reject), quality_check (complete/reject)
+  - Added reject batch dialog with reason textarea
+- Lint: 0 errors
+
+Stage Summary:
+- Full batch/lot tracking system implemented across 4 files
+- Database: 1 new model, 1 new enum, 1 new relation
+- Backend: Full CRUD API with status transitions and audit logging
+- Frontend: Batch management integrated into work order detail dialog
+- Close action backward compatible with and without batches
+- Lint: 0 errors
