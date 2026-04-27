@@ -120,7 +120,7 @@ export default function BomView() {
     try {
       const res = await api.get<{ products: Product[] }>('/products?limit=500&active=false')
       const filtered = (res.products || []).filter(
-        (p) => p.productType === 'achat' || p.productType === 'semi_fini'
+        (p) => p.productType.includes('achat') || p.productType.includes('semi_fini')
       )
       setMaterials(filtered)
     } catch (err: any) {
@@ -258,7 +258,7 @@ export default function BomView() {
                       <SelectContent>
                         {filteredMaterials.map((m) => (
                           <SelectItem key={m.id} value={m.id}>
-                            [{m.productType === 'achat' ? 'Achat' : 'Semi-fini'}]{' '}
+                            [{m.productType.includes('achat') ? 'Achat' : 'Semi-fini'}]{' '}
                             {m.reference} - {m.designation} (stock: {m.currentStock.toLocaleString('fr-FR')})
                           </SelectItem>
                         ))}

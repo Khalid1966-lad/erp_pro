@@ -12,7 +12,7 @@ const productSchema = z.object({
   priceHT: z.number().min(0),
   tvaRate: z.number().default(20),
   unit: z.string().default('unité'),
-  productType: z.enum(['achat', 'vente', 'semi_fini']).default('vente'),
+  productType: z.string().default('vente'),
   currentStock: z.number().default(0),
   minStock: z.number().default(0),
   maxStock: z.number().default(100),
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       where.designation = { contains: search, mode: 'insensitive' }
     }
     if (productType) {
-      where.productType = productType
+      where.productType = { contains: productType }
     }
     if (famille) {
       where.famille = famille

@@ -280,12 +280,6 @@ model ClientDocument {
   createdAt   DateTime @default(now())
 }
 
-enum ProductType {
-  achat
-  vente
-  semi_fini
-}
-
 model Product {
   id            String      @id @default(cuid())
   reference     String      @unique
@@ -296,7 +290,7 @@ model Product {
   priceHT       Float
   tvaRate       Float       @default(20)
   unit          String      @default("unité")
-  productType   ProductType @default(vente)
+  productType   String      @default("vente")
   currentStock  Float       @default(0)
   minStock      Float       @default(0)
   maxStock      Float       @default(100)

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog'
@@ -33,7 +34,7 @@ interface Product {
   priceHT: number
   tvaRate: number
   unit: string | null
-  productType: 'achat' | 'vente' | 'semi_fini'
+  productType: string
   minStock: number | null
   maxStock: number | null
   currentStock: number
@@ -50,7 +51,7 @@ const emptyProduct = {
   priceHT: '',
   tvaRate: '20',
   unit: 'unité',
-  productType: 'vente' as const,
+  productType: 'vente',
   minStock: '',
   maxStock: '',
   isActive: true
@@ -144,10 +145,15 @@ export default function ProductsView() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'))
   }, [products])
 
-  // Type counts from displayed products
+  // Type counts from displayed products (multi-type support)
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = { achat: 0, vente: 0, semi_fini: 0 }
-    products.forEach(p => { if (counts[p.productType] !== undefined) counts[p.productType]++ })
+    products.forEach(p => {
+      p.productType.split(',').forEach(t => {
+        const type = t.trim()
+        if (counts[type] !== undefined) counts[type]++
+      })
+    })
     return counts
   }, [products])
 
@@ -364,7 +370,14 @@ export default function ProductsView() {
                           <Badge variant="outline" className="font-normal text-xs">{product.famille || '—'}</Badge>
                         </td>
                         <td className="p-2 align-middle whitespace-nowrap">
-                          <Badge variant="secondary" className={productTypeColors[product.productType]}>{productTypeLabels[product.productType]}</Badge>
+                          <div className="flex flex-wrap gap-1">
+                            {product.productType.split(',').map((t) => {
+                              const type = t.trim()
+                      return type ? (
+                        <Badge key={type} variant="secondary" className={productTypeColors[type] || ''}>{productTypeLabels[type] || type}</Badge>
+                      ) : null
+                    })}
+                          </div>
                         </td>
                         <td className="p-2 align-middle whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-1">
@@ -422,15 +435,42 @@ export default function ProductsView() {
               <Input id="sousFamille" value={form.sousFamille} onChange={(e) => setForm({ ...form, sousFamille: e.target.value })} placeholder="Ex: Composants, Pièces..." />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="productType">Type de produit</Label>
-              <Select value={form.productType} onValueChange={(v) => setForm({ ...form, productType: v as Product['productType'] })}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vente">Vente (produit en vente)</SelectItem>
-                  <SelectItem value="achat">Achat (produit acheté)</SelectItem>
-                  <SelectItem value="semi_fini">Semi-fini</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Type de produit</Label>
+              <div className="flex items-center gap-4 mt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <Checkbox
+                    checked={form.productType.split(',').includes('vente')}
+                    onCheckedChange={(checked) => {
+                      const types = form.productType.split(',').filter(t => t.trim() && t.trim() !== 'vente')
+                      if (checked) types.push('vente')
+                      setForm({ ...form, productType: types.join(',') || 'vente' })
+                    }}
+                  />
+                  <Badge variant="secondary" className={productTypeColors.vente}>Vente</Badge>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <Checkbox
+                    checked={form.productType.split(',').includes('achat')}
+                    onCheckedChange={(checked) => {
+                      const types = form.productType.split(',').filter(t => t.trim() && t.trim() !== 'achat')
+                      if (checked) types.push('achat')
+                      setForm({ ...form, productType: types.join(',') || 'vente' })
+                    }}
+                  />
+                  <Badge variant="secondary" className={productTypeColors.achat}>Achat</Badge>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <Checkbox
+                    checked={form.productType.split(',').includes('semi_fini')}
+                    onCheckedChange={(checked) => {
+                      const types = form.productType.split(',').filter(t => t.trim() && t.trim() !== 'semi_fini')
+                      if (checked) types.push('semi_fini')
+                      setForm({ ...form, productType: types.join(',') || 'vente' })
+                    }}
+                  />
+                  <Badge variant="secondary" className={productTypeColors.semi_fini}>Semi-fini</Badge>
+                </label>
+              </div>
             </div>
             <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b pb-2">Identification</h4></div>
             <div className="space-y-2">

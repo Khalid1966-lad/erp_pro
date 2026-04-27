@@ -8,7 +8,7 @@ const bulkProductSchema = z.array(z.object({
   designation: z.string().min(1),
   famille: z.string().nullable().optional(),
   sousFamille: z.string().nullable().optional(),
-  productType: z.enum(['achat', 'vente', 'semi_fini']),
+  productType: z.string(),
   priceHT: z.number().min(0),
   tvaRate: z.number().default(20),
   unit: z.string().default('unité'),
