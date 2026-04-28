@@ -61,6 +61,7 @@ import {
   BarChart3,
   ClipboardCheck,
   Layers,
+  Wrench,
   Sun,
   Moon,
 } from 'lucide-react'
@@ -141,6 +142,8 @@ const navigation: NavGroup[] = [
       { id: 'routing', label: 'Gammes', icon: <Route className="h-4 w-4" />, color: 'text-fuchsia-500', permission: 'routing:read' },
       { id: 'workstations', label: 'Postes de travail', icon: <Cog className="h-4 w-4" />, color: 'text-stone-500', permission: 'workstations:read' },
       { id: 'work-orders', label: 'Ordres de fabrication', icon: <Factory className="h-4 w-4" />, color: 'text-green-600', permission: 'work_orders:read' },
+      { id: 'equipements', label: 'Équipements', icon: <Cog className="h-4 w-4" />, color: 'text-orange-500', permission: 'work_orders:read' },
+      { id: 'maintenance', label: 'Maintenance', icon: <Wrench className="h-4 w-4" />, color: 'text-amber-500', permission: 'work_orders:read' },
       { id: 'quality-control', label: 'Contrôle qualité', icon: <ClipboardCheck className="h-4 w-4" />, color: 'text-cyan-600', permission: 'work_orders:read' }
     ]
   },
@@ -458,6 +461,8 @@ export function ERPHeader() {
     'routing': 'Gammes opératoires',
     'workstations': 'Postes de travail',
     'work-orders': 'Ordres de fabrication',
+    'equipements': 'Équipements',
+    'maintenance': 'Maintenance',
     'cash-registers': 'Caisses',
     'bank-accounts': 'Banque',
     'payments': 'Paiements',

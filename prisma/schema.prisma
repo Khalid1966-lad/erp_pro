@@ -940,6 +940,7 @@ enum MovementOrigin {
   return
   inventory_adjustment
   manual
+  maintenance
 }
 
 model StockMovement {
@@ -1147,7 +1148,147 @@ model WorkOrderStep {
   notes          String?
 }
 
-// ============ QUALITY CONTROL ============
+// ============ MAINTENANCE ============
+
+enum EquipementStatut {
+  en_service
+  en_panne
+  en_maintenance
+  hors_service
+  en_reserve
+}
+
+enum EquipementCriticite {
+  haute
+  moyenne
+  basse
+}
+
+enum EquipementType {
+  extrudeuse
+  moule
+  compresseur
+  four
+  decoupeuse
+  emballage
+  pompe
+  moteur
+  climatisation
+  convoyeur
+  generateur
+  autre
+}
+
+model Equipement {
+  id                String            @id @default(cuid())
+  code              String            @unique
+  designation       String
+  type              EquipementType    @default(autre)
+  marque            String?
+  modele            String?
+  numeroSerie       String?
+  dateInstallation  DateTime?
+  emplacement       String?
+  statut            EquipementStatut  @default(en_service)
+  criticite         EquipementCriticite @default(moyenne)
+  ficheTechnique    String?
+  imageBase64       String?
+  imageContentType  String?
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  plans             PlanMaintenance[]
+  ordres            OrdreTravailMaintenance[]
+}
+
+enum PlanMaintenanceType {
+  temporel
+  usage
+}
+
+model PlanMaintenance {
+  id                  String                @id @default(cuid())
+  equipementId        String
+  equipement          Equipement            @relation(fields: [equipementId], references: [id], onDelete: Cascade)
+  type                PlanMaintenanceType    @default(temporel)
+  frequence           Int
+  description         String
+  piecesNecessaires   String?
+  dureeEstimee        Float                 @default(1)
+  responsableId       String?
+  actif               Boolean               @default(true)
+  derniereExecution   DateTime?
+  prochaineExecution  DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  ordres              OrdreTravailMaintenance[]
+}
+
+enum OTMType {
+  preventive
+  corrective
+  conditionnelle
+  ameliorative
+}
+
+enum OTMPriorite {
+  urgente
+  haute
+  normale
+  basse
+}
+
+enum OTMStatut {
+  planifiee
+  en_cours
+  terminee
+  validee
+  annulee
+  en_attente_pieces
+}
+
+model OrdreTravailMaintenance {
+  id                  String                @id @default(cuid())
+  numero              String                @unique
+  equipementId        String
+  equipement          Equipement            @relation(fields: [equipementId], references: [id])
+  planMaintenanceId   String?
+  planMaintenance     PlanMaintenance?      @relation(fields: [planMaintenanceId], references: [id])
+  typeMaintenance     OTMType               @default(corrective)
+  priorite            OTMPriorite           @default(normale)
+  statut              OTMStatut             @default(planifiee)
+  datePlanifiee       DateTime?
+  dateDebut           DateTime?
+  dateFin             DateTime?
+  description         String
+  rapport             String?
+  responsableId       String?
+  coutPieces          Float                 @default(0)
+  coutMainOeuvre      Float                 @default(0)
+  machineArretee      Boolean               @default(false)
+  arretDebut          DateTime?
+  arretFin            DateTime?
+  productionPerdue    Float                 @default(0)
+  notes               String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  pieces              OTMPiece[]
+}
+
+model OTMPiece {
+  id                String                     @id @default(cuid())
+  otmId             String
+  otm               OrdreTravailMaintenance  @relation(fields: [otmId], references: [id], onDelete: Cascade)
+  productId         String
+  quantiteNecessaire Float
+  quantiteUtilisee  Float                      @default(0)
+  coutUnitaire      Float                      @default(0)
+}
+
+// ============ QUALITY CONTROL =======================
 
 enum QualityControlType {
   reception

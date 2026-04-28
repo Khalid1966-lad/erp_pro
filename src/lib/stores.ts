@@ -59,6 +59,8 @@ export type ViewId =
   | 'routing'
   | 'workstations'
   | 'work-orders'
+  | 'equipements'
+  | 'maintenance'
   | 'cash-registers'
   | 'bank-accounts'
   | 'effets'

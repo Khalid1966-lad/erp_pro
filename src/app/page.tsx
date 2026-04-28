@@ -33,6 +33,8 @@ const BomView = dynamic(() => import('@/components/erp/production/bom-view'), { 
 const RoutingView = dynamic(() => import('@/components/erp/production/routing-view'), { ssr: false })
 const WorkstationsView = dynamic(() => import('@/components/erp/production/workstations-view'), { ssr: false })
 const WorkOrdersView = dynamic(() => import('@/components/erp/production/work-orders-view'), { ssr: false })
+const EquipementsView = dynamic(() => import('@/components/erp/production/equipements-view'), { ssr: false })
+const MaintenanceView = dynamic(() => import('@/components/erp/production/maintenance-view'), { ssr: false })
 const CashRegistersView = dynamic(() => import('@/components/erp/finance/cash-registers-view'), { ssr: false })
 const BankAccountsView = dynamic(() => import('@/components/erp/finance/bank-accounts-view'), { ssr: false })
 const PaymentsView = dynamic(() => import('@/components/erp/finance/payments-view'), { ssr: false })
@@ -90,6 +92,8 @@ function ViewRouter() {
     case 'routing': view = <RoutingView />; break
     case 'workstations': view = <WorkstationsView />; break
     case 'work-orders': view = <WorkOrdersView />; break
+    case 'equipements': view = <EquipementsView />; break
+    case 'maintenance': view = <MaintenanceView />; break
     case 'cash-registers': view = <CashRegistersView />; break
     case 'bank-accounts': view = <BankAccountsView />; break
     case 'payments': view = <PaymentsView />; break
