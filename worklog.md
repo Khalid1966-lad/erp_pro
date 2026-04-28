@@ -1424,3 +1424,29 @@ Stage Summary:
 - Delete lot: restricted to actif lots with no sortie/réservation movements
 - Backup system: Lot + LotMouvement tables included
 - Files changed: 6 (api/lots/route.ts, page.tsx, erp-layout.tsx, lots-view.tsx, backup.ts, stores.ts)
+
+---
+Task ID: 1
+Agent: Main
+Task: Update guide d'utilisation v1.2.6 — detailed maintenance section, lots, expandable navigation
+
+Work Log:
+- Read existing guide-view.tsx (1834 lines) to understand structure
+- Enhanced Section type with optional children (SubItem[]) for sub-navigation
+- Updated sections array with 12 sections, each containing 2-8 sub-items (56 total sub-items)
+- Added SubTitle id prop for anchor-based scroll navigation
+- Added Lots de stock (FIFO) section in Stock module with detailed explanations, ScreenMock table, steps
+- Added Équipements section in Production module: 12 equipment types, 5 statuses, 3 criticity levels, management steps, detail view
+- Added Maintenance industrielle section: 4 maintenance types, OTM lifecycle, priorities, creation/execution workflow, spare parts management, KPIs (MTBF, MTTR, disponibilité), integration with Stock/Production/Achats
+- Updated sidebar mock in Connexion section to include Équipements, Maintenance, Lots de stock
+- Replaced flat navigation with expandable sub-menu (ChevronDown toggle, auto-expand on scroll, indented sub-items)
+- Widened sidebar from w-72 to w-80 for better readability
+- Added new lucide icons: Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Tool, Globe, Hash, Zap
+- Updated BUILD_DATE to 2025-07-14 in version.ts
+- ESLint passes cleanly
+
+Stage Summary:
+- guide-view.tsx expanded from ~1834 to ~2360 lines with comprehensive maintenance documentation
+- Navigation menu now has 12 parent sections with 56 expandable sub-items, scrollable via ScrollArea
+- Footer references remain dynamic via APP_VERSION
+- Version 1.2.6 confirmed, BUILD_DATE updated to 2025-07-14

@@ -9,36 +9,105 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Home, LogIn, LayoutDashboard, Users, Package, FileText, ShoppingCart,
   Receipt, Warehouse, Factory, CreditCard,
-  Landmark, Settings, BookOpen, Shield, ChevronRight, CheckCircle2,
+  Landmark, Settings, BookOpen, Shield, ChevronRight, ChevronDown, CheckCircle2,
   ArrowRight, Info, AlertCircle, CircleDot, ArrowDown, Eye,
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
-  FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database, type LucideIcon
+  FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database,
+  Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Tool, Globe, Hash, Zap, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 
 /* ─── Types ─── */
+interface SubItem {
+  id: string
+  label: string
+}
+
 interface Section {
   id: string
   label: string
   icon: LucideIcon
+  children?: SubItem[]
 }
 
 /* ─── Section definitions ─── */
 const sections: Section[] = [
-  { id: 'introduction', label: 'Introduction', icon: Home },
-  { id: 'connexion', label: 'Connexion & Navigation', icon: LogIn },
-  { id: 'tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard },
-  { id: 'ventes', label: 'Ventes', icon: ShoppingCart },
-  { id: 'achats', label: 'Achats', icon: Truck },
-  { id: 'stock', label: 'Stock', icon: Warehouse },
-  { id: 'production', label: 'Production', icon: Factory },
-  { id: 'finance', label: 'Finance', icon: Landmark },
-  { id: 'impression', label: 'Impression', icon: Printer },
-  { id: 'communication', label: 'Communication', icon: MessageSquare },
-  { id: 'agenda', label: 'Agenda & Notifications', icon: Bell },
-  { id: 'administration', label: 'Administration', icon: Settings },
+  { id: 'introduction', label: 'Introduction', icon: Home, children: [
+    { id: 'bienvenue', label: 'Bienvenue' },
+    { id: 'modules-roles', label: 'Modules & Rôles' },
+  ]},
+  { id: 'connexion', label: 'Connexion & Navigation', icon: LogIn, children: [
+    { id: 'se-connecter', label: 'Se connecter' },
+    { id: 'navigation', label: 'Navigation' },
+    { id: 'mode-sombre', label: 'Mode sombre' },
+  ]},
+  { id: 'tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, children: [
+    { id: 'kpis', label: 'KPIs' },
+    { id: 'graphiques', label: 'Graphiques' },
+  ]},
+  { id: 'ventes', label: 'Ventes', icon: ShoppingCart, children: [
+    { id: 'clients', label: 'Clients' },
+    { id: 'produits', label: 'Produits' },
+    { id: 'devis', label: 'Devis' },
+    { id: 'commandes', label: 'Commandes' },
+    { id: 'preparations', label: 'Préparations' },
+    { id: 'bons-livraison', label: 'Bons de livraison' },
+    { id: 'factures-tva', label: 'Factures & TVA' },
+    { id: 'avoirs', label: 'Avoirs' },
+  ]},
+  { id: 'achats', label: 'Achats', icon: Truck, children: [
+    { id: 'fournisseurs', label: 'Fournisseurs' },
+    { id: 'demandes-prix', label: 'Demandes de prix' },
+    { id: 'devis-fournisseurs', label: 'Devis fournisseurs' },
+    { id: 'commandes-fournisseurs', label: 'Commandes fournisseurs' },
+    { id: 'receptions', label: 'Réceptions' },
+    { id: 'bons-retour', label: 'Bons de retour' },
+    { id: 'avoirs-fournisseurs', label: 'Avoirs fournisseurs' },
+    { id: 'factures-fournisseurs', label: 'Factures fournisseurs' },
+  ]},
+  { id: 'stock', label: 'Stock', icon: Warehouse, children: [
+    { id: 'mouvements', label: 'Mouvements' },
+    { id: 'alertes-stock', label: 'Alertes stock' },
+    { id: 'inventaires', label: 'Inventaires' },
+    { id: 'lots-stock', label: 'Lots de stock (FIFO)' },
+  ]},
+  { id: 'production', label: 'Production', icon: Factory, children: [
+    { id: 'nomenclatures', label: 'Nomenclatures (BOM)' },
+    { id: 'gammes', label: 'Gammes opératoires' },
+    { id: 'postes-travail', label: 'Postes de travail' },
+    { id: 'ordres-fabrication', label: 'Ordres de fabrication' },
+    { id: 'controle-qualite', label: 'Contrôle qualité' },
+    { id: 'equipements', label: 'Équipements' },
+    { id: 'maintenance', label: 'Maintenance industrielle' },
+  ]},
+  { id: 'finance', label: 'Finance', icon: Landmark, children: [
+    { id: 'caisses', label: 'Caisses' },
+    { id: 'banque', label: 'Banque' },
+    { id: 'paiements', label: 'Paiements' },
+    { id: 'cheques-effets', label: 'Chèques & Effets' },
+    { id: 'comptabilite', label: 'Comptabilité' },
+    { id: 'etats-financiers', label: 'États financiers' },
+  ]},
+  { id: 'impression', label: 'Impression', icon: Printer, children: [
+    { id: 'docs-imprimables', label: 'Documents imprimables' },
+    { id: 'entete-pied', label: 'En-tête & Pied de page' },
+  ]},
+  { id: 'communication', label: 'Communication', icon: MessageSquare, children: [
+    { id: 'messagerie', label: 'Messagerie interne' },
+    { id: 'notifications', label: 'Notifications' },
+  ]},
+  { id: 'agenda', label: 'Agenda & Notifications', icon: Bell, children: [
+    { id: 'agenda-personnel', label: 'Agenda personnel' },
+    { id: 'calendrier', label: 'Calendrier' },
+  ]},
+  { id: 'administration', label: 'Administration', icon: Settings, children: [
+    { id: 'utilisateurs', label: 'Utilisateurs' },
+    { id: 'journal-audit', label: 'Journal d\'audit' },
+    { id: 'parametres', label: 'Paramètres' },
+    { id: 'sauvegarde', label: 'Sauvegarde' },
+  ]},
 ]
 
 /* ─── Reusable small components ─── */
@@ -57,8 +126,8 @@ function SectionTitle({ icon: Icon, title, children }: { icon: LucideIcon; title
   )
 }
 
-function SubTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-lg font-semibold mt-8 mb-4 text-foreground">{children}</h3>
+function SubTitle({ children, id }: { children: React.ReactNode; id?: string }) {
+  return <h3 id={id} className={cn('text-lg font-semibold mt-8 mb-4 text-foreground', id && 'scroll-mt-20')}>{children}</h3>
 }
 
 function Paragraph({ children }: { children: React.ReactNode }) {
@@ -332,8 +401,8 @@ function ConnexionSection() {
             { title: 'Tableau de bord', items: ['Vue d\'ensemble'] },
             { title: 'Ventes', items: ['Clients', 'Devis', 'Commandes', 'Préparations', 'Bons de livraison', 'Factures', 'Avoirs'] },
             { title: 'Achats', items: ['Fournisseurs', 'Demandes de prix', 'Devis fournisseurs', 'Commandes fournisseurs', 'Réceptions', 'Bons de retour', 'Avoirs fournisseurs', 'Factures fournisseurs'] },
-            { title: 'Stock', items: ['Produits', 'Mouvements', 'Alertes stock', 'Inventaires'] },
-            { title: 'Production', items: ['Nomenclatures', 'Gammes', 'Postes de travail', 'Ordres de fabrication', 'Contrôle qualité'] },
+            { title: 'Stock', items: ['Produits', 'Mouvements', 'Alertes stock', 'Inventaires', 'Lots de stock'] },
+            { title: 'Production', items: ['Nomenclatures', 'Gammes', 'Postes de travail', 'Ordres de fabrication', 'Équipements', 'Maintenance', 'Contrôle qualité'] },
             { title: 'Finance', items: ['Caisses', 'Banque', 'Paiements', 'Chèques & Effets', 'Comptabilité', 'États financiers'] },
             { title: 'Communication', items: ['Messagerie'] },
             { title: 'Administration', items: ['Utilisateurs', 'Journal d\'audit', 'Paramètres', 'Guide d\'utilisation'] },
@@ -879,6 +948,77 @@ function StockSection() {
       <TipBox type="success">
         Planifiez des inventaires tournants régulièrement (mensuels ou trimestriels) pour maintenir la fiabilité des données de stock.
       </TipBox>
+
+      {/* Lots de stock */}
+      <SubTitle id="stock-lots-stock">Lots de stock (FIFO)</SubTitle>
+      <Paragraph>
+        Le suivi par lots permet de tracer l'origine et la destination de chaque lot de marchandises.
+        Chaque lot dispose d'un numéro unique, d'une date d'entrée, d'une date d'expiration et d'un suivi
+        des mouvements individuels. Le système gère automatiquement la méthode <strong>FIFO</strong> (First In, First Out)
+        pour la consommation du stock.
+      </Paragraph>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {[
+          { type: 'Entrée lot', icon: ArrowDown, desc: 'Réception d\'un nouveau lot avec quantité, date d\'entrée et date de péremption.', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+          { type: 'Sortie lot', icon: Package, desc: 'Consommation FIFO automatique : le lot le plus ancien est consommé en premier.', color: 'bg-red-50 border-red-200 text-red-700' },
+          { type: 'Réservation', icon: ClipboardList, desc: 'Réserver des quantités d\'un lot pour un ordre de fabrication ou une commande.', color: 'bg-sky-50 border-sky-200 text-sky-700' },
+        ].map((m) => (
+          <Card key={m.type} className={m.color}>
+            <CardContent className="p-4">
+              <m.icon className="h-5 w-5 mb-2" />
+              <p className="font-semibold text-sm mb-1">{m.type}</p>
+              <p className="text-xs opacity-80">{m.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <SubTitle id="stock-lots-stock-creation">Comment gérer les lots</SubTitle>
+      <Step num={1}>Accédez à <strong>Stock → Lots de stock</strong> depuis la barre latérale.</Step>
+      <Step num={2}>Consultez le tableau récapitulatif avec les filtres par produit, numéro de lot et statut.</Step>
+      <Step num={3}>Pour créer un lot, cliquez sur <strong>« + Nouveau lot »</strong> et renseignez le produit, la quantité, la date d'entrée et la date de péremption.</Step>
+      <Step num={4}>Pour exécuter le FIFO manuellement, sélectionnez un lot et cliquez sur <strong>« Exécuter FIFO »</strong> : le système consomme automatiquement les lots les plus anciens.</Step>
+      <Step num={5}>Chaque mouvement de lot est tracé dans l'historique (entrées, sorties, réservations, annulations).</Step>
+
+      <ScreenMock title="Lots de stock — Tableau récapitulatif">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>N° Lot</TableHead>
+              <TableHead>Produit</TableHead>
+              <TableHead className="text-right">Quantité</TableHead>
+              <TableHead className="text-right">Réservé</TableHead>
+              <TableHead>Entrée</TableHead>
+              <TableHead>Péremption</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[
+              { lot: 'LOT-2026-001', product: 'Résine PVC K-67', qty: '5 000 kg', reserved: '2 000 kg', entry: '10/01/2026', expiry: '10/01/2027' },
+              { lot: 'LOT-2026-002', product: 'Résine PVC K-67', qty: '3 000 kg', reserved: '0 kg', entry: '25/01/2026', expiry: '25/01/2027' },
+              { lot: 'LOT-2026-010', product: 'Stabilisant Ca/Zn', qty: '500 kg', reserved: '200 kg', entry: '05/02/2026', expiry: '05/02/2027' },
+            ].map((l) => (
+              <TableRow key={l.lot}>
+                <TableCell className="font-mono text-xs font-medium">{l.lot}</TableCell>
+                <TableCell className="text-sm">{l.product}</TableCell>
+                <TableCell className="text-right font-mono">{l.qty}</TableCell>
+                <TableCell className="text-right font-mono text-amber-600">{l.reserved}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{l.entry}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{l.expiry}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ScreenMock>
+
+      <TipBox type="info">
+        La méthode FIFO garantit que les lots les plus anciens sont consommés en premier, ce qui est essentiel pour les produits périssables (résines, additifs, stabilisants). Vous pouvez également annuler une réservation si l'ordre de fabrication est reporté.
+      </TipBox>
+
+      <TipBox type="warning">
+        Les lots sont sauvegardés dans le système de sauvegarde automatique. En cas de perte de données, les lots et leurs mouvements sont entièrement restaurables.
+      </TipBox>
     </div>
   )
 }
@@ -1029,6 +1169,331 @@ function ProductionSection() {
       <TipBox type="warning">
         Les contrôles qualité sont sauvegardés dans les sauvegardes automatiques du système. Assurez-vous de documenter
         tous les non-conformités pour le suivi qualité.
+      </TipBox>
+
+      {/* ═══ ÉQUIPEMENTS ═══ */}
+      <SubTitle id="production-equipements">Équipements</SubTitle>
+      <Paragraph>
+        Le sous-module Équipements constitue le registre complet des machines et outils de production de l'entreprise.
+        Il permet de suivre l'état de chaque équipement, de planifier les maintenances préventives et d'anticiper
+        les pannes. Chaque équipement dispose d'une fiche détaillée avec ses caractéristiques techniques,
+        son historique de maintenance et ses plans préventifs.
+      </Paragraph>
+
+      <SubTitle id="production-equipements-types">Types d'équipements</SubTitle>
+      <Paragraph>
+        Le système supporte 12 types d'équipements prédéfinis, couvrant l'ensemble des machines
+        d'une unité de production industrielle :
+      </Paragraph>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+        {[
+          { type: 'Extrudeuse', desc: 'Ligne d\'extrusion PVC', icon: Factory },
+          { type: 'Moule', desc: 'Moules de fabrication', icon: Cog },
+          { type: 'Compresseur', desc: 'Compresseurs d\'air', icon: Gauge },
+          { type: 'Four', desc: 'Fours de traitement', icon: AlertTriangle },
+          { type: 'Découpeuse', desc: 'Machines de découpe', icon: Tool },
+          { type: 'Emballage', desc: 'Lignes d\'emballage', icon: Package },
+          { type: 'Pompe', desc: 'Pompes industriels', icon: CircleDot },
+          { type: 'Moteur', desc: 'Moteurs électriques', icon: Cpu },
+          { type: 'Climatisation', desc: 'Systèmes CVC', icon: Building2 },
+          { type: 'Convoyeur', desc: 'Tapis et convoyeurs', icon: ArrowRight },
+          { type: 'Générateur', desc: 'Groupes électrogènes', icon: Zap },
+          { type: 'Autre', desc: 'Autres équipements', icon: Settings },
+        ].map((e) => (
+          <Card key={e.type} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <e.icon className="h-4 w-4 text-primary" />
+                <p className="font-semibold text-sm">{e.type}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">{e.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <SubTitle id="production-equipements-statuts">Statuts et criticité</SubTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Statuts de l'équipement</CardTitle></CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2">
+              {[
+                { status: 'En service', color: 'bg-emerald-100 text-emerald-700', desc: 'Fonctionne normalement' },
+                { status: 'En panne', color: 'bg-red-100 text-red-700', desc: 'Hors service, nécessite une réparation' },
+                { status: 'En maintenance', color: 'bg-amber-100 text-amber-700', desc: 'En cours d\'intervention' },
+                { status: 'Hors service', color: 'bg-gray-100 text-gray-600', desc: 'Retiré définitivement' },
+                { status: 'En réserve', color: 'bg-sky-100 text-sky-700', desc: 'Stocké, non utilisé' },
+              ].map((s) => (
+                <div key={s.status} className="flex items-center gap-3">
+                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', s.color)}>{s.status}</span>
+                  <span className="text-xs text-muted-foreground">{s.desc}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Niveaux de criticité</CardTitle></CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2">
+              {[
+                { level: 'Haute', color: 'bg-red-100 text-red-700', desc: 'Arrêt = arrêt total de la production' },
+                { level: 'Moyenne', color: 'bg-amber-100 text-amber-700', desc: 'Impact partiel sur la production' },
+                { level: 'Basse', color: 'bg-emerald-100 text-emerald-700', desc: 'Pas d\'impact direct sur la production' },
+              ].map((l) => (
+                <div key={l.level} className="flex items-center gap-3">
+                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', l.color)}>{l.level}</span>
+                  <span className="text-xs text-muted-foreground">{l.desc}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <SubTitle id="production-equipements-gerer">Comment gérer les équipements</SubTitle>
+      <Step num={1}>Accédez à <strong>Production → Équipements</strong> depuis la barre latérale.</Step>
+      <Step num={2}>Consultez les <strong>cartes récapitulatives</strong> en haut : Total, En service, En panne, Maintenance prévue ≤ 7 jours.</Step>
+      <Step num={3}>Utilisez les <strong>filtres</strong> (recherche, statut, type, criticité) pour trouver un équipement.</Step>
+      <Step num={4}>Pour créer un équipement, cliquez sur <strong>« + Nouvel équipement »</strong> et remplissez la fiche :</Step>
+
+      <ScreenMock title="Fiche équipement — EXT-001 Extrudeuse principale PVC">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+          {[
+            { label: 'Code *', value: 'EXT-001' },
+            { label: 'Désignation *', value: 'Extrudeuse principale PVC 160mm' },
+            { label: 'Type', value: 'Extrudeuse' },
+            { label: 'Marque', value: 'Reifenhauser' },
+            { label: 'Modèle', value: 'REILLOY 90' },
+            { label: 'N° de série', value: 'RFH-2023-45872' },
+            { label: 'Date d\'installation', value: '15/03/2023' },
+            { label: 'Emplacement', value: 'Hall A — Ligne 1' },
+            { label: 'Statut', value: 'En service' },
+            { label: 'Criticité', value: 'Haute' },
+          ].map((f) => (
+            <div key={f.label} className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
+              <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm">{f.value}</div>
+            </div>
+          ))}
+        </div>
+      </ScreenMock>
+
+      <SubTitle id="production-equipements-detail">Vue détaillée d'un équipement</SubTitle>
+      <Paragraph>
+        En cliquant sur un équipement, vous accédez à sa <strong>fiche détaillée</strong> qui comprend trois onglets :
+      </Paragraph>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {[
+          { title: 'Informations', desc: 'Toutes les caractéristiques techniques : code, type, marque, modèle, N° série, emplacement, statut, criticité et notes.', color: 'bg-sky-50 border-sky-200 text-sky-700' },
+          { title: 'Plans préventifs', desc: 'Liste des plans de maintenance préventive associés : fréquence, dernier passage, prochain passage.', color: 'bg-amber-50 border-amber-200 text-amber-700' },
+          { title: 'Ordres de travail', desc: 'Historique des ordres de travail maintenance (OTM) récents : type, statut, date, description.', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        ].map((t) => (
+          <Card key={t.title} className={t.color}>
+            <CardContent className="p-4">
+              <p className="font-semibold text-sm mb-1">{t.title}</p>
+              <p className="text-xs opacity-80">{t.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <TipBox type="warning">
+        Un équipement ne peut pas être supprimé s'il a des plans de maintenance actifs ou des ordres de travail en cours. Il faut d'abord supprimer ou terminer les éléments liés.
+      </TipBox>
+
+      {/* ═══ MAINTENANCE INDUSTRIELLE ═══ */}
+      <SubTitle id="production-maintenance">Maintenance industrielle</SubTitle>
+      <Paragraph>
+        Le sous-module Maintenance gère l'ensemble des interventions techniques sur les équipements de production.
+        Il couvre la <strong>maintenance préventive</strong> (planifiée), <strong>corrective</strong> (suite à panne),
+        <strong>conditionnelle</strong> (basée sur l'état) et <strong>améliorative</strong> (optimisation).
+        Chaque intervention est tracée via un Ordre de Travail Maintenance (OTM).
+      </Paragraph>
+
+      <SubTitle id="production-maintenance-types">Types de maintenance</SubTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {[
+          { type: 'Préventive', icon: ClipboardList, desc: 'Interventions planifiées à intervalle régulier pour prévenir les pannes. Basée sur les plans de maintenance.', color: 'bg-sky-50 border-sky-200 text-sky-700' },
+          { type: 'Corrective', icon: Wrench, desc: 'Réparation suite à une panne ou un dysfonctionnement. Objectif : remettre l\'équipement en état de marche.', color: 'bg-red-50 border-red-200 text-red-700' },
+          { type: 'Conditionnelle', icon: Gauge, desc: 'Intervention déclenchée par un indicateur de condition (vibration, température, usure). Maintenance prédictive.', color: 'bg-amber-50 border-amber-200 text-amber-700' },
+          { type: 'Améliorative', icon: TrendingUp, desc: 'Modification ou optimisation d\'un équipement pour améliorer ses performances ou sa fiabilité.', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        ].map((m) => (
+          <Card key={m.type} className={m.color}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <m.icon className="h-5 w-5" />
+                <p className="font-semibold">{m.type}</p>
+              </div>
+              <p className="text-xs opacity-80">{m.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <SubTitle id="production-maintenance-cycle">Cycle de vie d'un OTM</SubTitle>
+      <FlowDiagram steps={[
+        { label: 'Planifiée', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: Circle },
+        { label: 'En cours', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Wrench },
+        { label: 'Attente pièces', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: Clock },
+        { label: 'Terminée', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
+        { label: 'Validée', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: FileCheck },
+      ]} />
+
+      <Paragraph>
+        Un OTM peut aussi être <strong>Annulé</strong> à tout moment avant sa validation. Les transitions de statut
+        sont les suivantes : Démarrer (→ En cours), Terminer (→ Terminée), Attente pièces (→ En attente pièces),
+        Reprendre (→ En cours), Annuler (→ Annulée), Valider (→ Validée).
+      </Paragraph>
+
+      <SubTitle id="production-maintenance-priorites">Priorités des interventions</SubTitle>
+      <div className="flex flex-wrap gap-3 mb-6">
+        {[
+          { label: 'Urgente', desc: 'Arrêt de production, sécurité en jeu', color: 'bg-red-100 text-red-700 border-red-200' },
+          { label: 'Haute', desc: 'Impact significatif sur la production', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+          { label: 'Normale', desc: 'Planifié, pas d\'impact immédiat', color: 'bg-sky-100 text-sky-700 border-sky-200' },
+          { label: 'Basse', desc: 'Peut être reporté sans risque', color: 'bg-gray-100 text-gray-600 border-gray-200' },
+        ].map((p) => (
+          <div key={p.label} className={cn('px-4 py-3 rounded-lg border', p.color)}>
+            <p className="font-semibold text-sm">{p.label}</p>
+            <p className="text-xs mt-1 opacity-80">{p.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <SubTitle id="production-maintenance-creer">Comment créer un ordre de travail (OTM)</SubTitle>
+      <Step num={1}>Accédez à <strong>Production → Maintenance</strong> depuis la barre latérale.</Step>
+      <Step num={2}>Consultez les <strong>cartes récapitulatives</strong> : Total OTM, En cours, Planifiées, En retard.</Step>
+      <Step num={3}>Cliquez sur <strong>« + Nouvel OTM »</strong> et remplissez le formulaire :</Step>
+
+      <ScreenMock title="Nouvel Ordre de Travail Maintenance — OTM-2026-0015">
+        <div className="space-y-4 max-w-2xl">
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: 'Équipement *', value: 'EXT-001 — Extrudeuse principale PVC' },
+              { label: 'Type *', value: 'Préventive' },
+              { label: 'Priorité *', value: 'Normale' },
+              { label: 'Date prévue', value: '20/02/2026' },
+            ].map((f) => (
+              <div key={f.label} className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
+                <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm">{f.value}</div>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Description de l'intervention *</label>
+            <div className="h-16 rounded border bg-muted/50 px-3 flex items-start pt-2 text-sm text-muted-foreground">
+              Remplacement du filtre hydraulique et contrôle des roulements du vis sans fin. Vérification de la température de chauffe.
+            </div>
+          </div>
+        </div>
+      </ScreenMock>
+
+      <SubTitle id="production-maintenance-executer">Exécuter un OTM</SubTitle>
+      <Paragraph>
+        Une fois l'OTM créé, le technicien de maintenance peut le traiter étape par étape :
+      </Paragraph>
+      <Step num={1}>Ouvrez l'OTM et cliquez sur <strong>« Démarrer »</strong> pour passer en statut « En cours ». L'équipement passe automatiquement en statut « En maintenance ».</Step>
+      <Step num={2}>Si des pièces de rechange sont nécessaires, cliquez sur <strong>« Attente pièces »</strong> pour mettre l'OTM en pause.</Step>
+      <Step num={3}>Ajoutez les <strong>pièces consommées</strong> depuis le catalogue produits (filtrer par usage « maintenance »). Marquez chaque pièce comme utilisée après consommation.</Step>
+      <Step num={4}>Lorsque l'intervention est terminée, cliquez sur <strong>« Terminer »</strong> et remplissez le <strong>rapport d'intervention</strong> :</Step>
+
+      <ScreenMock title="Rapport d'intervention — OTM-2026-0015">
+        <div className="space-y-3 max-w-lg">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Rapport d'intervention</label>
+            <div className="h-20 rounded border bg-muted/50 px-3 flex items-start pt-2 text-sm text-muted-foreground">
+              Filtre hydraulique remplacé. Roulements vis sans fin contrôlés, état acceptable. Température de chauffe normale (185°C). Prochain contrôle recommandé dans 3 mois.
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Main d'œuvre (DH)</label>
+              <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm font-mono">450.00</div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Temps d'arrêt (h)</label>
+              <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm font-mono">3.5</div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Perte production (DH)</label>
+              <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm font-mono">2 800.00</div>
+            </div>
+          </div>
+        </div>
+      </ScreenMock>
+
+      <Step num={5}>Cliquez sur <strong>« Valider »</strong> pour confirmer l'OTM. L'équipement repasse en statut « En service ».</Step>
+
+      <TipBox type="success">
+        Les pièces consommées lors de la maintenance génèrent automatiquement des <strong>sorties de stock</strong> avec l'origine « maintenance ». Le stock est donc mis à jour en temps réel.
+      </TipBox>
+
+      <SubTitle id="production-maintenance-pieces">Gestion des pièces de rechange</SubTitle>
+      <Paragraph>
+        Lors d'une intervention, vous pouvez ajouter des pièces de rechange depuis le catalogue produits.
+        Les produits ayant l'usage « maintenance » sont filtrés automatiquement pour faciliter la recherche.
+        Chaque pièce ajoutée peut être marquée comme <strong>« Utilisée »</strong> une fois consommée,
+        ce qui génère une sortie de stock automatique.
+      </Paragraph>
+
+      <TipBox type="info">
+        Pour préparer les pièces de rechange, créez vos produits dans <strong>Stock → Produits</strong> avec le type d'usage « maintenance » (ex: filtres, roulements, courroies, joints, huile hydraulique). Ils seront disponibles dans le sélecteur de pièces de l'OTM.
+      </TipBox>
+
+      <SubTitle id="production-maintenance-kpis">Indicateurs clés de maintenance (KPIs)</SubTitle>
+      <Paragraph>
+        Le module Maintenance fournit des indicateurs essentiels pour évaluer la performance de la politique
+        de maintenance de l'entreprise :
+      </Paragraph>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        {[
+          { kpi: 'MTBF', full: 'Mean Time Between Failures', desc: 'Temps moyen entre deux pannes. Plus il est élevé, plus l\'équipement est fiable.', icon: Timer, color: 'text-emerald-600 bg-emerald-50' },
+          { kpi: 'MTTR', full: 'Mean Time To Repair', desc: 'Temps moyen de réparation. Plus il est faible, plus la maintenance est efficace.', icon: Clock, color: 'text-sky-600 bg-sky-50' },
+          { kpi: 'Taux de disponibilité', full: 'Disponibilité = MTBF / (MTBF + MTTR)', desc: 'Pourcentage du temps où l\'équipement est opérationnel. Objectif : > 95%.', icon: Gauge, color: 'text-amber-600 bg-amber-50' },
+          { kpi: 'Coût maintenance', full: 'Coût total / machine / mois', desc: 'Suivi des dépenses de maintenance par équipement pour optimiser le budget.', icon: Calculator, color: 'text-rose-600 bg-rose-50' },
+          { kpi: 'Taux de maintenance préventive', full: 'OTM préventives / Total OTM', desc: 'Objectif : > 80% de maintenance préventive pour minimiser les pannes imprévues.', icon: TrendingUp, color: 'text-violet-600 bg-violet-50' },
+          { kpi: 'Nb de pannes / mois', full: 'Nombre de pannes par mois', desc: 'Suivi de la fiabilité globale du parc machines.', icon: AlertTriangle, color: 'text-red-600 bg-red-50' },
+        ].map((k) => (
+          <Card key={k.kpi} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', k.color)}>
+                <k.icon className="h-5 w-5" />
+              </div>
+              <p className="font-bold text-sm">{k.kpi}</p>
+              <p className="text-xs text-muted-foreground mb-2">{k.full}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{k.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <SubTitle id="production-maintenance-integration">Intégration avec les autres modules</SubTitle>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {[
+          { module: 'Stock', desc: 'Consommation automatique des pièces de rechange. Sorties de stock avec origine « maintenance ».', color: 'bg-amber-50 border-amber-200 text-amber-700' },
+          { module: 'Production (OF)', desc: 'Alerte quand une machine est en maintenance. Un OF ne peut pas utiliser un équipement indisponible.', color: 'bg-sky-50 border-sky-200 text-sky-700' },
+          { module: 'Achats', desc: 'Les pièces de rechange fréquemment utilisées peuvent être réapprovisionnées via les commandes fournisseurs.', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        ].map((i) => (
+          <Card key={i.module} className={i.color}>
+            <CardContent className="p-4">
+              <p className="font-semibold text-sm mb-1">{i.module}</p>
+              <p className="text-xs opacity-80">{i.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <TipBox type="info">
+        Les ordres de travail maintenance et les équipements sont entièrement sauvegardés dans le système de backup. En cas de restauration, toutes les données de maintenance sont préservées.
+      </TipBox>
+
+      <TipBox type="success">
+        <strong>Bonne pratique :</strong> Mettez en place des plans de maintenance préventive pour tous les équipements à criticité haute. Un bon plan préventif réduit les pannes imprévues de 60 à 80% et prolonge la durée de vie des machines.
       </TipBox>
     </div>
   )
@@ -1672,11 +2137,32 @@ const sectionComponents: Record<string, () => JSX.Element> = {
 /* ─── Main Guide View ─── */
 export default function GuideView() {
   const [activeSection, setActiveSection] = useState('introduction')
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['introduction']))
   const contentRef = useRef<HTMLDivElement>(null)
+
+  const toggleSection = useCallback((id: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
 
   const scrollToSection = useCallback((id: string) => {
     setActiveSection(id)
+    // Auto-expand the parent
+    setExpandedSections(prev => new Set(prev).add(id))
     const el = document.getElementById(`guide-${id}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [])
+
+  const scrollToSub = useCallback((sectionId: string, subId: string) => {
+    setActiveSection(sectionId)
+    setExpandedSections(prev => new Set(prev).add(sectionId))
+    const el = document.getElementById(`${sectionId}-${subId}`)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
@@ -1691,14 +2177,24 @@ export default function GuideView() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            setActiveSection(entry.target.id.replace('guide-', ''))
+            const id = entry.target.id.replace('guide-', '')
+            setActiveSection(id)
+            // Auto-expand the section being viewed
+            setExpandedSections(prev => new Set(prev).add(id))
           }
         })
       },
-      { root: container, threshold: 0.15, rootMargin: '-60px 0px -60% 0px' }
+      { root: container, threshold: 0.1, rootMargin: '-40px 0px -60% 0px' }
     )
 
-    const ids = sections.map((s) => `guide-${s.id}`)
+    // Observe both section headers and sub-items
+    const ids: string[] = []
+    sections.forEach((s) => {
+      ids.push(`guide-${s.id}`)
+      if (s.children) {
+        s.children.forEach((sub) => ids.push(`${s.id}-${sub.id}`))
+      }
+    })
     ids.forEach((id) => {
       const el = document.getElementById(id)
       if (el) observer.observe(el)
@@ -1710,7 +2206,7 @@ export default function GuideView() {
   return (
     <div className="flex flex-col lg:flex-row gap-6 -m-4 md:-m-6 p-4 md:p-6 min-h-full">
       {/* Sidebar Navigation */}
-      <div className="lg:w-72 shrink-0">
+      <div className="lg:w-80 shrink-0">
         <div className="lg:sticky lg:top-6">
           <Card className="mb-4">
             <CardHeader className="pb-3">
@@ -1732,24 +2228,56 @@ export default function GuideView() {
           <Card>
             <CardContent className="p-2">
               <ScrollArea className="max-h-[calc(100vh-240px)]">
-                <nav className="space-y-0.5">
+                <nav className="space-y-0.5 pb-2">
                   {sections.map((section) => {
                     const Icon = section.icon
                     const isActive = activeSection === section.id
+                    const isExpanded = expandedSections.has(section.id)
+                    const hasChildren = section.children && section.children.length > 0
+
                     return (
-                      <button
-                        key={section.id}
-                        onClick={() => scrollToSection(section.id)}
-                        className={cn(
-                          'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors text-left',
-                          isActive
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      <div key={section.id}>
+                        <button
+                          onClick={() => {
+                            if (hasChildren) toggleSection(section.id)
+                            scrollToSection(section.id)
+                          }}
+                          className={cn(
+                            'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors text-left group',
+                            isActive && !isExpanded
+                              ? 'bg-primary text-primary-foreground'
+                              : isActive
+                                ? 'bg-primary/10 text-primary font-medium'
+                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          )}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate flex-1">{section.label}</span>
+                          {hasChildren && (
+                            <ChevronDown className={cn(
+                              'h-3.5 w-3.5 shrink-0 transition-transform duration-200',
+                              isExpanded ? 'rotate-180' : 'rotate-0'
+                            )} />
+                          )}
+                        </button>
+                        {hasChildren && isExpanded && (
+                          <div className="ml-6 mt-0.5 space-y-0.5 border-l border-border/50 pl-2">
+                            {section.children!.map((sub) => (
+                              <button
+                                key={sub.id}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  scrollToSub(section.id, sub.id)
+                                }}
+                                className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-md text-xs transition-colors text-left text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                              >
+                                <ChevronRight className="h-2.5 w-2.5 shrink-0" />
+                                <span className="truncate">{sub.label}</span>
+                              </button>
+                            ))}
+                          </div>
                         )}
-                      >
-                        <Icon className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{section.label}</span>
-                      </button>
+                      </div>
                     )
                   })}
                 </nav>
