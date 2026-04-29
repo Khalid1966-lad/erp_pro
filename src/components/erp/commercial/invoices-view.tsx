@@ -607,9 +607,22 @@ export default function InvoicesView() {
                         {format(new Date(invoice.dueDate), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className={statusColors[invoice.status] || ''}>
-                          {statusLabels[invoice.status] || invoice.status}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="secondary" className={statusColors[invoice.status] || ''}>
+                            {statusLabels[invoice.status] || invoice.status}
+                          </Badge>
+                          {invoice.payments.length > 0 && (() => {
+                            const codes = invoice.payments
+                              .filter(p => p.code)
+                              .sort((a, b) => a.date.localeCompare(b.date))
+                              .map(p => p.code!)
+                            return codes.length > 0 ? (
+                              <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-1.5 py-0 text-[10px] shrink-0">
+                                {codes.join('|')}
+                              </Badge>
+                            ) : null
+                          })()}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right hidden sm:table-cell font-medium">
                         {formatCurrency(invoice.totalHT)}
@@ -773,8 +786,17 @@ export default function InvoicesView() {
                   <p className="font-medium">{formatCurrency(eq.shippingCost)}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
-                  <span className="text-muted-foreground text-xs">Nb Lignes</span>
-                  <p className="font-medium">{eq.lines.length}</p>
+                  <span className="text-muted-foreground text-xs">Code règlement</span>
+                  <p className="font-medium">
+                    {eq.payments.length > 0 && (() => {
+                      const codes = eq.payments.filter(p => p.code).map(p => p.code!).join('|')
+                      return codes ? (
+                        <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-2 py-0 text-xs">
+                          {codes}
+                        </Badge>
+                      ) : '—'
+                    })()}
+                  </p>
                 </div>
               </div>
 
