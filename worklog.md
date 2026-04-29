@@ -1897,3 +1897,58 @@ Stage Summary:
 - Existing detail dialog still works via "Ouvrir" button and Eye icon
 - Existing action buttons (dropdown menu, Eye) still have stopPropagation
 - No existing code removed or changed beyond specified modifications
+
+---
+Task ID: 3
+Agent: main
+Task: Add Chantiers (Sites de livraison) feature for clients and delivery notes
+
+Work Log:
+- Updated `prisma/schema.prisma`:
+  - Added `Chantier` model (id, clientId, nomProjet, adresse, ville, codePostal?, provincePrefecture?, responsableNom, responsableFonction?, telephone?, gsm?, notes?, actif) mapped to `chantiers` table
+  - Added `chantierId` (optional FK) to `DeliveryNote` model with relation to Chantier
+  - Added `chantiers` relation to `Client` model
+  - Ran `bun run db:push` successfully
+- Created `/api/clients/[id]/chantiers/route.ts` — Full CRUD API:
+  - GET: list chantiers for a client (with `actif` filter, default true)
+  - POST: create chantier with Zod validation
+  - PUT: update chantier fields
+  - DELETE: soft-delete (deactivate) chantier
+- Updated `/api/delivery-notes/route.ts`:
+  - Added `chantierId` to `createFromOrderSchema` and `createStandaloneSchema`
+  - Added `chantier` to `deliveryNoteInclude` (select: nomProjet, adresse, ville, codePostal, provincePrefecture, responsableNom, responsableFonction, telephone, gsm)
+  - Added `chantierId` filter to GET query params
+  - Added `chantierId` to both create handlers (order mode and standalone mode)
+- Updated `clients-view.tsx`:
+  - Added `Chantier` interface
+  - Added `ChantiersTab` component: list of chantiers as cards with CRUD (create/edit via dialog, soft-delete via AlertDialog)
+  - Added `ChantierFormDialog` component: dialog with fields for nomProjet, adresse, ville, codePostal, provincePrefecture, responsableNom, responsableFonction, telephone, gsm, notes, actif (switch in edit mode)
+  - Added "Chantiers" tab trigger in ClientDetailView tabs (after Avoirs, before Relevé de compte)
+  - Added ChantierFormDialog invocation in ClientDetailView
+  - Added `HardHat`, `MapPinned` icon imports
+- Updated `delivery-notes-view.tsx`:
+  - Added `ChantierOption` interface and `chantier` field to `DeliveryNote` interface
+  - Added filter states: `clientFilter`, `chantierFilter`, `clientOptionsForFilter`, `chantierOptionsForFilter`
+  - Added create dialog states: `selectedChantierId`, `chantierOptions`, `createDeliveryType`
+  - Added `effectiveCreateClientId` useMemo for deriving client from order or standalone selection
+  - Updated `fetchDeliveryNotes` to include clientId and chantierId query params
+  - Added useEffects to fetch client dropdown options and chantier options for filters
+  - Added Client filter Select and conditional Chantier filter Select in filters section
+  - Added "Chantier" column in table (after Type column) with HardHat icon
+  - Added "Lieu de livraison" section in create dialog with 3 options: Adresse principale, Chantier existant, Aucun
+  - Added chantier info in inline detail panel (amber card with name, address, responsable)
+  - Added chantier details in detail dialog info grid
+  - Updated print sections to show chantier delivery address when linked
+  - Included `chantierId` in create payloads for both order and standalone modes
+- Version bumped to 1.3.0 (package.json + version.ts)
+
+Stage Summary:
+- New `Chantier` model allows clients to have multiple delivery sites (construction sites)
+- Each chantier has: project name, full address, responsible person (name + function), phone numbers
+- Chantiers are managed via a new tab in the client detail view with full CRUD
+- Delivery notes can optionally be linked to a chantier (for BL sans chantier = vente comptoir)
+- Delivery notes list can be filtered by client and by chantier (cross-filtering)
+- Create BL dialog includes "Lieu de livraison" selection (3 options)
+- BL printing shows chantier address when linked
+- Soft-delete pattern: deactivated chantiers remain in history but hidden from selection
+- ESLint passes cleanly
