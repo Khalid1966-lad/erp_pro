@@ -28,6 +28,7 @@ import {
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 interface Product {
   id: string
@@ -280,6 +281,7 @@ export default function InventoryView() {
           <Badge variant="secondary">{total}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="stock" sub="inventaires" />
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1) }}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Statut" />

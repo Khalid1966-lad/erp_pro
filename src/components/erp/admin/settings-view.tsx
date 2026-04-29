@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { APP_VERSION, APP_NAME, BUILD_DATE } from '@/lib/version'
 import { toast } from 'sonner'
 import BackupSection from './backup-section'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 // ─── Types ───
 
@@ -679,7 +680,9 @@ export default function SettingsView() {
             </span>
           )}
         </div>
-        {showSaveButtons && (
+        <div className="flex items-center gap-2">
+          <HelpButton section="administration" sub="parametres" />
+          {showSaveButtons && (
           <div className="flex gap-2">
             {hasChanges && (
               <Button variant="outline" size="sm" onClick={handleReset}>
@@ -693,6 +696,7 @@ export default function SettingsView() {
             </Button>
           </div>
         )}
+        </div>
       </div>
 
       {/* Sidebar + Content Layout */}

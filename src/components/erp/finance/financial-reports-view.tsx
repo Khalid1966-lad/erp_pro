@@ -2,13 +2,17 @@
 
 import { BarChart3 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 export default function FinancialReportsView() {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <BarChart3 className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">États financiers</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">États financiers</h2>
+        </div>
+        <HelpButton section="finance" sub="etats-financiers" />
       </div>
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-16 gap-4">

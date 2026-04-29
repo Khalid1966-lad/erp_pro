@@ -28,6 +28,7 @@ import {
   ChevronLeft, ChevronRight, CheckSquare, Square, ArrowDownToLine, ArrowUpFromLine,
   Eye, Building2, Wallet
 } from 'lucide-react'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -723,6 +724,7 @@ export default function PaymentsView() {
           <Badge variant="secondary">{filteredPayments.length}</Badge>
         </div>
         <div className="flex flex-wrap gap-2">
+          <HelpButton section="finance" sub="paiements" />
           <Button onClick={() => openWizard('client_payment')} size="sm" className="bg-green-600 hover:bg-green-700 text-white">
             <ArrowDownToLine className="h-4 w-4 mr-1" />
             Paiement client

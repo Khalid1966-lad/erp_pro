@@ -24,6 +24,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import {
   Wrench, Plus, Eye, RefreshCw, Search, Play, CheckCircle, XCircle, Clock,
   AlertTriangle, Package, FileText, Loader2, Pause, RotateCcw
@@ -563,6 +564,7 @@ export default function MaintenanceView() {
           <Badge variant="secondary">{total}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="production" sub="maintenance" />
           <Button variant="outline" size="sm" onClick={fetchOrdres} disabled={loading}>
             <RefreshCw className={cn('h-4 w-4 mr-1', loading && 'animate-spin')} />
             Actualiser

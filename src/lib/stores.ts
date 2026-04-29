@@ -78,17 +78,29 @@ export type ViewId =
 export interface NavState {
   currentView: ViewId
   sidebarOpen: boolean
+  helpTarget: { section: string; sub?: string } | null
+  previousView: ViewId | null
   setCurrentView: (view: ViewId) => void
   toggleSidebar: () => void
   setSidebarOpen: (open: boolean) => void
+  openHelp: (section: string, sub?: string) => void
+  clearHelp: () => void
 }
 
 export const useNavStore = create<NavState>()((set) => ({
   currentView: 'dashboard',
   sidebarOpen: true,
-  setCurrentView: (view) => set({ currentView: view }),
+  helpTarget: null,
+  previousView: null,
+  setCurrentView: (view) => set((s) => ({ currentView: view, previousView: s.currentView === 'guide' ? s.previousView : s.currentView })),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-  setSidebarOpen: (open) => set({ sidebarOpen: open })
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  openHelp: (section, sub) => set((s) => ({
+    helpTarget: { section, sub },
+    previousView: s.currentView === 'guide' ? s.previousView : s.currentView,
+    currentView: 'guide',
+  })),
+  clearHelp: () => set({ helpTarget: null }),
 }))
 
 // ═══ Notification Store ═══

@@ -43,6 +43,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { Network, Plus, Trash2, RefreshCw, Search } from 'lucide-react'
 import { useMemo } from 'react'
 import { format } from 'date-fns'
@@ -220,7 +221,8 @@ export default function BomView() {
                 />
               </div>
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
+              <HelpButton section="production" sub="nomenclatures" />
               <Button variant="outline" size="icon" onClick={fetchProducts} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>

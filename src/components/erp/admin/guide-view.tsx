@@ -18,6 +18,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
+import { useNavStore } from '@/lib/stores'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 
 /* ─── Types ─── */
 interface SubItem {
@@ -2139,6 +2142,25 @@ export default function GuideView() {
   const [activeSection, setActiveSection] = useState('introduction')
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['introduction']))
   const contentRef = useRef<HTMLDivElement>(null)
+  const helpTarget = useNavStore((s) => s.helpTarget)
+  const previousView = useNavStore((s) => s.previousView)
+  const { setCurrentView, clearHelp } = useNavStore()
+
+  // Handle helpTarget: navigate to the right section/sub on mount
+  useEffect(() => {
+    if (!helpTarget) return
+    const { section, sub } = helpTarget
+    const timer = setTimeout(() => {
+      if (sub) {
+        const el = document.getElementById(`${section}-${sub}`)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } else {
+        const el = document.getElementById(`guide-${section}`)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [helpTarget])
 
   const scrollToSection = useCallback((id: string, forceExpand = true) => {
     setActiveSection(id)
@@ -2316,6 +2338,20 @@ export default function GuideView() {
                 Maroc
               </Badge>
             </div>
+            {/* Back button when arriving from help */}
+            {previousView && previousView !== 'guide' && (
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { clearHelp(); setCurrentView(previousView) }}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Retour
+                </Button>
+              </div>
+            )}
           </div>
 
           <Separator />

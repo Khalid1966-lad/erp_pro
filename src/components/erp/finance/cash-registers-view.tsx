@@ -25,6 +25,7 @@ import {
 import {
   Plus, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown
 } from 'lucide-react'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -239,10 +240,13 @@ export default function CashRegistersView() {
           <h2 className="text-lg font-semibold">Caisses</h2>
           <Badge variant="secondary">{registers.length}</Badge>
         </div>
-        <Button onClick={openCreateRegister} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Nouvelle caisse
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton section="finance" sub="caisses" />
+          <Button onClick={openCreateRegister} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Nouvelle caisse
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}

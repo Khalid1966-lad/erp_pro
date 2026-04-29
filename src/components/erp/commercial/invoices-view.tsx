@@ -37,6 +37,7 @@ import { numberToFrenchWords } from '@/lib/number-to-words'
 import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -511,10 +512,13 @@ export default function InvoicesView() {
           <h2 className="text-lg font-semibold">Factures</h2>
           <Badge variant="secondary">{invoices.length}</Badge>
         </div>
-        <Button onClick={openCreate} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Nouvelle facture
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton section="ventes" sub="factures-tva" />
+          <Button onClick={openCreate} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Nouvelle facture
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filter */}

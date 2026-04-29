@@ -27,6 +27,7 @@ import { PrintHeader } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { printDocument, fmtDate as fmtDateP } from '@/lib/print-utils'
 
 // ── Types ──────────────────────────────────────────────
@@ -284,9 +285,11 @@ export default function PriceRequestsView() {
             </SelectContent>
           </Select>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+        <div className="flex items-center gap-2">
+          <HelpButton section="achats" sub="demandes-prix" />
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
               Nouvelle demande
             </Button>
@@ -373,7 +376,8 @@ export default function PriceRequestsView() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Detail dialog */}

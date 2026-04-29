@@ -44,6 +44,7 @@ import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/stores'
 import { printDocument } from '@/lib/print-utils'
 import { DocDetailDialog } from './doc-detail-dialog'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog'
@@ -524,6 +525,7 @@ function ClientListView({
           <Badge variant="secondary">{filteredCount}{filteredCount !== total ? `/${total}` : ''}</Badge>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <HelpButton section="ventes" sub="clients" />
           <Button variant="outline" size="sm" onClick={onRefresh}>
             <RefreshCw className="h-4 w-4" />
           </Button>

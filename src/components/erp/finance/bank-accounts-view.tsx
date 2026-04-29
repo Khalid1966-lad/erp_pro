@@ -26,6 +26,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
   Plus, Edit, Trash2, Landmark, CheckCircle2, Circle, ArrowUpRight, ArrowDownLeft, Scale
 } from 'lucide-react'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -304,10 +305,13 @@ export default function BankAccountsView() {
           <h2 className="text-lg font-semibold">Comptes bancaires</h2>
           <Badge variant="secondary">{accounts.length}</Badge>
         </div>
-        <Button onClick={openCreateAccount} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Nouveau compte
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton section="finance" sub="banque" />
+          <Button onClick={openCreateAccount} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Nouveau compte
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}

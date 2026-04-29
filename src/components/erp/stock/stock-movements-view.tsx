@@ -21,6 +21,7 @@ import { ArrowDownLeft, ArrowUpRight, RefreshCw, SlidersHorizontal, Search, Pack
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 interface StockMovement {
   id: string
@@ -190,6 +191,7 @@ export default function StockMovementsView() {
           <Badge variant="secondary">{total}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="stock" sub="mouvements" />
           <Button variant="outline" size="sm" onClick={fetchMovements} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Actualiser

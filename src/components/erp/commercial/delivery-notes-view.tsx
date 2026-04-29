@@ -33,6 +33,7 @@ import { PrintHeader } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 // ─── Helpers ───
 
@@ -691,6 +692,7 @@ export default function DeliveryNotesView() {
           <Badge variant="secondary">{deliveryNotes.length}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="ventes" sub="bons-livraison" />
           <Button variant="outline" size="sm" onClick={fetchDeliveryNotes}>
             <RefreshCw className="h-4 w-4 mr-1" />
             Actualiser

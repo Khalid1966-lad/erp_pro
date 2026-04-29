@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select'
 import { ProductCombobox } from '@/components/erp/shared/product-combobox'
 import LotsView, { lotStatutLabels, lotStatutColors } from '@/components/erp/production/lots-view'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import {
   Factory, Plus, Eye, RefreshCw, Search, Calendar, ChevronLeft, ChevronRight,
   Play, CheckCircle2, XCircle, Lock, FileEdit, Clock, Package, Trash2, ArrowRight,
@@ -569,6 +570,7 @@ export default function WorkOrdersView() {
           <Badge variant="secondary">{total}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="production" sub="ordres-fabrication" />
           <Button variant="outline" size="sm" onClick={fetchWorkOrders} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Actualiser

@@ -26,6 +26,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Layers, Eye
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -364,6 +365,7 @@ export default function ProductsView() {
           <Badge variant="secondary">{total.toLocaleString('fr-FR')}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="ventes" sub="produits" />
           <Button variant="outline" size="sm" onClick={() => { setPage(1); setFetchKey(k => k + 1) }} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>

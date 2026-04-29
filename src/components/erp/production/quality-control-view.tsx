@@ -22,6 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import {
   ShieldCheck, Plus, Eye, RefreshCw, Trash2, ChevronLeft, ChevronRight,
   CheckCircle2, XCircle, AlertTriangle, Play, FileEdit
@@ -486,6 +487,7 @@ export default function QualityControlView() {
           <Badge variant="secondary">{total}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="production" sub="controle-qualite" />
           <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Actualiser

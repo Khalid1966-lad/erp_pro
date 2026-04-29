@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label'
 import {
   Shield, ChevronDown, ChevronRight, Search, User, Globe, Filter, Clock
 } from 'lucide-react'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -223,6 +224,7 @@ export default function AuditLogView() {
           <h2 className="text-lg font-semibold">Journal d&apos;audit</h2>
           <Badge variant="secondary">{filteredLogs.length}</Badge>
         </div>
+        <HelpButton section="administration" sub="journal-audit" />
       </div>
 
       {/* Stats Cards */}

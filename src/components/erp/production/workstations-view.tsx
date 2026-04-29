@@ -19,6 +19,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import {
   Factory, Plus, Edit, Trash2, Search, RefreshCw, Cpu, Gauge
 } from 'lucide-react'
@@ -166,6 +167,7 @@ export default function WorkstationsView() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="production" sub="postes-travail" />
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input

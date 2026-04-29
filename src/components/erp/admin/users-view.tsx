@@ -31,6 +31,7 @@ import {
   Phone, Mail, Clock, Calendar, Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, Camera
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 // ─── Error boundary to prevent silent crashes ───
 class UsersErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -367,6 +368,7 @@ function UsersViewInner() {
           <Badge variant="secondary">{totalUsers}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="administration" sub="utilisateurs" />
           <Button variant="outline" size="sm" onClick={fetchUsers}>
             <RefreshCw className="h-4 w-4" />
           </Button>

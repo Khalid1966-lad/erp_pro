@@ -39,6 +39,7 @@ import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -444,10 +445,13 @@ export default function QuotesView() {
           <h2 className="text-lg font-semibold">Devis</h2>
           <Badge variant="secondary">{quotes.length}</Badge>
         </div>
-        <Button onClick={openCreate} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Nouveau devis
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton section="ventes" sub="devis" />
+          <Button onClick={openCreate} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Nouveau devis
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filter */}

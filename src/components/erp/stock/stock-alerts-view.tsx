@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, PackageX, ArrowDownRight, RefreshCw, Search, SlidersHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 interface ProductAlert {
   id: string
@@ -102,10 +103,13 @@ export default function StockAlertsView() {
           <h2 className="text-lg font-semibold">Alertes de stock</h2>
           <Badge variant="secondary">{alerts.length}</Badge>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchAlerts} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Actualiser
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton section="stock" sub="alertes-stock" />
+          <Button variant="outline" size="sm" onClick={fetchAlerts} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}

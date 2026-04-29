@@ -24,6 +24,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { ProductCombobox } from '@/components/erp/shared/product-combobox'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import {
   Layers, Plus, Eye, RefreshCw, Search, Lock, Unlock, Package, Trash2,
   ArrowRight, ArrowDown, ArrowUp, RotateCcw, MinusCircle, AlertTriangle, Loader2
@@ -384,6 +385,7 @@ export default function LotsView({ embedded = false }: LotsViewProps) {
           <Badge variant="secondary">{total}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="stock" sub="lots-stock" />
           <Button variant="outline" size="sm" onClick={fetchLots} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Actualiser

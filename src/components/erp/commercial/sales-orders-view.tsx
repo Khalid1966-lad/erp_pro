@@ -38,6 +38,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -488,10 +489,13 @@ export default function SalesOrdersView() {
           <h2 className="text-lg font-semibold">Commandes clients</h2>
           <Badge variant="secondary">{orders.length}</Badge>
         </div>
-        <Button onClick={openCreate} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Nouvelle commande
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton section="ventes" sub="commandes" />
+          <Button onClick={openCreate} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Nouvelle commande
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filter */}

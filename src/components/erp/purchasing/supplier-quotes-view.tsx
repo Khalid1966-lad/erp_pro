@@ -28,6 +28,7 @@ import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 
@@ -329,9 +330,11 @@ export default function SupplierQuotesView() {
             </SelectContent>
           </Select>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+        <div className="flex items-center gap-2">
+          <HelpButton section="achats" sub="devis-fournisseurs" />
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
               Nouveau devis
             </Button>
@@ -481,7 +484,8 @@ export default function SupplierQuotesView() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Detail dialog */}

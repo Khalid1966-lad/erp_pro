@@ -20,6 +20,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -788,10 +789,12 @@ export default function MessagesView() {
                   : 'Aucune conversation'}
               </p>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
+            <div className="flex items-center gap-1">
+              <HelpButton section="communication" sub="messagerie" />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
                     size="icon"
                     variant="ghost"
                     className="h-9 w-9"

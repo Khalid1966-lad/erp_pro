@@ -21,6 +21,7 @@ import {
   FileText, Landmark, Search, Clock, CheckCircle2, XCircle, ArrowRight,
   AlertTriangle, Send
 } from 'lucide-react'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -255,6 +256,7 @@ export default function EffetsView() {
           <h2 className="text-lg font-semibold">Chèques & Effets</h2>
           <Badge variant="secondary">{filteredEffets.length}</Badge>
         </div>
+        <HelpButton section="finance" sub="cheques-effets" />
       </div>
 
       {/* Summary Cards */}

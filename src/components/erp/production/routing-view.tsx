@@ -23,6 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { ProductCombobox } from '@/components/erp/shared/product-combobox'
+import { HelpButton } from '@/components/erp/shared/help-button'
 import {
   GitBranch, Plus, Trash2, Edit, ArrowUp, ArrowDown, RefreshCw, GripVertical, Clock, Search, Package
 } from 'lucide-react'
@@ -288,6 +289,7 @@ export default function RoutingView() {
               </div>
             </div>
             <div className="flex items-end gap-2">
+              <HelpButton section="production" sub="gammes" />
               <Button variant="outline" size="icon" onClick={() => { fetchProducts(); fetchSteps(selectedProductId) }} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>

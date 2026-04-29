@@ -23,6 +23,7 @@ import {
 import { Plus, Search, Edit, Trash2, Star, Phone, Mail, Building2, Eye, ArrowUpDown, AlertTriangle } from 'lucide-react'
 import SupplierDetailView from './supplier-detail-view'
 import { toast } from 'sonner'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 // ── Types ──────────────────────────────────────────────
 interface Supplier {
@@ -219,9 +220,11 @@ export default function SuppliersView() {
             className="pl-9"
           />
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}>
+        <div className="flex items-center gap-2">
+          <HelpButton section="achats" sub="fournisseurs" />
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />
               Nouveau fournisseur
             </Button>
@@ -308,7 +311,8 @@ export default function SuppliersView() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filter Buttons */}

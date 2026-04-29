@@ -38,6 +38,7 @@ import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
+import { HelpButton } from '@/components/erp/shared/help-button'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -477,6 +478,7 @@ export default function PreparationsView() {
           <Badge variant="secondary">{preparations.length}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton section="ventes" sub="preparations" />
           <Button variant="outline" size="sm" onClick={fetchPreparations}>
             <RefreshCw className="h-4 w-4 mr-1" />
             Actualiser
