@@ -1450,3 +1450,23 @@ Stage Summary:
 - Navigation menu now has 12 parent sections with 56 expandable sub-items, scrollable via ScrollArea
 - Footer references remain dynamic via APP_VERSION
 - Version 1.2.6 confirmed, BUILD_DATE updated to 2025-07-14
+---
+Task ID: 1
+Agent: Main Agent
+Task: Add Mind It collaboration signature to GEMAPLAST brochure
+
+Work Log:
+- Read current brochure HTML (955 lines, 10 pages)
+- Updated cover page signature: added "en collaboration avec Mind It" between Jazel Web Agency and contact info
+- Updated all 9 page footers: changed from "Par Jazel Web Agency" to "Par Jazel Web Agency & Mind It" with both emails
+- Updated last page signature box: added Mind It avatar (MI, purple), description "Conseil & Solutions Technologiques", contact@mindit.ma
+- Created output/brochure/generate-pdf.js (Puppeteer script)
+- Installed puppeteer and Chrome browser
+- Generated PDF: 607 KB, ~15 pages
+- Copied PDF to public/GEMAPLAST_ERP_PRO_Brochure.pdf
+- Pushed commit 4c4607d to GitHub
+
+Stage Summary:
+- Brochure now signed by both Jazel Web Agency and Mind It (collaboration)
+- Contact info: contact@jazelwebagency.com +212 6 62 42 58 90 | contact@mindit.ma
+- PDF available at /api/brochure/download and public/GEMAPLAST_ERP_PRO_Brochure.pdf
