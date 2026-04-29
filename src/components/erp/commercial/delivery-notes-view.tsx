@@ -256,6 +256,12 @@ export default function DeliveryNotesView() {
   const [saving, setSaving] = useState(false)
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
 
+  // Edit form - delivery address
+  const [editDeliveryType, setEditDeliveryType] = useState<string>('none')
+  const [editChantierId, setEditChantierId] = useState<string>('')
+  const [editChantierOptions, setEditChantierOptions] = useState<ChantierOption[]>([])
+  const [editManualDeliveryAddress, setEditManualDeliveryAddress] = useState('')
+
   // Chantier filters
   const [clientFilter, setClientFilter] = useState<string>('')
   const [chantierFilter, setChantierFilter] = useState<string>('')
@@ -642,7 +648,7 @@ export default function DeliveryNotesView() {
 
   // ─── Edit BL ───
 
-  const openEditDialog = (note: DeliveryNote) => {
+  const openEditDialog = async (note: DeliveryNote) => {
     if (note.status !== 'draft') {
       toast.error('Seul un brouillon peut être modifié')
       return
@@ -652,6 +658,31 @@ export default function DeliveryNotesView() {
     setEditVehiclePlate(note.vehiclePlate || '')
     setEditNotes(note.notes || '')
     setEditPlannedDate(note.plannedDate ? format(new Date(note.plannedDate), 'yyyy-MM-dd') : '')
+
+    // Auto-detect current delivery address mode
+    if (note.chantier?.id) {
+      setEditDeliveryType('chantier')
+      setEditChantierId(note.chantier.id)
+      setEditManualDeliveryAddress('')
+    } else if (note.deliveryAddress) {
+      setEditDeliveryType('manual')
+      setEditManualDeliveryAddress(note.deliveryAddress)
+      setEditChantierId('')
+    } else {
+      setEditDeliveryType('none')
+      setEditChantierId('')
+      setEditManualDeliveryAddress('')
+    }
+
+    // Fetch chantiers for this client
+    setEditChantierOptions([])
+    try {
+      const data = await api.get<{ chantiers: ChantierOption[] }>(`/clients/${note.client.id}/chantiers`)
+      setEditChantierOptions(data.chantiers || [])
+    } catch {
+      setEditChantierOptions([])
+    }
+
     setEditOpen(true)
   }
 
@@ -659,12 +690,19 @@ export default function DeliveryNotesView() {
     if (!selectedNote) return
     try {
       setSaving(true)
+      if (editDeliveryType === 'manual' && !editManualDeliveryAddress.trim()) {
+        toast.error('Veuillez saisir l\'adresse de livraison')
+        setSaving(false)
+        return
+      }
       await api.put('/delivery-notes', {
         id: selectedNote.id,
         transporteur: editTransporteur || null,
         vehiclePlate: editVehiclePlate || null,
         notes: editNotes || null,
         plannedDate: editPlannedDate || undefined,
+        chantierId: editDeliveryType === 'chantier' ? editChantierId : null,
+        deliveryAddress: editDeliveryType === 'manual' ? editManualDeliveryAddress : null,
       })
       toast.success(`BL ${selectedNote.number} modifié`)
       setEditOpen(false)
@@ -1828,6 +1866,108 @@ export default function DeliveryNotesView() {
                 value={editPlannedDate}
                 onChange={(e) => setEditPlannedDate(e.target.value)}
               />
+            </div>
+
+            {/* Adresse de livraison */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <MapPinned className="h-3.5 w-3.5" />
+                Adresse de livraison
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setEditDeliveryType('principal'); setEditChantierId(''); setEditManualDeliveryAddress('') }}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm ${
+                    editDeliveryType === 'principal'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${editDeliveryType === 'principal' ? 'border-primary' : 'border-muted-foreground'}`}>
+                    {editDeliveryType === 'principal' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                  </div>
+                  Adresse principale
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEditDeliveryType('chantier'); setEditManualDeliveryAddress('') }}
+                  disabled={editChantierOptions.length === 0}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm disabled:opacity-50 ${
+                    editDeliveryType === 'chantier'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${editDeliveryType === 'chantier' ? 'border-primary' : 'border-muted-foreground'}`}>
+                    {editDeliveryType === 'chantier' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                  </div>
+                  <HardHat className="h-4 w-4 shrink-0" />
+                  Chantier existant
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEditDeliveryType('manual'); setEditChantierId('') }}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm ${
+                    editDeliveryType === 'manual'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${editDeliveryType === 'manual' ? 'border-primary' : 'border-muted-foreground'}`}>
+                    {editDeliveryType === 'manual' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                  </div>
+                  <MapPinned className="h-4 w-4 shrink-0" />
+                  Autre adresse
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEditDeliveryType('none'); setEditChantierId(''); setEditManualDeliveryAddress('') }}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm ${
+                    editDeliveryType === 'none'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${editDeliveryType === 'none' ? 'border-primary' : 'border-muted-foreground'}`}>
+                    {editDeliveryType === 'none' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                  </div>
+                  Aucun
+                </button>
+              </div>
+              {editDeliveryType === 'chantier' && (
+                <Select value={editChantierId} onValueChange={setEditChantierId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un chantier..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {editChantierOptions.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{c.nomProjet}</span>
+                          <span className="text-xs text-muted-foreground">{c.adresse}, {c.ville}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {editDeliveryType === 'manual' && (
+                <div className="space-y-2 mt-2">
+                  <Label>Adresse de livraison <span className="text-destructive">*</span></Label>
+                  <Textarea
+                    placeholder="Saisissez l'adresse de livraison complète..."
+                    value={editManualDeliveryAddress}
+                    onChange={(e) => setEditManualDeliveryAddress(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              )}
+              {editDeliveryType === 'principal' && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Le BL sera livré à l'adresse principale du client.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

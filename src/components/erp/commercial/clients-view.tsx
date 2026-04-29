@@ -2821,6 +2821,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
   const [chantiersLoading, setChantiersLoading] = useState(true)
   const [chantierDialog, setChantierDialog] = useState<Chantier | null>(null)
   const [chantierFormMode, setChantierFormMode] = useState<'create' | 'edit'>('create')
+  const [showChantierDialog, setShowChantierDialog] = useState(false)
 
   // Document detail dialog state
   const [docDialog, setDocDialog] = useState<{ type: 'quote' | 'order' | 'deliveryNote' | 'invoice' | 'creditNote'; id: string } | null>(null)
@@ -3195,6 +3196,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
             onOpenDialog={(chantier, mode) => {
               setChantierDialog(chantier)
               setChantierFormMode(mode)
+              setShowChantierDialog(true)
             }}
           />
         </TabsContent>
@@ -3216,10 +3218,11 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
         clientId={client.id}
         chantier={chantierDialog}
         mode={chantierFormMode}
-        open={!!chantierDialog}
+        open={showChantierDialog}
         onOpenChange={(open) => {
           if (!open) {
             setChantierDialog(null)
+            setShowChantierDialog(false)
             // Re-fetch chantiers after dialog closes
             setChantiersLoading(true)
             api.get<{ chantiers: Chantier[] }>(`/clients/${client.id}/chantiers`)

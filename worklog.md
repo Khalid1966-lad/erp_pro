@@ -1,5 +1,56 @@
 ---
 Task ID: 2
+Agent: bl-address-edit
+Task: Add manual delivery address editing to BL edit dialog
+
+Work Log:
+- Read `src/components/erp/commercial/delivery-notes-view.tsx` to understand existing structure
+- Analyzed create dialog's 4-mode delivery address pattern (principal, chantier, manual, none) using radio-style buttons
+- Read `src/app/api/delivery-notes/route.ts` PUT handler — confirmed it already supports `updateData` spread which includes `chantierId` and `deliveryAddress`
+- No API changes needed — the existing PUT handler at line 515-517 uses `data: updateData` which passes through any extra fields
+- Added 4 new state variables for edit delivery address: `editDeliveryType`, `editChantierId`, `editChantierOptions`, `editManualDeliveryAddress`
+- Modified `openEditDialog` to be async: auto-detects current mode from existing data (chantier.id → 'chantier', deliveryAddress → 'manual', else → 'none'), fetches client's chantiers via `/api/clients/[clientId]/chantiers`
+- Added full "Adresse de livraison" section to edit dialog UI: 4 radio-style buttons matching create dialog pattern, conditional chantier dropdown, conditional manual address textarea, info text for principal mode
+- Updated `handleEdit` to validate manual address, send `chantierId` and `deliveryAddress` based on selected mode (null for non-matching modes)
+- Verified: TypeScript compilation passes with no new errors in modified file
+
+Stage Summary:
+- Edit dialog for delivery notes now supports changing delivery address (4 modes: Adresse principale, Chantier existant, Autre adresse, Aucun)
+- Auto-detects current delivery mode when opening edit dialog
+- Fetches client's chantiers on edit dialog open for chantier selection
+- API already supported the fields via updateData spread — no backend changes required
+- File changed: src/components/erp/commercial/delivery-notes-view.tsx (state variables, openEditDialog, handleEdit, edit dialog JSX)
+
+---
+Task ID: 1
+Agent: fix-chantier-button
+Task: Fix Nouveau Chantier button in client detail view
+
+Work Log:
+- Read `src/components/erp/commercial/clients-view.tsx` (3243 lines) fully
+- Identified root cause: `ChantierFormDialog` open prop was `open={!!chantierDialog}`, but when clicking "Nouveau chantier", `onOpenDialog(null, 'create')` sets `chantierDialog` to `null`, so `!!null === false` — dialog never opens for new chantiers
+- Edit button worked because it passed a Chantier object (truthy) via `onOpenDialog(c, 'edit')`
+- Fix: Added separate `showChantierDialog` boolean state (`useState(false)`)
+- Updated `onOpenDialog` handler to call `setShowChantierDialog(true)` alongside existing setters
+- Changed dialog `open` prop from `!!chantierDialog` to `showChantierDialog`
+- Updated `onOpenChange` close handler to also call `setShowChantierDialog(false)`
+- Verified TypeScript compilation: no new errors in modified file (all errors are pre-existing in seed.ts, examples, etc.)
+- Read `src/components/erp/commercial/delivery-notes-view.tsx` (2245 lines) for next task context:
+  - DeliveryNote interface has `chantier?: ChantierOption | null` and `deliveryAddress?: string | null`
+  - Create dialog already supports 4 delivery address modes: principal, chantier, manual, none
+  - Edit dialog (draft only) does NOT include address editing — only plannedDate, transporteur, vehiclePlate, notes
+  - Detail dialog displays chantier address or manual deliveryAddress read-only
+  - `manualDeliveryAddress` state exists for create flow; no equivalent for edit flow
+
+Stage Summary:
+- Nouveau Chantier button now correctly opens the chantier creation dialog
+- Edit button on existing chantier cards continues to work (pre-filled form)
+- Root cause was a single-line logic error: using `!!chantierDialog` as open guard while setting it to null for creation
+- File changed: src/components/erp/commercial/clients-view.tsx (3 edits: new state, handler update, dialog open prop)
+- No new TypeScript errors introduced
+
+---
+Task ID: 2
 Agent: main
 Task: Create full "Bons de retour clients" (Customer Returns) module for GEMA ERP Pro
 
