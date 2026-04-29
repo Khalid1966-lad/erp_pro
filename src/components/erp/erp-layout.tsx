@@ -319,7 +319,7 @@ function SidebarContent() {
                                 'shrink-0 transition-colors',
                                 isActive
                                   ? 'text-primary'
-                                  : item.color
+                                  : 'text-black dark:text-white'
                               )}>
                                 {item.icon}
                               </span>
