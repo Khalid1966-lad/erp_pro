@@ -1,4 +1,33 @@
 ---
+Task ID: 2-e
+Agent: frontend-agent
+Task: Add master-detail inline expansion panel to credit notes view
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` for conditional classname utility
+- Added `expandedCNId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedCNId(null)` in `fetchCreditNotes` and `useEffect` for statusFilter to clear expansion on search/filter
+- Renamed loop variable from `cn` to `creditNote` in the `.map()` to avoid conflict with `cn()` utility
+- Modified `TableRow` with `cn("cursor-pointer", expandedCNId === creditNote.id && "bg-primary/5 border-l-2 border-l-primary")`, `onClick` toggle, `onDoubleClick` openEdit
+- Added inline detail panel after table Card with:
+  - Header: RotateCcw icon, credit note number (font-mono), status badge, client name, date
+  - Info cards: Facture liée, Motif, Nb Lignes, Total TTC
+  - Lines table: Produit (ref + designation), Qté, P.U. HT, TVA %, Remise %, Total HT
+  - Reason display if present
+  - Totals: Total HT, TVA, TTC (red/negative) + amount in words
+  - Action buttons: Ouvrir, Imprimer (printDocument with title 'AVOIR'), Modifier (draft only), Fermer (XCircle)
+- Added `discount?: number` to CreditNoteLine interface for Remise column
+- All existing functionality preserved (detail dialog, edit, actions, print)
+- ESLint: 0 errors
+
+Stage Summary:
+- Credit notes view now has master-detail inline expansion (same pattern as quotes-view)
+- Single click to expand/collapse inline detail panel below table
+- Double click still opens edit dialog for draft credit notes
+- Action buttons have stopPropagation to prevent expanding when clicked
+- File changed: src/components/erp/commercial/credit-notes-view.tsx
+
+---
 Task ID: effets-de-commerce-system
 Agent: main
 Task: Build complete Effets de Commerce (Chèques & Effets) system for GEMA ERP Pro
@@ -1519,3 +1548,105 @@ Stage Summary:
 - Super admin can reset any user's password via a dedicated button in Users management
 - This also fixes PASSWORD_SALT mismatch issues since reset re-hashes with current salt
 - Files changed: src/app/api/auth/login/route.ts, src/components/erp/admin/users-view.tsx
+
+---
+Task ID: 2-b
+Agent: general-purpose
+Task: Add master-detail inline expansion panel to preparations view
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` at top of file
+- Added `expandedPrepId` state variable (useState<string | null>(null))
+- Added `setExpandedPrepId(null)` in fetchPreparations callback (resets on search/filter)
+- Modified TableRow click handler: now toggles expandedPrepId instead of always opening detail dialog
+- Modified TableRow className: uses cn() for conditional bg-primary/5 border-l-2 border-l-primary highlighting
+- Added inline detail panel (IIFE pattern) between table Card and Create Dialog:
+  - Header: ClipboardList icon, prep number (font-mono), status badge, order number, client name
+  - 4 info cards: Commande, Client, Progression, Nb Lignes
+  - Lines table with: Produit, Type, Demandé, Stock act., Préparé, État columns
+  - Notes display if present
+  - Action buttons: Ouvrir (opens existing detail dialog), Fermer (XCircle)
+- Existing detail dialog and all other functionality preserved unchanged
+- ESLint: 0 errors
+
+Stage Summary:
+- Master-detail inline expansion panel added to preparations-view.tsx (same pattern as quotes-view.tsx)
+- Click table row to expand/collapse inline panel; existing action buttons (Eye, Truck, MoreVertical) preserved with stopPropagation
+- Panel shows prep info, lines with stock status, and notes
+- Ouvrir button opens the full detail dialog for editing/preparing
+---
+Task ID: 2-d
+Agent: general-purpose
+Task: Add master-detail inline expansion panel to invoices-view.tsx
+
+Work Log:
+- Added `cn` import from `@/lib/utils`
+- Added `expandedInvoiceId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedInvoiceId(null)` in useEffect that depends on statusFilter
+- Added `setExpandedInvoiceId(null)` in handleSearch function
+- Modified TableRow: added cn() with conditional bg-primary/5 border-l-primary, onClick toggle, kept onDoubleClick for edit
+- Added `discount?: number` to InvoiceLine interface for Remise % column
+- Added inline detail panel between table Card and Create Dialog:
+  - Header with Receipt icon, invoice number (font-mono), status badge, client name and date
+  - Info cards: Échéance, Remise, Frais de port, Nb Lignes
+  - Lines table: Produit (ref + designation), Qté, P.U. HT, TVA %, Remise %, Total HT
+  - Notes section (conditional)
+  - Totals: Total HT, TVA, TTC + montant en lettres (numberToFrenchWords)
+  - Action buttons: Ouvrir (openDetail), Imprimer (printDocument with title 'FACTURE'), Modifier (draft only, calls openEdit), Fermer (XCircle)
+- Existing detail dialog, double-click edit, and action buttons all preserved
+- ESLint: 0 errors
+
+Stage Summary:
+- Master-detail inline expansion panel added to invoices-view.tsx (same pattern as quotes-view.tsx)
+- Click table row to expand/collapse inline panel; existing action buttons (Eye, Pencil, MoreVertical) preserved with stopPropagation
+- Panel shows invoice info, lines with discount, notes, totals with amount in words
+- Ouvrir opens existing detail dialog; Imprimer opens print preview; Modifier (draft only) opens edit dialog
+---
+Task ID: 2-a
+Agent: general-purpose
+Task: Add master-detail inline expansion panel to sales orders view
+
+Work Log:
+- Added `cn` import from `@/lib/utils`
+- Added `expandedOrderId` state variable
+- Added `setExpandedOrderId(null)` in `useEffect` (statusFilter dependency) and `handleSearch`
+- Modified `<TableRow>` with `cn()` conditional class (bg-primary/5 + border-l-primary), `onClick` toggle, kept `onDoubleClick` for edit
+- Inserted inline detail panel after table `</Card>`, before `{/* Create Dialog */}`:
+  - Header: FileText icon, order number (font-mono), status badge, client name + date
+  - Action buttons: Ouvrir (openDetail), Imprimer (printDocument with title 'COMMANDE'), Modifier (pending only), Fermer (XCircle)
+  - 4 info cards: Livraison, Remise, Lignes, Devis
+  - Lines table: Produit (ref + designation), Qté, P.U. HT, TVA %, Remise %, Total HT
+  - Notes display (conditional)
+  - Totals section: Total HT, TVA, Total TTC + montant en lettres (numberToFrenchWords)
+- All existing imports already present (XCircle, Printer, Pencil, numberToFrenchWords, printDocument, fmtMoney, fmtDate)
+- ESLint: 0 errors
+
+Stage Summary:
+- Master-detail inline expansion panel added to sales-orders-view.tsx (same pattern as quotes-view.tsx)
+- Click table row to expand/collapse inline panel; existing action buttons preserved with stopPropagation
+- Panel shows order info, lines with discount, notes, and totals with amount in words
+- Ouvrir opens full detail dialog, Imprimer uses printDocument with 'COMMANDE' title, Modifier shown only for pending status
+---
+Task ID: 2-c
+Agent: frontend-agent
+Task: Add master-detail inline expansion panel to delivery notes view
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` at top of delivery-notes-view.tsx
+- Added `expandedNoteId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedNoteId(null)` in fetchDeliveryNotes callback (before setLoading) and in useEffect that depends on fetchDeliveryNotes
+- Modified TableRow in the table map: replaced static className with `cn()` for conditional highlighting (`bg-primary/5 border-l-2 border-l-primary`), replaced `onClick={() => openDetail(note)}` with `onClick={() => setExpandedNoteId(expandedNoteId === note.id ? null : note.id)}`
+- Added inline detail panel after the table Card and before the Create Dialog section, including:
+  - Header: Truck icon, BL number (font-mono), status badge, client name, date
+  - 4 info cards: Date prévue, Transporteur, Immatriculation, Nb Lignes
+  - Lines table with: Produit, Qté, Livré, Reste, P.U. HT, Total HT (computed from salesOrderLine)
+  - Notes display if present
+  - Totals section: Total HT, TVA, TTC with amount in words
+  - Action buttons: Ouvrir (opens detail dialog), Imprimer (printDocument with title 'BON DE LIVRAISON'), Fermer (XCircle)
+- ESLint: 0 errors
+
+Stage Summary:
+- Delivery notes view now has click-to-expand inline detail panel matching quotes-view.tsx pattern
+- Existing detail dialog still works via "Ouvrir" button and Eye icon
+- Existing action buttons (dropdown menu, Eye) still have stopPropagation
+- No existing code removed or changed beyond specified modifications

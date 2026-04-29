@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -152,6 +153,7 @@ export default function SalesOrdersView() {
   const [quoteImportOpen, setQuoteImportOpen] = useState(false)
   const [acceptedQuotes, setAcceptedQuotes] = useState<AcceptedQuote[]>([])
   const [loadingQuotes, setLoadingQuotes] = useState(false)
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null)
 
   const fetchOrders = async () => {
     try {
@@ -185,11 +187,15 @@ export default function SalesOrdersView() {
   useEffect(() => {
     fetchOrders()
     fetchDropdowns()
+    setExpandedOrderId(null)
   }, [statusFilter, fetchDropdowns])
 
   const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(allProducts)
 
-  const handleSearch = () => fetchOrders()
+  const handleSearch = () => {
+    setExpandedOrderId(null)
+    fetchOrders()
+  }
 
   const calcFormTotals = useMemo(() => {
     let totalHT = 0
@@ -554,7 +560,7 @@ export default function SalesOrdersView() {
                   </TableRow>
                 ) : (
                   orders.map((order) => (
-                    <TableRow key={order.id} className="cursor-pointer" onDoubleClick={() => openEdit(order)}>
+                    <TableRow key={order.id} className={cn("cursor-pointer", expandedOrderId === order.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)} onDoubleClick={() => openEdit(order)}>
                       <TableCell>
                         <div className="flex flex-col gap-0.5">
                           <span className="font-mono font-medium">{order.number}</span>
@@ -665,6 +671,147 @@ export default function SalesOrdersView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedOrderId && (() => {
+        const eq = orders.find(o => o.id === expandedOrderId)
+        if (!eq) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{eq.number}</span>
+                      <Badge variant="secondary" className={statusColors[eq.status]}>{statusLabels[eq.status]}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{eq.client.name} — {format(new Date(eq.date), 'dd/MM/yyyy', { locale: fr })}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => openDetail(eq)}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (!eq) return
+                    printDocument({
+                      title: 'COMMANDE',
+                      docNumber: eq.number,
+                      infoGrid: [
+                        { label: 'Client', value: eq.client.name },
+                        { label: 'Date', value: fmtDate(eq.date) },
+                        ...(eq.deliveryDate ? [{ label: 'Livraison', value: fmtDate(eq.deliveryDate) }] : []),
+                        ...(eq.quoteId && eq.quote ? [{ label: 'Devis', value: eq.quote.number }] : []),
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'TVA %', align: 'right' },
+                        { label: 'Remise %', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: eq.lines.map(l => [
+                        { value: `${l.product?.reference || ''} - ${l.product?.designation || ''}` },
+                        { value: l.quantity, align: 'right' },
+                        { value: fmtMoney(l.unitPrice), align: 'right' },
+                        { value: `${l.tvaRate}%`, align: 'right' },
+                        { value: `${l.discount || 0}%`, align: 'right' },
+                        { value: fmtMoney(l.totalHT || 0), align: 'right' },
+                      ]),
+                      totals: [
+                        { label: 'Total HT', value: fmtMoney(eq.totalHT) },
+                        { label: 'TVA', value: fmtMoney(eq.totalTVA) },
+                        { label: 'Total TTC', value: fmtMoney(eq.totalTTC), bold: true },
+                      ],
+                      notes: eq.notes || undefined,
+                      amountInWords: `${numberToFrenchWords(eq.totalTTC || 0)} dirhams`,
+                      amountInWordsLabel: 'Arrêtée la présente commande à la somme de',
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  {eq.status === 'pending' && (
+                    <Button variant="outline" size="sm" onClick={() => openEdit(eq)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedOrderId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Livraison</span>
+                  <p className="font-medium">{eq.deliveryDate ? format(new Date(eq.deliveryDate), 'dd/MM/yyyy', { locale: fr }) : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Remise</span>
+                  <p className="font-medium">{eq.lines.some(l => (l.discount || 0) > 0) ? 'Oui' : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Lignes</span>
+                  <p className="font-medium">{eq.lines.length}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Devis</span>
+                  <p className="font-medium">{eq.quoteId && eq.quote ? eq.quote.number : '—'}</p>
+                </div>
+              </div>
+
+              {eq.lines.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="text-right w-[70px]">TVA %</TableHead>
+                        <TableHead className="text-right w-[70px]">Remise %</TableHead>
+                        <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {eq.lines.map((line) => (
+                        <TableRow key={line.id || line.productId}>
+                          <TableCell className="font-medium text-sm">
+                            <span className="font-mono text-muted-foreground mr-2">{line.product?.reference || ''}</span>
+                            {line.product?.designation || '—'}
+                          </TableCell>
+                          <TableCell className="text-right">{line.quantity}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{line.tvaRate}%</TableCell>
+                          <TableCell className="text-right">{line.discount || 0}%</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(line.totalHT || 0)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {eq.notes && (
+                <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {eq.notes}</div>
+              )}
+
+              <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(eq.totalHT)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(eq.totalTVA)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{formatCurrency(eq.totalTTC)}</span></div>
+                <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(eq.totalTTC || 0)} dirhams</div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -238,12 +239,14 @@ export default function DeliveryNotesView() {
   const [editNotes, setEditNotes] = useState('')
   const [editPlannedDate, setEditPlannedDate] = useState('')
   const [saving, setSaving] = useState(false)
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
 
   // ─── Fetch ───
 
   const fetchDeliveryNotes = useCallback(async () => {
     try {
       setLoading(true)
+      setExpandedNoteId(null)
       const params = new URLSearchParams()
       params.set('page', '1')
       params.set('limit', '100')
@@ -260,6 +263,7 @@ export default function DeliveryNotesView() {
 
   useEffect(() => {
     fetchDeliveryNotes()
+    setExpandedNoteId(null)
   }, [fetchDeliveryNotes])
 
   // ─── Create BL ───
@@ -764,7 +768,7 @@ export default function DeliveryNotesView() {
                   deliveryNotes.map((note) => {
                     const deliveryPct = getOrderDeliveryPercentage(note)
                     return (
-                      <TableRow key={note.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(note)} onDoubleClick={() => openEditDialog(note)}>
+                      <TableRow key={note.id} className={cn("cursor-pointer", expandedNoteId === note.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedNoteId(expandedNoteId === note.id ? null : note.id)} onDoubleClick={() => openEditDialog(note)}>
                         <TableCell>
                           <span className="font-mono font-medium">{note.number}</span>
                         </TableCell>
@@ -856,6 +860,149 @@ export default function DeliveryNotesView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedNoteId && (() => {
+        const en = deliveryNotes.find(n => n.id === expandedNoteId)
+        if (!en) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Truck className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{en.number}</span>
+                      <Badge variant="secondary" className={statusColors[en.status]}>{statusLabels[en.status]}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{en.client.name} — {format(new Date(en.date), 'dd/MM/yyyy', { locale: fr })}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => openDetail(en)}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (!en) return
+                    printDocument({
+                      title: 'BON DE LIVRAISON',
+                      docNumber: en.number,
+                      infoGrid: [
+                        { label: 'Client', value: en.client.name },
+                        { label: 'Date création', value: fmtDate(en.date) },
+                        { label: 'Date livraison', value: fmtDate(en.deliveryDate || '') },
+                        { label: 'Transporteur', value: en.transporteur || '—' },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'Qté livrée', align: 'right' },
+                        { label: 'Reste', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: en.lines.map(line => {
+                        const totalDelivered = line.salesOrderLine ? (line.salesOrderLine.quantityDelivered || 0) : line.quantity
+                        const remaining = line.salesOrderLine ? Math.max(0, line.salesOrderLine.quantity - (line.salesOrderLine.quantityDelivered || 0)) : (line.remainingAfterDelivery ?? 0)
+                        return [
+                          { value: `${line.product?.reference || ''} - ${line.product?.designation || ''}` },
+                          { value: line.quantity, align: 'right' },
+                          { value: totalDelivered, align: 'right' },
+                          { value: remaining, align: 'right' },
+                          { value: fmtMoney(line.unitPrice), align: 'right' },
+                          { value: fmtMoney(line.totalHT), align: 'right' },
+                        ]
+                      }),
+                      totals: [
+                        { label: 'Total HT', value: fmtMoney(en.totalHT) },
+                        { label: 'TVA', value: fmtMoney(en.totalTVA) },
+                        { label: 'Total TTC', value: fmtMoney(en.totalTTC), bold: true },
+                      ],
+                      notes: en.notes || undefined,
+                      amountInWords: numberToFrenchWords(en.totalTTC || 0) + ' dirhams',
+                      amountInWordsLabel: 'Arrêté le présent bon de livraison à la somme de',
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedNoteId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Date prévue</span>
+                  <p className="font-medium">{en.plannedDate ? format(new Date(en.plannedDate), 'dd/MM/yyyy', { locale: fr }) : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Transporteur</span>
+                  <p className="font-medium">{en.transporteur || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Immatriculation</span>
+                  <p className="font-medium">{en.vehiclePlate || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Nb Lignes</span>
+                  <p className="font-medium">{en.lines.length}</p>
+                </div>
+              </div>
+
+              {en.lines.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[90px]">Livré</TableHead>
+                        <TableHead className="text-right w-[90px]">Reste</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {en.lines.map((line) => {
+                        const totalDelivered = line.salesOrderLine ? (line.salesOrderLine.quantityDelivered || 0) : line.quantity
+                        const remaining = line.salesOrderLine ? Math.max(0, line.salesOrderLine.quantity - (line.salesOrderLine.quantityDelivered || 0)) : (line.remainingAfterDelivery ?? 0)
+                        return (
+                          <TableRow key={line.id || line.productId}>
+                            <TableCell className="font-medium text-sm">
+                              <span className="font-mono text-muted-foreground mr-2">{line.product?.reference || ''}</span>
+                              {line.product?.designation || '—'}
+                            </TableCell>
+                            <TableCell className="text-right">{line.quantity}</TableCell>
+                            <TableCell className="text-right">{totalDelivered}</TableCell>
+                            <TableCell className="text-right">{remaining}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                            <TableCell className="text-right font-medium">{formatCurrency(line.totalHT)}</TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {en.notes && (
+                <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {en.notes}</div>
+              )}
+
+              <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(en.totalHT)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(en.totalTVA)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{formatCurrency(en.totalTTC)}</span></div>
+                <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(en.totalTTC || 0)} dirhams</div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* CREATE DIALOG                                        */}

@@ -34,6 +34,7 @@ import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { HelpButton } from '@/components/erp/shared/help-button'
 
@@ -46,6 +47,7 @@ interface CreditNoteLine {
   unitPrice: number
   tvaRate: number
   totalHT?: number
+  discount?: number
   product?: { id: string; reference: string; designation: string }
 }
 
@@ -110,10 +112,12 @@ export default function CreditNotesView() {
   const [formInvoiceId, setFormInvoiceId] = useState('')
   const [formReason, setFormReason] = useState('')
   const [formLines, setFormLines] = useState<CreditNoteLine[]>([emptyLine()])
+  const [expandedCNId, setExpandedCNId] = useState<string | null>(null)
 
   const fetchCreditNotes = async () => {
     try {
       setLoading(true)
+      setExpandedCNId(null)
       const params = new URLSearchParams()
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
       if (search) params.set('search', search)
@@ -142,6 +146,7 @@ export default function CreditNotesView() {
   }, [])
 
   useEffect(() => {
+    setExpandedCNId(null)
     fetchCreditNotes()
     fetchDropdowns()
   }, [statusFilter, fetchDropdowns])
@@ -390,36 +395,36 @@ export default function CreditNotesView() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  creditNotes.map((cn) => (
-                    <TableRow key={cn.id} className="cursor-pointer" onDoubleClick={() => openEdit(cn)}>
-                      <TableCell className="font-mono font-medium">{cn.number}</TableCell>
-                      <TableCell className="font-mono text-sm text-muted-foreground">{cn.invoice.number}</TableCell>
-                      <TableCell>{cn.client.name}</TableCell>
+                  creditNotes.map((creditNote) => (
+                    <TableRow key={creditNote.id} className={cn("cursor-pointer", expandedCNId === creditNote.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedCNId(expandedCNId === creditNote.id ? null : creditNote.id)} onDoubleClick={() => openEdit(creditNote)}>
+                      <TableCell className="font-mono font-medium">{creditNote.number}</TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground">{creditNote.invoice.number}</TableCell>
+                      <TableCell>{creditNote.client.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
-                        {format(new Date(cn.date), 'dd/MM/yyyy', { locale: fr })}
+                        {format(new Date(creditNote.date), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className={statusColors[cn.status] || ''}>
-                          {statusLabels[cn.status] || cn.status}
+                        <Badge variant="secondary" className={statusColors[creditNote.status] || ''}>
+                          {statusLabels[creditNote.status] || creditNote.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right hidden sm:table-cell font-medium text-red-600">
-                        -{formatCurrency(cn.totalHT)}
+                        -{formatCurrency(creditNote.totalHT)}
                       </TableCell>
                       <TableCell className="text-right hidden sm:table-cell font-semibold text-red-600">
-                        -{formatCurrency(cn.totalTTC)}
+                        -{formatCurrency(creditNote.totalTTC)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(cn)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(creditNote)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {cn.status === 'draft' && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(cn) }}>
+                          {creditNote.status === 'draft' && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(creditNote) }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
-                          {getActions(cn).length > 0 && (
+                          {getActions(creditNote).length > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -427,13 +432,13 @@ export default function CreditNotesView() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {getActions(cn).map((action) => (
-                                  <DropdownMenuItem key={action.action} onClick={() => handleAction(cn, action.action)}>
+                                {getActions(creditNote).map((action) => (
+                                  <DropdownMenuItem key={action.action} onClick={() => handleAction(creditNote, action.action)}>
                                     {action.icon}
                                     <span className="ml-2">{action.label}</span>
                                   </DropdownMenuItem>
                                 ))}
-                                {cn.status === 'draft' && (
+                                {creditNote.status === 'draft' && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <AlertDialog>
@@ -447,12 +452,12 @@ export default function CreditNotesView() {
                                         <AlertDialogHeader>
                                           <AlertDialogTitle>Supprimer l&apos;avoir</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                            Êtes-vous sûr de vouloir supprimer l&apos;avoir <strong>{cn.number}</strong> ?
+                                            Êtes-vous sûr de vouloir supprimer l&apos;avoir <strong>{creditNote.number}</strong> ?
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                           <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleDelete(cn.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                          <AlertDialogAction onClick={() => handleDelete(creditNote.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                                             Supprimer
                                           </AlertDialogAction>
                                         </AlertDialogFooter>
@@ -473,6 +478,146 @@ export default function CreditNotesView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedCNId && (() => {
+        const ecn = creditNotes.find(c => c.id === expandedCNId)
+        if (!ecn) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <RotateCcw className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{ecn.number}</span>
+                      <Badge variant="secondary" className={statusColors[ecn.status]}>{statusLabels[ecn.status]}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{ecn.client.name} — {format(new Date(ecn.date), 'dd/MM/yyyy', { locale: fr })}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => openDetail(ecn)}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (!ecn) return
+                    printDocument({
+                      title: 'AVOIR',
+                      docNumber: ecn.number,
+                      infoGrid: [
+                        { label: 'Client', value: ecn.client.name },
+                        { label: 'Facture', value: ecn.invoice?.number || '—' },
+                        { label: 'Date', value: fmtDate(ecn.date) },
+                        { label: 'Motif', value: ecn.reason || '—' },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'TVA%', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: ecn.lines.map(line => [
+                        { value: `${line.product?.reference || ''} - ${line.product?.designation || ''}` },
+                        { value: line.quantity, align: 'right' },
+                        { value: fmtMoney(line.unitPrice), align: 'right' },
+                        { value: `${line.tvaRate}%`, align: 'right' },
+                        { value: fmtMoney(line.totalHT || 0), align: 'right' },
+                      ]),
+                      totals: [
+                        { label: 'Total HT', value: `-${fmtMoney(ecn.totalHT)}`, negative: true },
+                        { label: 'TVA', value: `-${fmtMoney(ecn.totalTVA)}`, negative: true },
+                        { label: 'Total TTC', value: `-${fmtMoney(ecn.totalTTC)}`, bold: true, negative: true },
+                      ],
+                      notes: ecn.reason || undefined,
+                      negativeTotals: true,
+                      amountInWords: numberToFrenchWords(ecn.totalTTC || 0) + ' dirhams',
+                      amountInWordsLabel: 'Arrêté le présent avoir à la somme de',
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  {ecn.status === 'draft' && (
+                    <Button variant="outline" size="sm" onClick={() => openEdit(ecn)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedCNId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Facture liée</span>
+                  <p className="font-medium font-mono">{ecn.invoice?.number || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Motif</span>
+                  <p className="font-medium">{ecn.reason || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Nb Lignes</span>
+                  <p className="font-medium">{ecn.lines.length}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Total TTC</span>
+                  <p className="font-medium text-red-600">-{formatCurrency(ecn.totalTTC)}</p>
+                </div>
+              </div>
+
+              {ecn.lines.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="text-right w-[70px]">TVA</TableHead>
+                        <TableHead className="text-right w-[70px]">Remise</TableHead>
+                        <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ecn.lines.map((line) => (
+                        <TableRow key={line.id || line.productId}>
+                          <TableCell className="font-medium text-sm">
+                            <span className="font-mono text-muted-foreground mr-2">{line.product?.reference || ''}</span>
+                            {line.product?.designation || '—'}
+                          </TableCell>
+                          <TableCell className="text-right">{line.quantity}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{line.tvaRate}%</TableCell>
+                          <TableCell className="text-right">{line.discount != null ? `${line.discount}%` : '—'}</TableCell>
+                          <TableCell className="text-right font-medium text-red-600">-{formatCurrency(line.totalHT || 0)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {ecn.reason && (
+                <div className="text-sm"><span className="text-muted-foreground">Motif :</span> {ecn.reason}</div>
+              )}
+
+              <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium text-red-600">-{formatCurrency(ecn.totalHT)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium text-red-600">-{formatCurrency(ecn.totalTVA)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span className="text-red-600">-{formatCurrency(ecn.totalTTC)}</span></div>
+                <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(ecn.totalTTC || 0)} dirhams</div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) setIsEditing(false); setDialogOpen(open) }}>

@@ -32,6 +32,7 @@ import {
   ClipboardList, MoreVertical, Play, CheckCircle, XCircle, Eye, Trash2, Package,
   Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search, Printer, Truck
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -215,6 +216,9 @@ export default function PreparationsView() {
   const [stockCheckData, setStockCheckData] = useState<StockCheckResult | null>(null)
   const [loadingStockCheck, setLoadingStockCheck] = useState(false)
 
+  // Inline expansion
+  const [expandedPrepId, setExpandedPrepId] = useState<string | null>(null)
+
   // Delete confirmation
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -229,6 +233,7 @@ export default function PreparationsView() {
         `/preparations?${params.toString()}`,
       )
       setPreparations(data.preparations)
+      setExpandedPrepId(null)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erreur chargement préparations'
       toast.error(message)
@@ -544,8 +549,8 @@ export default function PreparationsView() {
                   preparations.map((prep) => (
                     <TableRow
                       key={prep.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => openDetail(prep)}
+                      className={cn("cursor-pointer", expandedPrepId === prep.id && "bg-primary/5 border-l-2 border-l-primary")}
+                      onClick={() => setExpandedPrepId(expandedPrepId === prep.id ? null : prep.id)}
                     >
                       <TableCell className="font-mono font-medium">{prep.number}</TableCell>
                       <TableCell className="font-mono text-sm">{prep.salesOrder.number}</TableCell>
@@ -641,6 +646,134 @@ export default function PreparationsView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedPrepId && (() => {
+        const ep = preparations.find(p => p.id === expandedPrepId)
+        if (!ep) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ClipboardList className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{ep.number}</span>
+                      <Badge variant="secondary" className={statusColors[ep.status]}>{statusLabels[ep.status]}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Commande {ep.salesOrder.number} — {ep.salesOrder.client.name}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => openDetail(ep)}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedPrepId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Commande</span>
+                  <p className="font-medium font-mono">{ep.salesOrder.number}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Client</span>
+                  <p className="font-medium">{ep.salesOrder.client.name}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Progression</span>
+                  <p className="font-medium">{ep.fullyPreparedLines}/{ep.totalLines} lignes</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Nb Lignes</span>
+                  <p className="font-medium">{ep.lines.length}</p>
+                </div>
+              </div>
+
+              {ep.lines.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="hidden sm:table-cell">Type</TableHead>
+                        <TableHead className="text-right w-[80px]">Demandé</TableHead>
+                        <TableHead className="text-right w-[80px]">Stock act.</TableHead>
+                        <TableHead className="text-right w-[80px]">Préparé</TableHead>
+                        <TableHead className="text-center w-[80px]">État</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ep.lines.map((line) => {
+                        const isFullyPrepared = line.quantityPrepared >= line.quantityRequested
+                        const hasDeficitNow = line.quantityRequested > line.product.currentStock
+                        return (
+                          <TableRow key={line.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <div>
+                                  <div className="font-mono text-xs text-muted-foreground">{line.product.reference}</div>
+                                  <div className="font-medium text-sm">{line.product.designation}</div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              <Badge variant="secondary" className={`text-xs ${productNatureColors[line.product.productNature]}`}>
+                                {productNatureLabels[line.product.productNature]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">{line.quantityRequested}</TableCell>
+                            <TableCell className="text-right">
+                              <span className={hasDeficitNow ? 'text-red-600 font-medium' : 'text-green-600'}>
+                                {line.product.currentStock}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Badge
+                                variant="secondary"
+                                className={cn(
+                                  isFullyPrepared ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800',
+                                )}
+                              >
+                                {line.quantityPrepared}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {isFullyPrepared ? (
+                                <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
+                              ) : line.quantityPrepared > 0 ? (
+                                <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">
+                                  {line.quantityPrepared}/{line.quantityRequested}
+                                </Badge>
+                              ) : hasDeficitNow ? (
+                                <AlertTriangle className="h-4 w-4 text-red-500 mx-auto" />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full border-2 border-gray-300 mx-auto" />
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {ep.notes && (
+                <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {ep.notes}</div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* ═══════════════════════════════════════════════════
           Create Dialog
