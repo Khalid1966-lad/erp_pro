@@ -121,6 +121,7 @@ export default function QuotesView() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
+  const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null)
   const [editingQuote, setEditingQuote] = useState<Quote | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -179,9 +180,11 @@ export default function QuotesView() {
   useEffect(() => {
     fetchQuotes()
     fetchDropdowns()
+    setExpandedQuoteId(null)
   }, [statusFilter, fetchDropdowns])
 
   const handleSearch = () => {
+    setExpandedQuoteId(null)
     fetchQuotes()
   }
 
@@ -507,7 +510,7 @@ export default function QuotesView() {
                   </TableRow>
                 ) : (
                   filteredQuotes.map((quote) => (
-                    <TableRow key={quote.id} className="cursor-pointer" onDoubleClick={() => openEdit(quote)}>
+                    <TableRow key={quote.id} className={cn("cursor-pointer", expandedQuoteId === quote.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedQuoteId(expandedQuoteId === quote.id ? null : quote.id)} onDoubleClick={() => openEdit(quote)}>
                       <TableCell className="font-mono font-medium">{quote.number}</TableCell>
                       <TableCell>{quote.client.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
@@ -600,6 +603,146 @@ export default function QuotesView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedQuoteId && (() => {
+        const eq = quotes.find(q => q.id === expandedQuoteId)
+        if (!eq) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{eq.number}</span>
+                      <Badge variant="secondary" className={statusColors[eq.status]}>{statusLabels[eq.status]}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{eq.client.name} — {format(new Date(eq.date), 'dd/MM/yyyy', { locale: fr })}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => openDetail(eq)}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (!eq) return
+                    printDocument({
+                      title: 'DEVIS',
+                      docNumber: eq.number,
+                      infoGrid: [
+                        { label: 'Client', value: eq.client.name },
+                        { label: 'Date', value: fmtDate(eq.date) },
+                        { label: 'Validité', value: fmtDate(eq.validUntil) },
+                        { label: 'Remise', value: `${eq.discountRate}%` },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'Remise', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: eq.lines.map(l => [
+                        { value: `${l.product?.reference || ''} - ${l.product?.designation || ''}` },
+                        { value: l.quantity, align: 'right' },
+                        { value: fmtMoney(l.unitPrice), align: 'right' },
+                        { value: `${l.discount || 0}%`, align: 'right' },
+                        { value: fmtMoney(l.totalHT || 0), align: 'right' },
+                      ]),
+                      totals: [
+                        ...(eq.shippingCost > 0 ? [{ label: 'Frais de port', value: fmtMoney(eq.shippingCost) }] : []),
+                        { label: 'Total HT', value: fmtMoney(eq.totalHT) },
+                        { label: 'TVA', value: fmtMoney(eq.totalTVA) },
+                        { label: 'Total TTC', value: fmtMoney(eq.totalTTC), bold: true },
+                      ],
+                      notes: eq.notes || undefined,
+                      amountInWords: `${numberToFrenchWords(eq.totalTTC || 0)} dirhams`,
+                      amountInWordsLabel: 'Arrêté le présent devis à la somme de',
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  {(eq.status === 'draft' || eq.status === 'rejected' || eq.status === 'expired') && (
+                    <Button variant="outline" size="sm" onClick={() => openEdit(eq)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedQuoteId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Validité</span>
+                  <p className="font-medium">{format(new Date(eq.validUntil), 'dd/MM/yyyy', { locale: fr })}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Remise</span>
+                  <p className="font-medium">{eq.discountRate}%</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Frais de port</span>
+                  <p className="font-medium">{formatCurrency(eq.shippingCost)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Lignes</span>
+                  <p className="font-medium">{eq.lines.length}</p>
+                </div>
+              </div>
+
+              {eq.lines.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="text-right w-[70px]">TVA</TableHead>
+                        <TableHead className="text-right w-[70px]">Remise</TableHead>
+                        <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {eq.lines.map((line) => (
+                        <TableRow key={line.id || line.productId}>
+                          <TableCell className="font-medium text-sm">
+                            <span className="font-mono text-muted-foreground mr-2">{line.product?.reference || ''}</span>
+                            {line.product?.designation || '—'}
+                          </TableCell>
+                          <TableCell className="text-right">{line.quantity}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{line.tvaRate}%</TableCell>
+                          <TableCell className="text-right">{line.discount || 0}%</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(line.totalHT || 0)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {eq.notes && (
+                <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {eq.notes}</div>
+              )}
+
+              <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(eq.totalHT)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(eq.totalTVA)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{formatCurrency(eq.totalTTC)}</span></div>
+                <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(eq.totalTTC || 0)} dirhams</div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
