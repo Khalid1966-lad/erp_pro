@@ -183,3 +183,52 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
+
+// DELETE /api/users — Delete user (super_admin only)
+export async function DELETE(req: NextRequest) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé — super administrateur requis' }, { status: 403 })
+  }
+
+  try {
+    const body = await req.json()
+    const { id } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID utilisateur requis' }, { status: 400 })
+    }
+
+    const existing = await db.user.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
+    }
+
+    // Cannot delete yourself
+    if (id === auth.userId) {
+      return NextResponse.json({ error: 'Impossible de supprimer votre propre compte' }, { status: 403 })
+    }
+
+    // Cannot delete super admins
+    if (existing.isSuperAdmin) {
+      return NextResponse.json({ error: 'Impossible de supprimer un super administrateur' }, { status: 403 })
+    }
+
+    // Delete all related records in a transaction, then delete the user
+    await db.$transaction(async (tx) => {
+      await tx.auditLog.deleteMany({ where: { userId: id } })
+      await tx.notification.deleteMany({ where: { userId: id } })
+      await tx.conversationParticipant.deleteMany({ where: { userId: id } })
+      await tx.message.deleteMany({ where: { senderId: id } })
+      await tx.user.delete({ where: { id } })
+    })
+
+    await auditLog(auth.userId, 'delete', 'User', id, existing, null)
+
+    return NextResponse.json({ success: true, message: `Utilisateur ${existing.name} supprimé.` })
+  } catch (error) {
+    console.error('User delete error:', error)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+}

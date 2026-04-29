@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   UserCog, Plus, Search, Edit, Shield, ShieldCheck, Ban, Unlock,
-  Phone, Mail, Clock, Calendar, Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, Camera
+  Phone, Mail, Clock, Calendar, Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, Camera, Trash2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
@@ -325,6 +325,32 @@ function UsersViewInner() {
     }
   }
 
+  // ─── Delete user ───
+  const handleDelete = async (userId: string) => {
+    try {
+      const { token } = useAuthStore.getState()
+      const res = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ id: userId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Erreur' }))
+        throw new Error(data.error || 'Erreur')
+      }
+      const data = await res.json()
+      toast.success('Utilisateur supprimé', { description: data.message })
+      setUsers(prev => prev.filter(u => u.id !== userId))
+      fetchUsers()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur de suppression'
+      toast.error('Erreur', { description: msg })
+    }
+  }
+
   // ─── Block / Unblock ───
   const handleBlock = async (userId: string, block: boolean) => {
     try {
@@ -456,7 +482,7 @@ function UsersViewInner() {
                   <TableHead className="hidden sm:table-cell">Statut</TableHead>
                   <TableHead className="hidden md:table-cell">Dernière connexion</TableHead>
                   <TableHead className="hidden lg:table-cell">Créé le</TableHead>
-                  <TableHead className="text-right w-[140px]">Actions</TableHead>
+                  <TableHead className="text-right w-[160px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -597,6 +623,38 @@ function UsersViewInner() {
                                     className="bg-red-600 text-white hover:bg-red-700"
                                   >
                                     Bloquer
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                          {!u.isSuperAdmin && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-red-500 hover:text-red-600"
+                                  disabled={u.id === currentUser?.id || u.isSuperAdmin}
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Supprimer cet utilisateur ?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Cette action est irréversible. Toutes les données de <strong>{u.name}</strong> ({u.email}), y compris ses journaux d&apos;audit, notifications et messages, seront définitivement supprimées.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(u.id)}
+                                    className="bg-red-600 text-white hover:bg-red-700"
+                                  >
+                                    Supprimer
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
