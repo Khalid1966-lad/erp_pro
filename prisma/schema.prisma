@@ -247,6 +247,7 @@ model Client {
   // Relations
   contacts                ClientContact[]
   documents               ClientDocument[]
+  chantiers               Chantier[]
   quotes                  Quote[]
   salesOrders             SalesOrder[]
   invoices                Invoice[]
@@ -445,6 +446,31 @@ enum DeliveryNoteStatus {
   cancelled
 }
 
+// ============ CHANTIERS (SITES DE LIVRAISON) ============
+
+model Chantier {
+  id                  String    @id @default(cuid())
+  clientId            String
+  client              Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  nomProjet           String
+  adresse             String
+  ville               String
+  codePostal          String?
+  provincePrefecture  String?
+  responsableNom      String
+  responsableFonction String?
+  telephone           String?
+  gsm                 String?
+  notes               String?
+  actif               Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  deliveryNotes       DeliveryNote[]
+
+  @@map("chantiers")
+}
+
 model DeliveryNote {
   id              String              @id @default(cuid())
   number          String              @unique
@@ -452,6 +478,8 @@ model DeliveryNote {
   salesOrder      SalesOrder?          @relation(fields: [salesOrderId], references: [id])
   clientId        String
   client          Client              @relation(fields: [clientId], references: [id])
+  chantierId      String?
+  chantier        Chantier?           @relation(fields: [chantierId], references: [id])
   status          DeliveryNoteStatus  @default(draft)
   date            DateTime            @default(now())
   plannedDate     DateTime?

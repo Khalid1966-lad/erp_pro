@@ -38,7 +38,7 @@ import {
   AlertTriangle, FileText, Receipt, ShoppingCart, UserPlus, UserMinus,
   FileSpreadsheet, Download, Upload, CheckCircle2, XCircle, Loader2,
   Truck, RotateCcw, Wallet, Printer, CalendarDays,
-  CreditCard, Scale, BarChart3
+  CreditCard, Scale, BarChart3, HardHat, MapPinned
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/stores'
@@ -97,6 +97,23 @@ interface Client {
   nbCommandes: number
   alerteImpaye: boolean
   nbImpayes: number
+  createdAt: string
+  updatedAt: string
+}
+
+interface Chantier {
+  id: string
+  nomProjet: string
+  adresse: string
+  ville: string
+  codePostal: string | null
+  provincePrefecture: string | null
+  responsableNom: string
+  responsableFonction: string | null
+  telephone: string | null
+  gsm: string | null
+  notes: string | null
+  actif: boolean
   createdAt: string
   updatedAt: string
 }
@@ -547,7 +564,6 @@ function ClientListView({
           </Button>
         </div>
       </div>
-
       {/* Import Dialog */}
       <Dialog open={importOpen} onOpenChange={(open) => { if (!open) handleCloseImport(); else setImportOpen(true) }}>
         <DialogContent className="sm:max-w-lg">
@@ -560,7 +576,6 @@ function ClientListView({
               Importez un fichier Excel (.xlsx) avec les données clients. Les champs requis sont marqués d&apos;un astérisque dans le modèle.
             </DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4">
             {/* File selection area */}
             {!importFile && !importResult && (
@@ -636,7 +651,6 @@ function ClientListView({
                     </div>
                   </div>
                 </div>
-
                 {/* Error details */}
                 {importResult.errors.length > 0 && (
                   <div className="space-y-1">
@@ -658,7 +672,6 @@ function ClientListView({
               </div>
             )}
           </div>
-
           <DialogFooter>
             {!importResult ? (
               <>
@@ -690,7 +703,6 @@ function ClientListView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -701,7 +713,6 @@ function ClientListView({
           className="pl-9"
         />
       </div>
-
       {/* Filter Buttons */}
       <div className="flex flex-wrap gap-2">
         <Button
@@ -737,7 +748,6 @@ function ClientListView({
           </SelectContent>
         </Select>
       </div>
-
       {/* Table — scrollable with native scrollbar */}
       <Card>
         <CardContent className="p-0">
@@ -985,7 +995,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
           </p>
         </div>
       </div>
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <Tabs defaultValue="identite" className="space-y-4">
@@ -1023,7 +1032,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                 Production
               </TabsTrigger>
             </TabsList>
-
             {/* ─── Tab 1: Identité légale ─── */}
             <TabsContent value="identite">
               <Card>
@@ -1135,7 +1143,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                 </CardContent>
               </Card>
             </TabsContent>
-
             {/* ─── Tab 2: Coordonnées ─── */}
             <TabsContent value="coordonnees">
               <Card>
@@ -1247,7 +1254,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                 </CardContent>
               </Card>
             </TabsContent>
-
             {/* ─── Tab 3: Contacts ─── */}
             <TabsContent value="contacts">
               <Card>
@@ -1388,7 +1394,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                 </CardContent>
               </Card>
             </TabsContent>
-
             {/* ─── Tab 4: Paramètres commerciaux ─── */}
             <TabsContent value="commercial">
               <Card>
@@ -1510,7 +1515,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                 </CardContent>
               </Card>
             </TabsContent>
-
             {/* ─── Tab 5: Paramètres fiscaux ─── */}
             <TabsContent value="fiscal">
               <Card>
@@ -1580,7 +1584,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                 </CardContent>
               </Card>
             </TabsContent>
-
             {/* ─── Tab 6: Suivi & Statistiques (read-only) ─── */}
             <TabsContent value="suivi">
               <Card>
@@ -1613,7 +1616,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                 </CardContent>
               </Card>
             </TabsContent>
-
             {/* ─── Tab 7: Relances & Litiges ─── */}
             <TabsContent value="relances">
               <Card>
@@ -1711,7 +1713,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                 </CardContent>
               </Card>
             </TabsContent>
-
             {/* ─── Tab 8: Production & Divers ─── */}
             <TabsContent value="production">
               <Card>
@@ -1851,7 +1852,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
               </Card>
             </TabsContent>
           </Tabs>
-
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-2 pt-4 border-t mt-4">
             <Button type="button" variant="outline" onClick={onBack}>
@@ -2257,7 +2257,6 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
           </div>
         </CardContent>
       </Card>
-
       {/* Summary Cards */}
       {data && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -2368,7 +2367,6 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
           )}
         </CardContent>
       </Card>
-
       {/* ═══ Récapitulatif financier ═══ */}
       {data && summaryRows.length > 0 && (
         <Card className="border-2 border-primary/20">
@@ -2414,6 +2412,395 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  CHANTIERS TAB + FORM DIALOG
+// ═══════════════════════════════════════════════════════════════
+
+function ChantiersTab({
+  clientId,
+  chantiers,
+  setChantiers,
+  loading,
+  setLoading,
+  onOpenDialog,
+}: {
+  clientId: string
+  chantiers: Chantier[]
+  setChantiers: React.Dispatch<React.SetStateAction<Chantier[]>>
+  loading: boolean
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>
+  onOpenDialog: (chantier: Chantier | null, mode: 'create' | 'edit') => void
+}) {
+  const fetchChantiers = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await api.get<{ chantiers: Chantier[] }>(`/clients/${clientId}/chantiers`)
+      setChantiers(res.chantiers || [])
+    } catch {
+      toast.error('Erreur lors du chargement des chantiers')
+      setChantiers([])
+    } finally {
+      setLoading(false)
+    }
+  }, [clientId, setChantiers, setLoading])
+
+  useEffect(() => {
+    fetchChantiers()
+  }, [fetchChantiers])
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/clients/${clientId}/chantiers?id=${id}`)
+      toast.success('Chantier désactivé')
+      fetchChantiers()
+    } catch {
+      toast.error('Erreur lors de la désactivation')
+    }
+  }
+
+  if (loading) return <TabSkeleton />
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {chantiers.length} chantier{chantiers.length !== 1 ? 's' : ''} actif{chantiers.length !== 1 ? 's' : ''}
+        </p>
+        <Button size="sm" onClick={() => onOpenDialog(null, 'create')}>
+          <Plus className="h-4 w-4 mr-1" />
+          Nouveau chantier
+        </Button>
+      </div>
+
+      {chantiers.length === 0 ? (
+        <EmptyState
+          icon={HardHat}
+          title="Aucun chantier"
+          description="Ajoutez un site de livraison pour ce client."
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {chantiers.map((c) => (
+            <Card key={c.id}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <p className="font-medium truncate">{c.nomProjet}</p>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPinned className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">
+                        {c.adresse}{c.ville ? `, ${c.ville}` : ''}
+                      </span>
+                    </div>
+                    {c.responsableNom && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Users className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">
+                          {c.responsableNom}
+                          {c.responsableFonction ? ` – ${c.responsableFonction}` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {(c.telephone || c.gsm) && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">
+                          {[c.telephone, c.gsm].filter(Boolean).join(' / ')}
+                        </span>
+                      </div>
+                    )}
+                    {c.notes && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {c.notes}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 ml-2 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onOpenDialog(c, 'edit')}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Désactiver ce chantier ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Le chantier «&nbsp;{c.nomProjet}&nbsp;» sera marqué comme inactif.
+                            Vous pourrez le réactiver ultérieurement.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(c.id)}>
+                            Désactiver
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ChantierFormDialog({
+  clientId,
+  chantier,
+  mode,
+  open,
+  onOpenChange,
+  onSuccess,
+}: {
+  clientId: string
+  chantier: Chantier | null
+  mode: 'create' | 'edit'
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess: () => void
+}) {
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    nomProjet: '',
+    adresse: '',
+    ville: '',
+    codePostal: '',
+    provincePrefecture: '',
+    responsableNom: '',
+    responsableFonction: '',
+    telephone: '',
+    gsm: '',
+    notes: '',
+    actif: true,
+  })
+
+  useEffect(() => {
+    if (open) {
+      if (mode === 'edit' && chantier) {
+        setForm({
+          nomProjet: chantier.nomProjet,
+          adresse: chantier.adresse,
+          ville: chantier.ville,
+          codePostal: chantier.codePostal || '',
+          provincePrefecture: chantier.provincePrefecture || '',
+          responsableNom: chantier.responsableNom,
+          responsableFonction: chantier.responsableFonction || '',
+          telephone: chantier.telephone || '',
+          gsm: chantier.gsm || '',
+          notes: chantier.notes || '',
+          actif: chantier.actif,
+        })
+      } else {
+        setForm({
+          nomProjet: '',
+          adresse: '',
+          ville: '',
+          codePostal: '',
+          provincePrefecture: '',
+          responsableNom: '',
+          responsableFonction: '',
+          telephone: '',
+          gsm: '',
+          notes: '',
+          actif: true,
+        })
+      }
+    }
+  }, [open, mode, chantier])
+
+  const update = (key: string, value: string | boolean) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const handleSubmit = async () => {
+    if (!form.nomProjet.trim() || !form.adresse.trim() || !form.ville.trim() || !form.responsableNom.trim()) {
+      toast.error('Veuillez remplir tous les champs obligatoires')
+      return
+    }
+
+    try {
+      setSaving(true)
+      if (mode === 'create') {
+        await api.post(`/clients/${clientId}/chantiers`, form)
+        toast.success('Chantier créé avec succès')
+      } else {
+        await api.put(`/clients/${clientId}/chantiers`, { id: chantier!.id, ...form })
+        toast.success('Chantier mis à jour')
+      }
+      onSuccess()
+      onOpenChange(false)
+    } catch {
+      toast.error(mode === 'create' ? 'Erreur lors de la création' : 'Erreur lors de la mise à jour')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <HardHat className="h-5 w-5" />
+            {mode === 'create' ? 'Nouveau chantier' : 'Modifier le chantier'}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === 'create'
+              ? 'Ajoutez un site de livraison pour ce client.'
+              : 'Modifiez les informations du chantier.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Nom du projet */}
+          <div className="space-y-2">
+            <Label>
+              Nom du projet <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              placeholder="Ex: Résidence Al Firdaous, Lotissement Yasmine..."
+              value={form.nomProjet}
+              onChange={(e) => update('nomProjet', e.target.value)}
+            />
+          </div>
+
+          {/* Adresse du chantier */}
+          <div className="space-y-2">
+            <Label>
+              Adresse <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              placeholder="Adresse complète du chantier"
+              value={form.adresse}
+              onChange={(e) => update('adresse', e.target.value)}
+              rows={2}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>
+                Ville <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="Ville"
+                value={form.ville}
+                onChange={(e) => update('ville', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Code postal</Label>
+              <Input
+                placeholder="Code postal"
+                value={form.codePostal}
+                onChange={(e) => update('codePostal', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Province / Préfecture</Label>
+              <Input
+                placeholder="Province"
+                value={form.provincePrefecture}
+                onChange={(e) => update('provincePrefecture', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Responsable */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>
+                Nom du responsable <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="Nom et prénom"
+                value={form.responsableNom}
+                onChange={(e) => update('responsableNom', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Fonction</Label>
+              <Input
+                placeholder="Ex: Magasinier, Chef de chantier..."
+                value={form.responsableFonction}
+                onChange={(e) => update('responsableFonction', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Téléphone</Label>
+              <Input
+                placeholder="Téléphone fixe"
+                value={form.telephone}
+                onChange={(e) => update('telephone', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>GSM</Label>
+              <Input
+                placeholder="Numéro GSM"
+                value={form.gsm}
+                onChange={(e) => update('gsm', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Notes / Consignes d&apos;accès</Label>
+            <Textarea
+              placeholder="Consignes d&apos;accès, horaires, remarques..."
+              value={form.notes}
+              onChange={(e) => update('notes', e.target.value)}
+              rows={2}
+            />
+          </div>
+
+          {mode === 'edit' && (
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={form.actif}
+                onCheckedChange={(checked) => update('actif', checked)}
+              />
+              <Label>Chantier actif</Label>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Annuler
+          </Button>
+          <Button onClick={handleSubmit} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            {mode === 'create' ? 'Créer le chantier' : 'Enregistrer'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
 
 interface ClientDetailViewProps {
   client: Client
@@ -2429,6 +2816,12 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
   const deliveryNotes = useTabData<DocRow>('/delivery-notes', 'deliveryNotes', client.id)
   const invoices = useTabData<DocRow>('/invoices', 'invoices', client.id)
   const creditNotes = useTabData<DocRow>('/credit-notes', 'creditNotes', client.id)
+
+  // Chantiers state
+  const [chantiers, setChantiers] = useState<Chantier[]>([])
+  const [chantiersLoading, setChantiersLoading] = useState(true)
+  const [chantierDialog, setChantierDialog] = useState<Chantier | null>(null)
+  const [chantierFormMode, setChantierFormMode] = useState<'create' | 'edit'>('create')
 
   // Document detail dialog state
   const [docDialog, setDocDialog] = useState<{ type: 'quote' | 'order' | 'deliveryNote' | 'invoice' | 'creditNote'; id: string } | null>(null)
@@ -2494,7 +2887,6 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
           </AlertDialog>
         </div>
       </div>
-
       {/* ── Summary Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -2544,7 +2936,6 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
           </CardContent>
         </Card>
       </div>
-
       {/* ── Tabs ── */}
       <Tabs defaultValue="info" className="space-y-4">
         <TabsList className="flex flex-wrap h-auto gap-1">
@@ -2587,12 +2978,18 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
               <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">{creditNotes.data.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="chantiers" className="text-xs sm:text-sm">
+            <HardHat className="h-4 w-4 mr-1 hidden sm:inline" />
+            Chantiers
+            {chantiers.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">{chantiers.length}</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="financial" className="text-xs sm:text-sm">
             <Wallet className="h-4 w-4 mr-1 hidden sm:inline" />
             Relevé de compte
           </TabsTrigger>
         </TabsList>
-
         {/* ── Tab: Informations ── */}
         <TabsContent value="info">
           <Card>
@@ -2633,7 +3030,6 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
             </CardContent>
           </Card>
         </TabsContent>
-
         {/* ── Tab: Devis ── */}
         <TabsContent value="quotes">
           {quotes.loading ? (
@@ -2665,7 +3061,6 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
             </TabCard>
           )}
         </TabsContent>
-
         {/* ── Tab: Commandes ── */}
         <TabsContent value="orders">
           {orders.loading ? (
@@ -2697,7 +3092,6 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
             </TabCard>
           )}
         </TabsContent>
-
         {/* ── Tab: Bons de Livraison ── */}
         <TabsContent value="delivery-notes">
           {deliveryNotes.loading ? (
@@ -2729,7 +3123,6 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
             </TabCard>
           )}
         </TabsContent>
-
         {/* ── Tab: Factures ── */}
         <TabsContent value="invoices">
           {invoices.loading ? (
@@ -2761,7 +3154,6 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
             </TabCard>
           )}
         </TabsContent>
-
         {/* ── Tab: Avoirs ── */}
         <TabsContent value="credit-notes">
           {creditNotes.loading ? (
@@ -2793,19 +3185,58 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
             </TabCard>
           )}
         </TabsContent>
-
+        {/* ── Tab: Chantiers ── */}
+        <TabsContent value="chantiers">
+          <ChantiersTab
+            clientId={client.id}
+            chantiers={chantiers}
+            setChantiers={setChantiers}
+            loading={chantiersLoading}
+            setLoading={setChantiersLoading}
+            onOpenDialog={(chantier, mode) => {
+              setChantierDialog(chantier)
+              setChantierFormMode(mode)
+            }}
+          />
+        </TabsContent>
         {/* ── Tab: Relevé de Compte ── */}
         <TabsContent value="financial">
           <FinancialStatementTab clientId={client.id} />
         </TabsContent>
       </Tabs>
-
       {/* ── Document Detail Dialog ── */}
       <DocDetailDialog
         docType={docDialog?.type || 'invoice'}
         docId={docDialog?.id || null}
         open={!!docDialog}
         onOpenChange={(open) => { if (!open) setDocDialog(null) }}
+      />
+
+      {/* ── Chantier Form Dialog ── */}
+      <ChantierFormDialog
+        clientId={client.id}
+        chantier={chantierDialog}
+        mode={chantierFormMode}
+        open={!!chantierDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setChantierDialog(null)
+            // Re-fetch chantiers after dialog closes
+            setChantiersLoading(true)
+            api.get<{ chantiers: Chantier[] }>(`/clients/${client.id}/chantiers`)
+              .then((res) => setChantiers(res.chantiers || []))
+              .catch(() => setChantiers([]))
+              .finally(() => setChantiersLoading(false))
+          }
+        }}
+        onSuccess={() => {
+          // Re-fetch chantiers
+          setChantiersLoading(true)
+          api.get<{ chantiers: Chantier[] }>(`/clients/${client.id}/chantiers`)
+            .then((res) => setChantiers(res.chantiers || []))
+            .catch(() => setChantiers([]))
+            .finally(() => setChantiersLoading(false))
+        }}
       />
     </div>
   )

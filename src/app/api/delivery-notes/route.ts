@@ -22,6 +22,7 @@ const createFromOrderSchema = z.object({
     unitPrice: z.number().min(0).optional(),
     tvaRate: z.number().min(0).optional(),
   })).min(1, 'Au moins une ligne est requise'),
+  chantierId: z.string().optional(),
   transporteur: z.string().optional(),
   vehiclePlate: z.string().optional(),
   plannedDate: z.string().optional(),
@@ -30,6 +31,7 @@ const createFromOrderSchema = z.object({
 
 const createStandaloneSchema = z.object({
   clientId: z.string().min(1),
+  chantierId: z.string().optional(),
   transporteur: z.string().optional(),
   vehiclePlate: z.string().optional(),
   plannedDate: z.string().optional(),
@@ -59,6 +61,7 @@ const deliveryNoteInclude = {
     },
   },
   client: { select: { id: true, name: true, raisonSociale: true } },
+  chantier: { select: { id: true, nomProjet: true, adresse: true, ville: true, codePostal: true, provincePrefecture: true, responsableNom: true, responsableFonction: true, telephone: true, gsm: true } },
   lines: {
     include: {
       product: { select: { id: true, reference: true, designation: true } },
@@ -81,6 +84,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status') || ''
     const clientId = searchParams.get('clientId') || ''
+    const chantierId = searchParams.get('chantierId') || ''
     const salesOrderId = searchParams.get('salesOrderId') || ''
     const standalone = searchParams.get('standalone') || ''
     const search = searchParams.get('search') || ''
@@ -90,6 +94,7 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = {}
     if (status) where.status = status
     if (clientId) where.clientId = clientId
+    if (chantierId) where.chantierId = chantierId
     if (salesOrderId) where.salesOrderId = salesOrderId
     if (standalone === 'true') where.salesOrderId = null
     if (standalone === 'false') where.salesOrderId = { not: null }
@@ -193,6 +198,7 @@ export async function POST(req: NextRequest) {
             number: blNumber,
             salesOrderId: salesOrder.id,
             clientId: salesOrder.clientId,
+            chantierId: data.chantierId || null,
             status: 'draft',
             transporteur: data.transporteur || null,
             vehiclePlate: data.vehiclePlate || null,
@@ -283,6 +289,7 @@ export async function POST(req: NextRequest) {
           data: {
             number: blNumber,
             clientId: data.clientId,
+            chantierId: data.chantierId || null,
             status: 'draft',
             transporteur: data.transporteur || null,
             vehiclePlate: data.vehiclePlate || null,

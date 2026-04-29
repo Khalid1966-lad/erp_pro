@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart, CalendarClock, Loader2, Search, RefreshCw, Printer
+  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart, CalendarClock, Loader2, Search, RefreshCw, Printer, HardHat, MapPinned
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -115,6 +115,7 @@ interface DeliveryNote {
   } | null
   client: { id: string; name: string }
   lines: DeliveryNoteLineItem[]
+  chantier?: ChantierOption | null
 }
 
 interface EditableLine {
@@ -138,6 +139,19 @@ interface OrderLineWithDelivery {
   remaining: number
   deliveryPercentage: number
   product?: { id: string; reference: string; designation: string }
+}
+
+interface ChantierOption {
+  id: string
+  nomProjet: string
+  adresse: string
+  ville: string
+  codePostal: string | null
+  provincePrefecture: string | null
+  responsableNom: string
+  responsableFonction: string | null
+  telephone: string | null
+  gsm: string | null
 }
 
 // ─── Status Config ───
@@ -241,6 +255,26 @@ export default function DeliveryNotesView() {
   const [saving, setSaving] = useState(false)
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
 
+  // Chantier filters
+  const [clientFilter, setClientFilter] = useState<string>('')
+  const [chantierFilter, setChantierFilter] = useState<string>('')
+  const [clientOptionsForFilter, setClientOptionsForFilter] = useState<ClientOption[]>([])
+  const [chantierOptionsForFilter, setChantierOptionsForFilter] = useState<ChantierOption[]>([])
+
+  // Chantier for create dialog
+  const [selectedChantierId, setSelectedChantierId] = useState<string>('')
+  const [chantierOptions, setChantierOptions] = useState<ChantierOption[]>([])
+  const [createDeliveryType, setCreateDeliveryType] = useState<string>('principal')
+
+  // Derived: effective client ID for create dialog chantier fetching
+  const effectiveCreateClientId = useMemo(() => {
+    if (createMode === 'order' && selectedOrderId) {
+      const order = availableOrders.find(o => o.id === selectedOrderId)
+      return order?.client.id || ''
+    }
+    return selectedClientId
+  }, [createMode, selectedOrderId, selectedClientId, availableOrders])
+
   // ─── Fetch ───
 
   const fetchDeliveryNotes = useCallback(async () => {
@@ -252,6 +286,8 @@ export default function DeliveryNotesView() {
       params.set('limit', '100')
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
       if (search) params.set('search', search)
+      if (clientFilter) params.set('clientId', clientFilter)
+      if (chantierFilter) params.set('chantierId', chantierFilter)
       const data = await api.get<{ deliveryNotes: DeliveryNote[]; total: number }>(`/delivery-notes?${params.toString()}`)
       setDeliveryNotes(data.deliveryNotes)
     } catch (err: any) {
@@ -259,12 +295,48 @@ export default function DeliveryNotesView() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, search])
+  }, [statusFilter, search, clientFilter, chantierFilter])
 
   useEffect(() => {
     fetchDeliveryNotes()
     setExpandedNoteId(null)
   }, [fetchDeliveryNotes])
+
+  // ─── Fetch filter dropdowns ───
+
+  useEffect(() => {
+    api.get<{ clients: ClientOption[] }>('/clients?dropdown=true&limit=200')
+      .then(data => setClientOptionsForFilter(data.clients || []))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (clientFilter) {
+      api.get<{ chantiers: ChantierOption[] }>(`/clients/${clientFilter}/chantiers`)
+        .then(data => setChantierOptionsForFilter(data.chantiers || []))
+        .catch(() => setChantierOptionsForFilter([]))
+      setChantierFilter('')
+    } else {
+      setChantierOptionsForFilter([])
+      setChantierFilter('')
+    }
+  }, [clientFilter])
+
+  // ─── Fetch chantiers for create dialog ───
+
+  useEffect(() => {
+    if (effectiveCreateClientId) {
+      api.get<{ chantiers: ChantierOption[] }>(`/clients/${effectiveCreateClientId}/chantiers`)
+        .then(data => setChantierOptions(data.chantiers || []))
+        .catch(() => setChantierOptions([]))
+      setSelectedChantierId('')
+      setCreateDeliveryType('principal')
+    } else {
+      setChantierOptions([])
+      setSelectedChantierId('')
+      setCreateDeliveryType('principal')
+    }
+  }, [effectiveCreateClientId])
 
   // ─── Create BL ───
 
@@ -273,6 +345,9 @@ export default function DeliveryNotesView() {
     setCreateMode('order')
     setSelectedOrderId('')
     setSelectedClientId('')
+    setSelectedChantierId('')
+    setChantierOptions([])
+    setCreateDeliveryType('principal')
     setEditableLines([])
     setOrderLinesForDelivery([])
     setDeliveryQuantities({})
@@ -455,6 +530,7 @@ export default function DeliveryNotesView() {
 
         await api.post('/delivery-notes', {
           salesOrderId: selectedOrderId,
+          chantierId: selectedChantierId || undefined,
           transporteur: createTransporteur || undefined,
           vehiclePlate: createVehiclePlate || undefined,
           notes: createNotes || undefined,
@@ -475,6 +551,7 @@ export default function DeliveryNotesView() {
         }
         await api.post('/delivery-notes', {
           clientId: selectedClientId,
+          chantierId: selectedChantierId || undefined,
           transporteur: createTransporteur || undefined,
           vehiclePlate: createVehiclePlate || undefined,
           notes: createNotes || undefined,
@@ -719,6 +796,34 @@ export default function DeliveryNotesView() {
             className="pl-9"
           />
         </div>
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Tous les clients" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les clients</SelectItem>
+            {clientOptionsForFilter.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.raisonSociale || c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {clientFilter && clientFilter !== 'all' && (
+          <Select value={chantierFilter} onValueChange={setChantierFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Tous les chantiers" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les chantiers</SelectItem>
+              {chantierOptionsForFilter.map((ch) => (
+                <SelectItem key={ch.id} value={ch.id}>
+                  {ch.nomProjet}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Statut" />
@@ -742,6 +847,7 @@ export default function DeliveryNotesView() {
                 <TableRow>
                   <TableHead>Numéro</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead className="hidden md:table-cell">Chantier</TableHead>
                   <TableHead>Commande / Client</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="hidden md:table-cell">Date prévue</TableHead>
@@ -754,7 +860,7 @@ export default function DeliveryNotesView() {
               <TableBody>
                 {deliveryNotes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <Truck className="h-10 w-10 text-muted-foreground/30" />
                         <p className="font-medium">Aucun bon de livraison</p>
@@ -781,6 +887,16 @@ export default function DeliveryNotesView() {
                             <Badge variant="outline" className="text-xs gap-1 border-dashed">
                               <Unlink className="h-3 w-3" /> Autonome
                             </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {note.chantier ? (
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <HardHat className="h-3 w-3" />
+                              {note.chantier.nomProjet}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -891,6 +1007,9 @@ export default function DeliveryNotesView() {
                       docNumber: en.number,
                       infoGrid: [
                         { label: 'Client', value: en.client.name },
+                        ...(en.chantier ? [{ label: 'Lieu de livraison', value: `${en.chantier.nomProjet} - ${en.chantier.adresse}, ${en.chantier.ville}` }] : []),
+                        ...(en.chantier && en.chantier.responsableNom ? [{ label: 'Responsable', value: en.chantier.responsableNom }] : []),
+                        ...(en.chantier && (en.chantier.telephone || en.chantier.gsm) ? [{ label: 'Tél chantier', value: en.chantier.telephone || en.chantier.gsm || '—' }] : []),
                         { label: 'Date création', value: fmtDate(en.date) },
                         { label: 'Date livraison', value: fmtDate(en.deliveryDate || '') },
                         { label: 'Transporteur', value: en.transporteur || '—' },
@@ -952,6 +1071,24 @@ export default function DeliveryNotesView() {
                   <p className="font-medium">{en.lines.length}</p>
                 </div>
               </div>
+
+              {en.chantier && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <HardHat className="h-4 w-4 text-amber-600" />
+                    <span className="font-medium text-amber-800">Chantier : {en.chantier.nomProjet}</span>
+                  </div>
+                  <div className="text-muted-foreground space-y-0.5">
+                    <p>{en.chantier.adresse}, {en.chantier.ville}{en.chantier.codePostal ? ` - ${en.chantier.codePostal}` : ''}</p>
+                    {en.chantier.responsableNom && (
+                      <p>Responsable : {en.chantier.responsableNom}{en.chantier.responsableFonction ? ` (${en.chantier.responsableFonction})` : ''}</p>
+                    )}
+                    {(en.chantier.telephone || en.chantier.gsm) && (
+                      <p>Tél : {en.chantier.telephone || en.chantier.gsm}</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {en.lines.length > 0 && (
                 <div className="rounded border max-h-[300px] overflow-auto">
@@ -1452,6 +1589,79 @@ export default function DeliveryNotesView() {
               </>
             )}
 
+            {/* Lieu de livraison */}
+            {effectiveCreateClientId && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <MapPinned className="h-3.5 w-3.5" />
+                  Lieu de livraison
+                </Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setCreateDeliveryType('principal'); setSelectedChantierId('') }}
+                    className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm ${
+                      createDeliveryType === 'principal'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-muted hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${createDeliveryType === 'principal' ? 'border-primary' : 'border-muted-foreground'}`}>
+                      {createDeliveryType === 'principal' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                    </div>
+                    Adresse principale
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateDeliveryType('chantier')}
+                    disabled={chantierOptions.length === 0}
+                    className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm disabled:opacity-50 ${
+                      createDeliveryType === 'chantier'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-muted hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${createDeliveryType === 'chantier' ? 'border-primary' : 'border-muted-foreground'}`}>
+                      {createDeliveryType === 'chantier' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                    </div>
+                    <HardHat className="h-4 w-4 shrink-0" />
+                    Chantier existant
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setCreateDeliveryType(''); setSelectedChantierId('') }}
+                    className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm ${
+                      createDeliveryType === ''
+                        ? 'border-primary bg-primary/5'
+                        : 'border-muted hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${createDeliveryType === '' ? 'border-primary' : 'border-muted-foreground'}`}>
+                      {createDeliveryType === '' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                    </div>
+                    Aucun
+                  </button>
+                </div>
+                {createDeliveryType === 'chantier' && (
+                  <Select value={selectedChantierId} onValueChange={setSelectedChantierId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un chantier..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chantierOptions.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">{c.nomProjet}</span>
+                            <span className="text-xs text-muted-foreground">{c.adresse}, {c.ville}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
             {/* Planned Date */}
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
@@ -1645,6 +1855,18 @@ export default function DeliveryNotesView() {
                   <span className="text-muted-foreground">Client</span>
                   <p className="font-medium">{selectedNote.client.name}</p>
                 </div>
+                {selectedNote.chantier ? (
+                  <div>
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <HardHat className="h-3 w-3" /> Chantier
+                    </span>
+                    <p className="font-medium">{selectedNote.chantier.nomProjet}</p>
+                    <p className="text-xs text-muted-foreground">{selectedNote.chantier.adresse}, {selectedNote.chantier.ville}{selectedNote.chantier.codePostal ? ` - ${selectedNote.chantier.codePostal}` : ''}</p>
+                    {selectedNote.chantier.responsableNom && (
+                      <p className="text-xs text-muted-foreground">Resp. : {selectedNote.chantier.responsableNom}</p>
+                    )}
+                  </div>
+                ) : null}
                 <div>
                   <span className="text-muted-foreground">Date de création</span>
                   <p className="font-medium">{format(new Date(selectedNote.date), 'dd/MM/yyyy', { locale: fr })}</p>
@@ -1866,6 +2088,9 @@ export default function DeliveryNotesView() {
                       docNumber: selectedNote.number,
                       infoGrid: [
                         { label: 'Client', value: selectedNote.client.name },
+                        ...(selectedNote.chantier ? [{ label: 'Lieu de livraison', value: `${selectedNote.chantier.nomProjet} - ${selectedNote.chantier.adresse}, ${selectedNote.chantier.ville}` }] : []),
+                        ...(selectedNote.chantier && selectedNote.chantier.responsableNom ? [{ label: 'Responsable', value: selectedNote.chantier.responsableNom }] : []),
+                        ...(selectedNote.chantier && (selectedNote.chantier.telephone || selectedNote.chantier.gsm) ? [{ label: 'Tél chantier', value: selectedNote.chantier.telephone || selectedNote.chantier.gsm || '—' }] : []),
                         { label: 'Date création', value: fmtDate(selectedNote.date) },
                         { label: 'Date livraison', value: fmtDate(selectedNote.deliveryDate || '') },
                         { label: 'Transporteur', value: selectedNote.transporteur || '—' },
