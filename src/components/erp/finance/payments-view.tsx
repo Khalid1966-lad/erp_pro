@@ -26,7 +26,7 @@ import {
 import {
   Plus, Edit, Trash2, CreditCard, Banknote, FileText, ArrowLeftRight, Search,
   ChevronLeft, ChevronRight, CheckSquare, Square, ArrowDownToLine, ArrowUpFromLine,
-  Eye, Building2, Wallet
+  Eye, Building2, Wallet, KeyRound
 } from 'lucide-react'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
@@ -56,6 +56,8 @@ interface Payment {
   cashRegisterId?: string | null
   bankAccount?: { id: string; name: string } | null
   cashRegister?: { id: string; name: string } | null
+  code?: string | null
+  codeYear?: number | null
   effetsCheques?: Array<{ id: string; type: string; numero: string; statut: string; montant: number }>
   paymentLines?: Array<PaymentLine>
 }
@@ -289,6 +291,7 @@ export default function PaymentsView() {
           .join(' ')
         return (
           p.reference?.toLowerCase().includes(s) ||
+          p.code?.toLowerCase().includes(s) ||
           p.notes?.toLowerCase().includes(s) ||
           invoiceNumbers.toLowerCase().includes(s) ||
           paymentTypeLabels[p.type].toLowerCase().includes(s)
@@ -817,6 +820,7 @@ export default function PaymentsView() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-4">Date</TableHead>
+                  <TableHead>Code</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Mode</TableHead>
                   <TableHead className="text-right">Montant</TableHead>
@@ -829,7 +833,7 @@ export default function PaymentsView() {
               <TableBody>
                 {filteredPayments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {search || typeFilter !== 'all' || methodFilter !== 'all'
                         ? 'Aucun paiement trouvé.'
                         : 'Aucun paiement enregistré.'}
@@ -840,6 +844,15 @@ export default function PaymentsView() {
                     <TableRow key={payment.id} className="cursor-pointer" onDoubleClick={() => openView(payment)}>
                       <TableCell className="pl-4 text-muted-foreground text-sm">
                         {format(new Date(payment.date || payment.createdAt), 'dd/MM/yyyy', { locale: fr })}
+                      </TableCell>
+                      <TableCell>
+                        {payment.code ? (
+                          <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-2.5 py-0.5 text-sm">
+                            {payment.code}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={paymentTypeColors[payment.type]}>
@@ -946,6 +959,14 @@ export default function PaymentsView() {
                   </p>
                 </div>
               </div>
+              {editingPayment.code && (
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-emerald-600" />
+                  <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-3 py-1 text-base">
+                    {editingPayment.code}
+                  </Badge>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="edit-date">Date</Label>
                 <Input
@@ -1457,6 +1478,10 @@ export default function PaymentsView() {
                         onChange={(e) => setPayReference(e.target.value)}
                         placeholder="Référence (auto-générée)"
                       />
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <KeyRound className="h-3.5 w-3.5" />
+                        <span>Un code alphabétique (A, B, C...) sera attribué automatiquement à ce paiement</span>
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -1529,6 +1554,15 @@ export default function PaymentsView() {
           </DialogHeader>
           {viewingPayment && (
             <div className="space-y-4">
+              {/* Code badge prominently displayed */}
+              {viewingPayment.code && (
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-emerald-600" />
+                  <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-3 py-1 text-base">
+                    {viewingPayment.code}
+                  </Badge>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Type</p>

@@ -1533,6 +1533,8 @@ model Payment {
   amount          Float
   method          PaymentMethod
   reference       String?
+  code            String?
+  codeYear        Int?
   date            DateTime      @default(now())
   notes           String?
   bankAccountId    String?
@@ -1543,6 +1545,8 @@ model Payment {
 
   effetsCheques    EffetCheque[]
   paymentLines     PaymentLine[]
+
+  @@index([code, codeYear])
 }
 
 // ============ EFFETS DE COMMERCE (Chèques & Lettres de change) ============
@@ -1636,6 +1640,18 @@ model Message {
   createdAt       DateTime     @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+// ============ PAYMENT CODE COUNTER (alphabétique annuel) ============
+
+model PaymentCodeCounter {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  counter   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payment_code_counters")
 }
 
 // ============ SETTINGS ============

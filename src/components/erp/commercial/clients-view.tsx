@@ -2033,6 +2033,7 @@ interface StatementTransaction {
   debit: number
   credit: number
   balance: number
+  paymentCode?: string | null
 }
 
 interface StatementSummary {
@@ -2121,6 +2122,7 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
         { value: fmtM(data.previousBalance), align: 'right' },
         { value: '', align: 'right' },
         { value: fmtM(data.previousBalance), align: 'right' },
+        { value: '', align: 'center' },
       ])
     }
 
@@ -2134,6 +2136,7 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
         { value: tx.debit > 0 ? fmtM(tx.debit) : '', align: 'right' },
         { value: tx.credit > 0 ? fmtM(tx.credit) : '', align: 'right' },
         { value: fmtM(tx.balance), align: 'right' },
+        { value: tx.paymentCode || '', align: 'center' },
       ])
     }
 
@@ -2188,6 +2191,7 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
         { label: 'Débit', align: 'right' },
         { label: 'Crédit', align: 'right' },
         { label: 'Solde', align: 'right' },
+        { label: 'Code', align: 'center' },
       ],
       rows,
       totals,
@@ -2315,6 +2319,7 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
                     <TableHead className="text-right w-[120px]">Débit</TableHead>
                     <TableHead className="text-right w-[120px]">Crédit</TableHead>
                     <TableHead className="text-right w-[120px]">Solde</TableHead>
+                    <TableHead className="w-[80px] text-center">Code</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -2328,6 +2333,7 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
                       <TableCell className={`text-right font-bold ${data.previousBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {fmtMoney(data.previousBalance)}
                       </TableCell>
+                      <TableCell />
                     </TableRow>
                   )}
                   {data.transactions.map((tx, idx) => (
@@ -2350,6 +2356,15 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
                       <TableCell className={`text-right text-sm font-semibold ${tx.balance > 0 ? 'text-red-600' : tx.balance < 0 ? 'text-green-600' : ''}`}>
                         {fmtMoney(tx.balance)}
                       </TableCell>
+                      <TableCell className="text-center">
+                        {tx.type === 'payment' && tx.paymentCode ? (
+                          <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-2 py-0.5 text-xs">
+                            {tx.paymentCode}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                   {/* Totals row */}
@@ -2360,6 +2375,7 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
                     <TableCell className={`text-right ${data.finalBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
                       {fmtMoney(data.finalBalance)}
                     </TableCell>
+                    <TableCell />
                   </TableRow>
                 </TableBody>
               </Table>

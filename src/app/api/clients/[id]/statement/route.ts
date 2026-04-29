@@ -13,6 +13,7 @@ interface StatementTransaction {
   debit: number
   credit: number
   balance: number
+  paymentCode?: string | null
 }
 
 interface StatementSummary {
@@ -137,7 +138,7 @@ export async function GET(
           },
           ...(Object.keys(rangeDateFilter).length > 0 ? { date: rangeDateFilter } : {}),
         },
-        select: { date: true, reference: true, amount: true, invoice: { select: { number: true } } },
+        select: { date: true, reference: true, amount: true, code: true, invoice: { select: { number: true } } },
       }),
 
       // Rejet effets/cheques → DEBIT (reversal of payment)
@@ -238,6 +239,7 @@ export async function GET(
         debit: 0,
         credit: pay.amount,
         balance: 0,
+        paymentCode: pay.code || null,
       })
     }
 

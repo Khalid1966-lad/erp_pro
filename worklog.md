@@ -1,4 +1,67 @@
 ---
+Task ID: 5
+Agent: statement-code-column
+Task: Add payment code column to client account statement (UI + print)
+
+Work Log:
+- Read `src/components/erp/commercial/clients-view.tsx` focusing on FinancialStatementTab component (line 2065+) and handlePrint function (line 2090+)
+- Verified `Badge` was already imported from `@/components/ui/badge` (line 14) — no change needed
+- Updated `StatementTransaction` interface (line 2028): added `paymentCode?: string | null` field
+- Added "Code" column to UI table header as LAST column (after Solde), styled `w-[80px] text-center`
+- Added Code column cell in transaction rows: shows emerald Badge (font-mono, font-bold) for payment type with paymentCode, em-dash for non-payment transactions
+- Added empty `<TableCell />` for Code column in previous balance row and totals row to maintain column alignment
+- Updated `handlePrint` function: added `{ label: 'Code', align: 'center' }` to columns array as last entry
+- Updated print previous balance row: added `{ value: '', align: 'center' }` as 7th cell
+- Updated print transaction rows: added `{ value: tx.paymentCode || '', align: 'center' }` as 7th cell
+
+Stage Summary:
+- Payment code (alphabetic A, B, C...) now displayed as a badge in the client account statement table for payment transactions
+- Print function also includes the Code column in the generated PDF
+- No API or data fetching changes — purely UI/display addition
+- File changed: src/components/erp/commercial/clients-view.tsx (interface + UI table + print function)
+
+---
+Task ID: 4
+Agent: invoices-view-code
+Task: Add payment code badge in invoice payment sections
+
+Work Log:
+- Read full `src/components/erp/commercial/invoices-view.tsx`
+- Verified `Badge` was already imported from `@/components/ui/badge` (line 10) — no change needed
+- Updated `Invoice` interface (line 86): added `code?: string | null` field to the `payments` array type
+- Updated invoice detail dialog "Paiements" section (lines 1312-1324): wrapped method/date span in a flex container with gap-2, added conditional `Badge` for `payment.code` displayed as emerald outline badge (font-mono, font-bold) before the method/date text
+- Checked API route `src/app/api/invoices/route.ts`: uses `payments: true` in Prisma include (line 72), which returns all scalar fields including `code` — no API change needed
+- Confirmed `Payment` model in `prisma/schema.prisma` already has `code String?` field (line 1536)
+
+Stage Summary:
+- Payment code (alphabetic A, B, C...) now displayed as a badge in the invoice detail dialog's Paiements section
+- No API or data fetching changes — purely UI/display addition
+- File changed: src/components/erp/commercial/invoices-view.tsx (interface update + JSX update)
+
+---
+Task ID: 3
+Agent: payments-view-code
+Task: Add payment code column to payments view
+
+Work Log:
+- Read full `src/components/erp/finance/payments-view.tsx` (1621 lines)
+- Added `code?: string | null` and `codeYear?: number | null` fields to Payment interface
+- Added `KeyRound` icon to lucide-react imports
+- Added "Code" column header to payments table (after Date, before Type)
+- Added Code column cell with emerald Badge (font-mono, bg-emerald-50) or em-dash fallback
+- Updated empty state colSpan from 8 to 9
+- Added `p.code?.toLowerCase().includes(s)` to search filter
+- Added code info note in Step 3 wizard below reference field: KeyRound icon + "Un code alphabétique (A, B, C...) sera attribué automatiquement à ce paiement"
+- Added code badge display in edit mode dialog (below summary card, read-only, only shown when code exists)
+- Added code badge display in view detail dialog (prominently at top, with KeyRound icon)
+
+Stage Summary:
+- Payment code (alphabetic A, B, C...) now visible in table, edit dialog, and detail dialog
+- No API or data fetching changes — purely UI/display additions
+- Search now also matches payment codes
+- File changed: src/components/erp/finance/payments-view.tsx
+
+---
 Task ID: 2
 Agent: bl-address-edit
 Task: Add manual delivery address editing to BL edit dialog

@@ -40,6 +40,28 @@ function generateReference(type: string, count: number): string {
   return `PAY-${padded}`
 }
 
+/** Convert number to alphabetic code: 0→A, 25→Z, 26→AA, 27→AB, ... */
+function numberToAlphaCode(n: number): string {
+  let code = ''
+  let num = n
+  do {
+    code = String.fromCharCode(65 + (num % 26)) + code
+    num = Math.floor(num / 26) - 1
+  } while (num >= 0)
+  return code
+}
+
+/** Generate a payment code within a Prisma transaction */
+async function generatePaymentCode(tx: any): Promise<{ code: string; codeYear: number }> {
+  const year = new Date().getFullYear()
+  const counter = await tx.paymentCodeCounter.upsert({
+    where: { year },
+    update: { counter: { increment: 1 } },
+    create: { year, counter: 0 },
+  })
+  return { code: numberToAlphaCode(counter.counter), codeYear: year }
+}
+
 // ─── GET ──────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -263,6 +285,9 @@ export async function POST(req: NextRequest) {
 
       // Execute everything in a transaction
       const payment = await db.$transaction(async (tx) => {
+        // Generate alphabetic payment code (A, B, C, ..., AA, AB, ...)
+        const paymentCode = await generatePaymentCode(tx)
+
         // Create Payment
         const created = await tx.payment.create({
           data: {
@@ -271,6 +296,8 @@ export async function POST(req: NextRequest) {
             amount: data.amount,
             method: data.method,
             reference,
+            code: paymentCode.code,
+            codeYear: paymentCode.codeYear,
             date: paymentDate,
             notes: data.notes,
             bankAccountId: data.bankAccountId || null,
@@ -454,6 +481,9 @@ export async function POST(req: NextRequest) {
 
       // Execute everything in a transaction
       const payment = await db.$transaction(async (tx) => {
+        // Generate alphabetic payment code
+        const paymentCode = await generatePaymentCode(tx)
+
         // Create Payment (invoiceId = null for supplier payments)
         const created = await tx.payment.create({
           data: {
@@ -462,6 +492,8 @@ export async function POST(req: NextRequest) {
             amount: data.amount,
             method: data.method,
             reference,
+            code: paymentCode.code,
+            codeYear: paymentCode.codeYear,
             date: paymentDate,
             notes: data.notes,
             bankAccountId: data.bankAccountId || null,

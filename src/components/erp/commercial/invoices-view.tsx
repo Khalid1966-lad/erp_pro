@@ -83,7 +83,7 @@ interface Invoice {
   client: { id: string; name: string }
   salesOrder: { id: string; number: string } | null
   lines: InvoiceLine[]
-  payments: { id: string; amount: number; date: string; method: string }[]
+  payments: { id: string; amount: number; date: string; method: string; code?: string | null }[]
   creditNotes: { id: string; number: string; totalTTC: number }[]
   deliveryNotes: InvoiceDeliveryNoteRel[]
 }
@@ -1311,7 +1311,14 @@ export default function InvoicesView() {
                   <div className="space-y-1">
                     {selectedInvoice.payments.map((payment) => (
                       <div key={payment.id} className="flex items-center justify-between text-sm bg-green-50 rounded px-3 py-2">
-                        <span>{payment.method} - {format(new Date(payment.date), 'dd/MM/yyyy', { locale: fr })}</span>
+                        <div className="flex items-center gap-2">
+                          {payment.code && (
+                            <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-2 py-0.5 text-xs shrink-0">
+                              {payment.code}
+                            </Badge>
+                          )}
+                          <span>{payment.method} - {format(new Date(payment.date), 'dd/MM/yyyy', { locale: fr })}</span>
+                        </div>
                         <span className="font-medium text-green-700">{formatCurrency(payment.amount)}</span>
                       </div>
                     ))}
