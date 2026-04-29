@@ -1491,3 +1491,31 @@ Stage Summary:
 - PDF brochure: 10 clean A4 pages, no blank pages, signature only on last page
 - User deletion: Super Admin can delete non-super_admin users with proper cascade cleanup
 - Commit: 2bc9430 pushed to main
+
+---
+Task ID: fix-user-access-issue
+Agent: Main Agent
+Task: Fix "other users cannot get to their accounts" — login issue diagnosis and fix
+
+Work Log:
+- Investigated full auth flow: login route, JWT creation/verification, user creation, session management
+- Found root cause #1: PostgreSQL `findUnique({ where: { email } })` is case-sensitive — emails with different casing won't match
+- Found root cause #2: No password reset mechanism for super admin to help locked-out users
+- Found root cause #3: If PASSWORD_SALT changed between user creation and login attempt, stored hashes won't match
+- Fixed `src/app/api/auth/login/route.ts`:
+  - Changed user lookup from `findUnique({ where: { email } })` to `findFirst({ where: { email: { equals: email, mode: 'insensitive' } } })` — now case-insensitive
+  - Added `verifyToken` import from `@/lib/auth`
+  - Added `PUT` handler for password reset (super_admin only): accepts userId + newPassword, re-hashes with current salt
+- Updated `src/components/erp/admin/users-view.tsx`:
+  - Added `KeyRound` icon import from lucide-react
+  - Added `handleResetPassword` function: prompts for new password, calls PUT /auth/login
+  - Added reset password button (key icon) in user actions column between Edit and Block/Unblock
+  - Increased actions column width from 160px to 200px to accommodate new button
+- Verified Prisma schema is synced with Neon PostgreSQL (already in sync)
+- ESLint: 0 errors
+
+Stage Summary:
+- Login now works with case-insensitive email matching
+- Super admin can reset any user's password via a dedicated button in Users management
+- This also fixes PASSWORD_SALT mismatch issues since reset re-hashes with current salt
+- Files changed: src/app/api/auth/login/route.ts, src/components/erp/admin/users-view.tsx

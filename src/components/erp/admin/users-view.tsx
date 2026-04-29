@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   UserCog, Plus, Search, Edit, Shield, ShieldCheck, Ban, Unlock,
-  Phone, Mail, Clock, Calendar, Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, Camera, Trash2
+  Phone, Mail, Clock, Calendar, Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, Camera, Trash2, KeyRound
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
@@ -351,6 +351,22 @@ function UsersViewInner() {
     }
   }
 
+  // ─── Reset Password ───
+  const handleResetPassword = async (userId: string, userName: string) => {
+    const newPassword = window.prompt(`Nouveau mot de passe pour ${userName} (minimum 6 caractères) :`)
+    if (!newPassword || newPassword.length < 6) {
+      if (newPassword !== null) toast.error('Mot de passe invalide', { description: 'Minimum 6 caractères requis.' })
+      return
+    }
+    try {
+      await api.put('/auth/login', { userId, newPassword })
+      toast.success('Mot de passe réinitialisé', { description: `Le mot de passe de ${userName} a été mis à jour.` })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error('Erreur', { description: msg })
+    }
+  }
+
   // ─── Block / Unblock ───
   const handleBlock = async (userId: string, block: boolean) => {
     try {
@@ -482,7 +498,7 @@ function UsersViewInner() {
                   <TableHead className="hidden sm:table-cell">Statut</TableHead>
                   <TableHead className="hidden md:table-cell">Dernière connexion</TableHead>
                   <TableHead className="hidden lg:table-cell">Créé le</TableHead>
-                  <TableHead className="text-right w-[160px]">Actions</TableHead>
+                  <TableHead className="text-right w-[200px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -584,6 +600,16 @@ function UsersViewInner() {
                             title="Modifier"
                           >
                             <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                            onClick={() => handleResetPassword(u.id, u.name)}
+                            disabled={u.id === currentUser?.id}
+                            title="Réinitialiser le mot de passe"
+                          >
+                            <KeyRound className="h-4 w-4" />
                           </Button>
                           {u.isBlocked ? (
                             <Button

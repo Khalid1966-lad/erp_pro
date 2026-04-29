@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
-import { createToken } from '@/lib/auth'
+import { createToken, verifyToken } from '@/lib/auth'
 
 // Hardcoded super admin credentials (emergency access)
 const SUPER_ADMIN = {
@@ -72,7 +72,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── Normal login flow ───
-    const user = await db.user.findUnique({ where: { email } })
+    // Case-insensitive email lookup (PostgreSQL is case-sensitive by default)
+    const user = await db.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } }
+    })
     if (!user) {
       return NextResponse.json({ error: 'Email ou mot de passe incorrect' }, { status: 401 })
     }
@@ -120,6 +123,42 @@ export async function POST(req: NextRequest) {
     })
   } catch (error) {
     console.error('Login error:', error)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+}
+
+// POST /api/auth/login/reset-password — Reset any user's password (super_admin only)
+export async function PUT(req: NextRequest) {
+  try {
+    const authData = verifyToken(req.headers.get('authorization')?.replace('Bearer ', '') || '')
+    if (!authData || authData.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    }
+
+    const body = await req.json()
+    const { userId, newPassword } = body
+
+    if (!userId || !newPassword || newPassword.length < 6) {
+      return NextResponse.json({ error: 'ID utilisateur et mot de passe (min 6 chars) requis' }, { status: 400 })
+    }
+
+    const user = await db.user.findUnique({ where: { id: userId } })
+    if (!user) {
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
+    }
+
+    const passwordHash = createHash('sha256')
+      .update(newPassword + (process.env.PASSWORD_SALT || 'erp-salt'))
+      .digest('hex')
+
+    await db.user.update({
+      where: { id: userId },
+      data: { passwordHash }
+    })
+
+    return NextResponse.json({ success: true, message: `Mot de passe de ${user.name} réinitialisé.` })
+  } catch (error) {
+    console.error('Reset password error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
