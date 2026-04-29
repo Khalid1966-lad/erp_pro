@@ -580,7 +580,7 @@ function UsersViewInner() {
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => openEdit(u)}
-                            disabled={u.isSuperAdmin && !isSuperAdmin}
+                            disabled={u.email === 'contact@jazelwebagency.com' ? u.id !== currentUser?.id : (u.isSuperAdmin && !isSuperAdmin)}
                             title="Modifier"
                           >
                             <Edit className="h-4 w-4" />

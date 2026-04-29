@@ -127,9 +127,14 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
     }
 
-    // Cannot modify super admin (except by another super admin)
-    if (existing.isSuperAdmin && auth.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Impossible de modifier un super administrateur' }, { status: 403 })
+    // Cannot modify the main super admin account (only the account itself can modify itself)
+    if (existing.email === 'contact@jazelwebagency.com' && auth.userId !== existing.id) {
+      return NextResponse.json({ error: 'Impossible de modifier ce compte super administrateur' }, { status: 403 })
+    }
+
+    // Cannot modify another super admin (except yourself)
+    if (existing.isSuperAdmin && auth.userId !== existing.id) {
+      return NextResponse.json({ error: 'Impossible de modifier un autre super administrateur' }, { status: 403 })
     }
 
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
@@ -208,6 +213,11 @@ export async function DELETE(req: NextRequest) {
     // Cannot delete yourself
     if (id === auth.userId) {
       return NextResponse.json({ error: 'Impossible de supprimer votre propre compte' }, { status: 403 })
+    }
+
+    // Cannot delete the main super admin account (contact@jazelwebagency.com)
+    if (existing.email === 'contact@jazelwebagency.com') {
+      return NextResponse.json({ error: 'Impossible de supprimer le compte super administrateur principal' }, { status: 403 })
     }
 
     // Cannot delete super admins
