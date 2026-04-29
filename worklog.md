@@ -1,4 +1,175 @@
 ---
+Task ID: 2-f
+Agent: frontend-agent
+Task: Add master-detail (inline expand) feature to supplier-invoices-view.tsx
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` for conditional classname utility
+- Added `XCircle` to lucide-react icon imports
+- Added `expandedId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedId(null)` in search onChange, supplierFilter onValueChange, and statusFilter onValueChange to auto-close panel on filter change
+- Modified `TableRow` with `cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")`, `onClick` toggle, `onDoubleClick` openEdit preserved
+- Existing action buttons already had `stopPropagation` — verified and kept as-is
+- Added inline detail panel after table Card (`border-primary/20`) with:
+  - Header: Receipt icon, invoice number (font-mono), StatusBadge, supplier name
+  - Action buttons: Ouvrir (Eye → opens detail dialog), Imprimer (Printer with full printDocument params), Modifier (Pencil, if received), Vérifier (ShieldCheck, if received), close (XCircle)
+  - Info cards grid (4 cols): Fournisseur, Échéance, Commande, Créée le
+  - Additional info row: Montant payé (green), Reste à payer (red/green based on remaining amount)
+  - Lines table: Produit (ref + designation), Qté, P.U. HT, TVA, Total HT (max-h-[300px] overflow-auto)
+  - Notes section (conditionally rendered)
+  - Totals section: Total HT, TVA, Total TTC + amount in words via numberToFrenchWords
+- Existing detail dialog fully preserved (Eye button in panel still opens it)
+- Double click still opens edit dialog
+- ESLint: 0 errors
+
+Stage Summary:
+- Supplier invoices view now has master-detail inline expansion (same pattern as quotes-view)
+- Single click to expand/collapse inline detail panel below table
+- Double click still opens edit dialog for received invoices
+- All existing functionality preserved (detail dialog, edit, print, status transitions, delete)
+- File changed: src/components/erp/purchasing/supplier-invoices-view.tsx
+
+---
+Task ID: 2-e
+Agent: frontend-agent
+Task: Add master-detail (inline expand) feature to supplier-credit-notes-view.tsx
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` for conditional classname utility
+- Added `expandedId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedId(null)` in search onChange and supplierFilter onChange to auto-close panel on search/filter change
+- Modified `TableRow` with `cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")`, `onClick` toggle
+- Added inline detail panel below main Card with:
+  - Header: ArrowLeftRight icon, credit note number (font-mono), StatusBadge, supplier name
+  - Action buttons: Ouvrir (Eye → opens detail dialog), Imprimer (Printer with full printDocument params), Modifier (Pencil, if received), close (XCircle)
+  - Info cards grid (4 cols): Fournisseur, Facture liée, Retour lié, Créée le
+  - Amount info row: Montant appliqué (green bg), Reste à appliquer (orange bg)
+  - Lines table: Produit (ref + designation), Qté, P.U. HT, TVA, Total HT (max-h-[300px] overflow-auto)
+  - Reason section if exists
+  - Totals section: Total HT, TVA, Total TTC + amount in words via numberToFrenchWords
+- Detail panel Card uses `border-primary/20` class
+- Existing detail dialog preserved and still accessible via Eye button
+- ESLint: 0 errors
+
+Stage Summary:
+- Supplier credit notes view now has master-detail inline expansion (same pattern as quotes-view)
+- Single click to expand/collapse inline detail panel below table
+- All existing functionality preserved (detail dialog, edit, print, status transitions, delete)
+- File changed: src/components/erp/purchasing/supplier-credit-notes-view.tsx
+
+---
+Task ID: 2-b
+Agent: frontend-agent
+Task: Add master-detail (inline expand) feature to purchase-orders-view.tsx
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` for conditional classname utility
+- Added `XCircle` to lucide-react icon imports
+- Added `expandedId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedId(null)` in search input onChange to auto-close panel on search change
+- Modified `TableRow` with `cn("cursor-pointer", expandedId === o.id && "bg-primary/5 border-l-2 border-l-primary")`, `onClick` toggle, `onDoubleClick` openEdit preserved
+- Verified existing action buttons div already has `onClick={(e) => e.stopPropagation()}` — kept as-is
+- Added inline detail panel after table Card (`border-primary/20`) with:
+  - Header: ShoppingCart icon, order number (font-mono), StatusBadge, supplier name
+  - Action buttons: Ouvrir (Eye → opens detail dialog), Imprimer (Printer with same printDocument params), Modifier (Pencil, if draft/sent), Fermer (XCircle)
+  - Info cards grid (4 cols): Fournisseur, Date prévue, Créée le, Nb. lignes
+  - Lines table: Produit (reference + designation), Qté, Reçue, P.U. HT, Total HT (max-h-[300px] overflow-auto)
+  - Notes section (conditionally rendered)
+  - Totals section: Total HT, TVA, Total TTC + amount in words
+- Existing detail dialog fully preserved (Eye button in panel still opens it)
+- Double click still opens edit dialog
+- ESLint: 0 errors
+
+Stage Summary:
+- Purchase orders view now has master-detail inline expansion (same pattern as quotes-view)
+- Single click to expand/collapse inline detail panel below table
+- Double click still opens edit dialog for draft/sent orders
+- File changed: src/components/erp/purchasing/purchase-orders-view.tsx
+
+---
+Task ID: 2-c
+Agent: frontend-agent
+Task: Add master-detail (inline expand) feature to receptions-view.tsx
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` for conditional classname utility
+- Added `expandedId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedId(null)` in search input onChange to auto-close panel on search change
+- Modified `TableRow` with `cn("cursor-pointer", expandedId === r.id && "bg-primary/5 border-l-2 border-l-primary")` and `onClick` toggle
+- Existing Eye button already had `stopPropagation` — verified and kept as-is
+- Added inline detail panel after table Card (`border-primary/20`) with:
+  - Header: Warehouse icon, reception number (font-mono), quality badge (computed from lines)
+  - Action buttons: Ouvrir (Eye → opens detail dialog), Imprimer (Printer with printDocument), close (XCircle)
+  - Info cards grid (3 cols): Commande (purchase order number), Fournisseur, Date
+  - Lines table: Produit, Qté attendue, Qté reçue, Qualité (max-h-[300px] overflow-auto)
+  - Notes section (conditionally rendered)
+  - Stock info note: "Le stock a été mis à jour automatiquement à la création de cette réception."
+  - No totals section (receptions track quantities, not money)
+- Existing detail dialog fully preserved (Eye button in panel still opens it)
+- ESLint: 0 errors
+
+Stage Summary:
+- Receptions view now has master-detail inline expansion (same pattern as quotes-view)
+- Single click to expand/collapse inline detail panel below table
+- Detail panel shows quality status, info cards, lines table, notes, stock info
+- File changed: src/components/erp/purchasing/receptions-view.tsx
+
+---
+Task ID: 2-a
+Agent: frontend-agent
+Task: Add master-detail inline expansion panel to price-requests view
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` for conditional classname utility
+- Added `expandedId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedId(null)` in search onChange and statusFilter onValueChange to clear expansion on search/filter
+- Modified `TableRow` with `cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")`, `onClick` toggle, `onDoubleClick` openEdit
+- Added inline detail panel after table Card with:
+  - Header: FileQuestion icon, price request number (font-mono), StatusBadge, title
+  - Action buttons: Ouvrir (Eye → opens detail dialog), Imprimer (Printer → printDocument with DEMANDE DE PRIX params), close (XCircle)
+  - Info cards grid (4 cols): Validité, Nb. lignes, Nb. devis, Créée le
+  - Lines table: Produit (reference + designation), Quantité (max-h-[300px] overflow-auto)
+  - Notes section if exists
+  - Supplier quotes received table (if any): Référence, Fournisseur, Statut, Total TTC
+- All existing functionality preserved (detail dialog, edit, actions, print, double-click edit)
+- ESLint: 0 errors
+
+Stage Summary:
+- Price requests view now has master-detail inline expansion (same pattern as quotes-view)
+- Single click to expand/collapse inline detail panel below table
+- Double click still opens edit dialog for draft price requests
+- Action buttons have stopPropagation to prevent expanding when clicked
+- File changed: src/components/erp/purchasing/price-requests-view.tsx
+
+---
+Task ID: 2-d
+Agent: frontend-achats-expand
+Task: Add master-detail inline expansion panel to supplier-returns-view
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` for conditional classname utility
+- Added `expandedId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedId(null)` in search onChange and supplierFilter onValueChange to clear expansion on filter change
+- Modified TableRow with `cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")`, `onClick` toggle, `onDoubleClick` openEdit
+- Added inline detail panel after table Card with:
+  - Header: RotateCcw icon, return number (font-mono), StatusBadge, supplier name
+  - Action buttons: Ouvrir (Eye → opens detail dialog), Imprimer (printDocument with negative totals), Modifier (draft only, Pencil), close (XCircle)
+  - Info cards grid (4 cols): Fournisseur, Commande, Réception, Créée le
+  - Lines table: Produit (ref + designation), Qté, P.U. HT, TVA %, Total HT (max-h-[300px] overflow-auto)
+  - Reason section if present
+  - Totals section: Total HT, TVA, Total TTC + amount in words (numberToFrenchWords)
+- Existing detail dialog and all action buttons preserved (stopPropagation already in place)
+- Detail panel Card uses `border-primary/20` class
+- ESLint: 0 errors
+
+Stage Summary:
+- Supplier returns view now has master-detail inline expansion (same pattern as quotes-view)
+- Single click to expand/collapse inline detail panel below table
+- Double click still opens edit dialog for draft returns
+- Action buttons have stopPropagation to prevent expanding when clicked
+- File changed: src/components/erp/purchasing/supplier-returns-view.tsx
+
+---
 Task ID: 2-e
 Agent: frontend-agent
 Task: Add master-detail inline expansion panel to credit notes view

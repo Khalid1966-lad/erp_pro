@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -116,6 +117,7 @@ export default function ReceptionsView() {
   const [receptions, setReceptions] = useState<Reception[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedReception, setSelectedReception] = useState<Reception | null>(null)
@@ -241,7 +243,7 @@ export default function ReceptionsView() {
           <Input
             placeholder="Rechercher par référence..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setExpandedId(null) }}
             className="pl-9"
           />
         </div>
@@ -473,7 +475,7 @@ export default function ReceptionsView() {
                     const allConforme = r.lines?.every((l) => l.qualityCheck === 'conforme')
                     const qualityStatus = hasNonConforme ? 'non_conforme' : allConforme ? 'conforme' : 'partiel'
                     return (
-                      <TableRow key={r.id} className="cursor-pointer">
+                      <TableRow key={r.id} className={cn("cursor-pointer", expandedId === r.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}>
                         <TableCell className="font-medium font-mono text-sm">{r.number}</TableCell>
                         <TableCell className="hidden md:table-cell font-mono text-sm">{r.purchaseOrder?.number || '—'}</TableCell>
                         <TableCell className="hidden lg:table-cell">{r.purchaseOrder?.supplier?.name || '—'}</TableCell>
@@ -498,6 +500,125 @@ export default function ReceptionsView() {
           </div>
         )}
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedId && (() => {
+        const r = receptions.find(x => x.id === expandedId)
+        if (!r) return null
+        const hasNonConforme = r.lines?.some((l) => l.qualityCheck === 'non_conforme')
+        const allConforme = r.lines?.every((l) => l.qualityCheck === 'conforme')
+        const qualityStatus = hasNonConforme ? 'non_conforme' : allConforme ? 'conforme' : 'partiel'
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Warehouse className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{r.number}</span>
+                      <QualityBadge quality={qualityStatus} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => { setSelectedReception(r); setDetailOpen(true) }}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    printDocument({
+                      title: 'BON DE RÉCEPTION',
+                      docNumber: r.number,
+                      infoGrid: [
+                        { label: 'Commande', value: r.purchaseOrder?.number || '—' },
+                        { label: 'Fournisseur', value: r.purchaseOrder?.supplier?.name || '—' },
+                        { label: 'Date', value: fmtDateP(r.date || r.createdAt) },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté attendue', align: 'right' },
+                        { label: 'Qté reçue', align: 'right' },
+                        { label: 'Qualité', align: 'center' },
+                      ],
+                      rows: (r.lines || []).map(l => [
+                        { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                        { value: l.expectedQty ?? 0, align: 'right' },
+                        { value: l.receivedQuantity ?? 0, align: 'right' },
+                        { value: l.qualityCheck === 'conforme' ? 'Conforme' : l.qualityCheck === 'non_conforme' ? 'Non conforme' : 'Partiel', align: 'center' },
+                      ]),
+                      totals: [],
+                      notes: r.notes || undefined,
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Info cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Commande</span>
+                  <p className="font-medium font-mono">{r.purchaseOrder?.number || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Fournisseur</span>
+                  <p className="font-medium">{r.purchaseOrder?.supplier?.name || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Date</span>
+                  <p className="font-medium">{fmtDate(r.date || r.createdAt)}</p>
+                </div>
+              </div>
+
+              {/* Lines table */}
+              {r.lines?.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right">Qté attendue</TableHead>
+                        <TableHead className="text-right">Qté reçue</TableHead>
+                        <TableHead>Qualité</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {r.lines.map((l, i) => (
+                        <TableRow key={l.id || i}>
+                          <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
+                          <TableCell className="text-right">{l.expectedQty?.toLocaleString('fr-FR') || 0}</TableCell>
+                          <TableCell className="text-right font-medium">{l.receivedQuantity?.toLocaleString('fr-FR') || 0}</TableCell>
+                          <TableCell><QualityBadge quality={l.qualityCheck} /></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Notes */}
+              {r.notes && (
+                <div className="bg-muted/50 rounded-md p-3 text-sm">
+                  <span className="font-medium">Notes :</span> {r.notes}
+                </div>
+              )}
+
+              {/* Stock info */}
+              <div className="bg-muted/50 rounded-md p-3 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-green-600 inline mr-2" />
+                Le stock a été mis à jour automatiquement à la création de cette réception.
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }

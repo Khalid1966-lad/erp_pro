@@ -23,6 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, Send, XCircle, CheckCircle2, Printer } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -117,6 +118,7 @@ export default function SupplierReturnsView() {
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Form state
   const [supplierId, setSupplierId] = useState('')
@@ -308,11 +310,11 @@ export default function SupplierReturnsView() {
             <Input
               placeholder="Rechercher par référence ou fournisseur..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setExpandedId(null) }}
               className="pl-9"
             />
           </div>
-          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+          <Select value={supplierFilter} onValueChange={(v) => { setSupplierFilter(v); setExpandedId(null) }}>
             <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Fournisseur" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les fournisseurs</SelectItem>
@@ -627,7 +629,7 @@ export default function SupplierReturnsView() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id} className="cursor-pointer" onDoubleClick={() => openEdit(item)}>
+                    <TableRow key={item.id} className={cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} onDoubleClick={() => openEdit(item)}>
                       <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
@@ -725,6 +727,143 @@ export default function SupplierReturnsView() {
           </div>
         )}
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedId && (() => {
+        const ei = items.find(r => r.id === expandedId)
+        if (!ei) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <RotateCcw className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{ei.number}</span>
+                      <StatusBadge status={ei.status} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{ei.supplier?.name || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => { setSelected(ei); setDetailOpen(true) }}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    printDocument({
+                      title: 'BON DE RETOUR',
+                      docNumber: ei.number,
+                      infoGrid: [
+                        { label: 'Fournisseur', value: ei.supplier?.name || '—' },
+                        { label: 'Commande', value: ei.purchaseOrder?.number || '—' },
+                        { label: 'Réception', value: ei.reception?.number || '—' },
+                        { label: 'Créée le', value: fmtDateP(ei.createdAt) },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'TVA', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: (ei.lines || []).map(l => [
+                        { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                        { value: l.quantity, align: 'right' },
+                        { value: fmtMoneyP(l.unitPrice), align: 'right' },
+                        { value: `${l.tvaRate}%`, align: 'right' },
+                        { value: fmtMoneyP(l.quantity * l.unitPrice), align: 'right' },
+                      ]),
+                      totals: [
+                        { label: 'Total HT', value: fmtMoneyP(ei.totalHT), negative: true },
+                        { label: 'TVA', value: fmtMoneyP(ei.totalTVA), negative: true },
+                        { label: 'Total TTC', value: fmtMoneyP(ei.totalTTC), bold: true, negative: true },
+                      ],
+                      notes: ei.reason || undefined,
+                      negativeTotals: true,
+                      amountInWords: numberToFrenchWords(ei.totalTTC),
+                      amountInWordsLabel: 'Arrêté le présent bon de retour à la somme de',
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  {ei.status === 'draft' && (
+                    <Button variant="outline" size="sm" onClick={() => openEdit(ei)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Fournisseur</span>
+                  <p className="font-medium">{ei.supplier?.name || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Commande</span>
+                  <p className="font-medium font-mono">{ei.purchaseOrder?.number || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Réception</span>
+                  <p className="font-medium font-mono">{ei.reception?.number || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Créée le</span>
+                  <p className="font-medium">{fmtDate(ei.createdAt)}</p>
+                </div>
+              </div>
+
+              {(ei.lines || []).length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="text-right w-[70px]">TVA</TableHead>
+                        <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(ei.lines || []).map((l, i) => (
+                        <TableRow key={l.id || i}>
+                          <TableCell className="font-medium text-sm">
+                            <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
+                            {l.product?.designation || '—'}
+                          </TableCell>
+                          <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{l.tvaRate}%</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {ei.reason && (
+                <div className="text-sm"><span className="text-muted-foreground">Motif :</span> {ei.reason}</div>
+              )}
+
+              <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{fmtMoney(ei.totalHT)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{fmtMoney(ei.totalTVA)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{fmtMoney(ei.totalTTC)}</span></div>
+                <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(ei.totalTTC)} dirhams</div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }

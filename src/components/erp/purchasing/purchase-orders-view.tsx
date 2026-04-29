@@ -22,7 +22,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer, ShoppingCart } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer, ShoppingCart, XCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -110,6 +111,7 @@ export default function PurchaseOrdersView() {
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Form state
   const [supplierId, setSupplierId] = useState('')
@@ -283,7 +285,7 @@ export default function PurchaseOrdersView() {
           <Input
             placeholder="Rechercher par référence ou fournisseur..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setExpandedId(null) }}
             className="pl-9"
           />
         </div>
@@ -565,7 +567,7 @@ export default function PurchaseOrdersView() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((o) => (
-                    <TableRow key={o.id} className="cursor-pointer" onDoubleClick={() => openEdit(o)}>
+                    <TableRow key={o.id} className={cn("cursor-pointer", expandedId === o.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)} onDoubleClick={() => openEdit(o)}>
                       <TableCell className="font-medium font-mono text-sm">{o.number}</TableCell>
                       <TableCell><StatusBadge status={o.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{o.supplier?.name || '—'}</TableCell>
@@ -643,6 +645,142 @@ export default function PurchaseOrdersView() {
           </div>
         )}
       </Card>
+
+      {/* Inline detail panel */}
+      {expandedId && (() => {
+        const o = orders.find(ord => ord.id === expandedId)
+        if (!o) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{o.number}</span>
+                      <StatusBadge status={o.status} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{o.supplier?.name || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => { setSelectedOrder(o); setDetailOpen(true) }}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    printDocument({
+                      title: 'COMMANDE FOURNISSEUR',
+                      docNumber: o.number,
+                      infoGrid: [
+                        { label: 'Fournisseur', value: o.supplier?.name || '—' },
+                        { label: 'Statut', value: statusConfig[o.status]?.label || o.status },
+                        { label: 'Date prévue', value: fmtDateP(o.expectedDate || '') },
+                        { label: 'Créée le', value: fmtDateP(o.createdAt) },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'Reçue', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: (o.lines || []).map(l => [
+                        { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                        { value: l.quantity, align: 'right' },
+                        { value: l.quantityReceived ?? 0, align: 'right' },
+                        { value: fmtMoneyP(l.unitPrice), align: 'right' },
+                        { value: fmtMoneyP(l.quantity * l.unitPrice), align: 'right' },
+                      ]),
+                      totals: [
+                        { label: 'Total HT', value: fmtMoneyP(o.totalHT) },
+                        { label: 'TVA', value: fmtMoneyP(o.totalTVA) },
+                        { label: 'Total TTC', value: fmtMoneyP(o.totalTTC), bold: true },
+                      ],
+                      notes: o.notes || undefined,
+                      amountInWords: numberToFrenchWords(o.totalTTC),
+                      amountInWordsLabel: 'Arrêtée la présente commande à la somme de',
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  {(o.status === 'draft' || o.status === 'sent') && (
+                    <Button variant="outline" size="sm" onClick={() => openEdit(o)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Fournisseur</span>
+                  <p className="font-medium">{o.supplier?.name || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Date prévue</span>
+                  <p className="font-medium">{fmtDate(o.expectedDate)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Créée le</span>
+                  <p className="font-medium">{fmtDate(o.createdAt)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Nb. lignes</span>
+                  <p className="font-medium">{o.lines?.length || 0}</p>
+                </div>
+              </div>
+
+              {o.lines && o.lines.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[70px]">Reçue</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {o.lines.map((l) => (
+                        <TableRow key={l.id || l.productId}>
+                          <TableCell className="font-medium text-sm">
+                            <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
+                            {l.product?.designation || '—'}
+                          </TableCell>
+                          <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right">{l.quantityReceived?.toLocaleString('fr-FR') || 0}</TableCell>
+                          <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {o.notes && (
+                <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {o.notes}</div>
+              )}
+
+              <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{fmtMoney(o.totalHT)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{fmtMoney(o.totalTVA)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{fmtMoney(o.totalTTC)}</span></div>
+                <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(o.totalTTC)} dirhams</div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -114,6 +115,7 @@ export default function SupplierCreditNotesView() {
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Form state
   const [supplierId, setSupplierId] = useState('')
@@ -292,11 +294,11 @@ export default function SupplierCreditNotesView() {
             <Input
               placeholder="Rechercher par référence ou fournisseur..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setExpandedId(null) }}
               className="pl-9"
             />
           </div>
-          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+          <Select value={supplierFilter} onValueChange={(v) => { setSupplierFilter(v); setExpandedId(null) }}>
             <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Fournisseur" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les fournisseurs</SelectItem>
@@ -608,7 +610,7 @@ export default function SupplierCreditNotesView() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id} className="cursor-pointer" onDoubleClick={() => openEdit(item)}>
+                    <TableRow key={item.id} className={cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} onDoubleClick={() => openEdit(item)}>
                       <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
@@ -687,6 +689,162 @@ export default function SupplierCreditNotesView() {
           </div>
         )}
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedId && (() => {
+        const item = items.find(i => i.id === expandedId)
+        if (!item) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ArrowLeftRight className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{item.number}</span>
+                      <StatusBadge status={item.status} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{item.supplier?.name || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => { setSelected(item); setDetailOpen(true) }}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    printDocument({
+                      title: 'AVOIR FOURNISSEUR',
+                      docNumber: item.number,
+                      infoGrid: [
+                        { label: 'Fournisseur', value: item.supplier?.name || '—' },
+                        { label: 'Facture', value: item.supplierInvoice?.number || '—' },
+                        { label: 'Retour', value: item.supplierReturn?.number || '—' },
+                        { label: 'Créée le', value: fmtDateP(item.createdAt) },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'TVA', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: (item.lines || []).map(l => [
+                        { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                        { value: l.quantity, align: 'right' },
+                        { value: fmtMoneyP(l.unitPrice), align: 'right' },
+                        { value: `${l.tvaRate}%`, align: 'right' },
+                        { value: fmtMoneyP(l.quantity * l.unitPrice), align: 'right' },
+                      ]),
+                      totals: [
+                        { label: 'Total HT', value: fmtMoneyP(item.totalHT), negative: true },
+                        { label: 'TVA', value: fmtMoneyP(item.totalTVA), negative: true },
+                        { label: 'Total TTC', value: fmtMoneyP(item.totalTTC), bold: true, negative: true },
+                      ],
+                      notes: item.reason || undefined,
+                      negativeTotals: true,
+                      amountInWords: numberToFrenchWords(item.totalTTC),
+                      amountInWordsLabel: 'Arrêté le présent avoir fournisseur à la somme de',
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  {item.status === 'received' && (
+                    <Button variant="outline" size="sm" onClick={() => openEdit(item)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Info cards grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Fournisseur</span>
+                  <p className="font-medium">{item.supplier?.name || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Facture liée</span>
+                  <p className="font-medium font-mono">{item.supplierInvoice?.number || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Retour lié</span>
+                  <p className="font-medium font-mono">{item.supplierReturn?.number || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Créée le</span>
+                  <p className="font-medium">{fmtDate(item.createdAt)}</p>
+                </div>
+              </div>
+
+              {/* Amount applied info row */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-2.5">
+                  <span className="text-muted-foreground text-xs">Montant appliqué</span>
+                  <p className="font-medium text-green-600">{fmtMoney(item.amountApplied || 0)}</p>
+                </div>
+                <div className="rounded-lg bg-orange-50 dark:bg-orange-950/30 p-2.5">
+                  <span className="text-muted-foreground text-xs">Reste à appliquer</span>
+                  <p className="font-medium text-orange-600">{fmtMoney((item.totalTTC || 0) - (item.amountApplied || 0))}</p>
+                </div>
+              </div>
+
+              {/* Lines table */}
+              {(item.lines || []).length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="text-right w-[70px]">TVA</TableHead>
+                        <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(item.lines || []).map((l, i) => (
+                        <TableRow key={l.id || i}>
+                          <TableCell className="font-medium text-sm">
+                            <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
+                            {l.product?.designation || '—'}
+                          </TableCell>
+                          <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{l.tvaRate}%</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Reason section */}
+              {item.reason && (
+                <div className="text-sm bg-muted/50 rounded-md p-3">
+                  <span className="font-medium">Motif : </span>{item.reason}
+                </div>
+              )}
+
+              {/* Totals section */}
+              <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{fmtMoney(item.totalHT)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{fmtMoney(item.totalTVA)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{fmtMoney(item.totalTTC)}</span></div>
+                <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(item.totalTTC)} dirhams</div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }

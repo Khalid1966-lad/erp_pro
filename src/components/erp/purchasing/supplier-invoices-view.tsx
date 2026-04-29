@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,7 +23,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, Receipt, CheckCircle2, ShieldCheck, Pencil, Printer } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, Receipt, CheckCircle2, ShieldCheck, Pencil, Printer, XCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -128,6 +129,7 @@ export default function SupplierInvoicesView() {
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Form state
   const [supplierId, setSupplierId] = useState('')
@@ -309,11 +311,11 @@ export default function SupplierInvoicesView() {
             <Input
               placeholder="Rechercher par référence ou fournisseur..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setExpandedId(null) }}
               className="pl-9"
             />
           </div>
-          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+          <Select value={supplierFilter} onValueChange={(v) => { setSupplierFilter(v); setExpandedId(null) }}>
             <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Fournisseur" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les fournisseurs</SelectItem>
@@ -322,7 +324,7 @@ export default function SupplierInvoicesView() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setExpandedId(null) }}>
             <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Statut" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous</SelectItem>
@@ -642,7 +644,7 @@ export default function SupplierInvoicesView() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id} className="cursor-pointer" onDoubleClick={() => openEdit(item)}>
+                    <TableRow key={item.id} className={cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} onDoubleClick={() => openEdit(item)}>
                       <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
@@ -722,6 +724,168 @@ export default function SupplierInvoicesView() {
           </div>
         )}
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedId && (() => {
+        const inv = items.find(i => i.id === expandedId)
+        if (!inv) return null
+        const resteAPayer = inv.totalTTC - (inv.amountPaid || 0)
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Receipt className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{inv.number}</span>
+                      <StatusBadge status={inv.status} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{inv.supplier?.name || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <Button variant="outline" size="sm" onClick={() => { setSelected(inv); setDetailOpen(true) }}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    printDocument({
+                      title: 'FACTURE FOURNISSEUR',
+                      docNumber: inv.number,
+                      infoGrid: [
+                        { label: 'Fournisseur', value: inv.supplier?.name || '—' },
+                        { label: 'Échéance', value: fmtDateP(inv.dueDate || '') },
+                        { label: 'Commande', value: inv.purchaseOrder?.number || '—' },
+                        { label: 'Créée le', value: fmtDateP(inv.createdAt) },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'TVA', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: (inv.lines || []).map(l => [
+                        { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                        { value: l.quantity, align: 'right' },
+                        { value: fmtMoneyP(l.unitPrice), align: 'right' },
+                        { value: `${l.tvaRate}%`, align: 'right' },
+                        { value: fmtMoneyP(l.quantity * l.unitPrice), align: 'right' },
+                      ]),
+                      totals: [
+                        { label: 'Total HT', value: fmtMoneyP(inv.totalHT) },
+                        { label: 'TVA', value: fmtMoneyP(inv.totalTVA) },
+                        { label: 'Total TTC', value: fmtMoneyP(inv.totalTTC), bold: true },
+                      ],
+                      notes: inv.notes || undefined,
+                      amountInWords: numberToFrenchWords(inv.totalTTC),
+                      amountInWordsLabel: 'Arrêtée la présente facture fournisseur à la somme de',
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  {inv.status === 'received' && (
+                    <Button variant="outline" size="sm" onClick={() => openEdit(inv)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
+                  )}
+                  {inv.status === 'received' && (
+                    <Button variant="outline" size="sm" disabled={transitioning === inv.id} onClick={() => handleTransition(inv.id, 'verified')}>
+                      <ShieldCheck className="h-4 w-4 mr-1" />
+                      Vérifier
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Info cards grid (4 cols) */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Fournisseur</span>
+                  <p className="font-medium">{inv.supplier?.name || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Échéance</span>
+                  <p className="font-medium">{fmtDate(inv.dueDate)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Commande</span>
+                  <p className="font-medium font-mono">{inv.purchaseOrder?.number || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Créée le</span>
+                  <p className="font-medium">{fmtDate(inv.createdAt)}</p>
+                </div>
+              </div>
+
+              {/* Additional info row: Montant payé / Reste à payer */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Montant payé</span>
+                  <p className="font-medium text-green-600">{fmtMoney(inv.amountPaid || 0)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Reste à payer</span>
+                  <p className={cn("font-medium", resteAPayer > 0 ? "text-red-600" : "text-green-600")}>{fmtMoney(resteAPayer)}</p>
+                </div>
+              </div>
+
+              {/* Lines table */}
+              {inv.lines && inv.lines.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="text-right w-[70px]">TVA</TableHead>
+                        <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {inv.lines.map((l) => (
+                        <TableRow key={l.id || l.productId}>
+                          <TableCell className="font-medium text-sm">
+                            <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
+                            {l.product?.designation || '—'}
+                          </TableCell>
+                          <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{l.tvaRate}%</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Notes section */}
+              {inv.notes && (
+                <div className="text-sm bg-muted/50 rounded-md p-3">
+                  <span className="text-muted-foreground">Notes :</span> {inv.notes}
+                </div>
+              )}
+
+              {/* Totals section */}
+              <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{fmtMoney(inv.totalHT)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{fmtMoney(inv.totalTVA)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{fmtMoney(inv.totalTTC)}</span></div>
+                <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(inv.totalTTC)}</div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }

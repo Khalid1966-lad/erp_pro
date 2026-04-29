@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -113,6 +114,7 @@ export default function PriceRequestsView() {
   const [products, setProducts] = useState<Product[]>([])
   const [saving, setSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -268,11 +270,11 @@ export default function PriceRequestsView() {
             <Input
               placeholder="Rechercher par référence ou titre..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setExpandedId(null) }}
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setExpandedId(null) }}>
             <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Statut" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les statuts</SelectItem>
@@ -547,7 +549,7 @@ export default function PriceRequestsView() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id} className="cursor-pointer" onDoubleClick={() => openEdit(item)}>
+                    <TableRow key={item.id} className={cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} onDoubleClick={() => openEdit(item)}>
                       <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell className="max-w-48 truncate">{item.title}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
@@ -626,6 +628,146 @@ export default function PriceRequestsView() {
           </div>
         )}
       </Card>
+
+      {/* Inline Detail Panel */}
+      {expandedId && (() => {
+        const item = items.find(i => i.id === expandedId)
+        if (!item) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileQuestion className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{item.number}</span>
+                      <StatusBadge status={item.status} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{item.title}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => handleViewDetail(item)}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (!item) return
+                    const statusLabel = statusConfig[item.status]?.label || item.status
+                    printDocument({
+                      title: 'DEMANDE DE PRIX',
+                      docNumber: item.number,
+                      infoGrid: [
+                        { label: 'Titre', value: item.title, colspan: 2 },
+                        { label: 'Statut', value: statusLabel },
+                        { label: "Valide jusqu'au", value: fmtDateP(item.validUntil || '') },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Quantité', align: 'right' },
+                      ],
+                      rows: (item.lines || []).map(l => [
+                        { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                        { value: l.quantity, align: 'right' },
+                      ]),
+                      totals: [],
+                      notes: item.notes || undefined,
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimer
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Validité</span>
+                  <p className="font-medium">{fmtDate(item.validUntil)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Nb. lignes</span>
+                  <p className="font-medium">{item.lines?.length || 0}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Nb. devis</span>
+                  <p className="font-medium">{item.supplierQuotes?.length || 0}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Créée le</span>
+                  <p className="font-medium">{fmtDate(item.createdAt)}</p>
+                </div>
+              </div>
+
+              {item.lines && item.lines.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-28">Quantité</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {item.lines.map((l) => (
+                        <TableRow key={l.id || l.productId}>
+                          <TableCell className="font-medium text-sm">
+                            <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
+                            {l.product?.designation || '—'}
+                          </TableCell>
+                          <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {item.notes && (
+                <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {item.notes}</div>
+              )}
+
+              {item.supplierQuotes && item.supplierQuotes.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm mb-2">Devis fournisseurs reçus</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Référence</TableHead>
+                        <TableHead>Fournisseur</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Total TTC</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {item.supplierQuotes.map((sq) => (
+                        <TableRow key={sq.id}>
+                          <TableCell className="font-mono text-sm">{sq.number}</TableCell>
+                          <TableCell className="text-sm">{sq.supplier?.name || '—'}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={
+                              sq.status === 'accepted' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                              sq.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                              'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                            }>
+                              {sq.status === 'received' ? 'Reçu' : sq.status === 'accepted' ? 'Accepté' : sq.status === 'rejected' ? 'Rejeté' : sq.status === 'expired' ? 'Expiré' : sq.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney(sq.totalTTC)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }
