@@ -105,6 +105,7 @@ const navigation: NavGroup[] = [
       { id: 'sales-orders', label: 'Commandes', icon: <ShoppingCart className="h-4 w-4" />, color: 'text-emerald-500', permission: 'sales_orders:read' },
       { id: 'preparations', label: 'Préparations', icon: <ClipboardList className="h-4 w-4" />, color: 'text-blue-500', permission: 'preparations:read' },
       { id: 'delivery-notes', label: 'Bons de livraison', icon: <Truck className="h-4 w-4" />, color: 'text-teal-600', permission: 'delivery_notes:read' },
+      { id: 'customer-returns', label: 'Bons de retour clients', icon: <RotateCcw className="h-4 w-4" />, color: 'text-amber-600', permission: 'delivery_notes:read' },
       { id: 'invoices', label: 'Factures', icon: <Receipt className="h-4 w-4" />, color: 'text-rose-500', permission: 'invoices:read' },
       { id: 'credit-notes', label: 'Avoirs', icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500', permission: 'credit_notes:read' }
     ]
@@ -445,6 +446,7 @@ export function ERPHeader() {
     'invoices': 'Factures',
     'credit-notes': 'Avoirs',
     'delivery-notes': 'Bons de livraison',
+    'customer-returns': 'Bons de retour clients',
     'suppliers': 'Fournisseurs',
     'purchase-orders': 'Commandes fournisseur',
     'receptions': 'Réceptions',

@@ -31,6 +31,7 @@ import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { cn } from '@/lib/utils'
 
 // ── Types ──────────────────────────────────────────────
 interface Product {
@@ -99,7 +100,7 @@ function fmtDate(d: string | null) {
 }
 
 function fmtMoney(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
+  return (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 }
 
 // ── Component ──────────────────────────────────────────
@@ -119,6 +120,7 @@ export default function SupplierQuotesView() {
   const [isEditing, setIsEditing] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Form state
   const [supplierId, setSupplierId] = useState('')
@@ -306,11 +308,11 @@ export default function SupplierQuotesView() {
             <Input
               placeholder="Rechercher par référence ou fournisseur..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setExpandedId(null) }}
               className="pl-9"
             />
           </div>
-          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+          <Select value={supplierFilter} onValueChange={(v) => { setSupplierFilter(v); setExpandedId(null) }}>
             <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Fournisseur" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les fournisseurs</SelectItem>
@@ -319,7 +321,7 @@ export default function SupplierQuotesView() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setExpandedId(null) }}>
             <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Statut" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous</SelectItem>
@@ -549,18 +551,18 @@ export default function SupplierQuotesView() {
                   {selected.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
                       <TableCell className="text-sm">{l.product ? `${l.product.reference} — ${l.product.designation}` : (l.productId ? `ID: ${l.productId.slice(0, 8)}...` : '—')}</TableCell>
-                      <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
-                      <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                      <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
+                      <TableCell className="text-right">{fmtMoney(l.unitPrice || 0)}</TableCell>
                       <TableCell className="text-right">{l.tvaRate}%</TableCell>
-                      <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney((l.quantity || 0) * (l.unitPrice || 0))}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
               <div className="flex justify-end gap-6 text-sm pt-2 border-t">
-                <span>Total HT : <strong>{fmtMoney(selected.totalHT)}</strong></span>
-                <span>TVA : <strong>{fmtMoney(selected.totalTVA)}</strong></span>
-                <span>Total TTC : <strong>{fmtMoney(selected.totalTTC)}</strong></span>
+                <span>Total HT : <strong>{fmtMoney(selected.totalHT || 0)}</strong></span>
+                <span>TVA : <strong>{fmtMoney(selected.totalTVA || 0)}</strong></span>
+                <span>Total TTC : <strong>{fmtMoney(selected.totalTTC || 0)}</strong></span>
               </div>
               <PrintFooter amount={selected.totalTTC} label="Arrêté le présent devis fournisseur à la somme de" />
             </div>
@@ -645,12 +647,12 @@ export default function SupplierQuotesView() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id} className="cursor-pointer" onDoubleClick={() => openEdit(item)}>
+                    <TableRow key={item.id} className={cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} onDoubleClick={() => openEdit(item)}>
                       <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{fmtDate(item.validUntil)}</TableCell>
-                      <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC)}</TableCell>
+                      <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC || 0)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelected(item); setDetailOpen(true) }}>
@@ -723,6 +725,145 @@ export default function SupplierQuotesView() {
           </div>
         )}
       </Card>
+
+      {/* Inline detail panel */}
+      {expandedId && (() => {
+        const item = items.find(q => q.id === expandedId)
+        if (!item) return null
+        return (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold font-mono">{item.number}</span>
+                      <StatusBadge status={item.status} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{item.supplier?.name || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => { setSelected(item); setDetailOpen(true) }}>
+                    <Eye className="h-4 w-4 mr-1" />Ouvrir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (!item) return
+                    printDocument({
+                      title: 'DEVIS FOURNISSEUR',
+                      docNumber: item.number,
+                      infoGrid: [
+                        { label: 'Fournisseur', value: item.supplier?.name || '—' },
+                        { label: "Valide jusqu'au", value: fmtDateP(item.validUntil || '') },
+                        { label: 'Délai livraison', value: item.deliveryDelay ? `${item.deliveryDelay} jours` : '—' },
+                        { label: 'Créée le', value: fmtDateP(item.createdAt) },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Qté', align: 'right' },
+                        { label: 'P.U. HT', align: 'right' },
+                        { label: 'TVA', align: 'right' },
+                        { label: 'Total HT', align: 'right' },
+                      ],
+                      rows: (item.lines || []).map(l => [
+                        { value: `${l.product?.reference || '—'} — ${l.product?.designation || ''}` },
+                        { value: l.quantity, align: 'right' },
+                        { value: fmtMoneyP(l.unitPrice), align: 'right' },
+                        { value: `${l.tvaRate}%`, align: 'right' },
+                        { value: fmtMoneyP(l.quantity * l.unitPrice), align: 'right' },
+                      ]),
+                      totals: [
+                        { label: 'Total HT', value: fmtMoneyP(item.totalHT) },
+                        { label: 'TVA', value: fmtMoneyP(item.totalTVA) },
+                        { label: 'Total TTC', value: fmtMoneyP(item.totalTTC), bold: true },
+                      ],
+                      notes: item.notes || undefined,
+                      amountInWords: numberToFrenchWords(item.totalTTC),
+                      amountInWordsLabel: 'Arrêté le présent devis fournisseur à la somme de',
+                    })
+                  }}>
+                    <Printer className="h-4 w-4 mr-1" />Imprimer
+                  </Button>
+                  {item.status === 'received' && (
+                    <Button variant="outline" size="sm" onClick={() => openEdit(item)}>
+                      <Pencil className="h-4 w-4 mr-1" />Modifier
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedId(null)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Info cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Valide jusqu'au</span>
+                  <p className="font-medium">{fmtDate(item.validUntil)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Délai livraison</span>
+                  <p className="font-medium">{item.deliveryDelay ? `${item.deliveryDelay} jours` : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Conditions paiement</span>
+                  <p className="font-medium">{item.paymentTerms || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Lignes</span>
+                  <p className="font-medium">{item.lines?.length || 0}</p>
+                </div>
+              </div>
+
+              {/* Lines table */}
+              {item.lines && item.lines.length > 0 && (
+                <div className="rounded border max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                        <TableHead className="text-right w-[70px]">TVA</TableHead>
+                        <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {item.lines.map((l) => (
+                        <TableRow key={l.id || l.productId}>
+                          <TableCell className="font-medium text-sm">
+                            <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
+                            {l.product?.designation || '—'}
+                          </TableCell>
+                          <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right">{fmtMoney(l.unitPrice || 0)}</TableCell>
+                          <TableCell className="text-right">{l.tvaRate}%</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney((l.quantity || 0) * (l.unitPrice || 0))}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Notes */}
+              {item.notes && (
+                <div className="text-sm"><span className="text-muted-foreground">Notes :</span> {item.notes}</div>
+              )}
+
+              {/* Totals */}
+              <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{fmtMoney(item.totalHT || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{fmtMoney(item.totalTVA || 0)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{fmtMoney(item.totalTTC || 0)}</span></div>
+                <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(item.totalTTC || 0)} dirhams</div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }

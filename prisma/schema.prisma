@@ -252,6 +252,7 @@ model Client {
   invoices                Invoice[]
   creditNotes             CreditNote[]
   deliveryNotes           DeliveryNote[]
+  customerReturns         CustomerReturn[]
 }
 
 model ClientContact {
@@ -320,6 +321,7 @@ model Product {
   deliveryNoteLines DeliveryNoteLine[]
   preparationLines  PreparationLine[]
   qualityControlLines QualityControlLine[]
+  customerReturnLines CustomerReturnLine[]
   lots             Lot[]
 }
 
@@ -465,6 +467,7 @@ model DeliveryNote {
 
   lines           DeliveryNoteLine[]
   invoices        InvoiceDeliveryNote[]
+  customerReturns CustomerReturn[]
 }
 
 model DeliveryNoteLine {
@@ -517,6 +520,7 @@ model Invoice {
   payments        Payment[]
   paymentLines    PaymentLine[]     @relation("PaymentLineInvoice")
   deliveryNotes   InvoiceDeliveryNote[]
+  customerReturns CustomerReturn[]
 }
 
 model InvoiceLine {
@@ -567,6 +571,47 @@ model CreditNoteLine {
   unitPrice     Float
   tvaRate       Float
   totalHT       Float
+}
+
+// ============ BON DE RETOUR CLIENT ============
+
+model CustomerReturn {
+  id              String   @id @default(cuid())
+  number          String   @unique
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id])
+  deliveryNoteId  String?
+  deliveryNote    DeliveryNote? @relation(fields: [deliveryNoteId], references: [id])
+  invoiceId       String?
+  invoice         Invoice? @relation(fields: [invoiceId], references: [id])
+  status          String   @default("draft")
+  returnDate      DateTime @default(now())
+  reason          String?
+  notes           String?
+  totalHT         Float    @default(0)
+  totalTVA        Float    @default(0)
+  totalTTC        Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  lines           CustomerReturnLine[]
+
+  @@map("customer_returns")
+}
+
+model CustomerReturnLine {
+  id              String  @id @default(cuid())
+  customerReturnId String
+  customerReturn  CustomerReturn @relation(fields: [customerReturnId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product @relation(fields: [productId], references: [id])
+  quantity        Float
+  unitPrice       Float
+  tvaRate         Float   @default(20)
+  qualityCheck    String  @default("pending")
+  qualityNotes    String?
+
+  @@map("customer_return_lines")
 }
 
 // ============ PREPARATION LINES ============

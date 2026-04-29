@@ -1,4 +1,80 @@
 ---
+Task ID: 2
+Agent: main
+Task: Create full "Bons de retour clients" (Customer Returns) module for GEMA ERP Pro
+
+Work Log:
+- Updated `prisma/schema.prisma`:
+  - Added `CustomerReturn` model (id, number, clientId, deliveryNoteId?, invoiceId?, status, returnDate, reason, notes, totals, timestamps) mapped to `customer_returns` table
+  - Added `CustomerReturnLine` model (id, customerReturnId, productId, quantity, unitPrice, tvaRate, qualityCheck, qualityNotes) mapped to `customer_return_lines` table
+  - Added relation fields: `customerReturns` to Client, DeliveryNote, Invoice models; `customerReturnLines` to Product model
+  - Ran `bun run db:push` successfully (PostgreSQL on Neon)
+- Created `src/app/api/customer-returns/route.ts`:
+  - GET: List all customer returns with client, deliveryNote, invoice, lines (product info). Filters: ?clientId, ?status
+  - POST: Create with lines, auto-generate number `RET-CLT-{year}-{seq}`, auto-calc totals. Validates client/deliveryNote/invoice/products exist. Zod validation.
+  - PUT: Support status transitions (draft→validated→restocked/cancelled), quality check per line (`qualityLines` param), line replacement for draft (recalc totals). On `restocked` status: transaction that increments stock for conformant/partiel lines + creates StockMovement (type=in, origin=return). Uses `currentStock` (not `stockQuantity`).
+  - DELETE: Only draft status. Auth via `requireAuth` + `hasPermission('delivery_notes:read/write')`. Audit logging on all mutations.
+- Created `src/components/erp/commercial/customer-returns-view.tsx`:
+  - Master-detail inline expansion panel (same pattern as other views)
+  - List with search + status filter (brouillon/validé/remis en stock/annulé)
+  - Create dialog: client selector, BL link, invoice link, lines (product+qty+price+TVA), reason, notes
+  - Edit dialog (reuses create dialog for draft status)
+  - Quality check dialog: per-line quality select (pending/conforme/non_conforme/partiel) + notes
+  - Detail dialog with PrintHeader + PrintFooter + print button (negativeTotals)
+  - Status workflow: draft → validated → restocked / cancelled
+  - Quality badges: pending (gray/Clock), conforme (green/CheckCircle2), non_conforme (red/XCircle), partiel (yellow/AlertCircle)
+  - Inline detail panel with info cards, lines table, quality column, totals
+  - Null-safe formatting: `(n || 0).toLocaleString(...)`
+- Updated `src/app/page.tsx`: Added dynamic import + case statement for 'customer-returns'
+- Updated `src/components/erp/erp-layout.tsx`: Added nav item in Ventes group (after delivery-notes) with RotateCcw icon, amber-600 color, delivery_notes:read permission; added viewLabel
+- Updated `src/lib/stores.ts`: Added 'customer-returns' to ViewId union type
+
+Stage Summary:
+- Full Customer Returns module implemented: Prisma schema, API route, frontend view, navigation
+- Status workflow: draft → validated (quality check) → restocked (stock update via transaction) / cancelled
+- Quality control per line with 4 states: pending, conforme, non_conforme, partiel
+- Stock automatically updated for conformant items when restocked (conforme=full qty, partiel=half qty)
+- Master-detail inline expansion, print support, edit for drafts, delete for drafts
+- Lint: 0 errors
+- Dev server: compiling successfully
+
+---
+Task ID: 1-a
+Agent: frontend-agent
+Task: Add master-detail (inline expand) feature to supplier-quotes-view.tsx
+
+Work Log:
+- Added `import { cn } from '@/lib/utils'` for conditional classname utility
+- `XCircle` already imported from lucide-react — no change needed
+- Added `expandedId` state variable (`useState<string | null>(null)`)
+- Added `setExpandedId(null)` in search onChange, supplierFilter onValueChange, and statusFilter onValueChange to auto-close panel on filter change
+- Fixed `fmtMoney` to handle undefined: `(n || 0).toLocaleString(...)`
+- Fixed all `l.quantity.toLocaleString` → `(l.quantity || 0).toLocaleString` in detail dialog
+- Fixed all `fmtMoney(l.unitPrice)` → `fmtMoney(l.unitPrice || 0)` in detail dialog and inline panel
+- Fixed all `fmtMoney(l.quantity * l.unitPrice)` → `fmtMoney((l.quantity || 0) * (l.unitPrice || 0))` in detail dialog and inline panel
+- Fixed all `fmtMoney(selected.totalHT/TVA/TTC)` → `fmtMoney(selected.totalHT/TVA/TTC || 0)` in detail dialog
+- Fixed `fmtMoney(item.totalTTC)` → `fmtMoney(item.totalTTC || 0)` in table row
+- Modified `TableRow` with `cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")`, `onClick` toggle, `onDoubleClick` openEdit preserved
+- Existing action buttons already had `stopPropagation` — verified and kept as-is
+- Added inline detail panel after table Card (`border-primary/20`) with:
+  - Header: FileText icon, quote number (font-mono), StatusBadge, supplier name
+  - Action buttons: Ouvrir (Eye → opens detail dialog), Imprimer (Printer with full printDocument params from existing dialog), Modifier (Pencil, if received), close (XCircle)
+  - Info cards grid (4 cols): Valide jusqu'au, Délai livraison, Conditions paiement, Lignes
+  - Lines table: Produit (ref + designation), Qté, P.U. HT, TVA, Total HT (max-h-[300px] overflow-auto)
+  - Notes section (conditionally rendered)
+  - Totals section: Total HT, TVA, Total TTC + amount in words via numberToFrenchWords
+- Existing detail dialog fully preserved (Eye button in panel still opens it)
+- Double click still opens edit dialog
+- ESLint: 0 errors
+
+Stage Summary:
+- Supplier quotes view now has master-detail inline expansion (same pattern as other purchasing views)
+- Single click to expand/collapse inline detail panel below table
+- Double click still opens edit dialog for received quotes
+- All existing functionality preserved (detail dialog, edit, print, status transitions, delete)
+- File changed: src/components/erp/purchasing/supplier-quotes-view.tsx
+
+---
 Task ID: 2-f
 Agent: frontend-agent
 Task: Add master-detail (inline expand) feature to supplier-invoices-view.tsx
