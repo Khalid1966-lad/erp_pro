@@ -247,7 +247,7 @@ export default function PaymentsView() {
     try {
       const [banks, cashes] = await Promise.all([
         api.get<{ accounts: BankAccount[] }>('/finance/bank').then(r => r.accounts || []),
-        api.get<{ registers: CashRegister[] }>('/finance/cash-registers').then(r => r.registers || []),
+        api.get<{ registers: CashRegister[] }>('/finance/cash').then(r => r.registers || []),
       ])
       setBankAccounts(banks.filter(b => b.isActive))
       setCashRegisters(cashes.filter(c => c.isActive))

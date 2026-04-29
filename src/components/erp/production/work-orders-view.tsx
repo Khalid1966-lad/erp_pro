@@ -830,7 +830,7 @@ export default function WorkOrdersView() {
       </Card>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {Math.ceil(total / 50) > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
             {(page - 1) * 50 + 1} - {Math.min(page * 50, total)} sur {total}
@@ -839,8 +839,8 @@ export default function WorkOrdersView() {
             <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium">Page {page} / {totalPages}</span>
-            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+            <span className="text-sm font-medium">Page {page} / {Math.ceil(total / 50)}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(Math.ceil(total / 50), p + 1))} disabled={page >= Math.ceil(total / 50)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
