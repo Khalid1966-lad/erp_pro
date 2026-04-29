@@ -244,7 +244,7 @@ function IntroSection() {
         </CardContent>
       </Card>
 
-      <SubTitle>À qui s'adresse ce guide ?</SubTitle>
+      <SubTitle id="introduction-bienvenue">À qui s'adresse ce guide ?</SubTitle>
       <Paragraph>
         Ce guide est conçu pour les nouveaux utilisateurs de GEMA ERP PRO. Que vous soyez commercial,
         magasinier, responsable de production, comptable ou administrateur, vous trouverez ici toutes les informations
@@ -281,7 +281,7 @@ function IntroSection() {
         ))}
       </div>
 
-      <SubTitle>10 rôles utilisateurs</SubTitle>
+      <SubTitle id="introduction-modules-roles">10 rôles utilisateurs</SubTitle>
       <Paragraph>
         GEMA ERP PRO gère 10 rôles distincts pour contrôler précisément les accès de chaque utilisateur :
       </Paragraph>
@@ -327,7 +327,7 @@ function ConnexionSection() {
     <div>
       <SectionTitle icon={LogIn} title="Connexion & Navigation" />
 
-      <SubTitle>Comment se connecter</SubTitle>
+      <SubTitle id="connexion-se-connecter">Comment se connecter</SubTitle>
       <Paragraph>Suivez ces étapes simples pour accéder à votre espace GEMA ERP PRO :</Paragraph>
 
       <Step num={1}>
@@ -382,13 +382,13 @@ function ConnexionSection() {
         </div>
       </ScreenMock>
 
-      <SubTitle>Navigation dans le système</SubTitle>
+      <SubTitle id="connexion-navigation">Navigation dans le système</SubTitle>
       <Paragraph>
         L'interface est organisée avec une <strong>barre latérale</strong> (sidebar) à gauche qui regroupe tous les modules
         par catégorie. Chaque catégorie peut être dépliée ou repliée en cliquant sur son titre.
       </Paragraph>
 
-      <SubTitle>Mode sombre</SubTitle>
+      <SubTitle id="connexion-mode-sombre">Mode sombre</SubTitle>
       <Paragraph>
         GEMA ERP PRO prend en charge le <strong>mode sombre</strong>. Pour basculer entre le mode clair et sombre,
         cliquez sur l'icône soleil/lune dans la barre d'en-tête en haut à droite de l'écran. Le choix est mémorisé
@@ -434,7 +434,7 @@ function DashboardSection() {
         de l'entreprise avec des indicateurs clés de performance (KPI) actualisés en temps réel.
       </Paragraph>
 
-      <SubTitle>Cartes KPI</SubTitle>
+      <SubTitle id="tableau-de-bord-kpis">Cartes KPI</SubTitle>
       <Paragraph>Les principales métriques sont affichées sous forme de cartes en haut de page :</Paragraph>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -459,7 +459,7 @@ function DashboardSection() {
         ))}
       </div>
 
-      <SubTitle>Graphiques et courbes</SubTitle>
+      <SubTitle id="tableau-de-bord-graphiques">Graphiques et courbes</SubTitle>
       <Paragraph>
         Le tableau de bord intègre des graphiques interactifs : courbe d'évolution du chiffre d'affaires,
         répartition des ventes par catégorie, top produits, et suivi des commandes en cours.
@@ -503,7 +503,7 @@ function VentesSection() {
       </TipBox>
 
       {/* Clients */}
-      <SubTitle>Clients</SubTitle>
+      <SubTitle id="ventes-clients">Clients</SubTitle>
       <Paragraph>
         Le sous-module Clients gère l'ensemble de votre portefeuille client. La fiche client comporte <strong>8 onglets</strong> :
         Identité, Coordonnées, Contacts, Commercial, Fiscal, Suivi, Relances et Production.
@@ -548,7 +548,7 @@ function VentesSection() {
       </TipBox>
 
       {/* Produits */}
-      <SubTitle>Produits</SubTitle>
+      <SubTitle id="ventes-produits">Produits</SubTitle>
       <Paragraph>
         Le sous-module Produits gère le catalogue complet : matières premières, semi-finis et produits finis.
         Chaque produit dispose d'une fiche avec prix HT, unité de mesure et seuil de stock minimum.
@@ -575,7 +575,7 @@ function VentesSection() {
       </TipBox>
 
       {/* Devis */}
-      <SubTitle>Devis</SubTitle>
+      <SubTitle id="ventes-devis">Devis</SubTitle>
       <Paragraph>
         Les devis sont des propositions commerciales envoyées aux clients. Chaque devis suit un cycle de vie :
         Brouillon → Envoyé → Accepté / Refusé / Expiré.
@@ -598,7 +598,7 @@ function VentesSection() {
       </TipBox>
 
       {/* Commandes */}
-      <SubTitle>Commandes</SubTitle>
+      <SubTitle id="ventes-commandes">Commandes</SubTitle>
       <Paragraph>
         Les commandes clients représentent les engagements fermes. Elles déclenchent le processus de préparation
         et de livraison. Le cycle : Confirmée → En préparation → Prête → Livrée → Facturée.
@@ -613,7 +613,7 @@ function VentesSection() {
       ]} />
 
       {/* Préparations */}
-      <SubTitle>Préparations</SubTitle>
+      <SubTitle id="ventes-preparations">Préparations</SubTitle>
       <Paragraph>
         Les préparations détaillent le prélèvement en stock pour chaque commande. Le magasinier indique
         les quantités réellement prélevées et signale les éventuels manquants.
@@ -657,14 +657,14 @@ function VentesSection() {
       </TipBox>
 
       {/* Bons de livraison */}
-      <SubTitle>Bons de livraison</SubTitle>
+      <SubTitle id="ventes-bons-livraison">Bons de livraison</SubTitle>
       <Paragraph>
         Le bon de livraison (BL) est édité après la préparation complète. Il atteste la remise de la marchandise
         au client et constitue le document de référence pour la facturation.
       </Paragraph>
 
       {/* Factures */}
-      <SubTitle>Factures</SubTitle>
+      <SubTitle id="ventes-factures-tva">Factures</SubTitle>
       <Paragraph>
         Les factures sont générées à partir des commandes livrées ou créées manuellement.
         Elles respectent les obligations fiscales marocaines : numérotation séquentielle, TVA, mentions légales.
@@ -705,7 +705,7 @@ function VentesSection() {
       </TipBox>
 
       {/* Avoirs */}
-      <SubTitle>Avoirs</SubTitle>
+      <SubTitle id="ventes-avoirs">Avoirs</SubTitle>
       <Paragraph>
         Les avoirs sont des notes de crédit émises en cas de retour marchandise, remise commerciale
         ou erreur de facturation. Ils viennent en déduction du montant de la facture d'origine, partiellement ou totalement.
@@ -738,7 +738,7 @@ function AchatsSection() {
       ]} />
 
       {/* Fournisseurs */}
-      <SubTitle>Fournisseurs</SubTitle>
+      <SubTitle id="achats-fournisseurs">Fournisseurs</SubTitle>
       <Paragraph>
         Le sous-module Fournisseurs gère votre base de données fournisseurs avec les informations légales,
         les coordonnées bancaires et les conditions commerciales (délais de livraison, remises).
@@ -779,7 +779,7 @@ function AchatsSection() {
       </Card>
 
       {/* Demandes de prix */}
-      <SubTitle>Demandes de prix</SubTitle>
+      <SubTitle id="achats-demandes-prix">Demandes de prix</SubTitle>
       <Paragraph>
         Les demandes de prix sont envoyées à un ou plusieurs fournisseurs pour obtenir des offres comparatives.
         Elles listent les produits souhaités avec les quantités nécessaires.
@@ -791,7 +791,7 @@ function AchatsSection() {
       <Step num={4}>Envoyez la demande. Les fournisseurs pourront y répondre via un devis fournisseur.</Step>
 
       {/* Devis fournisseurs */}
-      <SubTitle>Devis fournisseurs</SubTitle>
+      <SubTitle id="achats-devis-fournisseurs">Devis fournisseurs</SubTitle>
       <Paragraph>
         Les devis fournisseurs contiennent les offres de prix reçues en réponse à vos demandes.
         Vous pouvez comparer les offres et sélectionner la plus avantageuse avant de passer commande.
@@ -802,7 +802,7 @@ function AchatsSection() {
       </TipBox>
 
       {/* Commandes fournisseurs */}
-      <SubTitle>Commandes fournisseurs</SubTitle>
+      <SubTitle id="achats-commandes-fournisseurs">Commandes fournisseurs</SubTitle>
       <Paragraph>
         Les commandes fournisseurs formalisent votre engagement d'achat auprès d'un fournisseur sélectionné.
         Elles peuvent être créées directement ou converties depuis un devis fournisseur accepté.
@@ -817,7 +817,7 @@ function AchatsSection() {
       ]} />
 
       {/* Réceptions */}
-      <SubTitle>Réceptions</SubTitle>
+      <SubTitle id="achats-receptions">Réceptions</SubTitle>
       <Paragraph>
         Les réceptions enregistrent l'entrée en stock des marchandises livrées par le fournisseur.
         Le magasinier vérifie les quantités reçues et signale les éventuels écarts.
@@ -833,21 +833,21 @@ function AchatsSection() {
       </TipBox>
 
       {/* Bons de retour */}
-      <SubTitle>Bons de retour</SubTitle>
+      <SubTitle id="achats-bons-retour">Bons de retour</SubTitle>
       <Paragraph>
         Les bons de retour permettent de retourner de la marchandise au fournisseur (produits défectueux,
         non conformes ou en excédent). Un bon de retour génère une sortie de stock.
       </Paragraph>
 
       {/* Avoirs fournisseurs */}
-      <SubTitle>Avoirs fournisseurs</SubTitle>
+      <SubTitle id="achats-avoirs-fournisseurs">Avoirs fournisseurs</SubTitle>
       <Paragraph>
         Les avoirs fournisseurs sont les notes de crédit reçues du fournisseur suite à un retour
         ou à une remise. Ils viennent en déduction de la facture fournisseur correspondante.
       </Paragraph>
 
       {/* Factures fournisseurs */}
-      <SubTitle>Factures fournisseurs</SubTitle>
+      <SubTitle id="achats-factures-fournisseurs">Factures fournisseurs</SubTitle>
       <Paragraph>
         Les factures fournisseurs enregistrent les dettes envers vos fournisseurs. Elles sont généralement
         rapprochées des réceptions et des avoirs fournisseurs correspondants.
@@ -870,7 +870,7 @@ function StockSection() {
       </Paragraph>
 
       {/* Mouvements */}
-      <SubTitle>Mouvements</SubTitle>
+      <SubTitle id="stock-mouvements">Mouvements</SubTitle>
       <Paragraph>
         Les mouvements de stock enregistrent toutes les entrées et sorties de marchandises.
         Chaque mouvement est tracé avec la date, la quantité, le produit, la référence du document source
@@ -898,7 +898,7 @@ function StockSection() {
       </TipBox>
 
       {/* Alertes stock */}
-      <SubTitle>Alertes stock</SubTitle>
+      <SubTitle id="stock-alertes-stock">Alertes stock</SubTitle>
       <Paragraph>
         Pour chaque produit, vous pouvez définir un <strong>seuil minimum</strong>. Lorsque le stock tombe
         en dessous de ce seuil, une alerte apparaît dans ce module et sur le tableau de bord, vous permettant
@@ -933,7 +933,7 @@ function StockSection() {
       </ScreenMock>
 
       {/* Inventaires */}
-      <SubTitle>Inventaires</SubTitle>
+      <SubTitle id="stock-inventaires">Inventaires</SubTitle>
       <Paragraph>
         Les inventaires permettent de vérifier l'écart entre le stock théorique (système) et le stock physique (réel).
         Un ajustement automatique est proposé après validation de l'inventaire.
@@ -1041,7 +1041,7 @@ function ProductionSection() {
       ]} />
 
       {/* Nomenclatures */}
-      <SubTitle>Nomenclatures (BOM — Bill of Materials)</SubTitle>
+      <SubTitle id="production-nomenclatures">Nomenclatures (BOM — Bill of Materials)</SubTitle>
       <Paragraph>
         Une nomenclature définit la liste des composants et matières premières nécessaires pour fabriquer
         un produit fini. Elle inclut les quantités exactes et les liens entre composants.
@@ -1081,7 +1081,7 @@ function ProductionSection() {
       <Step num={4}>Enregistrez la nomenclature.</Step>
 
       {/* Gammes */}
-      <SubTitle>Gammes opératoires</SubTitle>
+      <SubTitle id="production-gammes">Gammes opératoires</SubTitle>
       <Paragraph>
         Une gamme opératoire décrit les étapes successives de fabrication : découpe, soudure, peinture,
         assemblage, contrôle qualité, etc. Chaque étape est associée à un poste de travail et un temps estimé.
@@ -1118,7 +1118,7 @@ function ProductionSection() {
       </ScreenMock>
 
       {/* Postes de travail */}
-      <SubTitle>Postes de travail</SubTitle>
+      <SubTitle id="production-postes-travail">Postes de travail</SubTitle>
       <Paragraph>
         Les postes de travail représentent les ressources physiques de production : machines, ateliers,
         stations de montage. Ils sont associés aux étapes des gammes opératoires.
@@ -1129,7 +1129,7 @@ function ProductionSection() {
       </TipBox>
 
       {/* Ordres de fabrication */}
-      <SubTitle>Ordres de fabrication (OF)</SubTitle>
+      <SubTitle id="production-ordres-fabrication">Ordres de fabrication (OF)</SubTitle>
       <Paragraph>
         Un ordre de fabrication est lancé pour produire une quantité déterminée d'un produit fini.
         Il consomme les matières premières de la nomenclature et suit l'avancement via la gamme opératoire.
@@ -1154,7 +1154,7 @@ function ProductionSection() {
       </TipBox>
 
       {/* Contrôle qualité */}
-      <SubTitle>Contrôle qualité</SubTitle>
+      <SubTitle id="production-controle-qualite">Contrôle qualité</SubTitle>
       <Paragraph>
         Le module Contrôle qualité permet de gérer les inspections de qualité lors des réceptions fournisseurs,
         de la production et des inventaires. Chaque contrôle génère une fiche avec des lignes d'inspection
@@ -1509,7 +1509,7 @@ function FinanceSection() {
       </Paragraph>
 
       {/* Caisses */}
-      <SubTitle>Caisses</SubTitle>
+      <SubTitle id="finance-caisses">Caisses</SubTitle>
       <Paragraph>
         Gérez vos caisses physiques (caisse principale, caisse de dépannage) avec suivi des entrées
         et sorties d'espèces. Chaque mouvement est tracé avec la date, le montant, le motif et la référence associée.
@@ -1520,7 +1520,7 @@ function FinanceSection() {
       <Step num={3}>Ajoutez une entrée ou une sortie en spécifiant le montant et le motif.</Step>
 
       {/* Banque */}
-      <SubTitle>Banque</SubTitle>
+      <SubTitle id="finance-banque">Banque</SubTitle>
       <Paragraph>
         Enregistrez vos comptes bancaires pour suivre les virements, les prélèvements et les soldes.
         Associez les paiements reçus par virement aux factures correspondantes.
@@ -1531,7 +1531,7 @@ function FinanceSection() {
       </TipBox>
 
       {/* Paiements */}
-      <SubTitle>Paiements</SubTitle>
+      <SubTitle id="finance-paiements">Paiements</SubTitle>
       <Paragraph>
         Le sous-module Paiements centralise tous les flux financiers entrants et sortants :
       </Paragraph>
@@ -1580,7 +1580,7 @@ function FinanceSection() {
       </ScreenMock>
 
       {/* Chèques & Effets */}
-      <SubTitle>Chèques & Effets</SubTitle>
+      <SubTitle id="finance-cheques-effets">Chèques & Effets</SubTitle>
       <Paragraph>
         Le sous-module Chèques & Effets gère les instruments de paiement différés : chèques reçus de clients,
         effets de commerce (lettres de change, billets à ordre). Il permet de suivre le cycle de vie complet
@@ -1605,7 +1605,7 @@ function FinanceSection() {
       </TipBox>
 
       {/* Comptabilité */}
-      <SubTitle>Comptabilité</SubTitle>
+      <SubTitle id="finance-comptabilite">Comptabilité</SubTitle>
       <Paragraph>
         Le sous-module Comptabilité offre une vue d'ensemble des écritures comptables générées automatiquement
         par les opérations commerciales (factures, paiements, avoirs). Les écritures sont classées par journal
@@ -1617,7 +1617,7 @@ function FinanceSection() {
       </TipBox>
 
       {/* États financiers */}
-      <SubTitle>États financiers</SubTitle>
+      <SubTitle id="finance-etats-financiers">États financiers</SubTitle>
       <Paragraph>
         Le module États financiers offre des rapports détaillés pour suivre la santé financière de l'entreprise :
       </Paragraph>
@@ -1654,7 +1654,7 @@ function CommunicationSection() {
         ainsi qu'un système de notifications pour rester informé des événements importants.
       </Paragraph>
 
-      <SubTitle>Messagerie interne</SubTitle>
+      <SubTitle id="communication-messagerie">Messagerie interne</SubTitle>
       <Paragraph>
         La messagerie permet d'envoyer et recevoir des messages entre les utilisateurs du système.
         Chaque conversation est privée entre deux utilisateurs. L'interface est divisée en deux panneaux :
@@ -1708,7 +1708,7 @@ function CommunicationSection() {
       <Step num={1}>Survolez un message pour voir l\'icône <strong className="text-red-500">🗑️</strong> de suppression.</Step>
       <Step num={2}>Cliquez sur l\'icône et confirmez la suppression dans la boîte de dialogue.</Step>
 
-      <SubTitle>Notifications</SubTitle>
+      <SubTitle id="communication-notifications">Notifications</SubTitle>
       <Paragraph>
         Le système de notifications vous alerte en temps réel sur les événements importants :
         tâches à réaliser, échéances, retards de production, livraisons, modifications de commandes, etc.
@@ -1753,7 +1753,7 @@ function ImpressionSection() {
         (logo, identifiants fiscaux) et le montant en toutes lettres en français.
       </Paragraph>
 
-      <SubTitle>Documents imprimables</SubTitle>
+      <SubTitle id="impression-docs-imprimables">Documents imprimables</SubTitle>
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -1791,7 +1791,7 @@ function ImpressionSection() {
         </CardContent>
       </Card>
 
-      <SubTitle>En-tête de l'entreprise</SubTitle>
+      <SubTitle id="impression-entete-pied">En-tête de l'entreprise</SubTitle>
       <Paragraph>
         Chaque document imprimé affiche automatiquement l'en-tête de votre entreprise, configurable dans les Paramètres :
       </Paragraph>
@@ -1849,7 +1849,7 @@ function AgendaNotificationsSection() {
         vos tâches, échéances et activités importantes en temps réel.
       </Paragraph>
 
-      <SubTitle>Agenda personnel</SubTitle>
+      <SubTitle id="agenda-agenda-personnel">Agenda personnel</SubTitle>
       <Paragraph>
         L'agenda affiche les données qui vous concernent directement : vos devis en cours, commandes à traiter,
         factures impayées, ordres de fabrication actifs et alertes de stock. Chaque utilisateur voit uniquement
@@ -1861,7 +1861,7 @@ function AgendaNotificationsSection() {
       <Step num={3}>Utilisez le <strong>menu déroulant</strong> en haut pour naviguer entre les vues : Vue d'ensemble, Ventes, Préparations, Factures, Production, Alertes et Calendrier.</Step>
       <Step num={4}>Dans la vue <strong>Calendrier</strong>, cliquez sur un jour pour voir les événements prévus (factures, livraisons, ordres de fabrication, commandes fournisseurs).</Step>
 
-      <SubTitle>Tableau de bord de l'agenda</SubTitle>
+      <SubTitle id="agenda-calendrier">Tableau de bord de l'agenda</SubTitle>
       <Paragraph>
         La vue d'ensemble affiche 9 cartes de statistiques : Devis actifs, Commandes, Préparations, Livraisons,
         Factures, En retard, Ordres de fabrication, Commandes fournisseurs et Alertes stock. En dessous,
@@ -1905,7 +1905,7 @@ function AdministrationSection() {
       </Paragraph>
 
       {/* Utilisateurs */}
-      <SubTitle>Utilisateurs</SubTitle>
+      <SubTitle id="administration-utilisateurs">Utilisateurs</SubTitle>
       <Paragraph>
         Gérez les comptes des utilisateurs du système, leurs rôles et leurs permissions d'accès.
         Le système dispose de 10 rôles prédéfinis couvrant tous les profils de l'entreprise.
@@ -1956,7 +1956,7 @@ function AdministrationSection() {
       <Step num={4}>Un utilisateur bloqué ne peut plus se connecter au système.</Step>
 
       {/* Journal d'audit */}
-      <SubTitle>Journal d'audit</SubTitle>
+      <SubTitle id="administration-journal-audit">Journal d'audit</SubTitle>
       <Paragraph>
         Le journal d'audit enregistre toutes les actions importantes effectuées dans le système :
         connexions, créations, modifications, suppressions, changements de statut, etc.
@@ -1996,7 +1996,7 @@ function AdministrationSection() {
       </TipBox>
 
       {/* Paramètres */}
-      <SubTitle>Paramètres</SubTitle>
+      <SubTitle id="administration-parametres">Paramètres</SubTitle>
       <Paragraph>
         Le module Paramètres permet de configurer les informations de l'entreprise et les valeurs par défaut
         du système. Ces paramètres s'appliquent globalement à tous les modules.
@@ -2098,7 +2098,7 @@ function AdministrationSection() {
         Les paramètres sont enregistrés immédiatement et appliqués à toutes les nouvelles opérations. Les opérations existantes conservent leurs valeurs d'origine.
       </TipBox>
 
-      <SubTitle>Sauvegarde & Restauration</SubTitle>
+      <SubTitle id="administration-sauvegarde">Sauvegarde & Restauration</SubTitle>
       <Paragraph>
         Le système de sauvegarde intégré permet de protéger vos données à tout moment. Les sauvegardes
         sont automatiquement compressées et stockées dans la base de données. Vous pouvez également
@@ -2139,15 +2139,6 @@ export default function GuideView() {
   const [activeSection, setActiveSection] = useState('introduction')
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['introduction']))
   const contentRef = useRef<HTMLDivElement>(null)
-
-  const toggleSection = useCallback((id: string) => {
-    setExpandedSections(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
 
   const scrollToSection = useCallback((id: string) => {
     setActiveSection(id)
@@ -2207,9 +2198,9 @@ export default function GuideView() {
     <div className="flex flex-col lg:flex-row gap-6 -m-4 md:-m-6 p-4 md:p-6 min-h-full">
       {/* Sidebar Navigation */}
       <div className="lg:w-80 shrink-0">
-        <div className="lg:sticky lg:top-6">
-          <Card className="mb-4">
-            <CardHeader className="pb-3">
+        <div className="lg:sticky lg:top-4">
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <BookOpen className="h-5 w-5 text-primary" />
@@ -2220,15 +2211,10 @@ export default function GuideView() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0 pb-3">
-              <Separator />
-            </CardContent>
-          </Card>
-
-          <Card>
+            <Separator />
             <CardContent className="p-2">
-              <ScrollArea className="max-h-[calc(100vh-240px)]">
-                <nav className="space-y-0.5 pb-2">
+              <ScrollArea className="h-[calc(100vh-220px)]">
+                <nav className="space-y-0.5 pb-4">
                   {sections.map((section) => {
                     const Icon = section.icon
                     const isActive = activeSection === section.id
@@ -2239,7 +2225,20 @@ export default function GuideView() {
                       <div key={section.id}>
                         <button
                           onClick={() => {
-                            if (hasChildren) toggleSection(section.id)
+                            if (hasChildren) {
+                              const isExpanded = expandedSections.has(section.id)
+                              if (!isExpanded) {
+                                // If collapsed, expand AND scroll
+                                setExpandedSections(prev => new Set(prev).add(section.id))
+                              } else {
+                                // If expanded, collapse
+                                setExpandedSections(prev => {
+                                  const next = new Set(prev)
+                                  next.delete(section.id)
+                                  return next
+                                })
+                              }
+                            }
                             scrollToSection(section.id)
                           }}
                           className={cn(
