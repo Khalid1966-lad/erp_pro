@@ -480,6 +480,7 @@ model DeliveryNote {
   client          Client              @relation(fields: [clientId], references: [id])
   chantierId      String?
   chantier        Chantier?           @relation(fields: [chantierId], references: [id])
+  deliveryAddress String?
   status          DeliveryNoteStatus  @default(draft)
   date            DateTime            @default(now())
   plannedDate     DateTime?

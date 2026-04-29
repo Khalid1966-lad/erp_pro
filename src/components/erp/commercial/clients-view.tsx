@@ -2474,8 +2474,7 @@ function ChantiersTab({
       {chantiers.length === 0 ? (
         <EmptyState
           icon={HardHat}
-          title="Aucun chantier"
-          description="Ajoutez un site de livraison pour ce client."
+          message="Aucun chantier enregistré. Cliquez sur « Nouveau chantier » pour en ajouter un."
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

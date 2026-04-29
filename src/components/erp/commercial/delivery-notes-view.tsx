@@ -116,6 +116,7 @@ interface DeliveryNote {
   client: { id: string; name: string }
   lines: DeliveryNoteLineItem[]
   chantier?: ChantierOption | null
+  deliveryAddress?: string | null
 }
 
 interface EditableLine {
@@ -265,6 +266,7 @@ export default function DeliveryNotesView() {
   const [selectedChantierId, setSelectedChantierId] = useState<string>('')
   const [chantierOptions, setChantierOptions] = useState<ChantierOption[]>([])
   const [createDeliveryType, setCreateDeliveryType] = useState<string>('principal')
+  const [manualDeliveryAddress, setManualDeliveryAddress] = useState('')
 
   // Derived: effective client ID for create dialog chantier fetching
   const effectiveCreateClientId = useMemo(() => {
@@ -331,10 +333,12 @@ export default function DeliveryNotesView() {
         .catch(() => setChantierOptions([]))
       setSelectedChantierId('')
       setCreateDeliveryType('principal')
+      setManualDeliveryAddress('')
     } else {
       setChantierOptions([])
       setSelectedChantierId('')
       setCreateDeliveryType('principal')
+      setManualDeliveryAddress('')
     }
   }, [effectiveCreateClientId])
 
@@ -348,6 +352,7 @@ export default function DeliveryNotesView() {
     setSelectedChantierId('')
     setChantierOptions([])
     setCreateDeliveryType('principal')
+    setManualDeliveryAddress('')
     setEditableLines([])
     setOrderLinesForDelivery([])
     setDeliveryQuantities({})
@@ -527,10 +532,16 @@ export default function DeliveryNotesView() {
           setCreating(false)
           return
         }
+        if (createDeliveryType === 'manual' && !manualDeliveryAddress.trim()) {
+          toast.error('Veuillez saisir l\'adresse de livraison')
+          setCreating(false)
+          return
+        }
 
         await api.post('/delivery-notes', {
           salesOrderId: selectedOrderId,
           chantierId: selectedChantierId || undefined,
+          deliveryAddress: createDeliveryType === 'manual' ? manualDeliveryAddress : undefined,
           transporteur: createTransporteur || undefined,
           vehiclePlate: createVehiclePlate || undefined,
           notes: createNotes || undefined,
@@ -549,9 +560,15 @@ export default function DeliveryNotesView() {
           setCreating(false)
           return
         }
+        if (createDeliveryType === 'manual' && !manualDeliveryAddress.trim()) {
+          toast.error('Veuillez saisir l\'adresse de livraison')
+          setCreating(false)
+          return
+        }
         await api.post('/delivery-notes', {
           clientId: selectedClientId,
           chantierId: selectedChantierId || undefined,
+          deliveryAddress: createDeliveryType === 'manual' ? manualDeliveryAddress : undefined,
           transporteur: createTransporteur || undefined,
           vehiclePlate: createVehiclePlate || undefined,
           notes: createNotes || undefined,
@@ -1008,6 +1025,7 @@ export default function DeliveryNotesView() {
                       infoGrid: [
                         { label: 'Client', value: en.client.name },
                         ...(en.chantier ? [{ label: 'Lieu de livraison', value: `${en.chantier.nomProjet} - ${en.chantier.adresse}, ${en.chantier.ville}` }] : []),
+                        ...(!en.chantier && en.deliveryAddress ? [{ label: 'Lieu de livraison', value: en.deliveryAddress }] : []),
                         ...(en.chantier && en.chantier.responsableNom ? [{ label: 'Responsable', value: en.chantier.responsableNom }] : []),
                         ...(en.chantier && (en.chantier.telephone || en.chantier.gsm) ? [{ label: 'Tél chantier', value: en.chantier.telephone || en.chantier.gsm || '—' }] : []),
                         { label: 'Date création', value: fmtDate(en.date) },
@@ -1087,6 +1105,16 @@ export default function DeliveryNotesView() {
                       <p>Tél : {en.chantier.telephone || en.chantier.gsm}</p>
                     )}
                   </div>
+                </div>
+              )}
+
+              {en.deliveryAddress && !en.chantier && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPinned className="h-4 w-4 text-blue-600" />
+                    <span className="font-medium text-blue-800">Adresse de livraison</span>
+                  </div>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{en.deliveryAddress}</p>
                 </div>
               )}
 
@@ -1596,10 +1624,10 @@ export default function DeliveryNotesView() {
                   <MapPinned className="h-3.5 w-3.5" />
                   Lieu de livraison
                 </Label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <button
                     type="button"
-                    onClick={() => { setCreateDeliveryType('principal'); setSelectedChantierId('') }}
+                    onClick={() => { setCreateDeliveryType('principal'); setSelectedChantierId(''); setManualDeliveryAddress('') }}
                     className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm ${
                       createDeliveryType === 'principal'
                         ? 'border-primary bg-primary/5'
@@ -1613,7 +1641,7 @@ export default function DeliveryNotesView() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCreateDeliveryType('chantier')}
+                    onClick={() => { setCreateDeliveryType('chantier'); setManualDeliveryAddress('') }}
                     disabled={chantierOptions.length === 0}
                     className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm disabled:opacity-50 ${
                       createDeliveryType === 'chantier'
@@ -1629,15 +1657,30 @@ export default function DeliveryNotesView() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setCreateDeliveryType(''); setSelectedChantierId('') }}
+                    onClick={() => { setCreateDeliveryType('manual'); setSelectedChantierId('') }}
                     className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm ${
-                      createDeliveryType === ''
+                      createDeliveryType === 'manual'
                         ? 'border-primary bg-primary/5'
                         : 'border-muted hover:border-muted-foreground/30'
                     }`}
                   >
-                    <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${createDeliveryType === '' ? 'border-primary' : 'border-muted-foreground'}`}>
-                      {createDeliveryType === '' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                    <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${createDeliveryType === 'manual' ? 'border-primary' : 'border-muted-foreground'}`}>
+                      {createDeliveryType === 'manual' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                    </div>
+                    <MapPinned className="h-4 w-4 shrink-0" />
+                    Autre adresse
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setCreateDeliveryType('none'); setSelectedChantierId(''); setManualDeliveryAddress('') }}
+                    className={`flex items-center gap-2 rounded-lg border-2 p-3 text-left transition-all text-sm ${
+                      createDeliveryType === 'none'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-muted hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${createDeliveryType === 'none' ? 'border-primary' : 'border-muted-foreground'}`}>
+                      {createDeliveryType === 'none' && <div className="h-2 w-2 rounded-full bg-primary" />}
                     </div>
                     Aucun
                   </button>
@@ -1658,6 +1701,17 @@ export default function DeliveryNotesView() {
                       ))}
                     </SelectContent>
                   </Select>
+                )}
+                {createDeliveryType === 'manual' && (
+                  <div className="space-y-2 mt-2">
+                    <Label>Adresse de livraison <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      placeholder="Saisissez l'adresse de livraison complète..."
+                      value={manualDeliveryAddress}
+                      onChange={(e) => setManualDeliveryAddress(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
                 )}
               </div>
             )}
@@ -1865,6 +1919,14 @@ export default function DeliveryNotesView() {
                     {selectedNote.chantier.responsableNom && (
                       <p className="text-xs text-muted-foreground">Resp. : {selectedNote.chantier.responsableNom}</p>
                     )}
+                  </div>
+                ) : null}
+                {selectedNote.deliveryAddress && !selectedNote.chantier ? (
+                  <div>
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <MapPinned className="h-3 w-3" /> Adresse de livraison
+                    </span>
+                    <p className="font-medium whitespace-pre-wrap">{selectedNote.deliveryAddress}</p>
                   </div>
                 ) : null}
                 <div>
@@ -2089,6 +2151,7 @@ export default function DeliveryNotesView() {
                       infoGrid: [
                         { label: 'Client', value: selectedNote.client.name },
                         ...(selectedNote.chantier ? [{ label: 'Lieu de livraison', value: `${selectedNote.chantier.nomProjet} - ${selectedNote.chantier.adresse}, ${selectedNote.chantier.ville}` }] : []),
+                        ...(!selectedNote.chantier && selectedNote.deliveryAddress ? [{ label: 'Lieu de livraison', value: selectedNote.deliveryAddress }] : []),
                         ...(selectedNote.chantier && selectedNote.chantier.responsableNom ? [{ label: 'Responsable', value: selectedNote.chantier.responsableNom }] : []),
                         ...(selectedNote.chantier && (selectedNote.chantier.telephone || selectedNote.chantier.gsm) ? [{ label: 'Tél chantier', value: selectedNote.chantier.telephone || selectedNote.chantier.gsm || '—' }] : []),
                         { label: 'Date création', value: fmtDate(selectedNote.date) },
