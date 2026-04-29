@@ -89,7 +89,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function fmtMoney(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
+  return (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 }
 
 function fmtDate(d: string | null) {
@@ -386,7 +386,7 @@ export default function PurchaseOrdersView() {
                               <Input type="number" step="0.1" min={0} max={100} value={line.tvaRate} onChange={(e) => updateLine(idx, 'tvaRate', parseFloat(e.target.value) || 0)} className="h-8 text-right" />
                             </TableCell>
                             <TableCell className="text-right text-sm font-medium">
-                              {fmtMoney(line.quantity * line.unitPrice)}
+                              {fmtMoney((line.quantity || 0) * (line.unitPrice || 0))}
                             </TableCell>
                             <TableCell>
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
@@ -471,18 +471,18 @@ export default function PurchaseOrdersView() {
                   {selectedOrder.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
                       <TableCell className="text-sm">{l.product ? `${l.product.reference} — ${l.product.designation}` : (l.productId ? `ID: ${l.productId.slice(0, 8)}...` : '—')}</TableCell>
-                      <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                      <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
                       <TableCell className="text-right">{l.quantityReceived?.toLocaleString('fr-FR') || 0}</TableCell>
-                      <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
-                      <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                      <TableCell className="text-right">{fmtMoney(l.unitPrice || 0)}</TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney((l.quantity || 0) * (l.unitPrice || 0))}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
               <div className="flex justify-end gap-6 text-sm pt-2 border-t">
-                <span>Total HT : <strong>{fmtMoney(selectedOrder.totalHT)}</strong></span>
-                <span>TVA : <strong>{fmtMoney(selectedOrder.totalTVA)}</strong></span>
-                <span>Total TTC : <strong>{fmtMoney(selectedOrder.totalTTC)}</strong></span>
+                <span>Total HT : <strong>{fmtMoney(selectedOrder.totalHT || 0)}</strong></span>
+                <span>TVA : <strong>{fmtMoney(selectedOrder.totalTVA || 0)}</strong></span>
+                <span>Total TTC : <strong>{fmtMoney(selectedOrder.totalTTC || 0)}</strong></span>
               </div>
               <PrintFooter amount={selectedOrder.totalTTC} label="Arrêtée la présente commande à la somme de" />
             </div>
@@ -572,7 +572,7 @@ export default function PurchaseOrdersView() {
                       <TableCell><StatusBadge status={o.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{o.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{fmtDate(o.expectedDate)}</TableCell>
-                      <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(o.totalTTC)}</TableCell>
+                      <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(o.totalTTC || 0)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelectedOrder(o); setDetailOpen(true) }}>
@@ -756,10 +756,10 @@ export default function PurchaseOrdersView() {
                             <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
                             {l.product?.designation || '—'}
                           </TableCell>
-                          <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
                           <TableCell className="text-right">{l.quantityReceived?.toLocaleString('fr-FR') || 0}</TableCell>
-                          <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
-                          <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{fmtMoney(l.unitPrice || 0)}</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney((l.quantity || 0) * (l.unitPrice || 0))}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -772,9 +772,9 @@ export default function PurchaseOrdersView() {
               )}
 
               <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{fmtMoney(o.totalHT)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{fmtMoney(o.totalTVA)}</span></div>
-                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{fmtMoney(o.totalTTC)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{fmtMoney(o.totalHT || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{fmtMoney(o.totalTVA || 0)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{fmtMoney(o.totalTTC || 0)}</span></div>
                 <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(o.totalTTC)} dirhams</div>
               </div>
             </CardContent>

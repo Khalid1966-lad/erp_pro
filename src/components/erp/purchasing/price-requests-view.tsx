@@ -99,7 +99,7 @@ function fmtDate(d: string | null) {
 }
 
 function fmtMoney(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
+  return (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 }
 
 // ── Component ──────────────────────────────────────────
@@ -436,7 +436,7 @@ export default function PriceRequestsView() {
                     {selected.lines?.map((l, i) => (
                       <TableRow key={l.id || i}>
                         <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
-                        <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                        <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -470,7 +470,7 @@ export default function PriceRequestsView() {
                               {sq.status === 'received' ? 'Reçu' : sq.status === 'accepted' ? 'Accepté' : sq.status === 'rejected' ? 'Rejeté' : sq.status === 'expired' ? 'Expiré' : sq.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right font-medium">{fmtMoney(sq.totalTTC)}</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney(sq.totalTTC || 0)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -719,7 +719,7 @@ export default function PriceRequestsView() {
                             <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
                             {l.product?.designation || '—'}
                           </TableCell>
-                          <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -757,7 +757,7 @@ export default function PriceRequestsView() {
                               {sq.status === 'received' ? 'Reçu' : sq.status === 'accepted' ? 'Accepté' : sq.status === 'rejected' ? 'Rejeté' : sq.status === 'expired' ? 'Expiré' : sq.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right font-medium">{fmtMoney(sq.totalTTC)}</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney(sq.totalTTC || 0)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

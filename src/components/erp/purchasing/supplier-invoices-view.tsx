@@ -109,7 +109,7 @@ function fmtDate(d: string | null) {
 }
 
 function fmtMoney(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
+  return (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 }
 
 // ── Component ──────────────────────────────────────────
@@ -546,18 +546,18 @@ export default function SupplierInvoicesView() {
                   {selected.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
                       <TableCell className="text-sm">{l.product ? `${l.product.reference} — ${l.product.designation}` : (l.productId ? `ID: ${l.productId.slice(0, 8)}...` : '—')}</TableCell>
-                      <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
-                      <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                      <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
+                      <TableCell className="text-right">{fmtMoney(l.unitPrice || 0)}</TableCell>
                       <TableCell className="text-right">{l.tvaRate}%</TableCell>
-                      <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney((l.quantity || 0) * (l.unitPrice || 0))}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
               <div className="flex justify-end gap-6 text-sm pt-2 border-t">
-                <span>Total HT : <strong>{fmtMoney(selected.totalHT)}</strong></span>
-                <span>TVA : <strong>{fmtMoney(selected.totalTVA)}</strong></span>
-                <span>Total TTC : <strong>{fmtMoney(selected.totalTTC)}</strong></span>
+                <span>Total HT : <strong>{fmtMoney(selected.totalHT || 0)}</strong></span>
+                <span>TVA : <strong>{fmtMoney(selected.totalTVA || 0)}</strong></span>
+                <span>Total TTC : <strong>{fmtMoney(selected.totalTTC || 0)}</strong></span>
               </div>
               <PrintFooter amount={selected.totalTTC} label="Arrêtée la présente facture fournisseur à la somme de" />
             </div>
@@ -649,7 +649,7 @@ export default function SupplierInvoicesView() {
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{fmtDate(item.dueDate)}</TableCell>
-                      <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC)}</TableCell>
+                      <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC || 0)}</TableCell>
                       <TableCell className="text-right hidden lg:table-cell text-sm text-green-600">{fmtMoney(item.amountPaid || 0)}</TableCell>
                       <TableCell className={`text-right hidden lg:table-cell text-sm ${(item.totalTTC - (item.amountPaid || 0)) > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmtMoney(item.totalTTC - (item.amountPaid || 0))}</TableCell>
                       <TableCell className="text-right">
@@ -857,10 +857,10 @@ export default function SupplierInvoicesView() {
                             <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
                             {l.product?.designation || '—'}
                           </TableCell>
-                          <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
-                          <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right">{fmtMoney(l.unitPrice || 0)}</TableCell>
                           <TableCell className="text-right">{l.tvaRate}%</TableCell>
-                          <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney((l.quantity || 0) * (l.unitPrice || 0))}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

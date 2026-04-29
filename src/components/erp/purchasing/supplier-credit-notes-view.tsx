@@ -95,7 +95,7 @@ function fmtDate(d: string | null) {
 }
 
 function fmtMoney(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
+  return (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 }
 
 // ── Component ──────────────────────────────────────────
@@ -512,10 +512,10 @@ export default function SupplierCreditNotesView() {
                   {selected.lines?.map((l, i) => (
                     <TableRow key={l.id || i}>
                       <TableCell className="text-sm">{l.product?.reference || '—'} {l.product?.designation && <span className="text-muted-foreground">— {l.product.designation}</span>}</TableCell>
-                      <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
-                      <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                      <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
+                      <TableCell className="text-right">{fmtMoney(l.unitPrice || 0)}</TableCell>
                       <TableCell className="text-right">{l.tvaRate}%</TableCell>
-                      <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                      <TableCell className="text-right font-medium">{fmtMoney((l.quantity || 0) * (l.unitPrice || 0))}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -615,7 +615,7 @@ export default function SupplierCreditNotesView() {
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell font-mono text-sm">{item.supplierInvoice?.number || '—'}</TableCell>
-                      <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC)}</TableCell>
+                      <TableCell className="text-right hidden sm:table-cell font-medium">{fmtMoney(item.totalTTC || 0)}</TableCell>
                       <TableCell className="text-right hidden lg:table-cell text-sm text-green-600">{fmtMoney(item.amountApplied || 0)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -816,10 +816,10 @@ export default function SupplierCreditNotesView() {
                             <span className="font-mono text-muted-foreground mr-2">{l.product?.reference || ''}</span>
                             {l.product?.designation || '—'}
                           </TableCell>
-                          <TableCell className="text-right">{l.quantity.toLocaleString('fr-FR')}</TableCell>
-                          <TableCell className="text-right">{fmtMoney(l.unitPrice)}</TableCell>
+                          <TableCell className="text-right">{(l.quantity || 0).toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right">{fmtMoney(l.unitPrice || 0)}</TableCell>
                           <TableCell className="text-right">{l.tvaRate}%</TableCell>
-                          <TableCell className="text-right font-medium">{fmtMoney(l.quantity * l.unitPrice)}</TableCell>
+                          <TableCell className="text-right font-medium">{fmtMoney((l.quantity || 0) * (l.unitPrice || 0))}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -836,9 +836,9 @@ export default function SupplierCreditNotesView() {
 
               {/* Totals section */}
               <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{fmtMoney(item.totalHT)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{fmtMoney(item.totalTVA)}</span></div>
-                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{fmtMoney(item.totalTTC)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{fmtMoney(item.totalHT || 0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{fmtMoney(item.totalTVA || 0)}</span></div>
+                <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{fmtMoney(item.totalTTC || 0)}</span></div>
                 <div className="text-sm italic text-muted-foreground pt-1">{numberToFrenchWords(item.totalTTC)} dirhams</div>
               </div>
             </CardContent>
