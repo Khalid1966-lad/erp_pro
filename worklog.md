@@ -1470,3 +1470,24 @@ Stage Summary:
 - Brochure now signed by both Jazel Web Agency and Mind It (collaboration)
 - Contact info: contact@jazelwebagency.com +212 6 62 42 58 90 | contact@mindit.ma
 - PDF available at /api/brochure/download and public/GEMAPLAST_ERP_PRO_Brochure.pdf
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix brochure PDF formatting + add user deletion for Super Admin
+
+Work Log:
+- Completely rewrote brochure HTML with proper A4 page sizing (height:297mm, overflow:hidden per .page div)
+- Removed Jazel/Mind It signatures from cover and all page footers (pages 2-9)
+- Kept signature block (Jazel Web Agency + Mind It) ONLY on last page (page 10)
+- Simplified footers to just "GEMA ERP PRO v1.2.7 — GEMAPLAST Maroc — Page X"
+- Reduced font sizes and spacing to ensure content fits within each A4 page
+- Regenerated PDF: 590 KB, exactly 10 pages, zero blank pages
+- Added DELETE /api/users endpoint with Prisma transaction for cascading deletes
+- Added delete button (Trash2 icon) in users-view.tsx with AlertDialog confirmation
+- Protection: cannot delete self, cannot delete super_admin users
+- Fixed lint, pushed commit 2bc9430 to GitHub
+
+Stage Summary:
+- PDF brochure: 10 clean A4 pages, no blank pages, signature only on last page
+- User deletion: Super Admin can delete non-super_admin users with proper cascade cleanup
+- Commit: 2bc9430 pushed to main
