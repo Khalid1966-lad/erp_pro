@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEMA ERP PRO - GEMAPLAST Maroc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #0F172A;
+    --primary-light: #1E293B;
+    --accent: #10B981;
+    --accent-light: #34D399;
+    --accent-glow: rgba(16, 185, 129, 0.15);
+    --text: #0F172A;
+    --text-light: #64748B;
+    --text-lighter: #94A3B8;
+    --bg: #FFFFFF;
+    --bg-soft: #F8FAFC;
+    --bg-muted: #F1F5F9;
+    --border: #E2E8F0;
+    --shadow: 0 1px 3px rgba(15,23,42,0.08);
+    --shadow-lg: 0 8px 30px rgba(15,23,42,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: 210mm 297mm;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+    background: var(--bg);
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ── COVER PAGE ── */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 50px;
+    background: linear-gradient(170deg, #0F172A 0%, #1E293B 40%, #0F4C3A 100%);
+    color: #fff;
+    position: relative;
+    min-height: 297mm;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -120px;
+    right: -120px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    left: -100px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .cover-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    border: 1px solid rgba(16,185,129,0.4);
+    border-radius: 50px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-light);
+    margin-bottom: 40px;
+    background: rgba(16,185,129,0.08);
+    position: relative;
+    z-index: 1;
+  }
+  .cover-badge .dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .cover-logo {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 20px;
+  }
+  .cover-logo-text {
+    font-size: 58px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 0%, #94A3B8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cover-logo-sub {
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--accent-light);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .cover-title {
+    position: relative;
+    z-index: 1;
+    font-size: 22px;
+    font-weight: 300;
+    color: #CBD5E1;
+    margin-top: 50px;
+    max-width: 480px;
+    line-height: 1.6;
+  }
+  .cover-title strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .cover-client {
+    position: relative;
+    z-index: 1;
+    margin-top: 60px;
+    padding: 20px 40px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+  }
+  .cover-client-name {
+    font-size: 13px;
+    color: var(--text-lighter);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+  }
+  .cover-client-val {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .cover-footer {
+    position: relative;
+    z-index: 1;
+    margin-top: auto;
+    padding-top: 40px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    font-size: 11px;
+    color: #64748B;
+  }
+  .cover-footer span { opacity: 0.7; }
+
+  .cover-grid {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    z-index: 0;
+  }
+
+  /* ── PAGE 2: OVERVIEW ── */
+  .page-body {
+    padding: 45px 50px;
+    display: flex;
+    flex-direction: column;
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--primary);
+    margin-bottom: 30px;
+  }
+  .page-header h2 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-light);
+  }
+  .page-header .version {
+    font-size: 11px;
+    color: var(--text-lighter);
+    font-weight: 500;
+  }
+
+  .section-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .section-desc {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.7;
+    margin-bottom: 30px;
+    max-width: 600px;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 35px;
+  }
+  .stat-card {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 18px;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .stat-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .stat-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    font-size: 18px;
+  }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-light);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  /* Module Cards */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 30px;
+  }
+  .module-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    transition: all 0.2s;
+  }
+  .module-card:hover {
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent);
+  }
+  .module-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .module-info h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 2px;
+  }
+  .module-info p {
+    font-size: 11px;
+    color: var(--text-light);
+    line-height: 1.5;
+  }
+  .module-count {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 8px;
+    background: var(--bg-muted);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-light);
+  }
+
+  /* ── PAGE 3: FEATURES ── */
+  .features-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 30px;
+  }
+  .feature-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .feature-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .feature-text h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 2px;
+  }
+  .feature-text p {
+    font-size: 11px;
+    color: var(--text-light);
+    line-height: 1.5;
+  }
+
+  /* Roles Grid */
+  .roles-section { margin-bottom: 25px; }
+  .roles-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .role-badge {
+    padding: 10px 8px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /* Architecture */
+  .arch-box {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .arch-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .arch-layer {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .arch-layer-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-lighter);
+    width: 90px;
+    flex-shrink: 0;
+  }
+  .arch-layer-content {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .arch-tag {
+    padding: 4px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* ── PAGE 4: BENEFITS ── */
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 30px;
+  }
+  .benefit-card {
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .benefit-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px;
+    height: 100%;
+  }
+  .benefit-card .b-icon {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  .benefit-card h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 6px;
+  }
+  .benefit-card p {
+    font-size: 11px;
+    color: var(--text-light);
+    line-height: 1.6;
+  }
+
+  /* KPI Box */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 25px;
+  }
+  .kpi-item {
+    text-align: center;
+    padding: 20px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-soft);
+  }
+  .kpi-item .kpi-num {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .kpi-item .kpi-label {
+    font-size: 10px;
+    color: var(--text-light);
+    margin-top: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* CTA Section */
+  .cta-section {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 16px;
+    padding: 36px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+  }
+  .cta-section h3 {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .cta-section p {
+    font-size: 13px;
+    color: #94A3B8;
+  }
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  /* Footer */
+  .page-footer {
+    margin-top: auto;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--text-lighter);
+  }
+
+  /* Print Table */
+  .print-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .print-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .print-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Backup visual */
+  .backup-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 24px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  .backup-step {
+    text-align: center;
+    flex: 1;
+  }
+  .backup-step-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+    font-size: 20px;
+  }
+  .backup-step h5 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 2px;
+  }
+  .backup-step p {
+    font-size: 10px;
+    color: var(--text-light);
+  }
+  .backup-arrow {
+    font-size: 20px;
+    color: var(--text-lighter);
+  }
+
+  /* Color helpers */
+  .bg-emerald { background: #ECFDF5; color: #059669; }
+  .bg-blue { background: #EFF6FF; color: #2563EB; }
+  .bg-amber { background: #FFFBEB; color: #D97706; }
+  .bg-rose { background: #FFF1F2; color: #E11D48; }
+  .bg-violet { background: #F5F3FF; color: #7C3AED; }
+  .bg-teal { background: #F0FDFA; color: #0D9488; }
+  .bg-slate { background: #F8FAFC; color: #475569; }
+  .bg-indigo { background: #EEF2FF; color: #4F46E5; }
+
+  .accent-bar-1 { background: #10B981; }
+  .accent-bar-2 { background: #3B82F6; }
+  .accent-bar-3 { background: #F59E0B; }
+  .accent-bar-4 { background: #EF4444; }
+  .accent-bar-5 { background: #8B5CF6; }
+  .accent-bar-6 { background: #EC4899; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 1: COVER -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div class="page cover">
+  <div class="cover-grid"></div>
+
+  <div class="cover-badge">
+    <span class="dot"></span>
+    Version 1.2.7
+  </div>
+
+  <div class="cover-logo">
+    <div class="cover-logo-text">GEMA ERP PRO</div>
+    <div class="cover-logo-sub">Production &amp; Gestion</div>
+  </div>
+
+  <div class="cover-title">
+    Solution de <strong>Gestion Int&#233;gr&#233;e</strong> compl&#232;te, con&#231;ue sp&#233;cialement pour l'industrie de <strong>transformation du plastique</strong>
+  </div>
+
+  <div class="cover-client">
+    <div class="cover-client-name">Propos&#233; &#224;</div>
+    <div class="cover-client-val">GEMAPLAST Maroc</div>
+  </div>
+
+  <div class="cover-footer">
+    <span>65 tables de donn&#233;es</span>
+    <span>&bull;</span>
+    <span>38 sous-modules</span>
+    <span>&bull;</span>
+    <span>10 r&#244;les utilisateurs</span>
+    <span>&bull;</span>
+    <span>Cloud-Ready</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 2: MODULES -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-body">
+    <div class="page-header">
+      <h2>GEMA ERP PRO</h2>
+      <span class="version">v1.2.7</span>
+    </div>
+
+    <div class="section-title">Vue d'ensemble</div>
+    <div class="section-desc">
+      GEMA ERP PRO couvre l'int&#233;gralit&#233; du cycle d'exploitation : de la gestion commerciale &#224; la production, en passant par les achats, le stock et la finance.
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon bg-emerald">&#9670;</div>
+        <div class="stat-value">38</div>
+        <div class="stat-label">Sous-modules</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon bg-blue">&#9632;</div>
+        <div class="stat-value">65</div>
+        <div class="stat-label">Tables de donn&#233;es</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon bg-violet">&#9733;</div>
+        <div class="stat-value">10</div>
+        <div class="stat-label">R&#244;les d'acc&#232;s</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon bg-amber">&#9776;</div>
+        <div class="stat-value">8</div>
+        <div class="stat-label">Modules principaux</div>
+      </div>
+    </div>
+
+    <!-- Modules Grid -->
+    <div class="modules-grid">
+      <!-- Ventes -->
+      <div class="module-card">
+        <div class="module-icon bg-violet">&#9733;</div>
+        <div class="module-info">
+          <h3>Ventes</h3>
+          <p>Gestion compl&#232;te du cycle commercial client</p>
+          <span class="module-count">7 sous-modules</span>
+        </div>
+      </div>
+      <!-- Achats -->
+      <div class="module-card">
+        <div class="module-icon bg-blue">&#8644;</div>
+        <div class="module-info">
+          <h3>Achats</h3>
+          <p>Processus d'approvisionnement fournisseurs</p>
+          <span class="module-count">8 sous-modules</span>
+        </div>
+      </div>
+      <!-- Stock -->
+      <div class="module-card">
+        <div class="module-icon bg-amber">&#9776;</div>
+        <div class="module-info">
+          <h3>Stock</h3>
+          <p>Suivi des stocks, lots et alertes</p>
+          <span class="module-count">5 sous-modules</span>
+        </div>
+      </div>
+      <!-- Production -->
+      <div class="module-card">
+        <div class="module-icon bg-emerald">&#9881;</div>
+        <div class="module-info">
+          <h3>Production</h3>
+          <p>OF, nomenclatures, maintenance, contr&#244;le qualit&#233;</p>
+          <span class="module-count">7 sous-modules</span>
+        </div>
+      </div>
+      <!-- Finance -->
+      <div class="module-card">
+        <div class="module-icon bg-rose">&#9830;</div>
+        <div class="module-info">
+          <h3>Finance</h3>
+          <p>Caisses, banque, paiements, comptabilit&#233;</p>
+          <span class="module-count">6 sous-modules</span>
+        </div>
+      </div>
+      <!-- Communication -->
+      <div class="module-card">
+        <div class="module-icon bg-teal">&#9993;</div>
+        <div class="module-info">
+          <h3>Communication</h3>
+          <p>Messagerie interne et notifications</p>
+          <span class="module-count">1 sous-module</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed sub-modules -->
+    <div style="margin-bottom: 20px;">
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--primary);">D&#233;tail des sous-modules</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 11px; color: var(--text-light);">
+        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #8B5CF6;">
+          <strong style="color: var(--text); font-size: 11px;">Ventes:</strong> Clients, Devis, Commandes, Pr&#233;parations, Bons de livraison, Factures, Avoirs
+        </div>
+        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #3B82F6;">
+          <strong style="color: var(--text); font-size: 11px;">Achats:</strong> Fournisseurs, Demandes de prix, Devis frs, Commandes frs, R&#233;ceptions, Retours, Avoirs frs, Factures frs
+        </div>
+        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #F59E0B;">
+          <strong style="color: var(--text); font-size: 11px;">Stock:</strong> Produits, Mouvements, Alertes stock, Inventaires, Lots de stock
+        </div>
+        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #10B981;">
+          <strong style="color: var(--text); font-size: 11px;">Production:</strong> Nomenclatures, Gammes, Postes de travail, OF, &#201;quipements, Maintenance, Contr&#244;le qualit&#233;
+        </div>
+        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #EF4444;">
+          <strong style="color: var(--text); font-size: 11px;">Finance:</strong> Caisses, Banque, Paiements, Ch&#232;ques &amp; Effets, Comptabilit&#233;, &#201;tats financiers
+        </div>
+        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #64748B;">
+          <strong style="color: var(--text); font-size: 11px;">Administration:</strong> Utilisateurs, Journal d'audit, Param&#232;tres, Guide d'utilisation
+        </div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc</span>
+      <span>Page 2</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 3: FEATURES -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-body">
+    <div class="page-header">
+      <h2>FONCTIONNALIT&#201;S</h2>
+      <span class="version">v1.2.7</span>
+    </div>
+
+    <div class="section-title">Fonctionnalit&#233;s cl&#233;s</div>
+    <div class="section-desc">
+      Un syst&#232;me robuste, s&#233;curis&#233; et pens&#233; pour les besoins sp&#233;cifiques de l'industrie plastique marocaine.
+    </div>
+
+    <div class="features-list">
+      <div class="feature-row">
+        <div class="feature-icon bg-emerald">&#8634;</div>
+        <div class="feature-text">
+          <h4>Sauvegarde &amp; Restauration compl&#232;te</h4>
+          <p>64 tables sauvegard&#233;es automatiquement, compression gzip, validation SHA256 du sch&#233;ma, restauration SSE avec barre de progression, 7 sauvegardes max avec rotation automatique.</p>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon bg-blue">&#9998;</div>
+        <div class="feature-text">
+          <h4>Impression professionnelle</h4>
+          <p>13 types de documents imprimables (devis, factures, BL, commandes, OF...). En-t&#234;te entreprise personnalisable, 4 lignes de pied de page configurables, export PDF int&#233;gr&#233;.</p>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon bg-violet">&#9733;</div>
+        <div class="feature-text">
+          <h4>Tableau de bord dynamique</h4>
+          <p>Vue d'ensemble en temps r&#233;el : KPIs commerciaux, &#233;tat du stock, production en cours, chiffre d'affaires, commandes en attente, alertes.</p>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon bg-amber">&#9881;</div>
+        <div class="feature-text">
+          <h4>Maintenance pr&#233;ventive</h4>
+          <p>Planification des maintenances, ordres de travail, pi&#232;ces de rechange, historique des interventions, suivi des &#233;quipements de production.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Architecture -->
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--primary);">Architecture technique</h3>
+    <div class="arch-box">
+      <div class="arch-layers">
+        <div class="arch-layer" style="background: #F0FDF4;">
+          <div class="arch-layer-label">Frontend</div>
+          <div class="arch-layer-content">
+            <span class="arch-tag">Next.js 16</span>
+            <span class="arch-tag">React 19</span>
+            <span class="arch-tag">TypeScript</span>
+            <span class="arch-tag">Tailwind CSS 4</span>
+            <span class="arch-tag">shadcn/ui</span>
+            <span class="arch-tag">Lucide Icons</span>
+          </div>
+        </div>
+        <div class="arch-layer" style="background: #EFF6FF;">
+          <div class="arch-layer-label">Backend</div>
+          <div class="arch-layer-content">
+            <span class="arch-tag">API Routes</span>
+            <span class="arch-tag">Prisma ORM</span>
+            <span class="arch-tag">Server Actions</span>
+            <span class="arch-tag">SSE Streaming</span>
+            <span class="arch-tag">JWT Auth</span>
+          </div>
+        </div>
+        <div class="arch-layer" style="background: #FEF3C7;">
+          <div class="arch-layer-label">Base de donn&#233;es</div>
+          <div class="arch-layer-content">
+            <span class="arch-tag">PostgreSQL / Neon</span>
+            <span class="arch-tag">65 Mod&#232;les</span>
+            <span class="arch-tag">Relations FK</span>
+            <span class="arch-tag">Backup gzip</span>
+          </div>
+        </div>
+        <div class="arch-layer" style="background: #F5F3FF;">
+          <div class="arch-layer-label">D&#233;ploiement</div>
+          <div class="arch-layer-content">
+            <span class="arch-tag">Vercel Edge</span>
+            <span class="arch-tag">Neon Serverless</span>
+            <span class="arch-tag">HTTPS / SSL</span>
+            <span class="arch-tag">CI/CD Auto</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10 Roles -->
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--primary);">10 R&#244;les utilisateurs</h3>
+    <div class="roles-section">
+      <div class="roles-grid">
+        <div class="role-badge" style="background: #0F172A;">Super Admin</div>
+        <div class="role-badge" style="background: #1E293B;">Admin</div>
+        <div class="role-badge" style="background: #334155;">Direction</div>
+        <div class="role-badge" style="background: #475569;">Commercial</div>
+        <div class="role-badge" style="background: #64748B;">Acheteur</div>
+        <div class="role-badge" style="background: #94A3B8; color: #0F172A;">Magasinier</div>
+        <div class="role-badge" style="background: #94A3B8; color: #0F172A;">Resp. Prod.</div>
+        <div class="role-badge" style="background: #CBD5E1; color: #0F172A;">Op&#233;rateur</div>
+        <div class="role-badge" style="background: #CBD5E1; color: #0F172A;">Comptable</div>
+        <div class="role-badge" style="background: #E2E8F0; color: #0F172A;">Caissier</div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc</span>
+      <span>Page 3</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 4: BENEFITS -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-body">
+    <div class="page-header">
+      <h2>AVANTAGES</h2>
+      <span class="version">v1.2.7</span>
+    </div>
+
+    <div class="section-title">Pourquoi GEMA ERP PRO ?</div>
+    <div class="section-desc">
+      Un investissement strat&#233;gique pour l'optimisation de vos op&#233;rations et la croissance de GEMAPLAST.
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi-item">
+        <div class="kpi-num">100%</div>
+        <div class="kpi-label">Cycle d'exploitation couvert</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-num">64</div>
+        <div class="kpi-label">Tables de donn&#233;es sauvegard&#233;es</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-num">13</div>
+        <div class="kpi-label">Documents imprimables</div>
+      </div>
+    </div>
+
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#10B981;"></div>
+        <div class="b-icon" style="color: #10B981;">&#9670;</div>
+        <h4>Centralisation des donn&#233;es</h4>
+        <p>Une seule base de donn&#233;es pour toute l'entreprise. Fini les doubles saisies et les fichiers Excel dispers&#233;s. Acc&#232;s instantan&#233; &#224; toutes les informations.</p>
+      </div>
+      <div class="benefit-card">
+        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#3B82F6;"></div>
+        <div class="b-icon" style="color: #3B82F6;">&#9881;</div>
+        <h4>Tra&#231;abilit&#233; compl&#232;te</h4>
+        <p>Suivi de chaque produit du devis &#224; la livraison. Historique complet des transactions, mouvements de stock et interventions de maintenance.</p>
+      </div>
+      <div class="benefit-card">
+        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#8B5CF6;"></div>
+        <div class="b-icon" style="color: #8B5CF6;">&#9733;</div>
+        <h4>Contr&#244;le d'acc&#232;s granulaire</h4>
+        <p>10 r&#244;les pr&#233;d&#233;finis avec permissions fines. Chaque utilisateur ne voit que ce qui le concerne. Journal d'audit complet de toutes les actions.</p>
+      </div>
+      <div class="benefit-card">
+        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#F59E0B;"></div>
+        <div class="b-icon" style="color: #F59E0B;">&#9830;</div>
+        <h4>Adapt&#233; au march&#233; marocain</h4>
+        <p>Documents en fran&#231;ais, montants en MAD, gestion TVA marocaine, noms de r&#244;les en fran&#231;ais, conformit&#233; avec les pratiques commerciales locales.</p>
+      </div>
+      <div class="benefit-card">
+        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#EF4444;"></div>
+        <div class="b-icon" style="color: #EF4444;">&#9888;</div>
+        <h4>S&#233;curit&#233; des donn&#233;es</h4>
+        <p>Sauvegarde compl&#232;te avec validation, restauration par fichier, authentification JWT, journal d'audit, d&#233;ploiement s&#233;curis&#233; sur Vercel + Neon.</p>
+      </div>
+      <div class="benefit-card">
+        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#06B6D4;"></div>
+        <div class="b-icon" style="color: #06B6D4;">&#9776;</div>
+        <h4>Interface moderne</h4>
+        <p>Design professionnel, responsive mobile, mode clair/sombre, guide d'utilisation int&#233;gr&#233; avec aide contextuelle, navigation intuitive.</p>
+      </div>
+    </div>
+
+    <!-- Backup Flow Visual -->
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--primary);">Processus de sauvegarde</h3>
+    <div class="backup-visual">
+      <div class="backup-step">
+        <div class="backup-step-icon bg-emerald">&#8614;</div>
+        <h5>Export</h5>
+        <p>64 tables s&#233;lectionn&#233;es</p>
+      </div>
+      <div class="backup-arrow">&#8594;</div>
+      <div class="backup-step">
+        <div class="backup-step-icon bg-blue">&#8651;</div>
+        <h5>Compression</h5>
+        <p>Gzip + Base64</p>
+      </div>
+      <div class="backup-arrow">&#8594;</div>
+      <div class="backup-step">
+        <div class="backup-step-icon bg-amber">&#9679;</div>
+        <h5>Validation</h5>
+        <p>SHA256 du sch&#233;ma</p>
+      </div>
+      <div class="backup-arrow">&#8594;</div>
+      <div class="backup-step">
+        <div class="backup-step-icon bg-violet">&#9776;</div>
+        <h5>Stockage</h5>
+        <p>7 max auto-rotation</p>
+      </div>
+      <div class="backup-arrow">&#8594;</div>
+      <div class="backup-step">
+        <div class="backup-step-icon bg-rose">&#8618;</div>
+        <h5>Restauration</h5>
+        <p>Upload + SSE progress</p>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <div>
+        <h3>Pr&#234;t &#224; optimiser votre gestion ?</h3>
+        <p>GEMA ERP PRO - La solution compl&#232;te pour GEMAPLAST Maroc</p>
+      </div>
+      <div class="cta-btn">&#10003; D&#233;marrer maintenant</div>
+    </div>
+
+    <div class="page-footer">
+      <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc</span>
+      <span>Page 4</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
