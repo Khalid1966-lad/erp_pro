@@ -115,7 +115,10 @@ export async function GET(
           status: { not: 'cancelled' },
           ...(Object.keys(rangeDateFilter).length > 0 ? { date: rangeDateFilter } : {}),
         },
-        select: { date: true, number: true, totalTTC: true },
+        select: { date: true, number: true, totalTTC: true, paymentLines: {
+          where: { payment: { type: 'client_payment' } },
+          select: { payment: { select: { code: true, date: true } } },
+        } },
       }),
 
       // Credit notes (not cancelled) → CREDIT
@@ -205,6 +208,13 @@ export async function GET(
     const transactions: StatementTransaction[] = []
 
     for (const inv of invoices) {
+      // Build combined payment codes for this invoice (sorted by date)
+      const paymentCodes = (inv as any).paymentLines
+        ?.map((pl: any) => pl.payment?.code)
+        .filter(Boolean)
+        .sort((a: string, b: string) => a.localeCompare(b))
+        .join('|') || null
+
       transactions.push({
         date: inv.date.toISOString(),
         type: 'invoice',
@@ -213,6 +223,7 @@ export async function GET(
         debit: inv.totalTTC,
         credit: 0,
         balance: 0, // computed below
+        paymentCode: paymentCodes,
       })
     }
 

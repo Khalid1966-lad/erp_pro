@@ -1307,18 +1307,22 @@ export default function InvoicesView() {
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold flex items-center gap-1">
                     <DollarSign className="h-4 w-4" /> Paiements
+                    {(() => {
+                      const codes = selectedInvoice.payments
+                        .filter(p => p.code)
+                        .sort((a, b) => a.date.localeCompare(b.date))
+                        .map(p => p.code!)
+                      return codes.length > 0 ? (
+                        <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-2 py-0.5 text-xs ml-2">
+                          {codes.join('|')}
+                        </Badge>
+                      ) : null
+                    })()}
                   </h4>
                   <div className="space-y-1">
                     {selectedInvoice.payments.map((payment) => (
                       <div key={payment.id} className="flex items-center justify-between text-sm bg-green-50 rounded px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          {payment.code && (
-                            <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-2 py-0.5 text-xs shrink-0">
-                              {payment.code}
-                            </Badge>
-                          )}
-                          <span>{payment.method} - {format(new Date(payment.date), 'dd/MM/yyyy', { locale: fr })}</span>
-                        </div>
+                        <span>{payment.method} - {format(new Date(payment.date), 'dd/MM/yyyy', { locale: fr })}</span>
                         <span className="font-medium text-green-700">{formatCurrency(payment.amount)}</span>
                       </div>
                     ))}

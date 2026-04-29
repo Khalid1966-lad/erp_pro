@@ -2357,7 +2357,7 @@ function FinancialStatementTab({ clientId }: { clientId: string }) {
                         {fmtMoney(tx.balance)}
                       </TableCell>
                       <TableCell className="text-center">
-                        {tx.type === 'payment' && tx.paymentCode ? (
+                        {tx.paymentCode ? (
                           <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-2 py-0.5 text-xs">
                             {tx.paymentCode}
                           </Badge>
