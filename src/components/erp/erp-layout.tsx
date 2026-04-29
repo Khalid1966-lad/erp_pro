@@ -268,8 +268,8 @@ function SidebarContent() {
                   <button
                     onClick={() => toggleGroup(group.title)}
                     className={cn(
-                      'flex items-center w-full gap-2 px-2 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors rounded-md',
-                      hasActiveItem && !isCollapsed && 'text-foreground/70'
+                      'flex items-center w-full gap-2 px-2 py-1.5 text-[11px] font-bold text-black dark:text-white uppercase tracking-wider hover:text-foreground transition-colors rounded-md',
+                      hasActiveItem && !isCollapsed && 'text-foreground'
                     )}
                   >
                     <ChevronDown className={cn('h-3 w-3 transition-transform duration-200', isCollapsed && '-rotate-90')} />
@@ -319,7 +319,7 @@ function SidebarContent() {
                                 'shrink-0 transition-colors',
                                 isActive
                                   ? 'text-primary'
-                                  : 'text-black dark:text-white'
+                                  : item.color
                               )}>
                                 {item.icon}
                               </span>
