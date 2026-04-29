@@ -72,7 +72,7 @@ interface InvoiceDoc extends BaseDoc {
   paymentDate?: string | null
   discountRate: number
   shippingCost: number
-  payments?: Array<{ id: string; amount: number; method: string; reference?: string | null; date: string }>
+  payments?: Array<{ id: string; amount: number; method: string; reference?: string | null; code?: string | null; date: string }>
   creditNotes?: Array<{ id: string; number: string; totalTTC: number }>
 }
 
@@ -417,14 +417,24 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
                   <InfoItem label="Transporteur" value={(doc as DeliveryNoteDoc).transporteur || '—'} />
                 </>
               )}
-              {doc.type === 'invoice' && (
-                <>
-                  <InfoItem label="Client" value={(doc as InvoiceDoc).client.name} />
-                  <InfoItem label="Date" value={fmtDate(doc.date)} />
-                  <InfoItem label="Échéance" value={fmtDate((doc as InvoiceDoc).dueDate)} />
-                  <InfoItem label="Paiement" value={(doc as InvoiceDoc).paymentDate ? fmtDate((doc as InvoiceDoc).paymentDate!) : doc.status} />
-                </>
-              )}
+              {doc.type === 'invoice' && (() => {
+                const inv = doc as InvoiceDoc
+                const codes = inv.payments
+                  ?.filter(p => p.code)
+                  .map(p => p.code!)
+                  .join('|') || null
+                return (
+                  <>
+                    <InfoItem label="Client" value={inv.client.name} />
+                    <InfoItem label="N° Facture" value={inv.number} />
+                    <InfoItem label="Date" value={fmtDate(inv.date)} />
+                    <InfoItem label="Échéance" value={fmtDate(inv.dueDate)} />
+                    <InfoItem label="Statut" value={inv.paymentDate ? 'Payée' : inv.status} />
+                    <InfoItem label="Code réglement" value={codes || '—'} />
+                    <InfoItem label="Mode" value={inv.payments?.length ? inv.payments.map(p => p.method).join(', ') : '—'} />
+                  </>
+                )
+              })()}
               {doc.type === 'creditNote' && (
                 <>
                   <InfoItem label="Client" value={(doc as CreditNoteDoc).client.name} />
@@ -547,14 +557,44 @@ export function DocDetailDialog({ docType, docId, open, onOpenChange }: DocDetai
             {/* Payments info for invoices */}
             {doc.type === 'invoice' && (doc as InvoiceDoc).payments && (doc as InvoiceDoc).payments!.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Règlements associés</p>
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                  Règlements associés
+                  {(() => {
+                    const inv = doc as InvoiceDoc
+                    const codes = inv.payments
+                      ?.filter(p => p.code)
+                      .map(p => p.code!)
+                      .join('|') || null
+                    return codes ? (
+                      <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-2 py-0.5 text-xs">
+                        {codes}
+                      </Badge>
+                    ) : null
+                  })()}
+                </p>
                 <div className="rounded-md border overflow-hidden">
                   <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Code</TableHead>
+                        <TableHead className="text-xs">Date</TableHead>
+                        <TableHead className="text-xs">Réf</TableHead>
+                        <TableHead className="text-xs">Mode</TableHead>
+                        <TableHead className="text-xs text-right">Montant</TableHead>
+                      </TableRow>
+                    </TableHeader>
                     <TableBody>
                       {(doc as InvoiceDoc).payments!.map((p) => (
                         <TableRow key={p.id}>
+                          <TableCell className="text-xs">
+                            {p.code ? (
+                              <Badge variant="outline" className="font-mono font-bold bg-emerald-50 text-emerald-700 border-emerald-300 px-1.5 py-0 text-[10px]">
+                                {p.code}
+                              </Badge>
+                            ) : '—'}
+                          </TableCell>
                           <TableCell className="text-xs">{fmtDate(p.date)}</TableCell>
-                          <TableCell className="text-xs">{p.reference || '—'}</TableCell>
+                          <TableCell className="text-xs font-mono">{p.reference || '—'}</TableCell>
                           <TableCell className="text-xs">{p.method}</TableCell>
                           <TableCell className="text-xs text-right font-medium text-green-600">{fmtMoney(p.amount)}</TableCell>
                         </TableRow>
