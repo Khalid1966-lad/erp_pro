@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import {
   Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload,
-  ImageIcon, X, Loader2, ZoomIn, ZoomOut, Printer, Database, type LucideIcon,
+  ImageIcon, X, Loader2, ZoomIn, ZoomOut, Printer, Database, FileDown, type LucideIcon,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
@@ -68,6 +68,7 @@ const sidebarTabs: SidebarTab[] = [
   { id: 'accounting', label: 'Comptabilité', icon: Calculator },
   { id: 'rules', label: 'Règles métier', icon: Briefcase },
   { id: 'backup', label: 'Sauvegarde', icon: Database },
+  { id: 'brochure', label: 'Brochure', icon: FileDown },
   { id: 'about', label: 'À propos', icon: Info },
 ]
 
@@ -556,6 +557,122 @@ function SettingsGroupSection({
   )
 }
 
+// ─── Brochure Section ───
+
+function BrochureSection() {
+  const [downloading, setDownloading] = useState(false)
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      const response = await fetch('/api/brochure/download')
+      if (!response.ok) throw new Error('Erreur de téléchargement')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'GEMAPLAST_ERP_PRO_Brochure.pdf'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast.success('Brochure téléchargée avec succès')
+    } catch {
+      toast.error('Erreur lors du téléchargement de la brochure')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="text-muted-foreground"><FileDown className="h-5 w-5" /></div>
+            <div>
+              <CardTitle className="text-base">Brochure marketing</CardTitle>
+              <CardDescription className="text-sm">
+                Résumé marketing de GEMA ERP PRO pour GEMAPLAST Maroc
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Preview */}
+          <div className="border rounded-xl overflow-hidden bg-muted/20">
+            <div className="p-6 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary mb-4">
+                <FileDown className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground">GEMA ERP PRO</h3>
+              <p className="text-sm text-muted-foreground mt-1">Brochure commerciale v1.2.7</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Signée par Jazel Web Agency</p>
+            </div>
+          </div>
+
+          {/* Info Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-lg font-bold">4</div>
+              <div>
+                <p className="text-xs text-muted-foreground">Pages</p>
+                <p className="text-sm font-semibold">4 pages complètes</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center text-lg font-bold">8</div>
+              <div>
+                <p className="text-xs text-muted-foreground">Modules détaillés</p>
+                <p className="text-sm font-semibold">Ventes, Achats, Stock...</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+              <div className="w-9 h-9 rounded-lg bg-violet-500/10 text-violet-600 flex items-center justify-center text-lg font-bold">
+                <span style={{ fontSize: '14px' }}>JW</span>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Créateur</p>
+                <p className="text-sm font-semibold">Jazel Web Agency</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Signature Info */}
+          <div className="border rounded-xl p-4 bg-muted/20">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Créé et signé par</p>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">JW</div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Jazel Web Agency</p>
+                <p className="text-xs text-muted-foreground">Conception & Développement</p>
+                <p className="text-xs text-muted-foreground">contact@jazelwebagency.com | +212 6 62 42 58 90</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Download Button */}
+          <div className="flex justify-center pt-2">
+            <Button
+              size="lg"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="px-8"
+            >
+              {downloading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4 mr-2" />
+              )}
+              {downloading ? 'Téléchargement...' : 'Télécharger la brochure PDF'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 // ─── About Section ───
 
 function AboutSection() {
@@ -798,6 +915,8 @@ export default function SettingsView() {
           )}
 
           {activeTab === 'backup' && <BackupSection />}
+
+          {activeTab === 'brochure' && <BrochureSection />}
 
           {activeTab === 'about' && <AboutSection />}
         </div>
