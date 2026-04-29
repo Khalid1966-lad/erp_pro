@@ -2140,10 +2140,11 @@ export default function GuideView() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['introduction']))
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const scrollToSection = useCallback((id: string) => {
+  const scrollToSection = useCallback((id: string, forceExpand = true) => {
     setActiveSection(id)
-    // Auto-expand the parent
-    setExpandedSections(prev => new Set(prev).add(id))
+    if (forceExpand) {
+      setExpandedSections(prev => new Set(prev).add(id))
+    }
     const el = document.getElementById(`guide-${id}`)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -2230,16 +2231,19 @@ export default function GuideView() {
                               if (!isExpanded) {
                                 // If collapsed, expand AND scroll
                                 setExpandedSections(prev => new Set(prev).add(section.id))
+                                scrollToSection(section.id, true)
                               } else {
-                                // If expanded, collapse
+                                // If expanded, collapse (don't scroll)
                                 setExpandedSections(prev => {
                                   const next = new Set(prev)
                                   next.delete(section.id)
                                   return next
                                 })
                               }
+                            } else {
+                              // No children, just scroll
+                              scrollToSection(section.id, true)
                             }
-                            scrollToSection(section.id)
                           }}
                           className={cn(
                             'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors text-left group',
