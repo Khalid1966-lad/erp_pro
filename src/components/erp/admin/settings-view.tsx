@@ -606,7 +606,7 @@ function BrochureSection() {
                 <FileDown className="h-8 w-8" />
               </div>
               <h3 className="text-lg font-bold text-foreground">GEMA ERP PRO</h3>
-              <p className="text-sm text-muted-foreground mt-1">Brochure commerciale v1.2.7</p>
+              <p className="text-sm text-muted-foreground mt-1">Brochure commerciale v1.2.8</p>
               <p className="text-xs text-muted-foreground mt-0.5">Signée par Jazel Web Agency</p>
             </div>
           </div>
