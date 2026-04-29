@@ -14,7 +14,7 @@ import {
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
   FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database,
-  Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Tool, Globe, Hash, Zap, type LucideIcon
+  Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Hammer, Globe, Hash, Zap, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -1192,7 +1192,7 @@ function ProductionSection() {
           { type: 'Moule', desc: 'Moules de fabrication', icon: Cog },
           { type: 'Compresseur', desc: 'Compresseurs d\'air', icon: Gauge },
           { type: 'Four', desc: 'Fours de traitement', icon: AlertTriangle },
-          { type: 'Découpeuse', desc: 'Machines de découpe', icon: Tool },
+          { type: 'Découpeuse', desc: 'Machines de découpe', icon: Hammer },
           { type: 'Emballage', desc: 'Lignes d\'emballage', icon: Package },
           { type: 'Pompe', desc: 'Pompes industriels', icon: CircleDot },
           { type: 'Moteur', desc: 'Moteurs électriques', icon: Cpu },
@@ -2342,21 +2342,4 @@ export default function GuideView() {
   )
 }
 
-function Globe({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-      <path d="M2 12h20" />
-    </svg>
-  )
-}
+
