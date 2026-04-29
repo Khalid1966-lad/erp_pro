@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GEMA ERP PRO - GEMAPLAST Maroc</title>
+<title>GEMA ERP PRO - Brochure GEMAPLAST Maroc</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -12,7 +12,7 @@
     --primary-light: #1E293B;
     --accent: #10B981;
     --accent-light: #34D399;
-    --accent-glow: rgba(16, 185, 129, 0.15);
+    --accent-glow: rgba(16,185,129,0.15);
     --text: #0F172A;
     --text-light: #64748B;
     --text-lighter: #94A3B8;
@@ -20,600 +20,127 @@
     --bg-soft: #F8FAFC;
     --bg-muted: #F1F5F9;
     --border: #E2E8F0;
-    --shadow: 0 1px 3px rgba(15,23,42,0.08);
-    --shadow-lg: 0 8px 30px rgba(15,23,42,0.12);
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  @page {
-    size: 210mm 297mm;
-    margin: 0;
-  }
-
+  @page { size: A4; margin: 0; }
   html, body {
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
     font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
     color: var(--text);
     background: var(--bg);
     -webkit-font-smoothing: antialiased;
   }
 
-  .page {
-    width: 210mm;
-    min-height: 297mm;
-    margin: 0 auto;
-    position: relative;
-    overflow: hidden;
-    page-break-after: always;
-    background: var(--bg);
-  }
-  .page:last-child { page-break-after: auto; }
-
-  /* ── COVER PAGE ── */
-  .cover {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 60px 50px;
+  /* ── COVER ── */
+  .cover-page {
+    width: 210mm; height: 297mm;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 60px 50px;
     background: linear-gradient(170deg, #0F172A 0%, #1E293B 40%, #0F4C3A 100%);
-    color: #fff;
-    position: relative;
-    min-height: 297mm;
+    color: #fff; position: relative;
+    page-break-after: always;
   }
-  .cover::before {
-    content: '';
-    position: absolute;
-    top: -120px;
-    right: -120px;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%);
-    border-radius: 50%;
+  .cover-page::before {
+    content: ''; position: absolute; top: -120px; right: -120px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%); border-radius: 50%;
   }
-  .cover::after {
-    content: '';
-    position: absolute;
-    bottom: -100px;
-    left: -100px;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%);
-    border-radius: 50%;
+  .cover-page::after {
+    content: ''; position: absolute; bottom: -100px; left: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%); border-radius: 50%;
   }
-
-  .cover-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 20px;
-    border: 1px solid rgba(16,185,129,0.4);
-    border-radius: 50px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--accent-light);
-    margin-bottom: 40px;
-    background: rgba(16,185,129,0.08);
-    position: relative;
-    z-index: 1;
-  }
-  .cover-badge .dot {
-    width: 6px; height: 6px;
-    background: var(--accent);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  .cover-logo {
-    position: relative;
-    z-index: 1;
-    margin-bottom: 20px;
-  }
-  .cover-logo-text {
-    font-size: 58px;
-    font-weight: 900;
-    letter-spacing: -1px;
-    line-height: 1;
-    background: linear-gradient(135deg, #fff 0%, #94A3B8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .cover-logo-sub {
-    font-size: 16px;
-    font-weight: 400;
-    color: var(--accent-light);
-    letter-spacing: 6px;
-    text-transform: uppercase;
-    margin-top: 6px;
-  }
-
-  .cover-title {
-    position: relative;
-    z-index: 1;
-    font-size: 22px;
-    font-weight: 300;
-    color: #CBD5E1;
-    margin-top: 50px;
-    max-width: 480px;
-    line-height: 1.6;
-  }
-  .cover-title strong {
-    color: #fff;
-    font-weight: 600;
-  }
-
-  .cover-client {
-    position: relative;
-    z-index: 1;
-    margin-top: 60px;
-    padding: 20px 40px;
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 12px;
-    background: rgba(255,255,255,0.04);
-  }
-  .cover-client-name {
-    font-size: 13px;
-    color: var(--text-lighter);
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    margin-bottom: 4px;
-  }
-  .cover-client-val {
-    font-size: 28px;
-    font-weight: 800;
-    color: #fff;
-  }
-
-  .cover-footer {
-    position: relative;
-    z-index: 1;
-    margin-top: auto;
-    padding-top: 40px;
-    display: flex;
-    align-items: center;
-    gap: 30px;
-    font-size: 11px;
-    color: #64748B;
-  }
-  .cover-footer span { opacity: 0.7; }
-
   .cover-grid {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-    background-size: 60px 60px;
-    z-index: 0;
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px; z-index: 0;
   }
+  .cover-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; border: 1px solid rgba(16,185,129,0.4); border-radius: 50px; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent-light); margin-bottom: 40px; background: rgba(16,185,129,0.08); position: relative; z-index: 1; }
+  .cover-logo { position: relative; z-index: 1; margin-bottom: 20px; }
+  .cover-logo-text { font-size: 58px; font-weight: 900; letter-spacing: -1px; line-height: 1; background: linear-gradient(135deg, #fff 0%, #94A3B8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .cover-logo-sub { font-size: 16px; font-weight: 400; color: var(--accent-light); letter-spacing: 6px; text-transform: uppercase; margin-top: 6px; }
+  .cover-title { position: relative; z-index: 1; font-size: 22px; font-weight: 300; color: #CBD5E1; margin-top: 50px; max-width: 480px; line-height: 1.6; }
+  .cover-title strong { color: #fff; font-weight: 600; }
+  .cover-client { position: relative; z-index: 1; margin-top: 60px; padding: 20px 40px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; background: rgba(255,255,255,0.04); }
+  .cover-client-name { font-size: 13px; color: var(--text-lighter); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 4px; }
+  .cover-client-val { font-size: 28px; font-weight: 800; color: #fff; }
+  .cover-stats { position: relative; z-index: 1; margin-top: auto; padding-top: 40px; display: flex; align-items: center; gap: 30px; font-size: 11px; color: #64748B; }
+  .cover-stats span { opacity: 0.7; }
+  .cover-sig { position: absolute; bottom: 40px; left: 50px; right: 50px; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; background: rgba(255,255,255,0.03); }
+  .cover-sig-name { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 1px; }
+  .cover-sig-role { font-size: 10px; color: #94A3B8; margin-top: 2px; }
+  .cover-sig-contact { text-align: right; font-size: 10px; color: #94A3B8; line-height: 1.6; }
 
-  /* ── PAGE 2: OVERVIEW ── */
-  .page-body {
-    padding: 45px 50px;
-    display: flex;
-    flex-direction: column;
-  }
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 20px;
-    border-bottom: 2px solid var(--primary);
-    margin-bottom: 30px;
-  }
-  .page-header h2 {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    color: var(--text-light);
-  }
-  .page-header .version {
-    font-size: 11px;
-    color: var(--text-lighter);
-    font-weight: 500;
-  }
+  /* ── CONTENT PAGES ── */
+  .pg { width: 210mm; min-height: 297mm; padding: 40px 45px; display: flex; flex-direction: column; page-break-after: always; background: var(--bg); }
+  .pg:last-child { page-break-after: auto; }
+  .pg-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 2px solid var(--primary); margin-bottom: 24px; flex-shrink: 0; }
+  .pg-head h2 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; color: var(--text-light); }
+  .pg-head .ver { font-size: 10px; color: var(--text-lighter); font-weight: 500; }
+  .pg-title { font-size: 26px; font-weight: 800; color: var(--primary); margin-bottom: 5px; line-height: 1.2; }
+  .pg-desc { font-size: 13px; color: var(--text-light); line-height: 1.7; margin-bottom: 22px; max-width: 620px; }
+  .pg-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 8px; color: var(--text-lighter); flex-shrink: 0; }
 
-  .section-title {
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--primary);
-    margin-bottom: 6px;
-    line-height: 1.2;
-  }
-  .section-desc {
-    font-size: 14px;
-    color: var(--text-light);
-    line-height: 1.7;
-    margin-bottom: 30px;
-    max-width: 600px;
-  }
+  /* ── REUSABLE COMPONENTS ── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-box { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; padding: 16px 14px; text-align: center; }
+  .stat-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 16px; }
+  .stat-val { font-size: 26px; font-weight: 800; color: var(--primary); line-height: 1; }
+  .stat-lbl { font-size: 9px; color: var(--text-light); margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
-  /* Stats Grid */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 35px;
-  }
-  .stat-card {
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px 18px;
-    text-align: center;
-    transition: all 0.2s;
-  }
-  .stat-card:hover {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-  }
-  .stat-icon {
-    width: 40px; height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 10px;
-    font-size: 18px;
-  }
-  .stat-value {
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--primary);
-    line-height: 1;
-  }
-  .stat-label {
-    font-size: 10px;
-    color: var(--text-light);
-    margin-top: 4px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
-  }
+  .h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--primary); }
+  .h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; color: var(--primary); }
+  .txt { font-size: 11px; color: var(--text-light); line-height: 1.6; }
+  .txt-sm { font-size: 10px; color: var(--text-light); line-height: 1.5; }
 
-  /* Module Cards */
-  .modules-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    margin-bottom: 30px;
-  }
-  .module-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 18px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg);
-    transition: all 0.2s;
-  }
-  .module-card:hover {
-    box-shadow: var(--shadow-lg);
-    border-color: var(--accent);
-  }
-  .module-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-  .module-info h3 {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 2px;
-  }
-  .module-info p {
-    font-size: 11px;
-    color: var(--text-light);
-    line-height: 1.5;
-  }
-  .module-count {
-    display: inline-block;
-    margin-top: 4px;
-    padding: 2px 8px;
-    background: var(--bg-muted);
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-light);
-  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
 
-  /* ── PAGE 3: FEATURES ── */
-  .features-list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-bottom: 30px;
-  }
-  .feature-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-  }
-  .feature-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-  }
-  .feature-text h4 {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 2px;
-  }
-  .feature-text p {
-    font-size: 11px;
-    color: var(--text-light);
-    line-height: 1.5;
-  }
+  .card { border: 1px solid var(--border); border-radius: 12px; padding: 18px; background: var(--bg); }
+  .card-soft { border: 1px solid var(--border); border-radius: 12px; padding: 18px; background: var(--bg-soft); }
+  .card-accent { border-radius: 12px; padding: 18px; position: relative; border: 1px solid var(--border); background: var(--bg); }
 
-  /* Roles Grid */
-  .roles-section { margin-bottom: 25px; }
-  .roles-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
-  }
-  .role-badge {
-    padding: 10px 8px;
-    background: var(--primary);
-    color: #fff;
-    border-radius: 8px;
-    text-align: center;
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 1.3;
-  }
+  .icon-box { width: 40px; height: 40px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .icon-sm { width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
 
-  /* Architecture */
-  .arch-box {
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 20px;
-  }
-  .arch-layers {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .arch-layer {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 16px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-  }
-  .arch-layer-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--text-lighter);
-    width: 90px;
-    flex-shrink: 0;
-  }
-  .arch-layer-content {
-    flex: 1;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .arch-tag {
-    padding: 4px 10px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--text);
-  }
+  .tag { display: inline-block; padding: 3px 9px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 5px; font-size: 9px; font-weight: 600; color: var(--text); }
+  .tag-green { background: #ECFDF5; color: #059669; border-color: #A7F3D0; }
+  .tag-blue { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
+  .tag-amber { background: #FFFBEB; color: #D97706; border-color: #FDE68A; }
+  .tag-rose { background: #FFF1F2; color: #E11D48; border-color: #FECDD3; }
+  .tag-violet { background: #F5F3FF; color: #7C3AED; border-color: #DDD6FE; }
 
-  /* ── PAGE 4: BENEFITS ── */
-  .benefits-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-bottom: 30px;
-  }
-  .benefit-card {
-    padding: 24px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: var(--bg);
-    position: relative;
-    overflow: hidden;
-  }
-  .benefit-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 4px;
-    height: 100%;
-  }
-  .benefit-card .b-icon {
-    font-size: 24px;
-    margin-bottom: 12px;
-  }
-  .benefit-card h4 {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 6px;
-  }
-  .benefit-card p {
-    font-size: 11px;
-    color: var(--text-light);
-    line-height: 1.6;
-  }
+  .color-bar { position: absolute; top: 0; left: 0; width: 4px; height: 100%; border-radius: 12px 0 0 12px; }
 
-  /* KPI Box */
-  .kpi-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-bottom: 25px;
-  }
-  .kpi-item {
-    text-align: center;
-    padding: 20px 14px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-soft);
-  }
-  .kpi-item .kpi-num {
-    font-size: 32px;
-    font-weight: 800;
-    color: var(--accent);
-    line-height: 1;
-  }
-  .kpi-item .kpi-label {
-    font-size: 10px;
-    color: var(--text-light);
-    margin-top: 6px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
+  .feat-row { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+  .feat-row .feat-text h4 { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+  .feat-row .feat-text p { font-size: 10px; color: var(--text-light); line-height: 1.5; }
 
-  /* CTA Section */
-  .cta-section {
-    background: var(--primary);
-    color: #fff;
-    border-radius: 16px;
-    padding: 36px 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: auto;
-  }
-  .cta-section h3 {
-    font-size: 22px;
-    font-weight: 800;
-    margin-bottom: 4px;
-  }
-  .cta-section p {
-    font-size: 13px;
-    color: #94A3B8;
-  }
-  .cta-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 28px;
-    background: var(--accent);
-    color: #fff;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-    white-space: nowrap;
-  }
+  .arch-layer { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 8px; }
+  .arch-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-lighter); width: 80px; flex-shrink: 0; }
+  .arch-tags { flex: 1; display: flex; flex-wrap: wrap; gap: 5px; }
 
-  /* Footer */
-  .page-footer {
-    margin-top: auto;
-    padding-top: 15px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    font-size: 9px;
-    color: var(--text-lighter);
-  }
+  .role-badge { padding: 8px 6px; background: var(--primary); color: #fff; border-radius: 6px; text-align: center; font-size: 9px; font-weight: 600; line-height: 1.3; }
 
-  /* Print Table */
-  .print-list {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-  .print-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--text);
-  }
-  .print-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+  .kpi-big { text-align: center; padding: 18px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-soft); }
+  .kpi-big .num { font-size: 30px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .kpi-big .lbl { font-size: 9px; color: var(--text-light); margin-top: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  /* Backup visual */
-  .backup-visual {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    padding: 24px;
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 20px;
-  }
-  .backup-step {
-    text-align: center;
-    flex: 1;
-  }
-  .backup-step-icon {
-    width: 48px; height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 8px;
-    font-size: 20px;
-  }
-  .backup-step h5 {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 2px;
-  }
-  .backup-step p {
-    font-size: 10px;
-    color: var(--text-light);
-  }
-  .backup-arrow {
-    font-size: 20px;
-    color: var(--text-lighter);
-  }
+  .flow-row { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 20px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 18px; }
+  .flow-step { text-align: center; flex: 1; }
+  .flow-step-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; font-size: 18px; }
+  .flow-step h5 { font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 1px; }
+  .flow-step p { font-size: 9px; color: var(--text-light); }
+  .flow-arrow { font-size: 18px; color: var(--text-lighter); }
 
-  /* Color helpers */
+  .cta-box { background: var(--primary); color: #fff; border-radius: 14px; padding: 32px 36px; display: flex; align-items: center; justify-content: space-between; margin-top: 18px; }
+  .cta-box h3 { font-size: 20px; font-weight: 800; margin-bottom: 3px; }
+  .cta-box p { font-size: 12px; color: #94A3B8; }
+  .cta-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: var(--accent); color: #fff; border-radius: 10px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+  .submod-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
   .bg-emerald { background: #ECFDF5; color: #059669; }
   .bg-blue { background: #EFF6FF; color: #2563EB; }
   .bg-amber { background: #FFFBEB; color: #D97706; }
@@ -621,433 +148,806 @@
   .bg-violet { background: #F5F3FF; color: #7C3AED; }
   .bg-teal { background: #F0FDFA; color: #0D9488; }
   .bg-slate { background: #F8FAFC; color: #475569; }
-  .bg-indigo { background: #EEF2FF; color: #4F46E5; }
+  .bg-cyan { background: #ECFEFF; color: #0891B2; }
 
-  .accent-bar-1 { background: #10B981; }
-  .accent-bar-2 { background: #3B82F6; }
-  .accent-bar-3 { background: #F59E0B; }
-  .accent-bar-4 { background: #EF4444; }
-  .accent-bar-5 { background: #8B5CF6; }
-  .accent-bar-6 { background: #EC4899; }
+  .print-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .print-item { display: flex; align-items: center; gap: 6px; padding: 7px 10px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; font-size: 9px; font-weight: 500; color: var(--text); }
+  .print-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  .toc-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; margin-bottom: 6px; }
+  .toc-num { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+  .toc-title { font-size: 12px; font-weight: 700; color: var(--primary); }
+  .toc-desc { font-size: 9px; color: var(--text-light); }
+
+  .detail-block { padding: 14px 16px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid var(--accent); margin-bottom: 10px; }
+  .detail-block strong { font-size: 11px; color: var(--text); }
+  .detail-block p { font-size: 10px; color: var(--text-light); margin-top: 3px; line-height: 1.5; }
+
+  .sig-box { border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; background: var(--bg-soft); display: flex; align-items: center; gap: 14px; margin-top: 18px; }
+  .sig-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; flex-shrink: 0; }
+
+  .table-simple { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 16px; }
+  .table-simple th { text-align: left; padding: 8px 10px; background: var(--bg-soft); font-weight: 700; color: var(--text); border-bottom: 2px solid var(--border); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .table-simple td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text-light); }
+  .table-simple tr:last-child td { border-bottom: none; }
+  .table-simple tr:hover td { background: var(--bg-soft); }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
 <!-- PAGE 1: COVER -->
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<div class="page cover">
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="cover-page">
   <div class="cover-grid"></div>
-
-  <div class="cover-badge">
-    <span class="dot"></span>
-    Version 1.2.7
-  </div>
-
+  <div class="cover-badge">Version 1.2.7</div>
   <div class="cover-logo">
     <div class="cover-logo-text">GEMA ERP PRO</div>
     <div class="cover-logo-sub">Production &amp; Gestion</div>
   </div>
-
   <div class="cover-title">
     Solution de <strong>Gestion Int&#233;gr&#233;e</strong> compl&#232;te, con&#231;ue sp&#233;cialement pour l'industrie de <strong>transformation du plastique</strong>
   </div>
-
   <div class="cover-client">
     <div class="cover-client-name">Propos&#233; &#224;</div>
     <div class="cover-client-val">GEMAPLAST Maroc</div>
   </div>
-
-  <div class="cover-footer">
-    <span>65 tables de donn&#233;es</span>
-    <span>&bull;</span>
-    <span>38 sous-modules</span>
-    <span>&bull;</span>
-    <span>10 r&#244;les utilisateurs</span>
-    <span>&bull;</span>
+  <div class="cover-stats">
+    <span>65 tables de donn&#233;es</span><span>&bull;</span>
+    <span>38 sous-modules</span><span>&bull;</span>
+    <span>10 r&#244;les utilisateurs</span><span>&bull;</span>
     <span>Cloud-Ready</span>
   </div>
-
-  <!-- Jazel Web Agency Signature -->
-  <div style="position: absolute; bottom: 40px; left: 50px; right: 50px; z-index: 1;">
-    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; background: rgba(255,255,255,0.03);">
-      <div>
-        <div style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 1px;">Jazel Web Agency</div>
-        <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">Conception & D&#233;veloppement</div>
-      </div>
-      <div style="text-align: right;">
-        <div style="font-size: 10px; color: #94A3B8;">contact@jazelwebagency.com</div>
-        <div style="font-size: 10px; color: #94A3B8;">+212 6 62 42 58 90</div>
-      </div>
+  <div class="cover-sig">
+    <div>
+      <div class="cover-sig-name">Jazel Web Agency</div>
+      <div class="cover-sig-role">Conception &amp; D&#233;veloppement</div>
+    </div>
+    <div class="cover-sig-contact">
+      contact@jazelwebagency.com<br>+212 6 62 42 58 90
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- PAGE 2: MODULES -->
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<div class="page">
-  <div class="page-body">
-    <div class="page-header">
-      <h2>GEMA ERP PRO</h2>
-      <span class="version">v1.2.7</span>
-    </div>
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 2: TABLE DES MATIÈRES + INTRODUCTION -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="pg">
+  <div class="pg-head"><h2>GEMA ERP PRO</h2><span class="ver">v1.2.7</span></div>
 
-    <div class="section-title">Vue d'ensemble</div>
-    <div class="section-desc">
-      GEMA ERP PRO couvre l'int&#233;gralit&#233; du cycle d'exploitation : de la gestion commerciale &#224; la production, en passant par les achats, le stock et la finance.
-    </div>
+  <div class="pg-title">Sommaire</div>
+  <div class="pg-desc">Un aper&#231;u complet de l'ensemble des fonctionnalit&#233;s, modules et avantages de votre nouveau syst&#232;me de gestion int&#233;gr&#233;e.</div>
 
-    <!-- Stats -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon bg-emerald">&#9670;</div>
-        <div class="stat-value">38</div>
-        <div class="stat-label">Sous-modules</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon bg-blue">&#9632;</div>
-        <div class="stat-value">65</div>
-        <div class="stat-label">Tables de donn&#233;es</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon bg-violet">&#9733;</div>
-        <div class="stat-value">10</div>
-        <div class="stat-label">R&#244;les d'acc&#232;s</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon bg-amber">&#9776;</div>
-        <div class="stat-value">8</div>
-        <div class="stat-label">Modules principaux</div>
-      </div>
+  <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 28px;">
+    <div class="toc-item" style="background: #F0FDF4;">
+      <div class="toc-num bg-emerald">1</div>
+      <div><div class="toc-title">Module Ventes</div><div class="toc-desc">Clients, devis, commandes, factures, livraisons, avoirs</div></div>
     </div>
+    <div class="toc-item" style="background: #EFF6FF;">
+      <div class="toc-num bg-blue">2</div>
+      <div><div class="toc-title">Module Achats</div><div class="toc-desc">Fournisseurs, demandes de prix, commandes, r&#233;ceptions, retours</div></div>
+    </div>
+    <div class="toc-item" style="background: #FFFBEB;">
+      <div class="toc-num bg-amber">3</div>
+      <div><div class="toc-title">Module Stock</div><div class="toc-desc">Produits, mouvements, alertes, inventaires, lots</div></div>
+    </div>
+    <div class="toc-item" style="background: #ECFDF5;">
+      <div class="toc-num bg-emerald">4</div>
+      <div><div class="toc-title">Module Production</div><div class="toc-desc">Nomenclatures, gammes, OF, &#233;quipements, maintenance, qualit&#233;</div></div>
+    </div>
+    <div class="toc-item" style="background: #FFF1F2;">
+      <div class="toc-num bg-rose">5</div>
+      <div><div class="toc-title">Module Finance</div><div class="toc-desc">Caisses, banque, paiements, ch&#232;ques, comptabilit&#233;</div></div>
+    </div>
+    <div class="toc-item" style="background: #F5F3FF;">
+      <div class="toc-num bg-violet">6</div>
+      <div><div class="toc-title">Communication &amp; Administration</div><div class="toc-desc">Messagerie, notifications, utilisateurs, audit</div></div>
+    </div>
+    <div class="toc-item" style="background: #F8FAFC;">
+      <div class="toc-num bg-slate">7</div>
+      <div><div class="toc-title">Architecture &amp; S&#233;curit&#233;</div><div class="toc-desc">Stack technique, d&#233;ploiement cloud, sauvegarde</div></div>
+    </div>
+    <div class="toc-item" style="background: #ECFEFF;">
+      <div class="toc-num bg-cyan">8</div>
+      <div><div class="toc-title">Avantages &amp; Contact</div><div class="toc-desc">ROI, adaptabilit&#233;, accompagnement</div></div>
+    </div>
+  </div>
 
-    <!-- Modules Grid -->
-    <div class="modules-grid">
-      <!-- Ventes -->
-      <div class="module-card">
-        <div class="module-icon bg-violet">&#9733;</div>
-        <div class="module-info">
-          <h3>Ventes</h3>
-          <p>Gestion compl&#232;te du cycle commercial client</p>
-          <span class="module-count">7 sous-modules</span>
-        </div>
-      </div>
-      <!-- Achats -->
-      <div class="module-card">
-        <div class="module-icon bg-blue">&#8644;</div>
-        <div class="module-info">
-          <h3>Achats</h3>
-          <p>Processus d'approvisionnement fournisseurs</p>
-          <span class="module-count">8 sous-modules</span>
-        </div>
-      </div>
-      <!-- Stock -->
-      <div class="module-card">
-        <div class="module-icon bg-amber">&#9776;</div>
-        <div class="module-info">
-          <h3>Stock</h3>
-          <p>Suivi des stocks, lots et alertes</p>
-          <span class="module-count">5 sous-modules</span>
-        </div>
-      </div>
-      <!-- Production -->
-      <div class="module-card">
-        <div class="module-icon bg-emerald">&#9881;</div>
-        <div class="module-info">
-          <h3>Production</h3>
-          <p>OF, nomenclatures, maintenance, contr&#244;le qualit&#233;</p>
-          <span class="module-count">7 sous-modules</span>
-        </div>
-      </div>
-      <!-- Finance -->
-      <div class="module-card">
-        <div class="module-icon bg-rose">&#9830;</div>
-        <div class="module-info">
-          <h3>Finance</h3>
-          <p>Caisses, banque, paiements, comptabilit&#233;</p>
-          <span class="module-count">6 sous-modules</span>
-        </div>
-      </div>
-      <!-- Communication -->
-      <div class="module-card">
-        <div class="module-icon bg-teal">&#9993;</div>
-        <div class="module-info">
-          <h3>Communication</h3>
-          <p>Messagerie interne et notifications</p>
-          <span class="module-count">1 sous-module</span>
-        </div>
-      </div>
+  <div class="h3">Introduction</div>
+  <div class="txt" style="margin-bottom: 16px;">
+    GEMA ERP PRO est une solution de gestion int&#233;gr&#233;e (ERP) d&#233;di&#233;e aux entreprises de transformation du plastique. D&#233;velopp&#233;e sp&#233;cifiquement pour <strong>GEMAPLAST Maroc</strong>, elle couvre l'int&#233;gralit&#233; du cycle d'exploitation industriel et commercial.
+  </div>
+  <div class="grid3">
+    <div class="stat-box">
+      <div class="stat-val">8</div>
+      <div class="stat-lbl">Modules principaux</div>
     </div>
+    <div class="stat-box">
+      <div class="stat-val">38</div>
+      <div class="stat-lbl">Sous-modules</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">65</div>
+      <div class="stat-lbl">Tables de donn&#233;es</div>
+    </div>
+  </div>
 
-    <!-- Detailed sub-modules -->
-    <div style="margin-bottom: 20px;">
-      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--primary);">D&#233;tail des sous-modules</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 11px; color: var(--text-light);">
-        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #8B5CF6;">
-          <strong style="color: var(--text); font-size: 11px;">Ventes:</strong> Clients, Devis, Commandes, Pr&#233;parations, Bons de livraison, Factures, Avoirs
-        </div>
-        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #3B82F6;">
-          <strong style="color: var(--text); font-size: 11px;">Achats:</strong> Fournisseurs, Demandes de prix, Devis frs, Commandes frs, R&#233;ceptions, Retours, Avoirs frs, Factures frs
-        </div>
-        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #F59E0B;">
-          <strong style="color: var(--text); font-size: 11px;">Stock:</strong> Produits, Mouvements, Alertes stock, Inventaires, Lots de stock
-        </div>
-        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #10B981;">
-          <strong style="color: var(--text); font-size: 11px;">Production:</strong> Nomenclatures, Gammes, Postes de travail, OF, &#201;quipements, Maintenance, Contr&#244;le qualit&#233;
-        </div>
-        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #EF4444;">
-          <strong style="color: var(--text); font-size: 11px;">Finance:</strong> Caisses, Banque, Paiements, Ch&#232;ques &amp; Effets, Comptabilit&#233;, &#201;tats financiers
-        </div>
-        <div style="padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border-left: 3px solid #64748B;">
-          <strong style="color: var(--text); font-size: 11px;">Administration:</strong> Utilisateurs, Journal d'audit, Param&#232;tres, Guide d'utilisation
-        </div>
-      </div>
-    </div>
-
-    <div class="page-footer">
-      <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
-      <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
-      <span>Page 2</span>
-    </div>
+  <div class="pg-foot">
+    <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
+    <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
+    <span>Page 2</span>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- PAGE 3: FEATURES -->
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<div class="page">
-  <div class="page-body">
-    <div class="page-header">
-      <h2>FONCTIONNALIT&#201;S</h2>
-      <span class="version">v1.2.7</span>
-    </div>
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 3: MODULE VENTES (DÉTAILLÉ) -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="pg">
+  <div class="pg-head"><h2>MODULE VENTES</h2><span class="ver">v1.2.7</span></div>
+  <div class="pg-title">Gestion commerciale client</div>
+  <div class="pg-desc">Le module Ventes couvre l'int&#233;gralit&#233; du cycle commercial : de la prospection client jusqu'&#224; la facturation et le suivi des avoirs.</div>
 
-    <div class="section-title">Fonctionnalit&#233;s cl&#233;s</div>
-    <div class="section-desc">
-      Un syst&#232;me robuste, s&#233;curis&#233; et pens&#233; pour les besoins sp&#233;cifiques de l'industrie plastique marocaine.
-    </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-icon bg-violet">&#9733;</div><div class="stat-val">7</div><div class="stat-lbl">Sous-modules</div></div>
+    <div class="stat-box"><div class="stat-icon bg-blue">&#9998;</div><div class="stat-val">7</div><div class="stat-lbl">Documents impr.</div></div>
+    <div class="stat-box"><div class="stat-icon bg-emerald">&#9670;</div><div class="stat-val">100%</div><div class="stat-lbl">Cycle couvert</div></div>
+    <div class="stat-box"><div class="stat-icon bg-amber">&#9830;</div><div class="stat-val">MAD</div><div class="stat-lbl">Devise locale</div></div>
+  </div>
 
-    <div class="features-list">
-      <div class="feature-row">
-        <div class="feature-icon bg-emerald">&#8634;</div>
-        <div class="feature-text">
-          <h4>Sauvegarde &amp; Restauration compl&#232;te</h4>
-          <p>64 tables sauvegard&#233;es automatiquement, compression gzip, validation SHA256 du sch&#233;ma, restauration SSE avec barre de progression, 7 sauvegardes max avec rotation automatique.</p>
-        </div>
-      </div>
-      <div class="feature-row">
-        <div class="feature-icon bg-blue">&#9998;</div>
-        <div class="feature-text">
-          <h4>Impression professionnelle</h4>
-          <p>13 types de documents imprimables (devis, factures, BL, commandes, OF...). En-t&#234;te entreprise personnalisable, 4 lignes de pied de page configurables, export PDF int&#233;gr&#233;.</p>
-        </div>
-      </div>
-      <div class="feature-row">
-        <div class="feature-icon bg-violet">&#9733;</div>
-        <div class="feature-text">
-          <h4>Tableau de bord dynamique</h4>
-          <p>Vue d'ensemble en temps r&#233;el : KPIs commerciaux, &#233;tat du stock, production en cours, chiffre d'affaires, commandes en attente, alertes.</p>
-        </div>
-      </div>
-      <div class="feature-row">
-        <div class="feature-icon bg-amber">&#9881;</div>
-        <div class="feature-text">
-          <h4>Maintenance pr&#233;ventive</h4>
-          <p>Planification des maintenances, ordres de travail, pi&#232;ces de rechange, historique des interventions, suivi des &#233;quipements de production.</p>
-        </div>
-      </div>
-    </div>
+  <div class="h3">D&#233;tail des sous-modules</div>
 
-    <!-- Architecture -->
-    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--primary);">Architecture technique</h3>
-    <div class="arch-box">
-      <div class="arch-layers">
-        <div class="arch-layer" style="background: #F0FDF4;">
-          <div class="arch-layer-label">Frontend</div>
-          <div class="arch-layer-content">
-            <span class="arch-tag">Next.js 16</span>
-            <span class="arch-tag">React 19</span>
-            <span class="arch-tag">TypeScript</span>
-            <span class="arch-tag">Tailwind CSS 4</span>
-            <span class="arch-tag">shadcn/ui</span>
-            <span class="arch-tag">Lucide Icons</span>
-          </div>
-        </div>
-        <div class="arch-layer" style="background: #EFF6FF;">
-          <div class="arch-layer-label">Backend</div>
-          <div class="arch-layer-content">
-            <span class="arch-tag">API Routes</span>
-            <span class="arch-tag">Prisma ORM</span>
-            <span class="arch-tag">Server Actions</span>
-            <span class="arch-tag">SSE Streaming</span>
-            <span class="arch-tag">JWT Auth</span>
-          </div>
-        </div>
-        <div class="arch-layer" style="background: #FEF3C7;">
-          <div class="arch-layer-label">Base de donn&#233;es</div>
-          <div class="arch-layer-content">
-            <span class="arch-tag">PostgreSQL / Neon</span>
-            <span class="arch-tag">65 Mod&#232;les</span>
-            <span class="arch-tag">Relations FK</span>
-            <span class="arch-tag">Backup gzip</span>
-          </div>
-        </div>
-        <div class="arch-layer" style="background: #F5F3FF;">
-          <div class="arch-layer-label">D&#233;ploiement</div>
-          <div class="arch-layer-content">
-            <span class="arch-tag">Vercel Edge</span>
-            <span class="arch-tag">Neon Serverless</span>
-            <span class="arch-tag">HTTPS / SSL</span>
-            <span class="arch-tag">CI/CD Auto</span>
-          </div>
-        </div>
-      </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-violet">&#9733;</div>
+    <div class="feat-text">
+      <h4>Gestion des Clients</h4>
+      <p>Fiche client compl&#232;te avec coordonn&#233;es, contacts multiples, historique des commandes, relev&#233; de compte, balance &#226;g&#233;e, documents attach&#233;s. Import CSV de masse. Suivi de la solvabilit&#233; client.</p>
     </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-blue">&#9998;</div>
+    <div class="feat-text">
+      <h4>Devis</h4>
+      <p>Cr&#233;ation de devis personnalis&#233;s avec lignes illimit&#233;es, remises globales ou par ligne, TVA configurable (20%, 14%, 10%, 7%, 0%). Conversion directe en commande client. Impression PDF professionnelle.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-emerald">&#8644;</div>
+    <div class="feat-text">
+      <h4>Commandes Clients</h4>
+      <p>Gestion des commandes avec statuts (en attente, confirm&#233;e, en cours, livr&#233;e, annul&#233;e). Conversion en pr&#233;paration, bon de livraison ou facture. Suivi des quantit&#233;s command&#233;es vs livr&#233;es.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-amber">&#9776;</div>
+    <div class="feat-text">
+      <h4>Pr&#233;parations de commande</h4>
+      <p>Pr&#233;paration logistique avant exp&#233;dition. S&#233;lection des produits &#224; pr&#233;lever, v&#233;rification des quantit&#233;s en stock, lien direct avec le bon de livraison.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-teal">&#9993;</div>
+    <div class="feat-text">
+      <h4>Bons de livraison (BL)</h4>
+      <p>&#201;dition de BL avec d&#233;tail des produits livr&#233;s, quantit&#233;s, prix unitaires et totaux. Signature client possible. Conversion automatique en facture.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-rose">&#9830;</div>
+    <div class="feat-text">
+      <h4>Facturation</h4>
+      <p>Factures avec num&#233;rotation automatique, TVA marocaine, mentions l&#233;gales, conditions de paiement. Impression PDF avec en-t&#234;te entreprise personnalis&#233;e. Suivi des factures pay&#233;es/impay&#233;es.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-slate">&#8634;</div>
+    <div class="feat-text">
+      <h4>Avoirs client</h4>
+      <p>Gestion des retours et avoirs. Lien automatique avec la facture d'origine. Impression PDF. Mise &#224; jour automatique de la balance client.</p>
+    </div>
+  </div>
 
-    <!-- 10 Roles -->
-    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--primary);">10 R&#244;les utilisateurs</h3>
-    <div class="roles-section">
-      <div class="roles-grid">
-        <div class="role-badge" style="background: #0F172A;">Super Admin</div>
-        <div class="role-badge" style="background: #1E293B;">Admin</div>
-        <div class="role-badge" style="background: #334155;">Direction</div>
-        <div class="role-badge" style="background: #475569;">Commercial</div>
-        <div class="role-badge" style="background: #64748B;">Acheteur</div>
-        <div class="role-badge" style="background: #94A3B8; color: #0F172A;">Magasinier</div>
-        <div class="role-badge" style="background: #94A3B8; color: #0F172A;">Resp. Prod.</div>
-        <div class="role-badge" style="background: #CBD5E1; color: #0F172A;">Op&#233;rateur</div>
-        <div class="role-badge" style="background: #CBD5E1; color: #0F172A;">Comptable</div>
-        <div class="role-badge" style="background: #E2E8F0; color: #0F172A;">Caissier</div>
-      </div>
-    </div>
+  <div class="detail-block" style="border-left-color: #8B5CF6;">
+    <strong>Flux commercial int&#233;gr&#233;</strong>
+    <p>Devis &rarr; Commande &rarr; Pr&#233;paration &rarr; Bon de livraison &rarr; Facture &rarr; Paiement. Chaque &#233;tape est li&#233;e &#224; la pr&#233;c&#233;dente avec conversion en un clic.</p>
+  </div>
 
-    <div class="page-footer">
-      <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
-      <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
-      <span>Page 3</span>
-    </div>
+  <div class="pg-foot">
+    <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
+    <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
+    <span>Page 3</span>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- PAGE 4: BENEFITS -->
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<div class="page">
-  <div class="page-body">
-    <div class="page-header">
-      <h2>AVANTAGES</h2>
-      <span class="version">v1.2.7</span>
-    </div>
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 4: MODULE ACHATS (DÉTAILLÉ) -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="pg">
+  <div class="pg-head"><h2>MODULE ACHATS</h2><span class="ver">v1.2.7</span></div>
+  <div class="pg-title">Gestion des approvisionnements</div>
+  <div class="pg-desc">Le module Achats g&#232;re le cycle complet d'achat : de la demande de prix fournisseur jusqu'&#224; la facturation et le suivi des retours.</div>
 
-    <div class="section-title">Pourquoi GEMA ERP PRO ?</div>
-    <div class="section-desc">
-      Un investissement strat&#233;gique pour l'optimisation de vos op&#233;rations et la croissance de GEMAPLAST.
-    </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-icon bg-blue">&#8644;</div><div class="stat-val">8</div><div class="stat-lbl">Sous-modules</div></div>
+    <div class="stat-box"><div class="stat-icon bg-amber">&#9776;</div><div class="stat-val">4</div><div class="stat-lbl">Documents impr.</div></div>
+    <div class="stat-box"><div class="stat-icon bg-emerald">&#9670;</div><div class="stat-val">100%</div><div class="stat-lbl">Cycle couvert</div></div>
+    <div class="stat-box"><div class="stat-icon bg-rose">&#9830;</div><div class="stat-val">MAD</div><div class="stat-lbl">Devise locale</div></div>
+  </div>
 
-    <!-- KPIs -->
-    <div class="kpi-row">
-      <div class="kpi-item">
-        <div class="kpi-num">100%</div>
-        <div class="kpi-label">Cycle d'exploitation couvert</div>
-      </div>
-      <div class="kpi-item">
-        <div class="kpi-num">64</div>
-        <div class="kpi-label">Tables de donn&#233;es sauvegard&#233;es</div>
-      </div>
-      <div class="kpi-item">
-        <div class="kpi-num">13</div>
-        <div class="kpi-label">Documents imprimables</div>
-      </div>
-    </div>
+  <div class="h3">D&#233;tail des sous-modules</div>
 
-    <div class="benefits-grid">
-      <div class="benefit-card">
-        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#10B981;"></div>
-        <div class="b-icon" style="color: #10B981;">&#9670;</div>
-        <h4>Centralisation des donn&#233;es</h4>
-        <p>Une seule base de donn&#233;es pour toute l'entreprise. Fini les doubles saisies et les fichiers Excel dispers&#233;s. Acc&#232;s instantan&#233; &#224; toutes les informations.</p>
-      </div>
-      <div class="benefit-card">
-        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#3B82F6;"></div>
-        <div class="b-icon" style="color: #3B82F6;">&#9881;</div>
-        <h4>Tra&#231;abilit&#233; compl&#232;te</h4>
-        <p>Suivi de chaque produit du devis &#224; la livraison. Historique complet des transactions, mouvements de stock et interventions de maintenance.</p>
-      </div>
-      <div class="benefit-card">
-        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#8B5CF6;"></div>
-        <div class="b-icon" style="color: #8B5CF6;">&#9733;</div>
-        <h4>Contr&#244;le d'acc&#232;s granulaire</h4>
-        <p>10 r&#244;les pr&#233;d&#233;finis avec permissions fines. Chaque utilisateur ne voit que ce qui le concerne. Journal d'audit complet de toutes les actions.</p>
-      </div>
-      <div class="benefit-card">
-        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#F59E0B;"></div>
-        <div class="b-icon" style="color: #F59E0B;">&#9830;</div>
-        <h4>Adapt&#233; au march&#233; marocain</h4>
-        <p>Documents en fran&#231;ais, montants en MAD, gestion TVA marocaine, noms de r&#244;les en fran&#231;ais, conformit&#233; avec les pratiques commerciales locales.</p>
-      </div>
-      <div class="benefit-card">
-        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#EF4444;"></div>
-        <div class="b-icon" style="color: #EF4444;">&#9888;</div>
-        <h4>S&#233;curit&#233; des donn&#233;es</h4>
-        <p>Sauvegarde compl&#232;te avec validation, restauration par fichier, authentification JWT, journal d'audit, d&#233;ploiement s&#233;curis&#233; sur Vercel + Neon.</p>
-      </div>
-      <div class="benefit-card">
-        <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#06B6D4;"></div>
-        <div class="b-icon" style="color: #06B6D4;">&#9776;</div>
-        <h4>Interface moderne</h4>
-        <p>Design professionnel, responsive mobile, mode clair/sombre, guide d'utilisation int&#233;gr&#233; avec aide contextuelle, navigation intuitive.</p>
-      </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-blue">&#9733;</div>
+    <div class="feat-text">
+      <h4>Gestion des Fournisseurs</h4>
+      <p>Fiche fournisseur compl&#232;te avec coordonn&#233;es, contact principal, historique des achats, relev&#233; de compte, balance fournisseur. Suivi de la solvabilit&#233; et des d&#233;lais de livraison.</p>
     </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-violet">&#9998;</div>
+    <div class="feat-text">
+      <h4>Demandes de prix</h4>
+      <p>Cr&#233;ation de demandes de prix envoy&#233;es aux fournisseurs. Comparaison multi-fournisseurs pour optimiser les co&#251;ts d'achat. Historique des prix.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-amber">&#8644;</div>
+    <div class="feat-text">
+      <h4>Devis fournisseurs</h4>
+      <p>Enregistrement des propositions commerciales des fournisseurs. Comparaison des offres, s&#233;lection du meilleur prix. Conversion en commande d'achat.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-emerald">&#9776;</div>
+    <div class="feat-text">
+      <h4>Commandes fournisseurs</h4>
+      <p>Cr&#233;ation et suivi des commandes d'achat. Statuts (en attente, confirm&#233;e, re&#231;ue, annul&#233;e). Impression PDF. Lien avec r&#233;ception et facture fournisseur.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-teal">&#8614;</div>
+    <div class="feat-text">
+      <h4>R&#233;ceptions</h4>
+      <p>Enregistrement des r&#233;ceptions de marchandises avec v&#233;rification des quantit&#233;s command&#233;es vs re&#231;ues. Mise &#224; jour automatique du stock. Lien avec la commande fournisseur.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-rose">&#8634;</div>
+    <div class="feat-text">
+      <h4>Retours fournisseurs</h4>
+      <p>Gestion des retours de marchandises non conformes. Lien avec la r&#233;ception d'origine. Mise &#224; jour automatique du stock et de la balance fournisseur.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-slate">&#9733;</div>
+    <div class="feat-text">
+      <h4>Avoirs fournisseurs</h4>
+      <p>Enregistrement des avoirs re&#231;us des fournisseurs. Lien avec la facture d'origine. Mise &#224; jour automatique de la balance fournisseur.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-cyan">&#9830;</div>
+    <div class="feat-text">
+      <h4>Factures fournisseurs</h4>
+      <p>Saisie et suivi des factures d'achat. Rapprochement avec les commandes et r&#233;ceptions. Impression PDF. Int&#233;gration avec le module Finance pour le paiement.</p>
+    </div>
+  </div>
 
-    <!-- Backup Flow Visual -->
-    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--primary);">Processus de sauvegarde</h3>
-    <div class="backup-visual">
-      <div class="backup-step">
-        <div class="backup-step-icon bg-emerald">&#8614;</div>
-        <h5>Export</h5>
-        <p>64 tables s&#233;lectionn&#233;es</p>
-      </div>
-      <div class="backup-arrow">&#8594;</div>
-      <div class="backup-step">
-        <div class="backup-step-icon bg-blue">&#8651;</div>
-        <h5>Compression</h5>
-        <p>Gzip + Base64</p>
-      </div>
-      <div class="backup-arrow">&#8594;</div>
-      <div class="backup-step">
-        <div class="backup-step-icon bg-amber">&#9679;</div>
-        <h5>Validation</h5>
-        <p>SHA256 du sch&#233;ma</p>
-      </div>
-      <div class="backup-arrow">&#8594;</div>
-      <div class="backup-step">
-        <div class="backup-step-icon bg-violet">&#9776;</div>
-        <h5>Stockage</h5>
-        <p>7 max auto-rotation</p>
-      </div>
-      <div class="backup-arrow">&#8594;</div>
-      <div class="backup-step">
-        <div class="backup-step-icon bg-rose">&#8618;</div>
-        <h5>Restauration</h5>
-        <p>Upload + SSE progress</p>
-      </div>
-    </div>
+  <div class="detail-block" style="border-left-color: #3B82F6;">
+    <strong>Flux achat int&#233;gr&#233;</strong>
+    <p>Demande de prix &rarr; Devis frs &rarr; Commande frs &rarr; R&#233;ception &rarr; Facture frs &rarr; Paiement. Chaque &#233;tape alimente automatiquement le stock et la comptabilit&#233;.</p>
+  </div>
 
-    <!-- CTA -->
-    <div class="cta-section">
-      <div>
-        <h3>Pr&#234;t &#224; optimiser votre gestion ?</h3>
-        <p>GEMA ERP PRO - La solution compl&#232;te pour GEMAPLAST Maroc</p>
-      </div>
-      <div class="cta-btn">&#10003; D&#233;marrer maintenant</div>
-    </div>
+  <div class="pg-foot">
+    <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
+    <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
+    <span>Page 4</span>
+  </div>
+</div>
 
-    <div class="page-footer">
-      <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
-      <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
-      <span>Page 4</span>
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 5: MODULE STOCK + PRODUCTION -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="pg">
+  <div class="pg-head"><h2>MODULE STOCK</h2><span class="ver">v1.2.7</span></div>
+  <div class="pg-title">Gestion des stocks</div>
+  <div class="pg-desc">Contr&#244;le complet des niveaux de stock, des mouvements, des alertes et des lots pour une gestion optimale des mati&#232;res premi&#232;res et produits finis.</div>
+
+  <div class="h3">5 sous-modules du Stock</div>
+  <div class="grid2" style="margin-bottom: 20px;">
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+        <div class="icon-sm bg-amber">&#9776;</div>
+        <h4>Catalogue produits</h4>
+      </div>
+      <p class="txt-sm">Fiche produit avec r&#233;f&#233;rence, d&#233;signation, famille, prix d'achat/vente, unit&#233;, seuil d'alerte. Gestion des familles de produits. Import/export CSV.</p>
     </div>
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+        <div class="icon-sm bg-blue">&#8644;</div>
+        <h4>Mouvements de stock</h4>
+      </div>
+      <p class="txt-sm">Historique complet des entr&#233;es/sorties. Types : achat, vente, production, ajustement, transfert. Tra&#231;abilit&#233; totale avec dates, quantit&#233;s et motifs.</p>
+    </div>
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+        <div class="icon-sm bg-rose">&#9888;</div>
+        <h4>Alertes stock</h4>
+      </div>
+      <p class="txt-sm">Alertes automatiques quand le stock passe sous le seuil minimum configur&#233;. Vue d'ensemble des produits en rupture ou en alerte sur le tableau de bord.</p>
+    </div>
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+        <div class="icon-sm bg-emerald">&#9679;</div>
+        <h4>Inventaires</h4>
+      </div>
+      <p class="txt-sm">R&#233;alisation d'inventaires p&#233;riodiques. Comparaison stock th&#233;orique vs r&#233;el. Ajustements automatiques avec historique.</p>
+    </div>
+    <div class="card" style="grid-column: 1 / -1;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+        <div class="icon-sm bg-violet">&#9733;</div>
+        <h4>Gestion des lots</h4>
+      </div>
+      <p class="txt-sm">Tra&#231;abilit&#233; par lot : num&#233;ro de lot, date de r&#233;ception, date d'expiration, fournisseur d'origine, quantit&#233; disponible. Essentiel pour la conformit&#233; qualit&#233; dans l'industrie plastique.</p>
+    </div>
+  </div>
+
+  <div class="pg-foot">
+    <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
+    <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
+    <span>Page 5</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 6: MODULE PRODUCTION (DÉTAILLÉ) -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="pg">
+  <div class="pg-head"><h2>MODULE PRODUCTION</h2><span class="ver">v1.2.7</span></div>
+  <div class="pg-title">Gestion de la production industrielle</div>
+  <div class="pg-desc">Pilotage complet de la cha&#238;ne de production : de la nomenclature au contr&#244;le qualit&#233;, en passant par la maintenance des &#233;quipements.</div>
+
+  <div class="h3">7 sous-modules de Production</div>
+
+  <div class="feat-row">
+    <div class="icon-sm bg-emerald">&#9881;</div>
+    <div class="feat-text">
+      <h4>Nomenclatures (BOM)</h4>
+      <p>D&#233;finition des composants et mati&#232;res premi&#232;res n&#233;cessaires pour chaque produit fini. Co&#251;t de revient automatique calcul&#233; &#224; partir des co&#251;ts mati&#232;res.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-blue">&#8634;</div>
+    <div class="feat-text">
+      <h4>Gammes op&#233;ratoires</h4>
+      <p>D&#233;finition des &#233;tapes de fabrication s&#233;quentielles. D&#233;finition des postes de travail, temps pr&#233;vus par op&#233;ration, instructions sp&#233;cifiques.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-violet">&#9733;</div>
+    <div class="feat-text">
+      <h4>Postes de travail</h4>
+      <p>R&#233;f&#233;rencement des postes de production (extrudeuse, soudeuse, coupe, emballage...). Affectation des op&#233;rateurs et suivi de la charge.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-amber">&#9776;</div>
+    <div class="feat-text">
+      <h4>Ordres de fabrication (OF)</h4>
+      <p>Cr&#233;ation et suivi des OF avec statuts (planifi&#233;, en cours, termin&#233;, annul&#233;). Quantit&#233;s &#224; produire, mati&#232;res consomm&#233;es, produits finis. Impression de l'OF.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-teal">&#9881;</div>
+    <div class="feat-text">
+      <h4>&#201;quipements</h4>
+      <p>Registre des &#233;quipements de production avec caract&#233;ristiques techniques, date d'installation, localisation, &#233;tat de fonctionnement.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-rose">&#9888;</div>
+    <div class="feat-text">
+      <h4>Maintenance</h4>
+      <p>Planification pr&#233;ventive et curative. Ordres de travail, historique des interventions, co&#251;ts de maintenance, pi&#232;ces de rechange. R&#233;duction des arr&#234;ts non planifi&#233;s.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-cyan">&#10003;</div>
+    <div class="feat-text">
+      <h4>Contr&#244;le qualit&#233;</h4>
+      <p>Inspections qualit&#233; &#224; r&#233;ception et en cours de production. Crit&#232;res de conformit&#233;, r&#233;sultats OK/NOK, actions correctives. Tra&#231;abilit&#233; compl&#232;te par lot.</p>
+    </div>
+  </div>
+
+  <div class="detail-block" style="border-left-color: #10B981;">
+    <strong>Flux production int&#233;gr&#233;</strong>
+    <p>Nomenclature + Gamme &rarr; Ordre de fabrication &rarr; Consommation mati&#232;res &rarr; Production &rarr; Contr&#244;le qualit&#233; &rarr; Entr&#233;e en stock produit fini. Le stock est mis &#224; jour automatiquement &#224; chaque &#233;tape.</p>
+  </div>
+
+  <div class="pg-foot">
+    <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
+    <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
+    <span>Page 6</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 7: MODULE FINANCE -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="pg">
+  <div class="pg-head"><h2>MODULE FINANCE</h2><span class="ver">v1.2.7</span></div>
+  <div class="pg-title">Gestion financi&#232;re et comptabilit&#233;</div>
+  <div class="pg-desc">Pilotage de la tr&#233;sorerie, suivi des paiements, gestion multi-caisses et bancaire, avec des &#233;tats financiers d&#233;taill&#233;s.</div>
+
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-icon bg-rose">&#9830;</div><div class="stat-val">6</div><div class="stat-lbl">Sous-modules</div></div>
+    <div class="stat-box"><div class="stat-icon bg-blue">&#9733;</div><div class="stat-val">MAD</div><div class="stat-lbl">Devise</div></div>
+    <div class="stat-box"><div class="stat-icon bg-emerald">&#9670;</div><div class="stat-val">TVA</div><div class="stat-lbl">Gestion TVA</div></div>
+    <div class="stat-box"><div class="stat-icon bg-amber">&#8644;</div><div class="stat-val">Multi</div><div class="stat-lbl">Caisses/Banques</div></div>
+  </div>
+
+  <div class="h3">D&#233;tail des sous-modules</div>
+
+  <div class="grid2" style="margin-bottom: 16px;">
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#10B981;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Caisses</h4>
+        <p class="txt-sm">Gestion multi-caisses. Ouvertures et fermetures de caisse. Mouvements : encaissements, d&#233;caissements. Solde en temps r&#233;el.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#3B82F6;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Banque</h4>
+        <p class="txt-sm">Comptes bancaires multiples. Mouvements d&#233;bit/cr&#233;dit. Rapprochement bancaire. Suivi des soldes et des flux de tr&#233;sorerie.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#8B5CF6;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Paiements</h4>
+        <p class="txt-sm">Enregistrement des paiements clients et fournisseurs. Multi-modes : esp&#232;ces, ch&#232;que, virement, effet. Affectation automatique aux factures.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#F59E0B;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Ch&#232;ques &amp; Effets</h4>
+        <p class="txt-sm">Gestion des ch&#232;ques &#233;mis et re&#231;us. Suivi des effets de commerce : lettres de change, billets &#224; ordre. &#201;ch&#233;ancier des paiements.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#EF4444;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Comptabilit&#233;</h4>
+        <p class="txt-sm">Grand livre g&#233;n&#233;ral, balance, journal comptable. &#201;critures automatiques li&#233;es aux op&#233;rations commerciales. Export des &#233;tats.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#06B6D4;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">&#201;tats financiers</h4>
+        <p class="txt-sm">Bilan, compte de r&#233;sultat, flux de tr&#233;sorerie. Chiffre d'affaires par p&#233;riode, rentabilit&#233; par produit/client. Tableaux de bord financiers.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="h3">Taux de TVA marocaine g&#233;r&#233;s</div>
+  <div class="grid4" style="margin-bottom: 16px;">
+    <div style="text-align: center; padding: 10px; background: #ECFDF5; border-radius: 8px;">
+      <div style="font-size: 20px; font-weight: 800; color: #059669;">20%</div>
+      <div style="font-size: 9px; color: var(--text-light); margin-top: 2px;">Taux normal</div>
+    </div>
+    <div style="text-align: center; padding: 10px; background: #EFF6FF; border-radius: 8px;">
+      <div style="font-size: 20px; font-weight: 800; color: #2563EB;">14%</div>
+      <div style="font-size: 9px; color: var(--text-light); margin-top: 2px;">Taux r&#233;duit</div>
+    </div>
+    <div style="text-align: center; padding: 10px; background: #FFFBEB; border-radius: 8px;">
+      <div style="font-size: 20px; font-weight: 800; color: #D97706;">10%</div>
+      <div style="font-size: 9px; color: var(--text-light); margin-top: 2px;">Taux interm&#233;diaire</div>
+    </div>
+    <div style="text-align: center; padding: 10px; background: #F5F3FF; border-radius: 8px;">
+      <div style="font-size: 20px; font-weight: 800; color: #7C3AED;">7%</div>
+      <div style="font-size: 9px; color: var(--text-light); margin-top: 2px;">Taux sp&#233;cifique</div>
+    </div>
+  </div>
+
+  <div class="pg-foot">
+    <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
+    <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
+    <span>Page 7</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 8: COMMUNICATION + ADMINISTRATION -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="pg">
+  <div class="pg-head"><h2>COMMUNICATION &amp; ADMINISTRATION</h2><span class="ver">v1.2.7</span></div>
+  <div class="pg-title">Communication interne et administration syst&#232;me</div>
+  <div class="pg-desc">Messagerie int&#233;gr&#233;e pour la collaboration, notifications en temps r&#233;el, et outils complets d'administration et de s&#233;curit&#233;.</div>
+
+  <div class="h3">Messagerie interne</div>
+  <div class="card-soft" style="margin-bottom: 20px;">
+    <p class="txt" style="margin-bottom: 8px;">Syst&#232;me de messagerie en temps r&#233;el entre tous les utilisateurs de l'ERP :</p>
+    <div class="grid2">
+      <div class="detail-block" style="border-left-color: #0D9488; margin-bottom: 0;">
+        <strong>Conversations priv&#233;es et de groupe</strong>
+        <p>Cr&#233;ation de conversations entre 2 ou plusieurs utilisateurs. Historique complet des &#233;changes.</p>
+      </div>
+      <div class="detail-block" style="border-left-color: #0D9488; margin-bottom: 0;">
+        <strong>Pi&#232;ces jointes et emojis</strong>
+        <p>Envoi de fichiers et documents. R&#233;actions aux messages. Notifications de nouveaux messages en temps r&#233;el.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="h3">Syst&#232;me de notifications</div>
+  <div class="card-soft" style="margin-bottom: 20px;">
+    <p class="txt" style="margin-bottom: 8px;">Notifications contextuelles pour rester inform&#233; en permanence :</p>
+    <div class="submod-list" style="margin-bottom: 8px;">
+      <span class="tag tag-green">Commandes</span>
+      <span class="tag tag-blue">Stock</span>
+      <span class="tag tag-amber">Paiements</span>
+      <span class="tag tag-rose">Alertes</span>
+      <span class="tag tag-violet">Messages</span>
+      <span class="tag" style="background: #ECFEFF; color: #0891B2; border-color: #A5F3FC;">Production</span>
+    </div>
+    <p class="txt-sm">Cloche de notifications dans la barre de navigation avec compteur non lu. Notifications par type : commercial, stock, finance, production, syst&#232;me.</p>
+  </div>
+
+  <div class="h3">Administration syst&#232;me</div>
+  <div class="feat-row">
+    <div class="icon-sm bg-violet">&#9733;</div>
+    <div class="feat-text">
+      <h4>Gestion des utilisateurs</h4>
+      <p>Cr&#233;ation, modification et d&#233;sactivation des comptes. Attribution des r&#244;les et permissions. Avatars personnalisables. Journal de connexion.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-blue">&#9998;</div>
+    <div class="feat-text">
+      <h4>Journal d'audit</h4>
+      <p>Trace compl&#232;te de toutes les actions effectu&#233;es dans le syst&#232;me : qui, quand, quoi. Recherche et filtrage par utilisateur, type d'action et date.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-emerald">&#9881;</div>
+    <div class="feat-text">
+      <h4>Param&#232;tres de l'entreprise</h4>
+      <p>Informations l&#233;gales (ICE, IF, CNSS, RC), coordonn&#233;es, logo personnalisable, pied de page des impressions, taux de TVA, pr&#233;fixes de num&#233;rotation.</p>
+    </div>
+  </div>
+  <div class="feat-row">
+    <div class="icon-sm bg-amber">&#10003;</div>
+    <div class="feat-text">
+      <h4>Guide d'utilisation int&#233;gr&#233;</h4>
+      <p>Documentation compl&#232;te accessible directement depuis l'interface. Aide contextuelle disponible sur chaque vue. R&#233;duction du temps de formation.</p>
+    </div>
+  </div>
+
+  <div class="h3">10 R&#244;les utilisateurs</div>
+  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px;">
+    <div class="role-badge" style="background: #0F172A;">Super Admin</div>
+    <div class="role-badge" style="background: #1E293B;">Admin</div>
+    <div class="role-badge" style="background: #334155;">Direction</div>
+    <div class="role-badge" style="background: #475569;">Commercial</div>
+    <div class="role-badge" style="background: #64748B;">Acheteur</div>
+    <div class="role-badge" style="background: #94A3B8; color: #0F172A;">Magasinier</div>
+    <div class="role-badge" style="background: #94A3B8; color: #0F172A;">Resp. Prod.</div>
+    <div class="role-badge" style="background: #CBD5E1; color: #0F172A;">Op&#233;rateur</div>
+    <div class="role-badge" style="background: #CBD5E1; color: #0F172A;">Comptable</div>
+    <div class="role-badge" style="background: #E2E8F0; color: #0F172A;">Caissier</div>
+  </div>
+
+  <div class="pg-foot">
+    <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
+    <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
+    <span>Page 8</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 9: ARCHITECTURE + SÉCURITÉ + SAUVEGARDE -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="pg">
+  <div class="pg-head"><h2>ARCHITECTURE &amp; S&#201;CURIT&#201;</h2><span class="ver">v1.2.7</span></div>
+  <div class="pg-title">Stack technique &amp; infrastructure</div>
+  <div class="pg-desc">Une architecture moderne, scalable et s&#233;curis&#233;e, d&#233;ploy&#233;e sur cloud avec une haute disponibilit&#233;.</div>
+
+  <div class="h3">Architecture technique en 4 couches</div>
+  <div class="card-soft" style="margin-bottom: 20px;">
+    <div class="arch-layer" style="background: #F0FDF4; margin-bottom: 8px;">
+      <div class="arch-label">Frontend</div>
+      <div class="arch-tags">
+        <span class="tag">Next.js 16</span><span class="tag">React 19</span><span class="tag">TypeScript 5</span><span class="tag">Tailwind CSS 4</span><span class="tag">shadcn/ui</span><span class="tag">Lucide Icons</span><span class="tag">Zustand</span>
+      </div>
+    </div>
+    <div class="arch-layer" style="background: #EFF6FF; margin-bottom: 8px;">
+      <div class="arch-label">Backend</div>
+      <div class="arch-tags">
+        <span class="tag">API Routes</span><span class="tag">Prisma ORM v6</span><span class="tag">Server Actions</span><span class="tag">SSE Streaming</span><span class="tag">JWT Auth</span><span class="tag">REST API</span>
+      </div>
+    </div>
+    <div class="arch-layer" style="background: #FEF3C7; margin-bottom: 8px;">
+      <div class="arch-label">Base de donn&#233;es</div>
+      <div class="arch-tags">
+        <span class="tag">PostgreSQL</span><span class="tag">Neon Serverless</span><span class="tag">65 Mod&#232;les</span><span class="tag">Relations FK</span><span class="tag">Backup gzip</span>
+      </div>
+    </div>
+    <div class="arch-layer" style="background: #F5F3FF;">
+      <div class="arch-label">D&#233;ploiement</div>
+      <div class="arch-tags">
+        <span class="tag">Vercel Edge</span><span class="tag">Neon Serverless</span><span class="tag">HTTPS / SSL</span><span class="tag">CI/CD Auto</span><span class="tag">CDN Global</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="h3">Documents imprimables (13 types)</div>
+  <div class="print-grid" style="margin-bottom: 20px;">
+    <div class="print-item"><div class="print-dot" style="background:#8B5CF6;"></div> Devis client</div>
+    <div class="print-item"><div class="print-dot" style="background:#8B5CF6;"></div> Commande client</div>
+    <div class="print-item"><div class="print-dot" style="background:#8B5CF6;"></div> Bon de livraison</div>
+    <div class="print-item"><div class="print-dot" style="background:#8B5CF6;"></div> Facture client</div>
+    <div class="print-item"><div class="print-dot" style="background:#8B5CF6;"></div> Avoir client</div>
+    <div class="print-item"><div class="print-dot" style="background:#3B82F6;"></div> Commande frs</div>
+    <div class="print-item"><div class="print-dot" style="background:#3B82F6;"></div> R&#233;ception</div>
+    <div class="print-item"><div class="print-dot" style="background:#3B82F6;"></div> Facture frs</div>
+    <div class="print-item"><div class="print-dot" style="background:#10B981;"></div> Ordre de fabrication</div>
+    <div class="print-item"><div class="print-dot" style="background:#10B981;"></div> Relev&#233; client</div>
+    <div class="print-item"><div class="print-dot" style="background:#10B981;"></div> Relev&#233; fournisseur</div>
+    <div class="print-item"><div class="print-dot" style="background:#F59E0B;"></div> Inventaire</div>
+    <div class="print-item"><div class="print-dot" style="background:#EF4444;"></div> Bon de retour</div>
+  </div>
+
+  <div class="h3">Processus de sauvegarde &amp; restauration</div>
+  <div class="flow-row">
+    <div class="flow-step"><div class="flow-step-icon bg-emerald">&#8614;</div><h5>Export</h5><p>64 tables s&#233;l&#233;ctionn&#233;es</p></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-step"><div class="flow-step-icon bg-blue">&#8651;</div><h5>Compression</h5><p>Gzip + Base64</p></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-step"><div class="flow-step-icon bg-amber">&#9679;</div><h5>Validation</h5><p>SHA256 du sch&#233;ma</p></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-step"><div class="flow-step-icon bg-violet">&#9776;</div><h5>Stockage</h5><p>7 max auto-rotation</p></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-step"><div class="flow-step-icon bg-rose">&#8618;</div><h5>Restauration</h5><p>Upload + SSE progress</p></div>
+  </div>
+
+  <div class="h3">S&#233;curit&#233; des donn&#233;es</div>
+  <div class="grid2">
+    <div class="detail-block" style="border-left-color: #059669; margin-bottom: 0;">
+      <strong>Authentification JWT</strong>
+      <p>Tokens s&#233;curis&#233;s avec expiration. Gestion des sessions. Protection contre les acc&#232;s non autoris&#233;s.</p>
+    </div>
+    <div class="detail-block" style="border-left-color: #2563EB; margin-bottom: 0;">
+      <strong>Journal d'audit complet</strong>
+      <p>Tra&#231;abilit&#233; de toutes les actions : cr&#233;ation, modification, suppression. Recherche par utilisateur et date.</p>
+    </div>
+    <div class="detail-block" style="border-left-color: #D97706; margin-bottom: 0;">
+      <strong>Sauvegarde automatique</strong>
+      <p>Rotation sur 7 sauvegardes. Validation d'int&#233;grit&#233; SHA256. Restauration avec barre de progression temps r&#233;el.</p>
+    </div>
+    <div class="detail-block" style="border-left-color: #7C3AED; margin-bottom: 0;">
+      <strong>D&#233;ploiement s&#233;curis&#233;</strong>
+      <p>HTTPS/SSL, CI/CD automatis&#233;, CDN global, serveurless scaling, mises &#224; jour automatiques.</p>
+    </div>
+  </div>
+
+  <div class="pg-foot">
+    <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
+    <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
+    <span>Page 9</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 10: AVANTAGES + TABLEAU DE BORD + CTA -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="pg">
+  <div class="pg-head"><h2>AVANTAGES &amp; CONTACT</h2><span class="ver">v1.2.7</span></div>
+  <div class="pg-title">Pourquoi choisir GEMA ERP PRO ?</div>
+  <div class="pg-desc">Un investissement strat&#233;gique pour l'optimisation de vos op&#233;rations, la r&#233;duction des co&#251;ts et la croissance de GEMAPLAST Maroc.</div>
+
+  <div class="h3">Indicateurs cl&#233;s</div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-val" style="color: var(--accent);">100%</div><div class="stat-lbl">Cycle couvert</div></div>
+    <div class="stat-box"><div class="stat-val" style="color: var(--accent);">64</div><div class="stat-lbl">Tables sauvegard&#233;es</div></div>
+    <div class="stat-box"><div class="stat-val" style="color: var(--accent);">13</div><div class="stat-lbl">Documents impr.</div></div>
+    <div class="stat-box"><div class="stat-val" style="color: var(--accent);">10</div><div class="stat-lbl">R&#244;les s&#233;curis&#233;s</div></div>
+  </div>
+
+  <div class="h3">Avantages concurrentiels</div>
+  <div class="grid2" style="margin-bottom: 18px;">
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#10B981;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Centralisation totale</h4>
+        <p class="txt-sm">Une seule base de donn&#233;es pour toute l'entreprise. Fini les fichiers Excel dispers&#233;s et les doubles saisies.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#3B82F6;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Tra&#231;abilit&#233; compl&#232;te</h4>
+        <p class="txt-sm">Du devis &#224; la livraison. Historique complet des transactions, mouvements de stock et interventions.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#8B5CF6;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Contr&#244;le d'acc&#232;s granulaire</h4>
+        <p class="txt-sm">10 r&#244;les avec permissions fines. Chaque utilisateur ne voit que ce qui le concerne.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#F59E0B;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Adapt&#233; au Maroc</h4>
+        <p class="txt-sm">Documents en fran&#231;ais, montants en MAD, TVA marocaine, pratiques commerciales locales.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#EF4444;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">S&#233;curit&#233; maximale</h4>
+        <p class="txt-sm">Sauvegarde compl&#232;te, JWT, audit, d&#233;ploiement cloud s&#233;curis&#233; Vercel + Neon.</p>
+      </div>
+    </div>
+    <div class="card-accent">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#06B6D4;border-radius:12px 0 0 12px;"></div>
+      <div style="padding-left: 10px;">
+        <h4 style="margin-bottom: 4px;">Interface moderne</h4>
+        <p class="txt-sm">Design pro, responsive mobile, mode clair/sombre, aide contextuelle int&#233;gr&#233;e.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="h3">Tableau de bord dynamique</div>
+  <div class="card-soft" style="margin-bottom: 18px;">
+    <p class="txt" style="margin-bottom: 10px;">Vue d'ensemble en temps r&#233;el d&#232;s la connexion :</p>
+    <div class="grid4">
+      <div style="text-align: center; padding: 8px;">
+        <div style="font-size: 18px; font-weight: 800; color: var(--primary);">CA</div>
+        <div class="txt-sm">Chiffre d'affaires</div>
+      </div>
+      <div style="text-align: center; padding: 8px;">
+        <div style="font-size: 18px; font-weight: 800; color: var(--primary);">Cmd</div>
+        <div class="txt-sm">Commandes en attente</div>
+      </div>
+      <div style="text-align: center; padding: 8px;">
+        <div style="font-size: 18px; font-weight: 800; color: var(--primary);">OF</div>
+        <div class="txt-sm">Production en cours</div>
+      </div>
+      <div style="text-align: center; padding: 8px;">
+        <div style="font-size: 18px; font-weight: 800; color: var(--primary);">Alertes</div>
+        <div class="txt-sm">Stock &amp; paiements</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-box">
+    <div>
+      <h3>Pr&#234;t &#224; optimiser votre gestion ?</h3>
+      <p>GEMA ERP PRO &mdash; La solution compl&#232;te pour GEMAPLAST Maroc</p>
+    </div>
+    <div class="cta-btn">&#10003; D&#233;marrer maintenant</div>
+  </div>
+
+  <div class="sig-box">
+    <div class="sig-avatar">JW</div>
+    <div style="flex: 1;">
+      <div style="font-size: 14px; font-weight: 700; color: var(--primary);">Jazel Web Agency</div>
+      <div style="font-size: 11px; color: var(--text-light); margin-top: 1px;">Conception &amp; D&#233;veloppement de Solutions Digitales</div>
+      <div style="font-size: 10px; color: var(--text-lighter); margin-top: 4px;">
+        contact@jazelwebagency.com &nbsp;|&nbsp; +212 6 62 42 58 90
+      </div>
+    </div>
+  </div>
+
+  <div class="pg-foot">
+    <span>GEMA ERP PRO v1.2.7 &mdash; GEMAPLAST Maroc &mdash; <strong>Par Jazel Web Agency</strong></span>
+    <span>contact@jazelwebagency.com | +212 6 62 42 58 90</span>
+    <span>Page 10</span>
   </div>
 </div>
 
