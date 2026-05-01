@@ -2142,3 +2142,26 @@ Stage Summary:
 - SO delivered quantities are kept in sync with BL changes
 - All other sales documents (Sales Orders, Invoices, Credit Notes, Customer Returns) already had full edit capability
 - Code committed and pushed to main
+---
+Task ID: 1
+Agent: Main Agent
+Task: Widen TVA/Qté columns in BL edit mode and add status icons to sales document lists
+
+Work Log:
+- Read and analyzed delivery-notes-view.tsx, sales-orders-view.tsx, invoices-view.tsx
+- Identified BL edit mode column widths: Qté w-[80px], TVA w-[60px] — too narrow for 6-digit quantities
+- Widened BL edit mode: Qté w-[80px] → w-[120px], TVA w-[60px] → w-[100px]
+- Adjusted BL create dialog column widths: Qté 15%→18%, TVA 15%→16%
+- Added min-w-[70px] to quantity columns in BL detail view for 6-digit support
+- Added getStatusIcon() helper function to 3 files with per-status icon + color mappings
+- Delivery Notes: draft=FileText(yellow), confirmed=Truck(blue), delivered=CheckCircle(green), cancelled=XCircle(red)
+- Sales Orders: pending=Clock(yellow), confirmed=ClipboardList(blue), in_preparation=Package(orange), prepared=BadgeCheck(teal), partially_delivered=Truck(indigo), delivered=CheckCircle(green), cancelled=XCircle(red)
+- Invoices: draft=FileText(slate), validated=ShieldCheck(emerald), sent=Send(blue), paid=CheckCircle(green), overdue=AlertCircle(red), cancelled=XCircle(red)
+- Added React import and new lucide icon imports (Clock, AlertCircle) as needed
+- Lint passes clean, dev server compiles successfully
+
+Stage Summary:
+- 3 files modified, 77 insertions, 25 deletions
+- Pushed to GitHub main branch (commit dcd4c10)
+- All sales document lists now show status icons in the first column next to document numbers
+- BL edit/create/detail views handle 6-digit quantities with wider columns
