@@ -95,6 +95,30 @@ const emptyLine = (): CreditNoteLine => ({
   tvaRate: 20
 })
 
+/** HTML pour encadrés Notes + Visa Client / Visa Administration dans les impressions */
+function buildVisaHtml(notes?: string | null): string {
+  const notesHtml = notes
+    ? `<div style="border:1px solid #999; border-radius:4px; padding:8px; margin-bottom:16px;">
+         <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:4px;">Notes</div>
+         <div style="font-size:11px; min-height:40px;">${notes.replace(/\n/g, '<br/>')}</div>
+       </div>`
+    : ''
+
+  const visaHtml = `
+    <div style="display:flex; gap:24px; margin-top:24px;">
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Client</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Administration</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+    </div>`
+
+  return notesHtml + visaHtml
+}
+
 export default function CreditNotesView() {
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([])
   const [loading, setLoading] = useState(true)
@@ -532,7 +556,7 @@ export default function CreditNotesView() {
                         { label: 'TVA', value: `-${fmtMoney(ecn.totalTVA)}`, negative: true },
                         { label: 'Total TTC', value: `-${fmtMoney(ecn.totalTTC)}`, bold: true, negative: true },
                       ],
-                      notes: ecn.reason || undefined,
+                      subSections: buildVisaHtml(ecn.reason),
                       negativeTotals: true,
                       amountInWords: numberToFrenchWords(ecn.totalTTC || 0) + ' dirhams',
                       amountInWordsLabel: 'Arrêté le présent avoir à la somme de',
@@ -843,7 +867,7 @@ export default function CreditNotesView() {
                       { label: 'TVA', value: `-${fmtMoney(selectedCN.totalTVA)}`, negative: true },
                       { label: 'Total TTC', value: `-${fmtMoney(selectedCN.totalTTC)}`, bold: true, negative: true },
                     ],
-                    notes: selectedCN.notes || undefined,
+                    subSections: buildVisaHtml(selectedCN.notes),
                     negativeTotals: true,
                     amountInWords: numberToFrenchWords(selectedCN.totalTTC || 0) + ' dirhams',
                     amountInWordsLabel: 'Arrêté le présent avoir à la somme de',

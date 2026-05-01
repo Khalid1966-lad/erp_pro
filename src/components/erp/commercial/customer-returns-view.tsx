@@ -32,6 +32,30 @@ import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
 
+/** HTML pour encadrés Notes + Visa Client / Visa Administration dans les impressions */
+function buildVisaHtml(notes?: string | null): string {
+  const notesHtml = notes
+    ? `<div style="border:1px solid #999; border-radius:4px; padding:8px; margin-bottom:16px;">
+         <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:4px;">Notes</div>
+         <div style="font-size:11px; min-height:40px;">${notes.replace(/\n/g, '<br/>')}</div>
+       </div>`
+    : ''
+
+  const visaHtml = `
+    <div style="display:flex; gap:24px; margin-top:24px;">
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Client</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Administration</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+    </div>`
+
+  return notesHtml + visaHtml
+}
+
 // ── Types ──────────────────────────────────────────────
 interface Product {
   id: string
@@ -704,7 +728,7 @@ export default function CustomerReturnsView() {
                   { label: 'TVA', value: fmtMoneyP(selected.totalTVA), negative: true },
                   { label: 'Total TTC', value: fmtMoneyP(selected.totalTTC), bold: true, negative: true },
                 ],
-                notes: selected.reason || selected.notes || undefined,
+                subSections: buildVisaHtml(selected.reason || selected.notes),
                 negativeTotals: true,
                 amountInWords: numberToFrenchWords(selected.totalTTC),
                 amountInWordsLabel: 'Arrêté le présent bon de retour client à la somme de',
@@ -906,7 +930,7 @@ export default function CustomerReturnsView() {
                         { label: 'TVA', value: fmtMoneyP(ei.totalTVA), negative: true },
                         { label: 'Total TTC', value: fmtMoneyP(ei.totalTTC), bold: true, negative: true },
                       ],
-                      notes: ei.reason || ei.notes || undefined,
+                      subSections: buildVisaHtml(ei.reason || ei.notes),
                       negativeTotals: true,
                       amountInWords: numberToFrenchWords(ei.totalTTC),
                       amountInWordsLabel: 'Arrêté le présent bon de retour client à la somme de',

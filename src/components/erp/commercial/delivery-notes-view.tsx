@@ -40,6 +40,30 @@ import { HelpButton } from '@/components/erp/shared/help-button'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
+/** HTML pour encadrés Notes + Visa Client / Visa Administration dans les impressions */
+function buildVisaHtml(notes?: string | null): string {
+  const notesHtml = notes
+    ? `<div style="border:1px solid #999; border-radius:4px; padding:8px; margin-bottom:16px;">
+         <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:4px;">Notes</div>
+         <div style="font-size:11px; min-height:40px;">${notes.replace(/\n/g, '<br/>')}</div>
+       </div>`
+    : ''
+
+  const visaHtml = `
+    <div style="display:flex; gap:24px; margin-top:24px;">
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Client</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Administration</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+    </div>`
+
+  return notesHtml + visaHtml
+}
+
 // ─── Interfaces ───
 
 interface ClientOption {
@@ -1095,7 +1119,7 @@ export default function DeliveryNotesView() {
                         { label: 'TVA', value: fmtMoney(en.totalTVA) },
                         { label: 'Total TTC', value: fmtMoney(en.totalTTC), bold: true },
                       ],
-                      notes: en.notes || undefined,
+                      subSections: buildVisaHtml(en.notes),
                       amountInWords: numberToFrenchWords(en.totalTTC || 0) + ' dirhams',
                       amountInWordsLabel: 'Arrêté le présent bon de livraison à la somme de',
                     })
@@ -2323,7 +2347,7 @@ export default function DeliveryNotesView() {
                         { label: 'TVA', value: fmtMoney(selectedNote.totalTVA) },
                         { label: 'Total TTC', value: fmtMoney(selectedNote.totalTTC), bold: true },
                       ],
-                      notes: selectedNote.notes || undefined,
+                      subSections: buildVisaHtml(selectedNote.notes),
                       amountInWords: numberToFrenchWords(selectedNote.totalTTC || 0) + ' dirhams',
                       amountInWordsLabel: 'Arrêté le présent bon de livraison à la somme de',
                     })

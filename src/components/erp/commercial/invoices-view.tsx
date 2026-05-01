@@ -139,6 +139,30 @@ const emptyLine = (): InvoiceLine => ({
 
 type CreateMode = 'manual' | 'from_bl'
 
+/** HTML pour encadrés Notes + Visa Client / Visa Administration dans les impressions */
+function buildVisaHtml(notes?: string | null): string {
+  const notesHtml = notes
+    ? `<div style="border:1px solid #999; border-radius:4px; padding:8px; margin-bottom:16px;">
+         <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:4px;">Notes</div>
+         <div style="font-size:11px; min-height:40px;">${notes.replace(/\n/g, '<br/>')}</div>
+       </div>`
+    : ''
+
+  const visaHtml = `
+    <div style="display:flex; gap:24px; margin-top:24px;">
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Client</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Administration</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+    </div>`
+
+  return notesHtml + visaHtml
+}
+
 export default function InvoicesView() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -752,7 +776,7 @@ export default function InvoicesView() {
                         { label: 'TVA', value: fmtMoney(eq.totalTVA) },
                         { label: 'Total TTC', value: fmtMoney(eq.totalTTC), bold: true },
                       ],
-                      notes: eq.notes || undefined,
+                      subSections: buildVisaHtml(eq.notes),
                       amountInWords: `${numberToFrenchWords(eq.totalTTC || 0)} dirhams`,
                       amountInWordsLabel: 'Arrêtée la présente facture à la somme de',
                     })
@@ -1427,7 +1451,7 @@ export default function InvoicesView() {
                         { label: 'TVA', value: fmtMoney(selectedInvoice.totalTVA) },
                         { label: 'Total TTC', value: fmtMoney(selectedInvoice.totalTTC), bold: true },
                       ],
-                      notes: selectedInvoice.notes || undefined,
+                      subSections: buildVisaHtml(selectedInvoice.notes),
                       amountInWords: numberToFrenchWords(selectedInvoice.totalTTC || 0) + ' dirhams',
                       amountInWordsLabel: 'Arrêté la présente facture à la somme de',
                     })
