@@ -1,4 +1,33 @@
 ---
+Task ID: 7
+Agent: main
+Task: Add driver, transport type, due date, and responsible user fields to BL (delivery notes)
+
+Work Log:
+- Updated `prisma/schema.prisma`: Added 4 new fields to DeliveryNote model: `dueDate DateTime?`, `driverName String?`, `transportType String?` (rendu/depart), `createdByName String?`
+- Ran `bun run db:push` successfully to sync Neon DB
+- Updated `src/app/api/delivery-notes/route.ts`:
+  - Added `driverName`, `transportType`, `dueDate` to both createFromOrderSchema and createStandaloneSchema
+  - Both create modes (order + standalone) now save new fields + auto-fill `createdByName` from auth.name
+- Updated `src/components/erp/commercial/delivery-notes-view.tsx`:
+  - Added 4 fields to DeliveryNote interface: dueDate, driverName, transportType, createdByName
+  - Added 6 new state variables for create/edit forms
+  - Create dialog: added transport type toggle (Rendu/Départ), driver name input, due date input
+  - Edit dialog: same 3 new fields
+  - Both printDocument calls updated with full infoGrid: N° BL, Date BL, Date d'échéance, Client, Adresse de livraison, Chauffeur, Matricule véhicule, Type transport, Transporteur, Responsable BL
+  - Delivery address always shown in print (shows '—' when empty)
+  - Expanded detail panel updated to 8 info cards showing all new fields
+- Lint: 0 errors
+- Commit 912552b pushed to GitHub main branch
+
+Stage Summary:
+- BL print now displays: N° BL, date, due date, driver name, vehicle plate, transport type (Rendu/Départ), carrier, responsible user
+- Transport type is a toggle button (Rendu/Départ) at BL creation, default "Rendu"
+- createdByName is automatically filled from the logged-in user's name
+- Delivery address space is always reserved in print even when empty
+- Files changed: prisma/schema.prisma, src/app/api/delivery-notes/route.ts, src/components/erp/commercial/delivery-notes-view.tsx
+
+---
 Task ID: 5
 Agent: statement-code-column
 Task: Add payment code column to client account statement (UI + print)
