@@ -155,6 +155,18 @@ interface EditableLine {
   tvaRate: number
 }
 
+/** Line for edit dialog — may have an id (existing) or not (new) */
+interface EditLine {
+  tempId: string
+  id?: string              // existing DeliveryNoteLine id
+  salesOrderLineId?: string // linked SO line
+  productId: string
+  quantity: number
+  unitPrice: number
+  tvaRate: number
+  product?: { id: string; reference: string; designation: string }
+}
+
 // ─── Order line for partial delivery ───
 
 interface OrderLineWithDelivery {
@@ -295,6 +307,10 @@ export default function DeliveryNotesView() {
   const [editChantierId, setEditChantierId] = useState<string>('')
   const [editChantierOptions, setEditChantierOptions] = useState<ChantierOption[]>([])
   const [editManualDeliveryAddress, setEditManualDeliveryAddress] = useState('')
+
+  // Edit form - lines
+  const [editLines, setEditLines] = useState<EditLine[]>([])
+  const [editProducts, setEditProducts] = useState<ProductOption[]>([])
 
   // Chantier filters
   const [clientFilter, setClientFilter] = useState<string>('')
@@ -691,9 +707,11 @@ export default function DeliveryNotesView() {
 
   // ─── Edit BL ───
 
+  const { lineSearches: editLineSearches, setLineSearches: setEditLineSearches, getFilteredProducts: getEditFilteredProducts, resetLineSearches: resetEditLineSearches } = useProductSearch(editProducts)
+
   const openEditDialog = async (note: DeliveryNote) => {
-    if (note.status !== 'draft') {
-      toast.error('Seul un brouillon peut être modifié')
+    if (note.status === 'cancelled') {
+      toast.error('Impossible de modifier un BL annulé')
       return
     }
     setSelectedNote(note)
@@ -720,16 +738,82 @@ export default function DeliveryNotesView() {
       setEditManualDeliveryAddress('')
     }
 
-    // Fetch chantiers for this client
+    // Populate edit lines from existing lines
+    setEditLines(note.lines.map(l => ({
+      tempId: l.id,
+      id: l.id,
+      salesOrderLineId: l.salesOrderLineId,
+      productId: l.productId,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      tvaRate: l.tvaRate,
+      product: l.product,
+    })))
+    resetEditLineSearches()
+
+    // Fetch chantiers + products for this client
     setEditChantierOptions([])
     try {
-      const data = await api.get<{ chantiers: ChantierOption[] }>(`/clients/${note.client.id}/chantiers`)
-      setEditChantierOptions(data.chantiers || [])
+      const [chantierData, productsData] = await Promise.all([
+        api.get<{ chantiers: ChantierOption[] }>(`/clients/${note.client.id}/chantiers`),
+        api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
+      ])
+      setEditChantierOptions(chantierData.chantiers || [])
+      setEditProducts(productsData.products || [])
     } catch {
       setEditChantierOptions([])
+      setEditProducts([])
     }
 
     setEditOpen(true)
+  }
+
+  // Edit line management
+  const addEditLine = () => {
+    setEditLines([
+      ...editLines,
+      {
+        tempId: `new-${Date.now()}`,
+        productId: '',
+        quantity: 1,
+        unitPrice: 0,
+        tvaRate: 20,
+      },
+    ])
+  }
+
+  const removeEditLine = (tempId: string) => {
+    setEditLines(editLines.filter(l => l.tempId !== tempId))
+  }
+
+  const updateEditLine = (tempId: string, field: keyof EditLine, value: string | number) => {
+    setEditLines(editLines.map(l => {
+      if (l.tempId !== tempId) return l
+      const updated = { ...l, [field]: value }
+      if (field === 'productId' && typeof value === 'string') {
+        const prod = editProducts.find(p => p.id === value)
+        if (prod) {
+          updated.unitPrice = prod.priceHT ?? 0
+          updated.tvaRate = prod.tvaRate ?? 20
+          updated.product = { id: prod.id, reference: prod.reference, designation: prod.designation }
+        }
+      }
+      return updated
+    }))
+  }
+
+  const getEditLineTotalHT = (line: EditLine) => line.quantity * line.unitPrice
+
+  const getEditTotals = () => {
+    let totalHT = 0
+    let totalTVA = 0
+    editLines.forEach(l => {
+      if (!l.productId) return
+      const ht = l.quantity * l.unitPrice
+      totalHT += ht
+      totalTVA += ht * (l.tvaRate / 100)
+    })
+    return { totalHT, totalTVA, totalTTC: totalHT + totalTVA }
   }
 
   const handleEdit = async () => {
@@ -741,19 +825,66 @@ export default function DeliveryNotesView() {
         setSaving(false)
         return
       }
-      await api.put('/delivery-notes', {
-        id: selectedNote.id,
-        transporteur: editTransporteur || null,
-        vehiclePlate: editVehiclePlate || null,
-        notes: editNotes || null,
-        plannedDate: editPlannedDate || undefined,
-        chantierId: editDeliveryType === 'chantier' ? editChantierId : null,
-        deliveryAddress: editDeliveryType === 'manual' ? editManualDeliveryAddress : null,
-        driverName: editDriverName || null,
-        transportType: editTransportType || null,
-        dueDate: editDueDate || undefined,
+
+      const validLines = editLines.filter(l => l.productId)
+      if (validLines.length === 0) {
+        toast.error('Au moins une ligne est requise')
+        setSaving(false)
+        return
+      }
+
+      const hasLineChanges = validLines.some(l => {
+        if (!l.id) return true // new line
+        const orig = selectedNote.lines.find(ol => ol.id === l.id)
+        if (!orig) return true
+        return Math.abs(orig.quantity - l.quantity) > 0.001 ||
+               Math.abs(orig.unitPrice - l.unitPrice) > 0.001 ||
+               Math.abs(orig.tvaRate - l.tvaRate) > 0.001
       })
-      toast.success(`BL ${selectedNote.number} modifié`)
+
+      const removedLines = selectedNote.lines.some(ol => !validLines.find(l => l.id === ol.id))
+
+      if (hasLineChanges || removedLines) {
+        // Use edit_lines action for line changes
+        await api.put('/delivery-notes', {
+          id: selectedNote.id,
+          action: 'edit_lines',
+          lines: validLines.map(l => ({
+            id: l.id || undefined,
+            salesOrderLineId: l.salesOrderLineId || undefined,
+            productId: l.productId,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            tvaRate: l.tvaRate,
+          })),
+          chantierId: editDeliveryType === 'chantier' ? editChantierId : null,
+          deliveryAddress: editDeliveryType === 'manual' ? editManualDeliveryAddress : null,
+          transporteur: editTransporteur || null,
+          vehiclePlate: editVehiclePlate || null,
+          driverName: editDriverName || null,
+          transportType: editTransportType || null,
+          dueDate: editDueDate || undefined,
+          notes: editNotes || null,
+          plannedDate: editPlannedDate || undefined,
+        })
+      } else {
+        // Simple header-only update
+        await api.put('/delivery-notes', {
+          id: selectedNote.id,
+          transporteur: editTransporteur || null,
+          vehiclePlate: editVehiclePlate || null,
+          notes: editNotes || null,
+          plannedDate: editPlannedDate || undefined,
+          chantierId: editDeliveryType === 'chantier' ? editChantierId : null,
+          deliveryAddress: editDeliveryType === 'manual' ? editManualDeliveryAddress : null,
+          driverName: editDriverName || null,
+          transportType: editTransportType || null,
+          dueDate: editDueDate || undefined,
+        })
+      }
+
+      const isDelivered = selectedNote.status === 'delivered'
+      toast.success(`BL ${selectedNote.number} modifié${isDelivered ? ' (stock mis à jour)' : ''}`)
       setEditOpen(false)
       fetchDeliveryNotes()
     } catch (err: any) {
@@ -778,10 +909,20 @@ export default function DeliveryNotesView() {
   const handleDeliver = async (note: DeliveryNote) => {
     try {
       await api.put('/delivery-notes', { id: note.id, action: 'deliver' })
-      toast.success(`BL ${note.number} marqué comme livré`)
+      toast.success(`BL ${note.number} livré — stock mis à jour`)
       fetchDeliveryNotes()
     } catch (err: any) {
       toast.error(err.message || 'Erreur livraison')
+    }
+  }
+
+  const handleUndeliver = async (note: DeliveryNote) => {
+    try {
+      await api.put('/delivery-notes', { id: note.id, action: 'undeliver' })
+      toast.success(`BL ${note.number} remis en confirmation — stock et qté livrée ajustés`)
+      fetchDeliveryNotes()
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur annulation livraison')
     }
   }
 
@@ -835,8 +976,13 @@ export default function DeliveryNotesView() {
         actions.push({ label: 'Supprimer', icon: <Trash2 className="h-4 w-4" />, action: 'delete' })
         break
       case 'confirmed':
+        actions.push({ label: 'Modifier', icon: <Pencil className="h-4 w-4" />, action: 'edit' })
         actions.push({ label: 'Livrer', icon: <Truck className="h-4 w-4" />, action: 'deliver' })
         actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancel' })
+        break
+      case 'delivered':
+        actions.push({ label: 'Modifier', icon: <Pencil className="h-4 w-4" />, action: 'edit' })
+        actions.push({ label: 'Dé-livrer', icon: <RefreshCw className="h-4 w-4" />, action: 'undeliver' })
         break
     }
     return actions
@@ -847,6 +993,7 @@ export default function DeliveryNotesView() {
       case 'edit': openEditDialog(note); break
       case 'confirm': await handleConfirm(note); break
       case 'deliver': await handleDeliver(note); break
+      case 'undeliver': await handleUndeliver(note); break
       case 'cancel': await handleCancel(note.id); break
       case 'delete': confirmDelete(note.id); break
     }
@@ -1958,7 +2105,12 @@ export default function DeliveryNotesView() {
               Modifier le BL {selectedNote?.number}
             </DialogTitle>
             <DialogDescription>
-              Modifiez les informations du bon de livraison (brouillon uniquement).
+              {selectedNote?.status === 'delivered'
+                ? '⚠️ BL livré — toute modification de quantité mettra à jour le stock et les quantités livrées de la commande.'
+                : selectedNote?.status === 'confirmed'
+                  ? 'Modifiez les informations et les lignes du bon de livraison.'
+                  : 'Modifiez les informations et les lignes du bon de livraison.'
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -2170,6 +2322,117 @@ export default function DeliveryNotesView() {
               />
             </div>
 
+            {/* ─── Lignes du BL ─── */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold">Lignes du BL ({editLines.filter(l => l.productId).length})</Label>
+                <Button variant="outline" size="sm" onClick={addEditLine} className="gap-1">
+                  <Plus className="h-3.5 w-3.5" />
+                  Ajouter une ligne
+                </Button>
+              </div>
+              <div className="rounded border max-h-[250px] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[200px]">Produit</TableHead>
+                      <TableHead className="text-right w-[80px]">Qté</TableHead>
+                      <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
+                      <TableHead className="text-right w-[60px]">TVA %</TableHead>
+                      <TableHead className="text-right w-[100px]">Total HT</TableHead>
+                      <TableHead className="w-[40px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {editLines.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
+                          Aucune ligne
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {editLines.map((line) => (
+                      <TableRow key={line.tempId}>
+                        <TableCell>
+                          {line.id ? (
+                            <span className="text-sm">
+                              <span className="font-mono text-muted-foreground mr-1">{line.product?.reference || ''}</span>
+                              {line.product?.designation || '—'}
+                            </span>
+                          ) : (
+                            <ProductCombobox
+                              products={getEditFilteredProducts(editProducts, editLineSearches[line.tempId] || '')}
+                              value={line.productId}
+                              onChange={(val) => updateEditLine(line.tempId, 'productId', val)}
+                              search={editLineSearches[line.tempId] || ''}
+                              onSearchChange={(val) => setEditLineSearches(line.tempId, val)}
+                              placeholder="Rechercher un produit..."
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min={0.01}
+                            step={0.5}
+                            value={line.quantity}
+                            onChange={(e) => updateEditLine(line.tempId, 'quantity', parseFloat(e.target.value) || 0)}
+                            className="text-right h-8 text-sm"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={line.unitPrice}
+                            onChange={(e) => updateEditLine(line.tempId, 'unitPrice', parseFloat(e.target.value) || 0)}
+                            className="text-right h-8 text-sm"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={line.tvaRate}
+                            onChange={(e) => updateEditLine(line.tempId, 'tvaRate', parseFloat(e.target.value) || 0)}
+                            className="text-right h-8 text-sm"
+                          />
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-sm">
+                          {formatCurrency(getEditLineTotalHT(line))}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => removeEditLine(line.tempId)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Totals */}
+              {editLines.some(l => l.productId) && (() => {
+                const totals = getEditTotals()
+                return (
+                  <div className="rounded-lg bg-muted p-3 space-y-1.5 text-sm">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium">{formatCurrency(totals.totalHT)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium">{formatCurrency(totals.totalTVA)}</span></div>
+                    <div className="flex justify-between text-base font-bold border-t pt-2 mt-2"><span>Total TTC</span><span>{formatCurrency(totals.totalTTC)}</span></div>
+                  </div>
+                )
+              })()}
+            </div>
+
             <div className="space-y-2">
               <Label>Notes</Label>
               <Textarea
@@ -2183,7 +2446,7 @@ export default function DeliveryNotesView() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Annuler</Button>
             <Button onClick={handleEdit} disabled={saving}>
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
+              {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Enregistrement...</> : 'Enregistrer'}
             </Button>
           </DialogFooter>
         </DialogContent>

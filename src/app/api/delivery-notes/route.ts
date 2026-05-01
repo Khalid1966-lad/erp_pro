@@ -47,6 +47,31 @@ const createStandaloneSchema = z.object({
   lines: z.array(lineSchema).min(1, 'Au moins une ligne est requise'),
 })
 
+// Schema for editing lines: existing lines have `id`, new lines don't
+const editLineSchema = z.object({
+  id: z.string().optional(), // existing line id (omitted for new lines)
+  salesOrderLineId: z.string().optional(),
+  productId: z.string().min(1),
+  quantity: z.number().min(0.01),
+  unitPrice: z.number().min(0),
+  tvaRate: z.number().min(0),
+})
+
+const editLinesSchema = z.object({
+  id: z.string().min(1),
+  action: z.literal('edit_lines'),
+  lines: z.array(editLineSchema).min(1, 'Au moins une ligne est requise'),
+  chantierId: z.string().nullable().optional(),
+  deliveryAddress: z.string().nullable().optional(),
+  transporteur: z.string().nullable().optional(),
+  vehiclePlate: z.string().nullable().optional(),
+  driverName: z.string().nullable().optional(),
+  transportType: z.string().nullable().optional(),
+  plannedDate: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+})
+
 // ─── Helper: generate BL number ───
 
 async function generateBLNumber() {
@@ -75,6 +100,38 @@ const deliveryNoteInclude = {
       product: { select: { id: true, reference: true, designation: true } },
     },
   },
+}
+
+// ─── Helper: create stock movement ───
+async function createStockMovement(
+  tx: any,
+  productId: string,
+  type: 'in' | 'out',
+  quantity: number,
+  origin: string,
+  documentRef: string,
+  notes?: string
+) {
+  // Update product stock
+  await tx.product.update({
+    where: { id: productId },
+    data: {
+      currentStock: type === 'out'
+        ? { decrement: quantity }
+        : { increment: quantity },
+    },
+  })
+  // Create stock movement record
+  await tx.stockMovement.create({
+    data: {
+      productId,
+      type,
+      origin: origin as any,
+      quantity,
+      documentRef,
+      notes: notes || null,
+    },
+  })
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -364,7 +421,7 @@ export async function POST(req: NextRequest) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// PUT - Actions: confirm, deliver, cancel + simple update
+// PUT - Actions: confirm, deliver, cancel, edit_lines + simple update
 // ═══════════════════════════════════════════════════════════
 
 export async function PUT(req: NextRequest) {
@@ -396,6 +453,231 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Bon de livraison introuvable' }, { status: 404 })
     }
 
+    // ═════════════════════════════════════════════════════════
+    // Action: edit_lines — Edit BL lines + header with cascading
+    // ═════════════════════════════════════════════════════════
+    if (action === 'edit_lines') {
+      const data = editLinesSchema.parse(body)
+
+      // Only draft, confirmed, or delivered can be edited
+      if (existing.status === 'cancelled') {
+        return NextResponse.json(
+          { error: 'Impossible de modifier un BL annulé' },
+          { status: 400 }
+        )
+      }
+
+      const isDelivered = existing.status === 'delivered'
+      const blNumber = existing.number
+
+      const result = await db.$transaction(async (tx) => {
+        // Build a map of old lines for delta calculation
+        const oldLinesMap = new Map(existing.lines.map(l => [l.id, l]))
+
+        // Track deltas for SO delivered qty and stock
+        const soLineDeltas = new Map<string, number>() // salesOrderLineId -> delta
+        const stockDeltas = new Map<string, number>() // productId -> delta
+
+        // Process new lines: identify updates, creates, and deletes
+        const existingLineIds = new Set(data.lines.filter(l => l.id).map(l => l.id!))
+        const linesToDelete = existing.lines.filter(l => !existingLineIds.has(l.id))
+
+        let totalHT = 0
+        let totalTVA = 0
+
+        // 1. Update existing lines
+        for (const newLine of data.lines) {
+          if (!newLine.id) continue // will be created below
+
+          const oldLine = oldLinesMap.get(newLine.id)
+          if (!oldLine) continue
+
+          const lineHT = newLine.quantity * newLine.unitPrice
+          const lineTVA = lineHT * (newLine.tvaRate / 100)
+          totalHT += lineHT
+          totalTVA += lineTVA
+
+          await tx.deliveryNoteLine.update({
+            where: { id: newLine.id },
+            data: {
+              quantity: newLine.quantity,
+              unitPrice: newLine.unitPrice,
+              tvaRate: newLine.tvaRate,
+              totalHT: lineHT,
+            },
+          })
+
+          // Calculate delta for cascading
+          const qtyDelta = newLine.quantity - oldLine.quantity
+          if (isDelivered && Math.abs(qtyDelta) > 0.001) {
+            // Track SO line delta
+            if (oldLine.salesOrderLineId) {
+              const prev = soLineDeltas.get(oldLine.salesOrderLineId) || 0
+              soLineDeltas.set(oldLine.salesOrderLineId, prev + qtyDelta)
+            }
+            // Track stock delta
+            const prevStock = stockDeltas.get(oldLine.productId) || 0
+            stockDeltas.set(oldLine.productId, prevStock + qtyDelta)
+          }
+        }
+
+        // 2. Create new lines (no id = new line)
+        for (const newLine of data.lines) {
+          if (newLine.id) continue // already processed above
+
+          const lineHT = newLine.quantity * newLine.unitPrice
+          const lineTVA = lineHT * (newLine.tvaRate / 100)
+          totalHT += lineHT
+          totalTVA += lineTVA
+
+          await tx.deliveryNoteLine.create({
+            data: {
+              deliveryNoteId: id,
+              salesOrderLineId: newLine.salesOrderLineId || null,
+              productId: newLine.productId,
+              quantity: newLine.quantity,
+              unitPrice: newLine.unitPrice,
+              tvaRate: newLine.tvaRate,
+              totalHT: lineHT,
+            },
+          })
+
+          // For delivered BL: new lines need stock out + SO delivered qty increment
+          if (isDelivered) {
+            if (newLine.salesOrderLineId) {
+              const prev = soLineDeltas.get(newLine.salesOrderLineId) || 0
+              soLineDeltas.set(newLine.salesOrderLineId, prev + newLine.quantity)
+            }
+            const prevStock = stockDeltas.get(newLine.productId) || 0
+            stockDeltas.set(newLine.productId, prevStock + newLine.quantity)
+          }
+        }
+
+        // 3. Delete removed lines
+        for (const removedLine of linesToDelete) {
+          await tx.deliveryNoteLine.delete({ where: { id: removedLine.id } })
+
+          // For delivered BL: reverse the delivery for removed lines
+          if (isDelivered) {
+            if (removedLine.salesOrderLineId) {
+              const prev = soLineDeltas.get(removedLine.salesOrderLineId) || 0
+              soLineDeltas.set(removedLine.salesOrderLineId, prev - removedLine.quantity)
+            }
+            const prevStock = stockDeltas.get(removedLine.productId) || 0
+            stockDeltas.set(removedLine.productId, prevStock - removedLine.quantity)
+          }
+        }
+
+        // 4. Apply cascading: SO quantityDelivered deltas
+        if (isDelivered && soLineDeltas.size > 0 && existing.salesOrderId) {
+          for (const [soLineId, delta] of soLineDeltas) {
+            if (Math.abs(delta) < 0.001) continue
+            const soLine = existing.salesOrder?.lines.find(l => l.id === soLineId)
+            if (!soLine) continue
+
+            const newDelivered = Math.max(0, soLine.quantityDelivered + delta)
+            await tx.salesOrderLine.update({
+              where: { id: soLineId },
+              data: { quantityDelivered: newDelivered },
+            })
+          }
+
+          // Update SO status based on delivery progress
+          const updatedSoLines = await tx.salesOrderLine.findMany({
+            where: { orderId: existing.salesOrderId },
+          })
+          const allDelivered = updatedSoLines.every(
+            (l) => l.quantityDelivered >= l.quantity
+          )
+          const anyDelivered = updatedSoLines.some(
+            (l) => l.quantityDelivered > 0
+          )
+
+          if (allDelivered) {
+            await tx.salesOrder.update({
+              where: { id: existing.salesOrderId },
+              data: { status: 'delivered' },
+            })
+          } else if (anyDelivered) {
+            await tx.salesOrder.update({
+              where: { id: existing.salesOrderId },
+              data: { status: 'partially_delivered' },
+            })
+          } else {
+            // All deliveries reversed
+            const remainingNotes = await tx.deliveryNote.findMany({
+              where: {
+                salesOrderId: existing.salesOrderId,
+                status: { notIn: ['cancelled'] },
+                id: { not: id }, // exclude current BL
+              },
+            })
+            const hasOtherBLs = remainingNotes.some(n => n.status === 'delivered')
+            if (!hasOtherBLs) {
+              const allPrepared = updatedSoLines.every((l) => l.quantityPrepared >= l.quantity)
+              await tx.salesOrder.update({
+                where: { id: existing.salesOrderId },
+                data: { status: allPrepared ? 'prepared' : 'in_preparation' },
+              })
+            }
+          }
+        }
+
+        // 5. Apply cascading: Stock deltas
+        if (isDelivered && stockDeltas.size > 0) {
+          for (const [productId, delta] of stockDeltas) {
+            if (Math.abs(delta) < 0.001) continue
+
+            if (delta > 0) {
+              // More delivered → stock goes out
+              await createStockMovement(
+                tx, productId, 'out', delta, 'sale',
+                blNumber,
+                `Ajustement livraison - ${blNumber}`
+              )
+            } else {
+              // Less delivered → stock comes back
+              await createStockMovement(
+                tx, productId, 'in', Math.abs(delta), 'return',
+                blNumber,
+                `Réajustement stock - ${blNumber}`
+              )
+            }
+          }
+        }
+
+        const totalTTC = totalHT + totalTVA
+
+        // 6. Update header fields + totals
+        const { lines: _lines, action: _action, ...headerData } = data
+        const updated = await tx.deliveryNote.update({
+          where: { id },
+          data: {
+            totalHT,
+            totalTVA,
+            totalTTC,
+            ...headerData,
+            // Handle nullable fields
+            chantierId: headerData.chantierId ?? undefined,
+            deliveryAddress: headerData.deliveryAddress ?? undefined,
+            transporteur: headerData.transporteur ?? undefined,
+            vehiclePlate: headerData.vehiclePlate ?? undefined,
+            driverName: headerData.driverName ?? undefined,
+            transportType: headerData.transportType ?? undefined,
+            plannedDate: headerData.plannedDate ? new Date(headerData.plannedDate) : undefined,
+            dueDate: headerData.dueDate ? new Date(headerData.dueDate) : undefined,
+            notes: headerData.notes ?? undefined,
+          },
+          include: deliveryNoteInclude,
+        })
+
+        return updated
+      })
+
+      await auditLog(auth.userId, 'edit_lines', 'DeliveryNote', id, existing, result)
+      return NextResponse.json(result)
+    }
+
     // Action: confirm
     if (action === 'confirm') {
       if (existing.status !== 'draft') {
@@ -415,7 +697,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(deliveryNote)
     }
 
-    // Action: deliver (with quantityDelivered tracking)
+    // Action: deliver (with quantityDelivered tracking + stock movements)
     if (action === 'deliver') {
       if (existing.status !== 'confirmed' && existing.status !== 'draft') {
         return NextResponse.json(
@@ -436,7 +718,7 @@ export async function PUT(req: NextRequest) {
           include: deliveryNoteInclude,
         })
 
-        // Update quantityDelivered on SalesOrderLines
+        // Update quantityDelivered on SalesOrderLines + create stock movements
         if (existing.salesOrderId && existing.lines.length > 0) {
           for (const blLine of existing.lines) {
             if (blLine.salesOrderLineId) {
@@ -449,6 +731,13 @@ export async function PUT(req: NextRequest) {
                 },
               })
             }
+
+            // Create stock movement (stock OUT for sale)
+            await createStockMovement(
+              tx, blLine.productId, 'out', blLine.quantity, 'sale',
+              existing.number,
+              `Livraison ${existing.number}`
+            )
           }
 
           // Re-fetch all SO lines to check delivery status
@@ -472,6 +761,15 @@ export async function PUT(req: NextRequest) {
               where: { id: existing.salesOrderId },
               data: { status: 'partially_delivered' },
             })
+          }
+        } else if (existing.lines.length > 0) {
+          // Standalone BL: just create stock movements
+          for (const blLine of existing.lines) {
+            await createStockMovement(
+              tx, blLine.productId, 'out', blLine.quantity, 'sale',
+              existing.number,
+              `Livraison ${existing.number}`
+            )
           }
         }
 
@@ -525,7 +823,97 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(deliveryNote)
     }
 
+    // Action: undeliver (reverse delivery - set back to confirmed)
+    if (action === 'undeliver') {
+      if (existing.status !== 'delivered') {
+        return NextResponse.json(
+          { error: 'Seul un BL livré peut être remis en confirmation' },
+          { status: 400 }
+        )
+      }
+
+      const deliveryNote = await db.$transaction(async (tx) => {
+        const undelivered = await tx.deliveryNote.update({
+          where: { id },
+          data: { status: 'confirmed', deliveryDate: null },
+          include: deliveryNoteInclude,
+        })
+
+        // Reverse SO quantityDelivered
+        if (existing.salesOrderId && existing.lines.length > 0) {
+          for (const blLine of existing.lines) {
+            if (blLine.salesOrderLineId) {
+              const soLine = existing.salesOrder?.lines.find(l => l.id === blLine.salesOrderLineId)
+              if (soLine) {
+                const newDelivered = Math.max(0, soLine.quantityDelivered - blLine.quantity)
+                await tx.salesOrderLine.update({
+                  where: { id: blLine.salesOrderLineId },
+                  data: { quantityDelivered: newDelivered },
+                })
+              }
+            }
+          }
+
+          // Update SO status
+          const updatedSoLines = await tx.salesOrderLine.findMany({
+            where: { orderId: existing.salesOrderId },
+          })
+          const allDelivered = updatedSoLines.every(l => l.quantityDelivered >= l.quantity)
+          const anyDelivered = updatedSoLines.some(l => l.quantityDelivered > 0)
+
+          // Check if other delivered BLs exist
+          const otherDeliveredBLs = await tx.deliveryNote.count({
+            where: {
+              salesOrderId: existing.salesOrderId,
+              status: 'delivered',
+              id: { not: id },
+            },
+          })
+
+          if (allDelivered && otherDeliveredBLs > 0) {
+            await tx.salesOrder.update({
+              where: { id: existing.salesOrderId },
+              data: { status: 'delivered' },
+            })
+          } else if (anyDelivered || otherDeliveredBLs > 0) {
+            await tx.salesOrder.update({
+              where: { id: existing.salesOrderId },
+              data: { status: 'partially_delivered' },
+            })
+          } else {
+            const allPrepared = updatedSoLines.every(l => l.quantityPrepared >= l.quantity)
+            await tx.salesOrder.update({
+              where: { id: existing.salesOrderId },
+              data: { status: allPrepared ? 'prepared' : 'in_preparation' },
+            })
+          }
+        }
+
+        // Reverse stock movements
+        for (const blLine of existing.lines) {
+          await createStockMovement(
+            tx, blLine.productId, 'in', blLine.quantity, 'return',
+            existing.number,
+            `Annulation livraison ${existing.number}`
+          )
+        }
+
+        return undelivered
+      })
+
+      await auditLog(auth.userId, 'undeliver', 'DeliveryNote', id, existing, deliveryNote)
+      return NextResponse.json(deliveryNote)
+    }
+
     // Simple update (notes, transporteur, vehiclePlate, plannedDate)
+    // Allow for draft, confirmed, and delivered status
+    if (existing.status === 'cancelled') {
+      return NextResponse.json(
+        { error: 'Impossible de modifier un BL annulé' },
+        { status: 400 }
+      )
+    }
+
     const deliveryNote = await db.deliveryNote.update({
       where: { id },
       data: updateData,
