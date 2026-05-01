@@ -2095,3 +2095,50 @@ Stage Summary:
 - BL printing shows chantier address when linked
 - Soft-delete pattern: deactivated chantiers remain in history but hidden from selection
 - ESLint passes cleanly
+---
+Task ID: 1
+Agent: main
+Task: Implement edit mode for all sales documents with cascading stock/SO updates
+
+Work Log:
+- Analyzed Prisma schema to understand all sales document models (DeliveryNote, SalesOrder, Invoice, CreditNote, CustomerReturn)
+- Analyzed all API routes and view files for current edit capabilities
+- Discovered that Sales Orders, Invoices, Credit Notes, and Customer Returns already have full edit functionality
+- Identified BL (Delivery Note) as the main gap: only header editing, no line editing
+- Identified that stock movements are NOT created when BL is delivered (major gap)
+
+BL API Changes (/api/delivery-notes/route.ts):
+- Added `edit_lines` action: Edit BL lines (quantities, prices, add/remove) with cascading
+- Added stock movement creation on BL delivery (stock OUT for sale)
+- Added `undeliver` action: reverse delivery (stock back + SO qty adjustment)
+- Modified deliver action to create stock movements for all BL lines
+- Extended simple update to work for draft, confirmed, AND delivered status
+
+BL UI Changes (delivery-notes-view.tsx):
+- Added EditLine interface for edit dialog lines
+- Added editLines state and editProducts state
+- Added edit line management functions (addEditLine, removeEditLine, updateEditLine, getEditTotals)
+- Modified openEditDialog to allow confirmed and delivered BLs (not just draft)
+- Modified handleEdit to detect line changes and use edit_lines action when needed
+- Added line editing table in edit dialog with ProductCombobox for new lines
+- Added live totals display in edit dialog
+- Added warning message when editing delivered BLs
+- Added "Modifier" action for confirmed and delivered status
+- Added "Dé-livrer" action for delivered BLs
+- Added handleUndeliver function
+
+Cascading Logic:
+- When BL lines are edited and BL is delivered:
+  - Calculate delta per line (newQty - oldQty)
+  - Update SalesOrderLine.quantityDelivered by delta
+  - Update SO status based on new delivery progress
+  - Create stock movements (out for increase, in for decrease)
+- When BL is delivered: stock OUT for each line
+- When BL is undelivered: stock IN for each line + reverse SO qty
+
+Stage Summary:
+- BL is now fully editable in all non-cancelled statuses (draft, confirmed, delivered)
+- Stock movements are properly tracked on delivery, edit, and undeliver
+- SO delivered quantities are kept in sync with BL changes
+- All other sales documents (Sales Orders, Invoices, Credit Notes, Customer Returns) already had full edit capability
+- Code committed and pushed to main
