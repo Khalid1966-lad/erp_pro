@@ -1,4 +1,34 @@
 ---
+Task ID: 8
+Agent: main
+Task: Fix backup creation button not working
+
+Work Log:
+- Analyzed backup-section.tsx: handleCreate used api.post('/backup') which could hang silently
+- Analyzed backup/route.ts: POST handler lacked step-by-step error reporting
+- Analyzed backup.ts: exportDatabase had no per-table error handling
+- Fixed backup-section.tsx:
+  - Replaced api.post with direct fetch + AbortController (3min timeout)
+  - Added full-screen overlay during backup creation for clear visual feedback
+  - Added step messages: "Connexion au serveur...", "Exportation des données...", "Sauvegarde créée !"
+  - Added cancel button during creation
+  - Added console.error for client-side debugging
+  - Updated fetchBackups to use direct fetch for consistency
+- Fixed backup/route.ts:
+  - Added step-by-step console logging (export start/end, compression, save)
+  - Added separate try/catch for export, compression, save steps
+  - Returns specific error messages per step instead of generic error
+- Fixed backup.ts:
+  - Added per-table try/catch in exportDatabase - failed tables get empty array instead of crashing entire backup
+
+Stage Summary:
+- Backup creation now shows a visible full-screen overlay with progress messages
+- 3-minute client-side timeout prevents hanging forever
+- Server-side logs each step (export, compress, save) for debugging
+- Per-table export failures are handled gracefully (backup continues with empty table data)
+- Commit e5242cb pushed to GitHub main branch
+
+---
 Task ID: 7
 Agent: main
 Task: Add driver, transport type, due date, and responsible user fields to BL (delivery notes)
