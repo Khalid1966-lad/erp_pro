@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, CheckCircle2, XCircle, Printer, Clock, AlertCircle, ShieldCheck, Ban } from 'lucide-react'
+import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, CheckCircle2, XCircle, Printer, Clock, AlertCircle, ShieldCheck, Ban, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -120,6 +120,38 @@ const qualityConfig: Record<string, { label: string; className: string; Icon: ty
   non_conforme: { label: 'Non conforme', className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300', Icon: XCircle },
   partiel: { label: 'Partiel', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300', Icon: AlertCircle },
 }
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    draft: { icon: <FileText className="h-4 w-4" />, color: 'text-slate-400' },
+    validated: { icon: <ShieldCheck className="h-4 w-4" />, color: 'text-blue-500' },
+    restocked: { icon: <CheckCircle2 className="h-4 w-4" />, color: 'text-green-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
+}
+
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const customerReturnLegendItems = [
+  { icon: <FileText className="h-3.5 w-3.5" />, label: 'Brouillon', color: 'text-slate-400' },
+  { icon: <ShieldCheck className="h-3.5 w-3.5" />, label: 'Validé', color: 'text-blue-500' },
+  { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Remis en stock', color: 'text-green-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulé', color: 'text-red-500' },
+]
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = statusConfig[status] || statusConfig.draft
@@ -765,6 +797,7 @@ export default function CustomerReturnsView() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
+                <IconLegend items={customerReturnLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>
@@ -778,7 +811,12 @@ export default function CustomerReturnsView() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id} className={cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} onDoubleClick={() => openEdit(item)}>
-                      <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
+                      <TableCell className="font-medium font-mono text-sm">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(item.status)}
+                          <span>{item.number}</span>
+                        </div>
+                      </TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{clientDisplayName(item.client)}</TableCell>
                       <TableCell className="hidden lg:table-cell">{fmtDate(item.returnDate)}</TableCell>

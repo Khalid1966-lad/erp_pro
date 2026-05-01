@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer, ShoppingCart, XCircle } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer, ShoppingCart, XCircle, CheckCircle2, FileText, Truck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
@@ -106,6 +106,40 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   received: { label: 'Reçue', variant: 'default', className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
   cancelled: { label: 'Annulée', variant: 'destructive', className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' }
 }
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    draft: { icon: <FileText className="h-4 w-4" />, color: 'text-gray-400' },
+    sent: { icon: <Send className="h-4 w-4" />, color: 'text-blue-500' },
+    partially_received: { icon: <Truck className="h-4 w-4" />, color: 'text-yellow-500' },
+    received: { icon: <CheckCircle2 className="h-4 w-4" />, color: 'text-green-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
+}
+
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const purchaseOrderLegendItems = [
+  { icon: <FileText className="h-3.5 w-3.5" />, label: 'Brouillon', color: 'text-gray-400' },
+  { icon: <Send className="h-3.5 w-3.5" />, label: 'Envoyée', color: 'text-blue-500' },
+  { icon: <Truck className="h-3.5 w-3.5" />, label: 'Partiellement reçue', color: 'text-yellow-500' },
+  { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Reçue', color: 'text-green-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulée', color: 'text-red-500' },
+]
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = statusConfig[status] || statusConfig.draft
@@ -579,6 +613,7 @@ export default function PurchaseOrdersView() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
+                <IconLegend items={purchaseOrderLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>
@@ -592,7 +627,12 @@ export default function PurchaseOrdersView() {
                 <TableBody>
                   {filtered.map((o) => (
                     <TableRow key={o.id} className={cn("cursor-pointer", expandedId === o.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)} onDoubleClick={() => openEdit(o)}>
-                      <TableCell className="font-medium font-mono text-sm">{o.number}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(o.status)}
+                          <span className="font-medium font-mono text-sm">{o.number}</span>
+                        </div>
+                      </TableCell>
                       <TableCell><StatusBadge status={o.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{o.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{fmtDate(o.expectedDate)}</TableCell>

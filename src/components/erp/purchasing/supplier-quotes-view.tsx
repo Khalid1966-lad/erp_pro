@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, FileText, CheckCircle2, XCircle, Pencil, Printer } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, FileText, CheckCircle2, XCircle, Pencil, Printer, Clock, PackageCheck } from 'lucide-react'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
@@ -112,6 +112,38 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   rejected: { label: 'Rejeté', className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' },
   expired: { label: 'Expiré', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' }
 }
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    received: { icon: <PackageCheck className="h-4 w-4" />, color: 'text-blue-500' },
+    accepted: { icon: <CheckCircle2 className="h-4 w-4" />, color: 'text-green-500' },
+    rejected: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+    expired: { icon: <Clock className="h-4 w-4" />, color: 'text-orange-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
+}
+
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const supplierQuoteLegendItems = [
+  { icon: <PackageCheck className="h-3.5 w-3.5" />, label: 'Reçu', color: 'text-blue-500' },
+  { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Accepté', color: 'text-green-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Rejeté', color: 'text-red-500' },
+  { icon: <Clock className="h-3.5 w-3.5" />, label: 'Expiré', color: 'text-orange-500' },
+]
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = statusConfig[status] || statusConfig.received
@@ -659,6 +691,7 @@ export default function SupplierQuotesView() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
+                <IconLegend items={supplierQuoteLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>
@@ -672,7 +705,12 @@ export default function SupplierQuotesView() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id} className={cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} onDoubleClick={() => openEdit(item)}>
-                      <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(item.status)}
+                          <span className="font-medium font-mono text-sm">{item.number}</span>
+                        </div>
+                      </TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{fmtDate(item.validUntil)}</TableCell>

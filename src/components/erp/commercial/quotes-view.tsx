@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/popover'
 import {
   FileText, Plus, Search, MoreVertical, Eye, Send, CheckCircle, XCircle, ArrowRight,
-  Trash2, Edit, Printer, Check, ChevronsUpDown, Loader2, Pencil
+  Trash2, Edit, Printer, Check, ChevronsUpDown, Loader2, Pencil, Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -104,6 +104,40 @@ const statusColors: Record<string, string> = {
   rejected: 'bg-red-100 text-red-800',
   expired: 'bg-orange-100 text-orange-800'
 }
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    draft: { icon: <FileText className="h-4 w-4" />, color: 'text-slate-400' },
+    sent: { icon: <Send className="h-4 w-4" />, color: 'text-blue-500' },
+    accepted: { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-500' },
+    rejected: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+    expired: { icon: <Clock className="h-4 w-4" />, color: 'text-orange-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
+}
+
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const quoteLegendItems = [
+  { icon: <FileText className="h-3.5 w-3.5" />, label: 'Brouillon', color: 'text-slate-400' },
+  { icon: <Send className="h-3.5 w-3.5" />, label: 'Envoyé', color: 'text-blue-500' },
+  { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Accepté', color: 'text-green-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Rejeté', color: 'text-red-500' },
+  { icon: <Clock className="h-3.5 w-3.5" />, label: 'Expiré', color: 'text-orange-500' },
+]
 
 const emptyLine = (): QuoteLine => ({
   productId: '',
@@ -489,6 +523,7 @@ export default function QuotesView() {
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
             <Table>
+              <IconLegend items={quoteLegendItems} />
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
@@ -511,7 +546,12 @@ export default function QuotesView() {
                 ) : (
                   filteredQuotes.map((quote) => (
                     <TableRow key={quote.id} className={cn("cursor-pointer", expandedQuoteId === quote.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedQuoteId(expandedQuoteId === quote.id ? null : quote.id)} onDoubleClick={() => openEdit(quote)}>
-                      <TableCell className="font-mono font-medium">{quote.number}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(quote.status)}
+                          <span className="font-mono font-medium">{quote.number}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>{quote.client.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
                         {format(new Date(quote.date), 'dd/MM/yyyy', { locale: fr })}

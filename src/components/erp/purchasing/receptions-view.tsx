@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -122,6 +122,25 @@ const qualityConfig: Record<string, { label: string; icon: React.ReactNode; clas
     className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
   }
 }
+
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const receptionLegendItems = [
+  { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Conforme', color: 'text-green-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Non conforme', color: 'text-red-500' },
+  { icon: <AlertCircle className="h-3.5 w-3.5" />, label: 'Partiel', color: 'text-yellow-500' },
+]
 
 function QualityBadge({ quality }: { quality: string }) {
   const cfg = qualityConfig[quality] || qualityConfig.conforme
@@ -483,6 +502,7 @@ export default function ReceptionsView() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
+                <IconLegend items={receptionLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>

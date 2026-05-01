@@ -14,7 +14,7 @@ import {
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
   FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database,
-  Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Hammer, Globe, Hash, Zap, type LucideIcon
+  Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Hammer, Globe, Hash, Zap, Send, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -57,6 +57,7 @@ const sections: Section[] = [
     { id: 'commandes', label: 'Commandes' },
     { id: 'preparations', label: 'Préparations' },
     { id: 'bons-livraison', label: 'Bons de livraison' },
+    { id: 'icones-statut', label: 'Légende des icônes' },
     { id: 'factures-tva', label: 'Factures & TVA' },
     { id: 'avoirs', label: 'Avoirs' },
   ]},
@@ -69,6 +70,7 @@ const sections: Section[] = [
     { id: 'bons-retour', label: 'Bons de retour' },
     { id: 'avoirs-fournisseurs', label: 'Avoirs fournisseurs' },
     { id: 'factures-fournisseurs', label: 'Factures fournisseurs' },
+    { id: 'icones-statut', label: 'Légende des icônes' },
   ]},
   { id: 'stock', label: 'Stock', icon: Warehouse, children: [
     { id: 'mouvements', label: 'Mouvements' },
@@ -96,6 +98,7 @@ const sections: Section[] = [
   { id: 'impression', label: 'Impression', icon: Printer, children: [
     { id: 'docs-imprimables', label: 'Documents imprimables' },
     { id: 'entete-pied', label: 'En-tête & Pied de page' },
+    { id: 'notes-visa', label: 'Notes & Visa' },
   ]},
   { id: 'communication', label: 'Communication', icon: MessageSquare, children: [
     { id: 'messagerie', label: 'Messagerie interne' },
@@ -665,6 +668,55 @@ function VentesSection() {
         Le bon de livraison (BL) est édité après la préparation complète. Il atteste la remise de la marchandise
         au client et constitue le document de référence pour la facturation.
       </Paragraph>
+      <TipBox type="tip">
+        <strong>Mode édition :</strong> Les BL peuvent être modifiés après création. Cliquez sur l'icône crayon dans les actions
+        pour ouvrir le mode édition. Vous pouvez modifier l'adresse de livraison, les quantités, les prix unitaires
+        et les taux de TVA. Si le BL est lié à une commande, les quantités livrées dans la commande et le stock
+        sont automatiquement mis à jour.
+      </TipBox>
+
+      {/* Icônes de statut — Ventes */}
+      <SubTitle id="ventes-icones-statut">Légende des icônes de statut</SubTitle>
+      <Paragraph>
+        Dans toutes les listes du module Ventes, des <strong>icônes colorées</strong> s'affichent à côté du numéro
+        de document pour identifier rapidement son statut. Une légende est toujours visible en haut du tableau.
+      </Paragraph>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Module</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Icône</TableHead>
+                <TableHead>Couleur</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {/* Commandes */}
+              <TableRow><TableCell rowSpan={7} className="font-medium">Commandes</TableCell><TableCell>En attente</TableCell><TableCell><Clock className="h-4 w-4 text-yellow-500" /></TableCell><TableCell><span className="text-yellow-500 text-xs">Jaune</span></TableCell></TableRow>
+              <TableRow><TableCell>Confirmé</TableCell><TableCell><ClipboardList className="h-4 w-4 text-blue-500" /></TableCell><TableCell><span className="text-blue-500 text-xs">Bleu</span></TableCell></TableRow>
+              <TableRow><TableCell>En préparation</TableCell><TableCell><Package className="h-4 w-4 text-orange-500" /></TableCell><TableCell><span className="text-orange-500 text-xs">Orange</span></TableCell></TableRow>
+              <TableRow><TableCell>Préparé</TableCell><TableCell><FileCheck className="h-4 w-4 text-teal-500" /></TableCell><TableCell><span className="text-teal-500 text-xs">Teal</span></TableCell></TableRow>
+              <TableRow><TableCell>Partiellement livré</TableCell><TableCell><Truck className="h-4 w-4 text-indigo-500" /></TableCell><TableCell><span className="text-indigo-500 text-xs">Indigo</span></TableCell></TableRow>
+              <TableRow><TableCell>Livré</TableCell><TableCell><CheckCircle className="h-4 w-4 text-green-500" /></TableCell><TableCell><span className="text-green-500 text-xs">Vert</span></TableCell></TableRow>
+              <TableRow><TableCell>Annulé</TableCell><TableCell><XCircle className="h-4 w-4 text-red-500" /></TableCell><TableCell><span className="text-red-500 text-xs">Rouge</span></TableCell></TableRow>
+              {/* BL */}
+              <TableRow><TableCell rowSpan={4} className="font-medium">Bons de livraison</TableCell><TableCell>Brouillon</TableCell><TableCell><FileText className="h-4 w-4 text-yellow-500" /></TableCell><TableCell><span className="text-yellow-500 text-xs">Jaune</span></TableCell></TableRow>
+              <TableRow><TableCell>Confirmé</TableCell><TableCell><Truck className="h-4 w-4 text-blue-500" /></TableCell><TableCell><span className="text-blue-500 text-xs">Bleu</span></TableCell></TableRow>
+              <TableRow><TableCell>Livré</TableCell><TableCell><CheckCircle className="h-4 w-4 text-green-500" /></TableCell><TableCell><span className="text-green-500 text-xs">Vert</span></TableCell></TableRow>
+              <TableRow><TableCell>Annulé</TableCell><TableCell><XCircle className="h-4 w-4 text-red-500" /></TableCell><TableCell><span className="text-red-500 text-xs">Rouge</span></TableCell></TableRow>
+              {/* Factures */}
+              <TableRow><TableCell rowSpan={6} className="font-medium">Factures</TableCell><TableCell>Brouillon</TableCell><TableCell><FileText className="h-4 w-4 text-slate-400" /></TableCell><TableCell><span className="text-slate-400 text-xs">Gris</span></TableCell></TableRow>
+              <TableRow><TableCell>Validée</TableCell><TableCell><Shield className="h-4 w-4 text-emerald-500" /></TableCell><TableCell><span className="text-emerald-500 text-xs">Émeraude</span></TableCell></TableRow>
+              <TableRow><TableCell>Envoyée</TableCell><TableCell><Send className="h-4 w-4 text-blue-500" /></TableCell><TableCell><span className="text-blue-500 text-xs">Bleu</span></TableCell></TableRow>
+              <TableRow><TableCell>Payée</TableCell><TableCell><CheckCircle className="h-4 w-4 text-green-500" /></TableCell><TableCell><span className="text-green-500 text-xs">Vert</span></TableCell></TableRow>
+              <TableRow><TableCell>En retard</TableCell><TableCell><AlertCircle className="h-4 w-4 text-red-500" /></TableCell><TableCell><span className="text-red-500 text-xs">Rouge</span></TableCell></TableRow>
+              <TableRow><TableCell>Annulée</TableCell><TableCell><XCircle className="h-4 w-4 text-red-500" /></TableCell><TableCell><span className="text-red-500 text-xs">Rouge</span></TableCell></TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Factures */}
       <SubTitle id="ventes-factures-tva">Factures</SubTitle>
@@ -859,6 +911,47 @@ function AchatsSection() {
       <TipBox type="warning">
         Vérifiez toujours que le montant de la facture fournisseur correspond aux réceptions validées et aux avoirs appliqués avant de l'enregistrer.
       </TipBox>
+
+      {/* Icônes de statut — Achats */}
+      <SubTitle id="achats-icones-statut">Légende des icônes de statut</SubTitle>
+      <Paragraph>
+        Dans toutes les listes du module Achats, des <strong>icônes colorées</strong> s'affichent à côté du numéro
+        de document pour identifier rapidement son statut. Une légende est toujours visible en haut du tableau.
+      </Paragraph>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Module</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Icône</TableHead>
+                <TableHead>Couleur</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {/* Devis fournisseurs */}
+              <TableRow><TableCell rowSpan={4} className="font-medium">Devis fournisseurs</TableCell><TableCell>Reçu</TableCell><TableCell><PackageCheck className="h-4 w-4 text-blue-500" /></TableCell><TableCell><span className="text-blue-500 text-xs">Bleu</span></TableCell></TableRow>
+              <TableRow><TableCell>Accepté</TableCell><TableCell><CheckCircle className="h-4 w-4 text-green-500" /></TableCell><TableCell><span className="text-green-500 text-xs">Vert</span></TableCell></TableRow>
+              <TableRow><TableCell>Rejeté</TableCell><TableCell><XCircle className="h-4 w-4 text-red-500" /></TableCell><TableCell><span className="text-red-500 text-xs">Rouge</span></TableCell></TableRow>
+              <TableRow><TableCell>Expiré</TableCell><TableCell><Clock className="h-4 w-4 text-orange-500" /></TableCell><TableCell><span className="text-orange-500 text-xs">Orange</span></TableCell></TableRow>
+              {/* Commandes fournisseurs */}
+              <TableRow><TableCell rowSpan={5} className="font-medium">Commandes fournisseurs</TableCell><TableCell>Brouillon</TableCell><TableCell><FileText className="h-4 w-4 text-gray-400" /></TableCell><TableCell><span className="text-gray-400 text-xs">Gris</span></TableCell></TableRow>
+              <TableRow><TableCell>Envoyée</TableCell><TableCell><Send className="h-4 w-4 text-blue-500" /></TableCell><TableCell><span className="text-blue-500 text-xs">Bleu</span></TableCell></TableRow>
+              <TableRow><TableCell>Partiellement reçue</TableCell><TableCell><Truck className="h-4 w-4 text-yellow-500" /></TableCell><TableCell><span className="text-yellow-500 text-xs">Jaune</span></TableCell></TableRow>
+              <TableRow><TableCell>Reçue</TableCell><TableCell><CheckCircle className="h-4 w-4 text-green-500" /></TableCell><TableCell><span className="text-green-500 text-xs">Vert</span></TableCell></TableRow>
+              <TableRow><TableCell>Annulée</TableCell><TableCell><XCircle className="h-4 w-4 text-red-500" /></TableCell><TableCell><span className="text-red-500 text-xs">Rouge</span></TableCell></TableRow>
+              {/* Factures fournisseurs */}
+              <TableRow><TableCell rowSpan={6} className="font-medium">Factures fournisseurs</TableCell><TableCell>Reçue</TableCell><TableCell><Receipt className="h-4 w-4 text-blue-500" /></TableCell><TableCell><span className="text-blue-500 text-xs">Bleu</span></TableCell></TableRow>
+              <TableRow><TableCell>Vérifiée</TableCell><TableCell><Shield className="h-4 w-4 text-purple-500" /></TableCell><TableCell><span className="text-purple-500 text-xs">Violet</span></TableCell></TableRow>
+              <TableRow><TableCell>Payée</TableCell><TableCell><CheckCircle className="h-4 w-4 text-green-500" /></TableCell><TableCell><span className="text-green-500 text-xs">Vert</span></TableCell></TableRow>
+              <TableRow><TableCell>Partiellement payée</TableCell><TableCell><AlertCircle className="h-4 w-4 text-yellow-500" /></TableCell><TableCell><span className="text-yellow-500 text-xs">Jaune</span></TableCell></TableRow>
+              <TableRow><TableCell>En retard</TableCell><TableCell><Clock className="h-4 w-4 text-red-500" /></TableCell><TableCell><span className="text-red-500 text-xs">Rouge</span></TableCell></TableRow>
+              <TableRow><TableCell>Annulée</TableCell><TableCell><XCircle className="h-4 w-4 text-gray-400" /></TableCell><TableCell><span className="text-gray-400 text-xs">Gris</span></TableCell></TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -1839,6 +1932,21 @@ function ImpressionSection() {
       <TipBox type="info">
         Le pied de page des documents imprimés est configurable dans <strong>Administration → Paramètres</strong>. Vous pouvez y ajouter jusqu'à 4 lignes de texte personnalisé.
       </TipBox>
+
+      <SubTitle id="impression-notes-visa">Encadrés Notes &amp; Visa</SubTitle>
+      <Paragraph>
+        Tous les documents clients (devis, commandes, BL, factures, avoirs, retours) et fournisseurs incluent
+        automatiquement dans les impressions un <strong>encadré Notes</strong> et deux encadrés de <strong>Visa</strong>
+        (Visa Client / Visa Administration pour les ventes, Visa Fournisseur / Visa Administration pour les achats).
+        Ces encadrés sont imprimés en pied de page, juste avant la signature.
+      </Paragraph>
+
+      <SubTitle id="impression-bl-details">Informations BL</SubTitle>
+      <Paragraph>
+        Les bons de livraison imprimés affichent en plus : le numéro du BL, la date, la date d'échéance,
+        le nom du chauffeur, l'immatriculation du véhicule, le type de transport (Rendu/Départ),
+        le transporteur et le responsable ayant créé le BL.
+      </Paragraph>
     </div>
   )
 }

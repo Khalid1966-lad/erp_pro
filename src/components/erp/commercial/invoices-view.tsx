@@ -144,6 +144,28 @@ function getStatusIcon(status: string) {
   return <span className={c.color}>{c.icon}</span>
 }
 
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const invoiceLegendItems = [
+  { icon: <FileText className="h-3.5 w-3.5" />, label: 'Brouillon', color: 'text-slate-400' },
+  { icon: <ShieldCheck className="h-3.5 w-3.5" />, label: 'Validée', color: 'text-emerald-500' },
+  { icon: <Send className="h-3.5 w-3.5" />, label: 'Envoyée', color: 'text-blue-500' },
+  { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Payée', color: 'text-green-500' },
+  { icon: <AlertCircle className="h-3.5 w-3.5" />, label: 'En retard', color: 'text-red-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulée', color: 'text-red-500' },
+]
+
 const emptyLine = (): InvoiceLine => ({
   productId: '',
   quantity: 1,
@@ -599,6 +621,7 @@ export default function InvoicesView() {
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
             <Table>
+              <IconLegend items={invoiceLegendItems} />
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>

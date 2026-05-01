@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, Send, XCircle, CheckCircle2, Printer } from 'lucide-react'
+import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, Send, XCircle, CheckCircle2, Printer, FileText, PackageCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -85,6 +85,40 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   credited: { label: 'Avoir émis', className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
   cancelled: { label: 'Annulé', className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' }
 }
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    draft: { icon: <FileText className="h-4 w-4" />, color: 'text-gray-400' },
+    sent: { icon: <Send className="h-4 w-4" />, color: 'text-blue-500' },
+    received_by_supplier: { icon: <PackageCheck className="h-4 w-4" />, color: 'text-purple-500' },
+    credited: { icon: <CheckCircle2 className="h-4 w-4" />, color: 'text-green-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
+}
+
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const supplierReturnLegendItems = [
+  { icon: <FileText className="h-3.5 w-3.5" />, label: 'Brouillon', color: 'text-gray-400' },
+  { icon: <Send className="h-3.5 w-3.5" />, label: 'Envoyé', color: 'text-blue-500' },
+  { icon: <PackageCheck className="h-3.5 w-3.5" />, label: 'Reçu par fournisseur', color: 'text-purple-500' },
+  { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Avoir émis', color: 'text-green-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulé', color: 'text-red-500' },
+]
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = statusConfig[status] || statusConfig.draft
@@ -641,6 +675,7 @@ export default function SupplierReturnsView() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
+                <IconLegend items={supplierReturnLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>
@@ -654,7 +689,12 @@ export default function SupplierReturnsView() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id} className={cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} onDoubleClick={() => openEdit(item)}>
-                      <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(item.status)}
+                          <span className="font-medium font-mono text-sm">{item.number}</span>
+                        </div>
+                      </TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell">{item.supplier?.name || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell font-mono text-sm">{item.purchaseOrder?.number || '—'}</TableCell>

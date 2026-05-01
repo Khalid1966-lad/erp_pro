@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, Send, FileQuestion, XCircle, Pencil, Printer } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, Send, FileQuestion, XCircle, Pencil, Printer, CheckCircle2, FileText, Clock, MessageSquare } from 'lucide-react'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -111,6 +111,42 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   closed: { label: 'Fermée', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
   cancelled: { label: 'Annulée', className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' }
 }
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    draft: { icon: <FileText className="h-4 w-4" />, color: 'text-gray-400' },
+    sent: { icon: <Send className="h-4 w-4" />, color: 'text-blue-500' },
+    answered: { icon: <CheckCircle2 className="h-4 w-4" />, color: 'text-green-500' },
+    partially_answered: { icon: <MessageSquare className="h-4 w-4" />, color: 'text-yellow-500' },
+    closed: { icon: <Clock className="h-4 w-4" />, color: 'text-slate-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
+}
+
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const priceRequestLegendItems = [
+  { icon: <FileText className="h-3.5 w-3.5" />, label: 'Brouillon', color: 'text-gray-400' },
+  { icon: <Send className="h-3.5 w-3.5" />, label: 'Envoyée', color: 'text-blue-500' },
+  { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Répondue', color: 'text-green-500' },
+  { icon: <MessageSquare className="h-3.5 w-3.5" />, label: 'Partiellement répondue', color: 'text-yellow-500' },
+  { icon: <Clock className="h-3.5 w-3.5" />, label: 'Fermée', color: 'text-slate-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulée', color: 'text-red-500' },
+]
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = statusConfig[status] || statusConfig.draft
@@ -560,6 +596,7 @@ export default function PriceRequestsView() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
+                <IconLegend items={priceRequestLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>
@@ -574,7 +611,12 @@ export default function PriceRequestsView() {
                 <TableBody>
                   {filtered.map((item) => (
                     <TableRow key={item.id} className={cn("cursor-pointer", expandedId === item.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} onDoubleClick={() => openEdit(item)}>
-                      <TableCell className="font-medium font-mono text-sm">{item.number}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(item.status)}
+                          <span className="font-medium font-mono text-sm">{item.number}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="max-w-48 truncate">{item.title}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{fmtDate(item.validUntil)}</TableCell>

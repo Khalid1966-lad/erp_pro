@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -26,7 +26,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  RotateCcw, Plus, Search, MoreVertical, Eye, Trash2, CheckCircle, XCircle, ShieldCheck, Pencil, Printer
+  RotateCcw, Plus, Search, MoreVertical, Eye, Trash2, CheckCircle, XCircle, ShieldCheck, Pencil, Printer, FileText
 } from 'lucide-react'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -87,6 +87,38 @@ const statusColors: Record<string, string> = {
   applied: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800'
 }
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    draft: { icon: <FileText className="h-4 w-4" />, color: 'text-slate-400' },
+    validated: { icon: <ShieldCheck className="h-4 w-4" />, color: 'text-emerald-500' },
+    applied: { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
+}
+
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const creditNoteLegendItems = [
+  { icon: <FileText className="h-3.5 w-3.5" />, label: 'Brouillon', color: 'text-slate-400' },
+  { icon: <ShieldCheck className="h-3.5 w-3.5" />, label: 'Validé', color: 'text-emerald-500' },
+  { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Appliqué', color: 'text-green-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulé', color: 'text-red-500' },
+]
 
 const emptyLine = (): CreditNoteLine => ({
   productId: '',
@@ -399,6 +431,7 @@ export default function CreditNotesView() {
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
             <Table>
+              <IconLegend items={creditNoteLegendItems} />
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
@@ -421,7 +454,12 @@ export default function CreditNotesView() {
                 ) : (
                   creditNotes.map((creditNote) => (
                     <TableRow key={creditNote.id} className={cn("cursor-pointer", expandedCNId === creditNote.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedCNId(expandedCNId === creditNote.id ? null : creditNote.id)} onDoubleClick={() => openEdit(creditNote)}>
-                      <TableCell className="font-mono font-medium">{creditNote.number}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(creditNote.status)}
+                          <span className="font-mono font-medium">{creditNote.number}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-mono text-sm text-muted-foreground">{creditNote.invoice.number}</TableCell>
                       <TableCell>{creditNote.client.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">

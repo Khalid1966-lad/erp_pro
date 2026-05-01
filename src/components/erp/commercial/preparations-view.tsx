@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   ClipboardList, MoreVertical, Play, CheckCircle, XCircle, Eye, Trash2, Package,
-  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search, Printer, Truck
+  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search, Printer, Truck, Clock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -171,6 +171,38 @@ const productNatureColors: Record<string, string> = {
   semi_fini: 'bg-purple-100 text-purple-800',
   produit_fini: 'bg-emerald-100 text-emerald-800',
 }
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    pending: { icon: <Clock className="h-4 w-4" />, color: 'text-yellow-500' },
+    in_progress: { icon: <Play className="h-4 w-4" />, color: 'text-blue-500' },
+    completed: { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
+}
+
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const preparationLegendItems = [
+  { icon: <Clock className="h-3.5 w-3.5" />, label: 'En attente', color: 'text-yellow-500' },
+  { icon: <Play className="h-3.5 w-3.5" />, label: 'En cours', color: 'text-blue-500' },
+  { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Terminée', color: 'text-green-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulée', color: 'text-red-500' },
+]
 
 // ═══════════════════════════════════════════════════════
 // Progress Badge Component
@@ -525,6 +557,7 @@ export default function PreparationsView() {
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
             <Table>
+              <IconLegend items={preparationLegendItems} />
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
@@ -552,7 +585,12 @@ export default function PreparationsView() {
                       className={cn("cursor-pointer", expandedPrepId === prep.id && "bg-primary/5 border-l-2 border-l-primary")}
                       onClick={() => setExpandedPrepId(expandedPrepId === prep.id ? null : prep.id)}
                     >
-                      <TableCell className="font-mono font-medium">{prep.number}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(prep.status)}
+                          <span className="font-mono font-medium">{prep.number}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-mono text-sm">{prep.salesOrder.number}</TableCell>
                       <TableCell>{prep.salesOrder.client.name}</TableCell>
                       <TableCell>

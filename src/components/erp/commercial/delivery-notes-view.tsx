@@ -259,6 +259,26 @@ function getStatusIcon(status: string) {
   return <span className={c.color}>{c.icon}</span>
 }
 
+function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-3 px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className={item.color}>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const deliveryNoteLegendItems = [
+  { icon: <FileText className="h-3.5 w-3.5" />, label: 'Brouillon', color: 'text-yellow-500' },
+  { icon: <Truck className="h-3.5 w-3.5" />, label: 'Confirmé', color: 'text-blue-500' },
+  { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Livré', color: 'text-green-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulé', color: 'text-red-500' },
+]
+
 // ─── Main Component ───
 
 export default function DeliveryNotesView() {
@@ -1106,6 +1126,7 @@ export default function DeliveryNotesView() {
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
             <Table>
+              <IconLegend items={deliveryNoteLegendItems} />
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
