@@ -188,6 +188,7 @@ export default function BackupSection() {
   const [backups, setBackups] = useState<Backup[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  const [creatingMessage, setCreatingMessage] = useState<string>('')
   const [restoring, setRestoring] = useState(false)
   const [restoreProgress, setRestoreProgress] = useState<RestoreProgress | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -195,14 +196,23 @@ export default function BackupSection() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const createAbortRef = useRef<AbortController | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const fetchBackups = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<Backup[]>('/backup')
+      const token = useAuthStore.getState().token
+      const res = await fetch('/api/backup', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) {
+        throw new Error(`Erreur ${res.status}`)
+      }
+      const data = await res.json()
       setBackups(Array.isArray(data) ? data : [])
     } catch (err: any) {
+      console.error('[Backup] Fetch list error:', err)
       toast.error(err.message || 'Erreur chargement sauvegardes')
     } finally {
       setLoading(false)
@@ -217,16 +227,72 @@ export default function BackupSection() {
 
   // ─── Create Backup ───
 
+  const cancelCreate = () => {
+    if (createAbortRef.current) {
+      createAbortRef.current.abort()
+    }
+    setCreating(false)
+    setCreatingMessage('')
+    createAbortRef.current = null
+  }
+
   const handleCreate = async () => {
+    const controller = new AbortController()
+    createAbortRef.current = controller
+    const timeoutId = setTimeout(() => controller.abort(), 180_000) // 3 min timeout
+
     try {
       setCreating(true)
-      await api.post('/backup')
-      toast.success('Sauvegarde créée avec succès')
+      setCreatingMessage('Connexion au serveur...')
+      const token = useAuthStore.getState().token
+      const res = await fetch('/api/backup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({}),
+        signal: controller.signal,
+      })
+
+      setCreatingMessage('Exportation des données...')
+      clearTimeout(timeoutId)
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: `Erreur serveur (${res.status})` }))
+        throw new Error(data.error || `Erreur serveur (${res.status})`)
+      }
+
+      const result = await res.json()
+      setCreatingMessage('Sauvegarde créée !')
+      toast.success('Sauvegarde créée avec succès', {
+        description: result.compressedSize
+          ? `${formatSize(result.compressedSize)} compressé`
+          : undefined,
+        duration: 4000,
+      })
       fetchBackups()
+      setTimeout(() => {
+        setCreating(false)
+        setCreatingMessage('')
+      }, 1500)
     } catch (err: any) {
-      toast.error(err.message || 'Erreur création sauvegarde')
+      clearTimeout(timeoutId)
+      if (err.name === 'AbortError') {
+        toast.error('Délai dépassé', {
+          description: 'La création de la sauvegarde a pris trop de temps. Réessayez.',
+          duration: 6000,
+        })
+      } else {
+        toast.error(err.message || 'Erreur lors de la création de la sauvegarde', {
+          duration: 6000,
+        })
+      }
+      console.error('[Backup] Create error:', err)
     } finally {
       setCreating(false)
+      setCreatingMessage('')
+      createAbortRef.current = null
     }
   }
 
@@ -463,6 +529,35 @@ export default function BackupSection() {
 
   return (
     <>
+      {/* Create Backup Overlay */}
+      {creating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl border p-6 sm:p-8 max-w-md w-full mx-4 space-y-5">
+            <div className="flex justify-center">
+              <div className="rounded-full p-4 bg-primary/10">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              </div>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-primary">
+                Création de la sauvegarde
+              </h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                {creatingMessage || 'Veuillez patienter...'}
+              </p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                L&apos;exportation peut prendre quelques secondes
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <Button variant="outline" size="sm" onClick={cancelCreate}>
+                Annuler
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Progress Overlay */}
       {restoreProgress && (
         <RestoreProgressOverlay progress={restoreProgress} onClose={cancelRestore} />

@@ -169,11 +169,18 @@ export async function exportDatabase(db: any): Promise<{
   let totalRows = 0
 
   for (const table of BACKUP_TABLES) {
-    const rows: any[] = await db.$queryRawUnsafe(`SELECT * FROM "${table}"`)
-    data[table] = rows
-    const count = rows.length
-    tables[table] = count
-    totalRows += count
+    try {
+      const rows: any[] = await db.$queryRawUnsafe(`SELECT * FROM "${table}"`)
+      data[table] = rows
+      const count = rows.length
+      tables[table] = count
+      totalRows += count
+    } catch (err: any) {
+      console.error(`[Backup] Failed to export table "${table}":`, err?.message || err)
+      // Include empty array for failed tables to maintain structure
+      data[table] = []
+      tables[table] = 0
+    }
   }
 
   const meta = {
