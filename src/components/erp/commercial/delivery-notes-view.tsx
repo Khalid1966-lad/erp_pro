@@ -141,6 +141,10 @@ interface DeliveryNote {
   lines: DeliveryNoteLineItem[]
   chantier?: ChantierOption | null
   deliveryAddress?: string | null
+  dueDate: string | null
+  driverName: string | null
+  transportType: string | null
+  createdByName: string | null
 }
 
 interface EditableLine {
@@ -261,6 +265,9 @@ export default function DeliveryNotesView() {
   const [createVehiclePlate, setCreateVehiclePlate] = useState('')
   const [createNotes, setCreateNotes] = useState('')
   const [createPlannedDate, setCreatePlannedDate] = useState('')
+  const [createDriverName, setCreateDriverName] = useState('')
+  const [createTransportType, setCreateTransportType] = useState<string>('rendu')
+  const [createDueDate, setCreateDueDate] = useState('')
   const [creating, setCreating] = useState(false)
   const [loadingOrders, setLoadingOrders] = useState(false)
   const [loadingClients, setLoadingClients] = useState(false)
@@ -277,6 +284,9 @@ export default function DeliveryNotesView() {
   const [editVehiclePlate, setEditVehiclePlate] = useState('')
   const [editNotes, setEditNotes] = useState('')
   const [editPlannedDate, setEditPlannedDate] = useState('')
+  const [editDriverName, setEditDriverName] = useState('')
+  const [editTransportType, setEditTransportType] = useState<string>('rendu')
+  const [editDueDate, setEditDueDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
 
@@ -391,6 +401,9 @@ export default function DeliveryNotesView() {
     setCreateVehiclePlate('')
     setCreateNotes('')
     setCreatePlannedDate('')
+    setCreateDriverName('')
+    setCreateTransportType('rendu')
+    setCreateDueDate('')
     resetLineSearches()
 
     // Fetch available data in parallel
@@ -576,6 +589,9 @@ export default function DeliveryNotesView() {
           vehiclePlate: createVehiclePlate || undefined,
           notes: createNotes || undefined,
           plannedDate: createPlannedDate || undefined,
+          driverName: createDriverName || undefined,
+          transportType: createTransportType || undefined,
+          dueDate: createDueDate || undefined,
           lines: [...lines, ...supplementaryLines],
         })
       } else {
@@ -603,6 +619,9 @@ export default function DeliveryNotesView() {
           vehiclePlate: createVehiclePlate || undefined,
           notes: createNotes || undefined,
           plannedDate: createPlannedDate || undefined,
+          driverName: createDriverName || undefined,
+          transportType: createTransportType || undefined,
+          dueDate: createDueDate || undefined,
           lines: editableLines.map((l) => ({
             productId: l.productId,
             quantity: l.quantity,
@@ -682,6 +701,9 @@ export default function DeliveryNotesView() {
     setEditVehiclePlate(note.vehiclePlate || '')
     setEditNotes(note.notes || '')
     setEditPlannedDate(note.plannedDate ? format(new Date(note.plannedDate), 'yyyy-MM-dd') : '')
+    setEditDriverName(note.driverName || '')
+    setEditTransportType(note.transportType || 'rendu')
+    setEditDueDate(note.dueDate ? format(new Date(note.dueDate), 'yyyy-MM-dd') : '')
 
     // Auto-detect current delivery address mode
     if (note.chantier?.id) {
@@ -727,6 +749,9 @@ export default function DeliveryNotesView() {
         plannedDate: editPlannedDate || undefined,
         chantierId: editDeliveryType === 'chantier' ? editChantierId : null,
         deliveryAddress: editDeliveryType === 'manual' ? editManualDeliveryAddress : null,
+        driverName: editDriverName || null,
+        transportType: editTransportType || null,
+        dueDate: editDueDate || undefined,
       })
       toast.success(`BL ${selectedNote.number} modifié`)
       setEditOpen(false)
@@ -1085,6 +1110,9 @@ export default function DeliveryNotesView() {
                       title: 'BON DE LIVRAISON',
                       docNumber: en.number,
                       infoGrid: [
+                        { label: 'N° BL', value: en.number },
+                        { label: 'Date du BL', value: fmtDate(en.date) },
+                        { label: 'Date d\'échéance', value: fmtDate(en.dueDate || '') || '—' },
                         { label: 'Client', value: en.client.name },
                         { label: 'Adresse de livraison', value: (() => {
                           if (en.deliveryAddress) return en.deliveryAddress
@@ -1100,9 +1128,11 @@ export default function DeliveryNotesView() {
                         })() || '—', colspan: 2 },
                         ...(en.chantier && en.chantier.responsableNom ? [{ label: 'Responsable', value: en.chantier.responsableNom }] : []),
                         ...(en.chantier && (en.chantier.telephone || en.chantier.gsm) ? [{ label: 'Tél chantier', value: en.chantier.telephone || en.chantier.gsm || '—' }] : []),
-                        { label: 'Date création', value: fmtDate(en.date) },
-                        { label: 'Date livraison', value: fmtDate(en.deliveryDate || '') },
+                        { label: 'Chauffeur', value: en.driverName || '—' },
+                        { label: 'Matricule véhicule', value: en.vehiclePlate || '—' },
+                        { label: 'Type transport', value: en.transportType === 'rendu' ? 'Rendu' : en.transportType === 'depart' ? 'Départ' : '—' },
                         { label: 'Transporteur', value: en.transporteur || '—' },
+                        { label: 'Responsable BL', value: en.createdByName || '—' },
                       ],
                       columns: [
                         { label: 'Produit' },
@@ -1145,6 +1175,22 @@ export default function DeliveryNotesView() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Type transport</span>
+                  <p className="font-medium">{en.transportType === 'rendu' ? 'Rendu' : en.transportType === 'depart' ? 'Départ' : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Chauffeur</span>
+                  <p className="font-medium">{en.driverName || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Immatriculation</span>
+                  <p className="font-medium">{en.vehiclePlate || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Date d'échéance</span>
+                  <p className="font-medium">{en.dueDate ? format(new Date(en.dueDate), 'dd/MM/yyyy', { locale: fr }) : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
                   <span className="text-muted-foreground text-xs">Date prévue</span>
                   <p className="font-medium">{en.plannedDate ? format(new Date(en.plannedDate), 'dd/MM/yyyy', { locale: fr }) : '—'}</p>
                 </div>
@@ -1153,8 +1199,8 @@ export default function DeliveryNotesView() {
                   <p className="font-medium">{en.transporteur || '—'}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
-                  <span className="text-muted-foreground text-xs">Immatriculation</span>
-                  <p className="font-medium">{en.vehiclePlate || '—'}</p>
+                  <span className="text-muted-foreground text-xs">Responsable BL</span>
+                  <p className="font-medium">{en.createdByName || '—'}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
                   <span className="text-muted-foreground text-xs">Nb Lignes</span>
@@ -1802,6 +1848,57 @@ export default function DeliveryNotesView() {
               />
             </div>
 
+            {/* Type de transport */}
+            <div className="space-y-2">
+              <Label>Type de transport</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCreateTransportType('rendu')}
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 p-3 text-center transition-all text-sm font-medium ${
+                    createTransportType === 'rendu'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-muted hover:border-muted-foreground/30 text-muted-foreground'
+                  }`}
+                >
+                  <Truck className="h-4 w-4" />
+                  Rendu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateTransportType('depart')}
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 p-3 text-center transition-all text-sm font-medium ${
+                    createTransportType === 'depart'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-muted hover:border-muted-foreground/30 text-muted-foreground'
+                  }`}
+                >
+                  <Package className="h-4 w-4" />
+                  Départ
+                </button>
+              </div>
+            </div>
+
+            {/* Chauffeur */}
+            <div className="space-y-2">
+              <Label>Nom & Prénom du chauffeur</Label>
+              <Input
+                value={createDriverName}
+                onChange={(e) => setCreateDriverName(e.target.value)}
+                placeholder="Nom, Prénom du chauffeur..."
+              />
+            </div>
+
+            {/* Date d'échéance */}
+            <div className="space-y-2">
+              <Label>Date d'échéance</Label>
+              <Input
+                type="date"
+                value={createDueDate}
+                onChange={(e) => setCreateDueDate(e.target.value)}
+              />
+            </div>
+
             {/* Transporteur */}
             <div className="space-y-2">
               <Label>Transporteur</Label>
@@ -2002,6 +2099,57 @@ export default function DeliveryNotesView() {
                   Le BL sera livré à l'adresse principale du client.
                 </p>
               )}
+            </div>
+
+            {/* Type de transport */}
+            <div className="space-y-2">
+              <Label>Type de transport</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditTransportType('rendu')}
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 p-3 text-center transition-all text-sm font-medium ${
+                    editTransportType === 'rendu'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-muted hover:border-muted-foreground/30 text-muted-foreground'
+                  }`}
+                >
+                  <Truck className="h-4 w-4" />
+                  Rendu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditTransportType('depart')}
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 p-3 text-center transition-all text-sm font-medium ${
+                    editTransportType === 'depart'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-muted hover:border-muted-foreground/30 text-muted-foreground'
+                  }`}
+                >
+                  <Package className="h-4 w-4" />
+                  Départ
+                </button>
+              </div>
+            </div>
+
+            {/* Chauffeur */}
+            <div className="space-y-2">
+              <Label>Nom & Prénom du chauffeur</Label>
+              <Input
+                value={editDriverName}
+                onChange={(e) => setEditDriverName(e.target.value)}
+                placeholder="Nom, Prénom du chauffeur..."
+              />
+            </div>
+
+            {/* Date d'échéance */}
+            <div className="space-y-2">
+              <Label>Date d'échéance</Label>
+              <Input
+                type="date"
+                value={editDueDate}
+                onChange={(e) => setEditDueDate(e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
@@ -2323,6 +2471,9 @@ export default function DeliveryNotesView() {
                       title: 'BON DE LIVRAISON',
                       docNumber: selectedNote.number,
                       infoGrid: [
+                        { label: 'N° BL', value: selectedNote.number },
+                        { label: 'Date du BL', value: fmtDate(selectedNote.date) },
+                        { label: 'Date d\'échéance', value: fmtDate(selectedNote.dueDate || '') || '—' },
                         { label: 'Client', value: selectedNote.client.name },
                         { label: 'Adresse de livraison', value: (() => {
                           if (selectedNote.deliveryAddress) return selectedNote.deliveryAddress
@@ -2338,9 +2489,11 @@ export default function DeliveryNotesView() {
                         })() || '—', colspan: 2 },
                         ...(selectedNote.chantier && selectedNote.chantier.responsableNom ? [{ label: 'Responsable', value: selectedNote.chantier.responsableNom }] : []),
                         ...(selectedNote.chantier && (selectedNote.chantier.telephone || selectedNote.chantier.gsm) ? [{ label: 'Tél chantier', value: selectedNote.chantier.telephone || selectedNote.chantier.gsm || '—' }] : []),
-                        { label: 'Date création', value: fmtDate(selectedNote.date) },
-                        { label: 'Date livraison', value: fmtDate(selectedNote.deliveryDate || '') },
+                        { label: 'Chauffeur', value: selectedNote.driverName || '—' },
+                        { label: 'Matricule véhicule', value: selectedNote.vehiclePlate || '—' },
+                        { label: 'Type transport', value: selectedNote.transportType === 'rendu' ? 'Rendu' : selectedNote.transportType === 'depart' ? 'Départ' : '—' },
                         { label: 'Transporteur', value: selectedNote.transporteur || '—' },
+                        { label: 'Responsable BL', value: selectedNote.createdByName || '—' },
                       ],
                       columns: [
                         { label: 'Produit' },

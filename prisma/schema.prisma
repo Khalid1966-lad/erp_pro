@@ -485,8 +485,12 @@ model DeliveryNote {
   date            DateTime            @default(now())
   plannedDate     DateTime?
   deliveryDate    DateTime?
+  dueDate         DateTime?
   transporteur    String?
   vehiclePlate    String?
+  driverName      String?
+  transportType   String?
+  createdByName   String?
   notes           String?
   totalHT         Float               @default(0)
   totalTVA        Float               @default(0)
