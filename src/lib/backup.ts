@@ -8,6 +8,7 @@ import zlib from 'zlib'
 import { APP_VERSION } from '@/lib/version'
 
 // ─── Table names in FK-safe order (parents before children) ───
+// IMPORTANT: These are Prisma model names used for restore (tx[table].createMany)
 export const BACKUP_TABLES = [
   'Setting',
   'User',
@@ -79,6 +80,20 @@ export const BACKUP_TABLES = [
   'Message',
 ]
 
+// ─── SQL table names for tables with @@map annotation ───
+// Used for raw SQL queries (export) where actual PostgreSQL table name differs from Prisma model name
+const TABLE_SQL_NAMES: Record<string, string> = {
+  Chantier: 'chantiers',
+  CustomerReturn: 'customer_returns',
+  CustomerReturnLine: 'customer_return_lines',
+  PaymentCodeCounter: 'payment_code_counters',
+}
+
+/** Get the actual PostgreSQL table name for a Prisma model */
+function getSqlTableName(prismaModel: string): string {
+  return TABLE_SQL_NAMES[prismaModel] || prismaModel
+}
+
 // Reversed order for deletion (children before parents)
 export const DELETE_TABLES_ORDER = [...BACKUP_TABLES].reverse()
 
@@ -108,7 +123,7 @@ const DATETIME_FIELDS: Record<string, string[]> = {
   Quote: ['date', 'validUntil', 'createdAt', 'updatedAt'],
   SalesOrder: ['date', 'deliveryDate', 'createdAt', 'updatedAt'],
   PreparationOrder: ['completedAt', 'createdAt', 'updatedAt'],
-  DeliveryNote: ['date', 'plannedDate', 'deliveryDate', 'createdAt', 'updatedAt'],
+  DeliveryNote: ['date', 'plannedDate', 'deliveryDate', 'dueDate', 'createdAt', 'updatedAt'],
   Invoice: ['date', 'dueDate', 'paymentDate', 'createdAt', 'updatedAt'],
   CreditNote: ['date', 'createdAt', 'updatedAt'],
   Payment: ['date', 'createdAt'],
@@ -123,6 +138,9 @@ const DATETIME_FIELDS: Record<string, string[]> = {
   WorkOrderStep: ['startedAt', 'completedAt'],
   ProductionBatch: ['startedAt', 'completedAt', 'createdAt', 'updatedAt'],
   Lot: ['dateFabrication', 'dateExpiration', 'createdAt', 'updatedAt'],
+  CustomerReturn: ['returnDate', 'createdAt', 'updatedAt'],
+  Chantier: ['createdAt', 'updatedAt'],
+  PaymentCodeCounter: ['createdAt', 'updatedAt'],
   LotMouvement: ['createdAt'],
   Equipement: ['dateInstallation', 'createdAt', 'updatedAt'],
   PlanMaintenance: ['derniereExecution', 'prochaineExecution', 'createdAt', 'updatedAt'],
@@ -170,7 +188,8 @@ export async function exportDatabase(db: any): Promise<{
 
   for (const table of BACKUP_TABLES) {
     try {
-      const rows: any[] = await db.$queryRawUnsafe(`SELECT * FROM "${table}"`)
+      const sqlTable = getSqlTableName(table)
+      const rows: any[] = await db.$queryRawUnsafe(`SELECT * FROM "${sqlTable}"`)
       data[table] = rows
       const count = rows.length
       tables[table] = count
@@ -339,7 +358,8 @@ export async function restoreDatabase(
       emit({ step: 'deleting', message: 'Suppression des données existantes...' })
       for (const table of DELETE_TABLES_ORDER) {
         emit({ step: 'deleting', message: `Suppression : ${table}`, table })
-        await tx.$executeRawUnsafe(`DELETE FROM "${table}"`)
+        const sqlTable = getSqlTableName(table)
+        await tx.$executeRawUnsafe(`DELETE FROM "${sqlTable}"`)
         completed++
       }
 
