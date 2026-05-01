@@ -2165,3 +2165,23 @@ Stage Summary:
 - Pushed to GitHub main branch (commit dcd4c10)
 - All sales document lists now show status icons in the first column next to document numbers
 - BL edit/create/detail views handle 6-digit quantities with wider columns
+---
+Task ID: 2
+Agent: Main Agent
+Task: Add status icons to purchasing lists, icon legends everywhere, update guide, fix backup, version 1.3.1
+
+Work Log:
+- Added status icons to 6 purchasing views (supplier-quotes, purchase-orders, price-requests, receptions, supplier-returns, supplier-invoices)
+- Added status icons to 4 additional sales views (quotes, credit-notes, customer-returns, preparations)
+- Added IconLegend component to all 13 list views with per-view legend items
+- Fixed backup system: added Chantier, CustomerReturn, CustomerReturnLine, PaymentCodeCounter (was missing 4 tables, now covers 68/69 — Backup metadata table correctly excluded)
+- Updated version from 1.3.0 to 1.3.1 (version.ts + package.json)
+- Updated user guide: added icon legend tables for Ventes and Achats, BL edit mode docs, Notes & Visa printing section, BL details printing section, updated TOC
+- 17 files changed, 589 insertions, 33 deletions
+
+Stage Summary:
+- Pushed to GitHub main (commit cb9933f)
+- All 13 document list views now have status icons + visible legends
+- Backup system covers all 68 application tables
+- User guide fully updated with new features
+- Version 1.3.1 released
