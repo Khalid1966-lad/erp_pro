@@ -23,12 +23,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import {
-  Plus, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown
+  Plus, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown, Printer
 } from 'lucide-react'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
+import { PrintHeader } from '@/components/erp/shared/print-header'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -82,6 +84,11 @@ export default function CashRegistersView() {
   const [registerForm, setRegisterForm] = useState(emptyRegister)
   const [movementForm, setMovementForm] = useState(emptyMovement)
   const [saving, setSaving] = useState(false)
+
+  // Statement dialog state
+  const [statementOpen, setStatementOpen] = useState(false)
+  const [stmtDateFrom, setStmtDateFrom] = useState('')
+  const [stmtDateTo, setStmtDateTo] = useState('')
 
   const fetchRegisters = useCallback(async () => {
     try {
@@ -382,10 +389,16 @@ export default function CashRegistersView() {
                 Solde actuel : <span className={selectedRegister.balance < 0 ? 'text-red-600 font-semibold' : 'font-semibold'}>{formatCurrency(selectedRegister.balance)}</span>
               </p>
             </div>
-            <Button onClick={openAddMovement} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Nouveau mouvement
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setStatementOpen(true); setStmtDateFrom(''); setStmtDateTo('') }}>
+                <Printer className="h-4 w-4 mr-1" />
+                Relevé
+              </Button>
+              <Button onClick={openAddMovement} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Nouveau mouvement
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {movementsLoading ? (
@@ -588,6 +601,107 @@ export default function CashRegistersView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Statement Dialog */}
+      <Dialog open={statementOpen} onOpenChange={setStatementOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Imprimer le relevé de caisse</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {selectedRegister?.name}
+            </p>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="stmt-from">Date début</Label>
+              <Input
+                id="stmt-from"
+                type="date"
+                value={stmtDateFrom}
+                onChange={(e) => setStmtDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="stmt-to">Date fin</Label>
+              <Input
+                id="stmt-to"
+                type="date"
+                value={stmtDateTo}
+                onChange={(e) => setStmtDateTo(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Laissez les dates vides pour inclure tous les mouvements.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatementOpen(false)}>Annuler</Button>
+            <Button onClick={() => { handlePrintStatement(); setStatementOpen(false) }}>
+              <Printer className="h-4 w-4 mr-1" />
+              Imprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
+
+  function handlePrintStatement() {
+    if (!selectedRegister) return
+    const filtered = movements.filter((mv) => {
+      const d = new Date(mv.createdAt)
+      if (stmtDateFrom && d < new Date(stmtDateFrom)) return false
+      if (stmtDateTo) { const end = new Date(stmtDateTo); end.setHours(23, 59, 59, 999); if (d > end) return false }
+      return true
+    }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+
+    let runningBalance = selectedRegister.balance
+    // Subtract all movements to get balance before first
+    // Actually we need to compute from filtered: start with 0, or better compute running from total
+    // We'll compute the balance before the period by removing the filtered amounts from current balance
+    const totalIn = filtered.filter(m => m.type === 'in').reduce((s, m) => s + m.amount, 0)
+    const totalOut = filtered.filter(m => m.type === 'out').reduce((s, m) => s + m.amount, 0)
+    const startBalance = selectedRegister.balance - totalIn + totalOut
+
+    const rows: Array<Array<{ value: string | number; align?: string }>> = filtered.map((mv) => {
+      runningBalance += mv.type === 'in' ? mv.amount : -mv.amount
+      return [
+        { value: format(new Date(mv.createdAt), 'dd/MM/yyyy', { locale: fr }), align: 'center' },
+        { value: mv.type === 'in' ? 'Entrée' : 'Sortie' },
+        { value: mv.paymentMethod || '—' },
+        { value: mv.reference || '—' },
+        { value: mv.notes || '' },
+        { value: mv.type === 'in' ? fmtMoney(mv.amount) : `-${fmtMoney(mv.amount)}`, align: 'right' },
+        { value: fmtMoney(runningBalance), align: 'right' },
+      ]
+    })
+
+    printDocument({
+      title: 'RELEVÉ DE CAISSE',
+      docNumber: register.name,
+      infoGrid: [
+        { label: 'Caisse', value: selectedRegister.name },
+        { label: 'Période du', value: stmtDateFrom ? fmtDate(stmtDateFrom) : 'Début' },
+        { label: 'Au', value: stmtDateTo ? fmtDate(stmtDateTo) : "Aujourd'hui" },
+        { label: 'Solde initial', value: fmtMoney(startBalance), colspan: 2 },
+      ],
+      columns: [
+        { label: 'Date', align: 'center' },
+        { label: 'Type' },
+        { label: 'Mode' },
+        { label: 'Réf.' },
+        { label: 'Notes' },
+        { label: 'Montant', align: 'right' },
+        { label: 'Solde', align: 'right' },
+      ],
+      rows,
+      totals: [
+        { label: 'Total entrées', value: fmtMoney(totalIn) },
+        { label: 'Total sorties', value: `-${fmtMoney(totalOut)}` },
+        { label: 'Solde final', value: fmtMoney(selectedRegister.balance), bold: true },
+      ],
+      amountInWords: `${selectedRegister.balance.toLocaleString('fr-FR')} dirhams`,
+      amountInWordsLabel: 'Arrêté le présent relevé à la somme de',
+    })
+  }
 }

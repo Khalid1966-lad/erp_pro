@@ -24,12 +24,14 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Plus, Edit, Trash2, Landmark, CheckCircle2, Circle, ArrowUpRight, ArrowDownLeft, Scale
+  Plus, Edit, Trash2, Landmark, CheckCircle2, Circle, ArrowUpRight, ArrowDownLeft, Scale, Printer
 } from 'lucide-react'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
+import { PrintHeader } from '@/components/erp/shared/print-header'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -89,6 +91,11 @@ export default function BankAccountsView() {
   // Reconciliation state
   const [reconStatementBalance, setReconStatementBalance] = useState('')
   const [reconSaving, setReconSaving] = useState(false)
+
+  // Statement dialog state
+  const [statementOpen, setStatementOpen] = useState(false)
+  const [stmtDateFrom, setStmtDateFrom] = useState('')
+  const [stmtDateTo, setStmtDateTo] = useState('')
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -453,10 +460,16 @@ export default function BankAccountsView() {
                 IBAN : <span className="font-mono">{selectedAccount.iban}</span>
               </p>
             </div>
-            <Button onClick={openAddTransaction} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Nouvelle transaction
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setStatementOpen(true); setStmtDateFrom(''); setStmtDateTo('') }}>
+                <Printer className="h-4 w-4 mr-1" />
+                Relevé
+              </Button>
+              <Button onClick={openAddTransaction} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Nouvelle transaction
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {transactionsLoading ? (
@@ -738,6 +751,105 @@ export default function BankAccountsView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Statement Dialog */}
+      <Dialog open={statementOpen} onOpenChange={setStatementOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Imprimer le relevé bancaire</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {selectedAccount?.name}
+            </p>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="stmt-from">Date début</Label>
+              <Input
+                id="stmt-from"
+                type="date"
+                value={stmtDateFrom}
+                onChange={(e) => setStmtDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="stmt-to">Date fin</Label>
+              <Input
+                id="stmt-to"
+                type="date"
+                value={stmtDateTo}
+                onChange={(e) => setStmtDateTo(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Laissez les dates vides pour inclure toutes les transactions.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatementOpen(false)}>Annuler</Button>
+            <Button onClick={() => { handlePrintStatement(); setStatementOpen(false) }}>
+              <Printer className="h-4 w-4 mr-1" />
+              Imprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
+
+  function handlePrintStatement() {
+    if (!selectedAccount) return
+    const filtered = transactions.filter((tx) => {
+      const d = new Date(tx.date)
+      if (stmtDateFrom && d < new Date(stmtDateFrom)) return false
+      if (stmtDateTo) { const end = new Date(stmtDateTo); end.setHours(23, 59, 59, 999); if (d > end) return false }
+      return true
+    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    const totalDebit = filtered.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0)
+    const totalCredit = filtered.filter(t => t.amount >= 0).reduce((s, t) => s + t.amount, 0)
+    const startBalance = selectedAccount.balance - totalCredit + totalDebit
+
+    let runningBalance = startBalance
+    const rows: Array<Array<{ value: string | number; align?: string }>> = filtered.map((tx) => {
+      runningBalance += tx.amount
+      return [
+        { value: format(new Date(tx.date), 'dd/MM/yyyy', { locale: fr }), align: 'center' },
+        { value: tx.label },
+        { value: tx.reference || '—' },
+        { value: tx.isReconciled ? '✓' : '' },
+        { value: tx.amount >= 0 ? fmtMoney(tx.amount) : '', align: 'right' },
+        { value: tx.amount < 0 ? fmtMoney(Math.abs(tx.amount)) : '', align: 'right' },
+        { value: fmtMoney(runningBalance), align: 'right' },
+      ]
+    })
+
+    printDocument({
+      title: 'RELEVÉ BANCAIRE',
+      docNumber: selectedAccount.name,
+      infoGrid: [
+        { label: 'Compte', value: selectedAccount.name },
+        { label: 'IBAN', value: selectedAccount.iban },
+        { label: 'Période du', value: stmtDateFrom ? fmtDate(stmtDateFrom) : 'Début' },
+        { label: 'Au', value: stmtDateTo ? fmtDate(stmtDateTo) : "Aujourd'hui" },
+        { label: 'Solde initial', value: fmtMoney(startBalance) },
+      ],
+      columns: [
+        { label: 'Date', align: 'center' },
+        { label: 'Libellé' },
+        { label: 'Réf.' },
+        { label: 'Rapp.', align: 'center' },
+        { label: 'Crédit', align: 'right' },
+        { label: 'Débit', align: 'right' },
+        { label: 'Solde', align: 'right' },
+      ],
+      rows,
+      totals: [
+        { label: 'Total crédits', value: fmtMoney(totalCredit) },
+        { label: 'Total débits', value: fmtMoney(totalDebit) },
+        { label: 'Solde final', value: fmtMoney(selectedAccount.balance), bold: true },
+      ],
+      amountInWords: `${selectedAccount.balance.toLocaleString('fr-FR')} dirhams`,
+      amountInWordsLabel: 'Arrêté le présent relevé à la somme de',
+    })
+  }
 }
