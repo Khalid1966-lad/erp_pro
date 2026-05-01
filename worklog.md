@@ -2185,3 +2185,24 @@ Stage Summary:
 - Backup system covers all 68 application tables
 - User guide fully updated with new features
 - Version 1.3.1 released
+---
+Task ID: 3
+Agent: Main Agent
+Task: Print account statements for cash registers and bank accounts by date range
+
+Work Log:
+- Added Printer icon + printDocument/print-utils imports to both finance views
+- Added statement dialog state (statementOpen, stmtDateFrom, stmtDateTo) to both views
+- Added "Relevé" button in movements/transactions panel headers
+- Implemented date range filtering with from/to date pickers
+- Cash register statement: Date, Type (Entrée/Sortie), Mode, Réf., Notes, Montant, Solde running
+- Bank account statement: Date, Libellé, Réf., Rapp., Crédit, Débit, Solde running
+- Both compute solde initial from current balance minus period movements
+- Both show totals (entrées/crédits, sorties/débits) and solde final
+- Both include 'Arrêté le présent relevé à la somme de' footer
+- Lint passes clean, 2 files changed, 236 insertions, 10 deletions
+
+Stage Summary:
+- Pushed to GitHub main (commit 80a96f3)
+- Cash registers and bank accounts can now print account statements by date range
+- Statements show debit/credit columns with running balance
