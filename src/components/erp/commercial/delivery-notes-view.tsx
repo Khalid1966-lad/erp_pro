@@ -137,7 +137,7 @@ interface DeliveryNote {
     number: string
     lines: SalesOrderLineInfo[]
   } | null
-  client: { id: string; name: string }
+  client: { id: string; name: string; address?: string | null; city?: string | null }
   lines: DeliveryNoteLineItem[]
   chantier?: ChantierOption | null
   deliveryAddress?: string | null
@@ -1086,8 +1086,18 @@ export default function DeliveryNotesView() {
                       docNumber: en.number,
                       infoGrid: [
                         { label: 'Client', value: en.client.name },
-                        ...(en.chantier ? [{ label: 'Lieu de livraison', value: `${en.chantier.nomProjet} - ${en.chantier.adresse}, ${en.chantier.ville}` }] : []),
-                        ...(!en.chantier && en.deliveryAddress ? [{ label: 'Lieu de livraison', value: en.deliveryAddress }] : []),
+                        { label: 'Adresse de livraison', value: (() => {
+                          if (en.deliveryAddress) return en.deliveryAddress
+                          if (en.chantier) {
+                            const parts = [en.chantier.nomProjet, en.chantier.adresse, en.chantier.ville].filter(Boolean)
+                            return parts.join(' - ') || null
+                          }
+                          if (en.client?.address) {
+                            const parts = [en.client.address, en.client.city].filter(Boolean)
+                            return parts.join(', ') || null
+                          }
+                          return null
+                        })() || '—', colspan: 2 },
                         ...(en.chantier && en.chantier.responsableNom ? [{ label: 'Responsable', value: en.chantier.responsableNom }] : []),
                         ...(en.chantier && (en.chantier.telephone || en.chantier.gsm) ? [{ label: 'Tél chantier', value: en.chantier.telephone || en.chantier.gsm || '—' }] : []),
                         { label: 'Date création', value: fmtDate(en.date) },
@@ -2314,8 +2324,18 @@ export default function DeliveryNotesView() {
                       docNumber: selectedNote.number,
                       infoGrid: [
                         { label: 'Client', value: selectedNote.client.name },
-                        ...(selectedNote.chantier ? [{ label: 'Lieu de livraison', value: `${selectedNote.chantier.nomProjet} - ${selectedNote.chantier.adresse}, ${selectedNote.chantier.ville}` }] : []),
-                        ...(!selectedNote.chantier && selectedNote.deliveryAddress ? [{ label: 'Lieu de livraison', value: selectedNote.deliveryAddress }] : []),
+                        { label: 'Adresse de livraison', value: (() => {
+                          if (selectedNote.deliveryAddress) return selectedNote.deliveryAddress
+                          if (selectedNote.chantier) {
+                            const parts = [selectedNote.chantier.nomProjet, selectedNote.chantier.adresse, selectedNote.chantier.ville].filter(Boolean)
+                            return parts.join(' - ') || null
+                          }
+                          if (selectedNote.client?.address) {
+                            const parts = [selectedNote.client.address, selectedNote.client.city].filter(Boolean)
+                            return parts.join(', ') || null
+                          }
+                          return null
+                        })() || '—', colspan: 2 },
                         ...(selectedNote.chantier && selectedNote.chantier.responsableNom ? [{ label: 'Responsable', value: selectedNote.chantier.responsableNom }] : []),
                         ...(selectedNote.chantier && (selectedNote.chantier.telephone || selectedNote.chantier.gsm) ? [{ label: 'Tél chantier', value: selectedNote.chantier.telephone || selectedNote.chantier.gsm || '—' }] : []),
                         { label: 'Date création', value: fmtDate(selectedNote.date) },

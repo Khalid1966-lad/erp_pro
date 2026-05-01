@@ -54,7 +54,7 @@ async function generateBLNumber() {
 const deliveryNoteInclude = {
   salesOrder: {
     include: {
-      client: { select: { id: true, name: true, raisonSociale: true } },
+      client: { select: { id: true, name: true, raisonSociale: true, address: true, city: true } },
       lines: {
         include: {
           product: { select: { id: true, reference: true, designation: true } },
@@ -62,7 +62,7 @@ const deliveryNoteInclude = {
       },
     },
   },
-  client: { select: { id: true, name: true, raisonSociale: true } },
+  client: { select: { id: true, name: true, raisonSociale: true, address: true, city: true } },
   chantier: { select: { id: true, nomProjet: true, adresse: true, ville: true, codePostal: true, provincePrefecture: true, responsableNom: true, responsableFonction: true, telephone: true, gsm: true } },
   lines: {
     include: {

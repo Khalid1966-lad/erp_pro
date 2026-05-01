@@ -33,6 +33,30 @@ import { ProductCombobox, ProductOption, useProductSearch } from '@/components/e
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
 
+/** HTML pour encadrés Notes + Visa Fournisseur / Visa Administration dans les impressions */
+function buildSupplierVisaHtml(notes?: string | null): string {
+  const notesHtml = notes
+    ? `<div style="border:1px solid #999; border-radius:4px; padding:8px; margin-bottom:16px;">
+         <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:4px;">Notes</div>
+         <div style="font-size:11px; min-height:40px;">${notes.replace(/\n/g, '<br/>')}</div>
+       </div>`
+    : ''
+
+  const visaHtml = `
+    <div style="display:flex; gap:24px; margin-top:24px;">
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Fournisseur</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Administration</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+    </div>`
+
+  return notesHtml + visaHtml
+}
+
 // ── Types ──────────────────────────────────────────────
 interface Product {
   id: string
@@ -593,7 +617,7 @@ export default function SupplierInvoicesView() {
                   { label: 'TVA', value: fmtMoneyP(selected.totalTVA) },
                   { label: 'Total TTC', value: fmtMoneyP(selected.totalTTC), bold: true },
                 ],
-                notes: selected.notes || undefined,
+                subSections: buildSupplierVisaHtml(selected.notes),
                 amountInWords: numberToFrenchWords(selected.totalTTC),
                 amountInWordsLabel: 'Arrêtée la présente facture fournisseur à la somme de',
               })
@@ -779,7 +803,7 @@ export default function SupplierInvoicesView() {
                         { label: 'TVA', value: fmtMoneyP(inv.totalTVA) },
                         { label: 'Total TTC', value: fmtMoneyP(inv.totalTTC), bold: true },
                       ],
-                      notes: inv.notes || undefined,
+                      subSections: buildSupplierVisaHtml(inv.notes),
                       amountInWords: numberToFrenchWords(inv.totalTTC),
                       amountInWordsLabel: 'Arrêtée la présente facture fournisseur à la somme de',
                     })

@@ -27,6 +27,30 @@ import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { printDocument, fmtDate as fmtDateP } from '@/lib/print-utils'
 
+/** HTML pour encadrés Notes + Visa Fournisseur / Visa Administration dans les impressions */
+function buildSupplierVisaHtml(notes?: string | null): string {
+  const notesHtml = notes
+    ? `<div style="border:1px solid #999; border-radius:4px; padding:8px; margin-bottom:16px;">
+         <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:4px;">Notes</div>
+         <div style="font-size:11px; min-height:40px;">${notes.replace(/\n/g, '<br/>')}</div>
+       </div>`
+    : ''
+
+  const visaHtml = `
+    <div style="display:flex; gap:24px; margin-top:24px;">
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Fournisseur</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Administration</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+    </div>`
+
+  return notesHtml + visaHtml
+}
+
 // ── Types ──────────────────────────────────────────────
 interface ReceptionLine {
   id?: string
@@ -425,7 +449,7 @@ export default function ReceptionsView() {
                   { value: l.qualityCheck === 'conforme' ? 'Conforme' : l.qualityCheck === 'non_conforme' ? 'Non conforme' : 'Partiel', align: 'center' },
                 ]),
                 totals: [],
-                notes: selectedReception.notes || undefined,
+                subSections: buildSupplierVisaHtml(selectedReception.notes),
               })
             }}>
               <Printer className="h-4 w-4 mr-1" />
@@ -549,7 +573,7 @@ export default function ReceptionsView() {
                         { value: l.qualityCheck === 'conforme' ? 'Conforme' : l.qualityCheck === 'non_conforme' ? 'Non conforme' : 'Partiel', align: 'center' },
                       ]),
                       totals: [],
-                      notes: r.notes || undefined,
+                      subSections: buildSupplierVisaHtml(r.notes),
                     })
                   }}>
                     <Printer className="h-4 w-4 mr-1" />

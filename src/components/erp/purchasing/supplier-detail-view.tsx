@@ -27,6 +27,30 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { printDocument } from '@/lib/print-utils'
 
+/** HTML pour encadrés Notes + Visa Fournisseur / Visa Administration dans les impressions */
+function buildSupplierVisaHtml(notes?: string | null): string {
+  const notesHtml = notes
+    ? `<div style="border:1px solid #999; border-radius:4px; padding:8px; margin-bottom:16px;">
+         <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:4px;">Notes</div>
+         <div style="font-size:11px; min-height:40px;">${notes.replace(/\n/g, '<br/>')}</div>
+       </div>`
+    : ''
+
+  const visaHtml = `
+    <div style="display:flex; gap:24px; margin-top:24px;">
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Fournisseur</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+      <div style="flex:1; border:1px solid #999; border-radius:4px; padding:8px; text-align:center;">
+        <div style="font-size:10px; font-weight:bold; text-transform:uppercase; color:#666; margin-bottom:60px;">Visa Administration</div>
+        <div style="font-size:10px; color:#999; border-top:1px dashed #ccc; padding-top:4px;">Nom, Prénom & Cachet</div>
+      </div>
+    </div>`
+
+  return notesHtml + visaHtml
+}
+
 // ───────────────────── Types ─────────────────────
 interface SupplierDetailProps {
   supplier: {
@@ -373,7 +397,7 @@ function SupplierFinancialStatementTab({ supplierId }: { supplierId: string }) {
       rows,
       totals,
       notes: `Relevé généré le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}. Ce document est un récapitulatif informatif.`,
-      subSections: subSections || undefined,
+      subSections: (subSections || '') + buildSupplierVisaHtml() || undefined,
     })
   }
 
