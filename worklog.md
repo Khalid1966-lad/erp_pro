@@ -2236,3 +2236,30 @@ Stage Summary:
 - Pushed to GitHub main (commit 80a96f3)
 - Cash registers and bank accounts can now print account statements by date range
 - Statements show debit/credit columns with running balance
+---
+Task ID: 1
+Agent: Main
+Task: Audit and fix backup system to support all tables and fields
+
+Work Log:
+- Read full Prisma schema (1684 lines) and identified all 69 models (68 data + 1 Backup storage)
+- Read backup library src/lib/backup.ts and compared BACKUP_TABLES with schema
+- Read backup API route src/app/api/backup/route.ts and frontend backup-section.tsx
+- Found 4 CRITICAL issues with @@map table name mapping:
+  - Chantier → chantiers
+  - CustomerReturn → customer_returns
+  - CustomerReturnLine → customer_return_lines
+  - PaymentCodeCounter → payment_code_counters
+- Found 4 missing DATETIME_FIELDS entries (Chantier, CustomerReturn, PaymentCodeCounter, DeliveryNote.dueDate)
+- Added TABLE_SQL_NAMES mapping and getSqlTableName() helper function
+- Fixed exportDatabase() to use SQL table names for raw SELECT queries
+- Fixed restoreDatabase() to use SQL table names for raw DELETE queries
+- Added missing DATETIME_FIELDS entries for all affected tables
+- Verified all 68 data tables are covered (Backup model correctly excluded)
+- ESLint passes cleanly
+
+Stage Summary:
+- All 68 data tables now correctly exported and restorable
+- 4 previously silent failures (empty exports) fixed with proper SQL table name mapping
+- DateTime fields for Chantier, CustomerReturn, PaymentCodeCounter, and DeliveryNote.dueDate now properly handled during restore
+- File modified: src/lib/backup.ts
