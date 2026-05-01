@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -29,7 +29,7 @@ import {
 import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
   Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2,
-  Truck, Package, Edit, Printer, Pencil, BadgeCheck
+  Truck, Package, Edit, Printer, Pencil, BadgeCheck, Clock
 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -119,6 +119,21 @@ const statusColors: Record<string, string> = {
   partially_delivered: 'bg-indigo-100 text-indigo-800',
   delivered: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800'
+}
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    pending: { icon: <Clock className="h-4 w-4" />, color: 'text-yellow-500' },
+    confirmed: { icon: <ClipboardList className="h-4 w-4" />, color: 'text-blue-500' },
+    in_preparation: { icon: <Package className="h-4 w-4" />, color: 'text-orange-500' },
+    prepared: { icon: <BadgeCheck className="h-4 w-4" />, color: 'text-teal-500' },
+    partially_delivered: { icon: <Truck className="h-4 w-4" />, color: 'text-indigo-500' },
+    delivered: { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
 }
 
 const emptyLine = (): SalesOrderLine => ({
@@ -586,14 +601,17 @@ export default function SalesOrdersView() {
                   orders.map((order) => (
                     <TableRow key={order.id} className={cn("cursor-pointer", expandedOrderId === order.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)} onDoubleClick={() => openEdit(order)}>
                       <TableCell>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-mono font-medium">{order.number}</span>
-                          {order.quoteId && order.quote && (
-                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <FileText className="h-3 w-3" />
-                              {order.quote.number}
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(order.status)}
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-mono font-medium">{order.number}</span>
+                            {order.quoteId && order.quote && (
+                              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                <FileText className="h-3 w-3" />
+                                {order.quote.number}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>{order.client.name}</TableCell>

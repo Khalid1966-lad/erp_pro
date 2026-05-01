@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   Receipt, Plus, Search, MoreVertical, Eye, Send, CheckCircle,
-  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText, Printer, Pencil
+  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText, Printer, Pencil, AlertCircle, Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -128,6 +128,20 @@ const statusColors: Record<string, string> = {
   paid: 'bg-green-100 text-green-800',
   overdue: 'bg-red-100 text-red-800',
   cancelled: 'bg-red-100 text-red-800'
+}
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    draft: { icon: <FileText className="h-4 w-4" />, color: 'text-slate-400' },
+    validated: { icon: <ShieldCheck className="h-4 w-4" />, color: 'text-emerald-500' },
+    sent: { icon: <Send className="h-4 w-4" />, color: 'text-blue-500' },
+    paid: { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-500' },
+    overdue: { icon: <AlertCircle className="h-4 w-4" />, color: 'text-red-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
 }
 
 const emptyLine = (): InvoiceLine => ({
@@ -607,7 +621,12 @@ export default function InvoicesView() {
                 ) : (
                   invoices.map((invoice) => (
                     <TableRow key={invoice.id} className={cn("cursor-pointer", expandedInvoiceId === invoice.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedInvoiceId(expandedInvoiceId === invoice.id ? null : invoice.id)} onDoubleClick={() => openEdit(invoice)}>
-                      <TableCell className="font-mono font-medium">{invoice.number}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(invoice.status)}
+                          <span className="font-mono font-medium">{invoice.number}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div>
                           <span className="font-medium">{invoice.client.name}</span>

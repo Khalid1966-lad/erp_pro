@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -245,6 +245,18 @@ function DeliveryProgressBar({ percentage }: { percentage: number }) {
       </span>
     </div>
   )
+}
+
+function getStatusIcon(status: string) {
+  const config: Record<string, { icon: React.ReactNode; color: string }> = {
+    draft: { icon: <FileText className="h-4 w-4" />, color: 'text-yellow-500' },
+    confirmed: { icon: <Truck className="h-4 w-4" />, color: 'text-blue-500' },
+    delivered: { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
+  }
+  const c = config[status]
+  if (!c) return null
+  return <span className={c.color}>{c.icon}</span>
 }
 
 // ─── Main Component ───
@@ -1127,7 +1139,10 @@ export default function DeliveryNotesView() {
                     return (
                       <TableRow key={note.id} className={cn("cursor-pointer", expandedNoteId === note.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedNoteId(expandedNoteId === note.id ? null : note.id)} onDoubleClick={() => openEditDialog(note)}>
                         <TableCell>
-                          <span className="font-mono font-medium">{note.number}</span>
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(note.status)}
+                            <span className="font-mono font-medium">{note.number}</span>
+                          </div>
                         </TableCell>
                         <TableCell>
                           {note.salesOrderId ? (
@@ -1661,11 +1676,11 @@ export default function DeliveryNotesView() {
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead className="w-[40%]">Produit</TableHead>
-                                  <TableHead className="w-[15%] text-right">Qté</TableHead>
+                                  <TableHead className="w-[36%]">Produit</TableHead>
+                                  <TableHead className="w-[18%] text-right">Qté</TableHead>
                                   <TableHead className="w-[20%] text-right">P.U. HT</TableHead>
-                                  <TableHead className="w-[15%] text-right">TVA %</TableHead>
-                                  <TableHead className="w-[15%] text-right">Total HT</TableHead>
+                                  <TableHead className="w-[16%] text-right">TVA %</TableHead>
+                                  <TableHead className="w-[16%] text-right">Total HT</TableHead>
                                   <TableHead className="w-[40px]" />
                                 </TableRow>
                               </TableHeader>
@@ -2336,9 +2351,9 @@ export default function DeliveryNotesView() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="min-w-[200px]">Produit</TableHead>
-                      <TableHead className="text-right w-[80px]">Qté</TableHead>
+                      <TableHead className="text-right w-[120px]">Qté</TableHead>
                       <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
-                      <TableHead className="text-right w-[60px]">TVA %</TableHead>
+                      <TableHead className="text-right w-[100px]">TVA %</TableHead>
                       <TableHead className="text-right w-[100px]">Total HT</TableHead>
                       <TableHead className="w-[40px]"></TableHead>
                     </TableRow>
@@ -2625,12 +2640,12 @@ export default function DeliveryNotesView() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Produit</TableHead>
-                      <TableHead className="text-right">Qté BL</TableHead>
+                      <TableHead className="text-right min-w-[70px]">Qté BL</TableHead>
                       {selectedNote.salesOrderId && (
                         <>
-                          <TableHead className="text-right">Déjà livré (avant)</TableHead>
-                          <TableHead className="text-right">Total livré</TableHead>
-                          <TableHead className="text-right">Reste après</TableHead>
+                          <TableHead className="text-right min-w-[70px]">Déjà livré (avant)</TableHead>
+                          <TableHead className="text-right min-w-[70px]">Total livré</TableHead>
+                          <TableHead className="text-right min-w-[70px]">Reste après</TableHead>
                         </>
                       )}
                       <TableHead className="text-right">P.U. HT</TableHead>
