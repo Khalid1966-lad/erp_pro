@@ -776,7 +776,7 @@ async function main() {
     db.bankTransaction.createMany({
       data: [
         { bankAccountId: bankAccount.id, date: new Date('2025-01-02'), label: 'Virement client TechnoMat', amount: 3195.20, reference: 'VIR-TM-001', isReconciled: true, reconciledWith: 'FAC-202501-0001' },
-        { bankAccountId: bankAccount.id, date: new Date('2025-01-08'), label: 'Prélèvement EDF', amount: -1250, reference: 'PRL-EDF-001', isReconciled: true, reconciledWith: 'Fournisseur' },
+        { bankAccountId: bankAccount.id, date: new Date('2025-01-08'), label: 'Prélèvement RADEEMA', amount: -1250, reference: 'PRL-RAD-001', isReconciled: true, reconciledWith: 'Fournisseur' },
         { bankAccountId: bankAccount.id, date: new Date('2025-01-15'), label: 'Virement fournisseur AcierPlus', amount: -6000, reference: 'VIR-AP-001', isReconciled: true, reconciledWith: 'ACH-2025-0001' },
         { bankAccountId: bankAccount.id, date: new Date('2025-01-20'), label: 'Virement client ElecDistrib', amount: 1500, reference: 'VIR-ED-001', isReconciled: false },
         { bankAccountId: bankAccount.id, date: new Date('2025-02-01'), label: 'Salaires janvier', amount: -28500, reference: 'VIR-SAL-0125', isReconciled: true, reconciledWith: 'Salaires' },
@@ -801,9 +801,9 @@ async function main() {
       { date: new Date('2025-01-12'), label: 'TVA déductible ACH-2025-0001', account: '445660', debit: 1000, credit: 0, documentRef: 'ACH-2025-0001' },
       { date: new Date('2025-01-12'), label: 'Fournisseur AcierPlus', account: '401000', debit: 0, credit: 6000, documentRef: 'ACH-2025-0001' },
       // Expenses
-      { date: new Date('2025-01-08'), label: 'Charges EDF', account: '601000', debit: 1041.67, credit: 0, documentRef: 'EDF-001' },
-      { date: new Date('2025-01-08'), label: 'TVA EDF', account: '445660', debit: 208.33, credit: 0, documentRef: 'EDF-001' },
-      { date: new Date('2025-01-08'), label: 'Fournisseur EDF', account: '401000', debit: 0, credit: 1250, documentRef: 'EDF-001' },
+      { date: new Date('2025-01-08'), label: 'Charges RADEEMA', account: '601000', debit: 1041.67, credit: 0, documentRef: 'RAD-001' },
+      { date: new Date('2025-01-08'), label: 'TVA RADEEMA', account: '445660', debit: 208.33, credit: 0, documentRef: 'RAD-001' },
+      { date: new Date('2025-01-08'), label: 'Fournisseur RADEEMA', account: '401000', debit: 0, credit: 1250, documentRef: 'RAD-001' },
       // Salaires
       { date: new Date('2025-02-01'), label: 'Salaires janvier', account: '641000', debit: 23750, credit: 0, documentRef: 'SAL-0125' },
       { date: new Date('2025-02-01'), label: 'Charges sociales salaires', account: '645000', debit: 4750, credit: 0, documentRef: 'SAL-0125' },
