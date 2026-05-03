@@ -40,6 +40,9 @@ import {
   Landmark,
   AlertCircle,
   Activity,
+  Receipt,
+  Search,
+  Truck,
 } from 'lucide-react'
 
 import {
@@ -61,6 +64,7 @@ import {
 } from '@/components/ui/table'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 // ── Traductions activité récente (FR) ─────────────────────────────────────────
 
@@ -196,6 +200,52 @@ interface DashboardData {
     createdAt: string
     user?: { name: string }
   }[]
+  // NEW: Client invoices
+  unpaidClientInvoices: {
+    number: string
+    totalTTC: number
+    amountPaid: number
+    dueDate: string
+    status: string
+    client: { name: string }
+  }[]
+  unpaidClientTotal: number
+  overdueClientCount: number
+  overdueClientTotal: number
+  // NEW: Supplier invoices
+  unpaidSupplierInvoices: {
+    number: string
+    totalTTC: number
+    amountPaid: number
+    dueDate: string
+    status: string
+    supplier: { name: string }
+  }[]
+  unpaidSupplierTotal: number
+  // NEW: Price requests
+  openPriceRequests: {
+    id: string
+    number: string
+    title: string | null
+    createdAt: string
+    status: string
+    _count: { supplierQuotes: number }
+  }[]
+  openPriceRequestsCount: number
+  // NEW: Purchase orders
+  pendingPurchaseOrders: {
+    number: string
+    totalTTC: number
+    status: string
+    createdAt: string
+    supplier: { name: string }
+  }[]
+  pendingPurchaseOrdersCount: number
+  pendingPurchaseOrdersTotal: number
+  // NEW: Pending deliveries
+  pendingDeliveries: number
+  // NEW: Unreconciled
+  unreconciledTransactions: number
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -755,7 +805,7 @@ export default function DashboardView() {
               <motion.div variants={staggerItem}>
                 <Card
                   className={`kpi-card cursor-default ${
-                    data!.overdueInvoices > 0
+                    data!.overdueClientCount > 0
                       ? 'border-red-200 bg-red-50/50 dark:border-red-800/50 dark:bg-red-950/20'
                       : ''
                   }`}
@@ -764,7 +814,7 @@ export default function DashboardView() {
                     <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-2">
                       <AlertCircle
                         className={
-                          data!.overdueInvoices > 0
+                          data!.overdueClientCount > 0
                             ? 'h-3.5 w-3.5 text-red-600 dark:text-red-400'
                             : 'h-3.5 w-3.5'
                         }
@@ -775,12 +825,12 @@ export default function DashboardView() {
                   <CardContent>
                     <div className="flex items-center gap-2">
                       <span className="kpi-value text-xl font-bold">
-                        {data!.overdueInvoices}
+                        {data!.overdueClientCount}
                       </span>
-                      {data!.overdueInvoices > 0 && (
+                      {data!.overdueClientCount > 0 && (
                         <Badge variant="destructive" className="badge-pulse">En retard</Badge>
                       )}
-                      {data!.overdueInvoices === 0 && (
+                      {data!.overdueClientCount === 0 && (
                         <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                           À jour
                         </Badge>
@@ -911,6 +961,72 @@ export default function DashboardView() {
         </motion.div>
       </div>
 
+      {/* ── Row 2.5: Financial Alerts ─────────────────────────────────────── */}
+      {!loading && (
+        <motion.div variants={staggerContainer} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Unpaid Client Invoices */}
+          <motion.div variants={staggerItem}>
+            <Card className={`border-l-4 ${data!.unpaidClientTotal > 0 ? 'border-l-red-400' : 'border-l-green-400'}`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">Factures clients impayées</span>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-bold">{formatCurrency(data!.unpaidClientTotal)}</p>
+                <p className="text-xs text-muted-foreground">{data!.unpaidClientInvoices.length} facture(s)</p>
+                {data!.overdueClientCount > 0 && (
+                  <Badge variant="destructive" className="mt-1 text-[10px]">
+                    <AlertCircle className="h-3 w-3 mr-1" />{data!.overdueClientCount} en retard ({formatCurrency(data!.overdueClientTotal)})
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Unpaid Supplier Invoices */}
+          <motion.div variants={staggerItem}>
+            <Card className="border-l-4 border-l-amber-400">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">Factures fournisseurs impayées</span>
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-bold">{formatCurrency(data!.unpaidSupplierTotal)}</p>
+                <p className="text-xs text-muted-foreground">{data!.unpaidSupplierInvoices.length} facture(s)</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Open Price Requests */}
+          <motion.div variants={staggerItem}>
+            <Card className={`border-l-4 ${data!.openPriceRequestsCount > 0 ? 'border-l-blue-400' : 'border-l-green-400'}`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">Demandes de prix ouvertes</span>
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-bold">{data!.openPriceRequestsCount}</p>
+                <p className="text-xs text-muted-foreground">En attente de réponse ou comparaison</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Pending Purchase Orders */}
+          <motion.div variants={staggerItem}>
+            <Card className={`border-l-4 ${data!.pendingPurchaseOrdersCount > 0 ? 'border-l-violet-400' : 'border-l-green-400'}`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">Commandes fournisseurs en cours</span>
+                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-bold">{formatCurrency(data!.pendingPurchaseOrdersTotal)}</p>
+                <p className="text-xs text-muted-foreground">{data!.pendingPurchaseOrdersCount} commande(s)</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* ── Row 4: Work Orders Status ──────────────────────────────────── */}
       <motion.div variants={staggerItem}>
         {loading ? (
@@ -970,7 +1086,203 @@ export default function DashboardView() {
         )}
       </motion.div>
 
-      {/* ── Row 5: Low Stock + Recent Activity ─────────────────────────── */}
+      {/* ── Row 5: Detailed Tables (Unpaid Invoices + Price Requests) ──── */}
+      {!loading && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Unpaid Invoices */}
+          <motion.div variants={staggerItem}>
+            <Card className="h-full overflow-hidden chart-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  Factures impayées
+                </CardTitle>
+                <CardDescription>Factures clients et fournisseurs en attente de règlement</CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-hidden">
+                <Tabs defaultValue="clients">
+                  <TabsList className="mb-3">
+                    <TabsTrigger value="clients">
+                      Clients ({data!.unpaidClientInvoices.length})
+                      {data!.overdueClientCount > 0 && (
+                        <Badge variant="destructive" className="ml-1.5 text-[10px] px-1.5">{data!.overdueClientCount}</Badge>
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="fournisseurs">
+                      Fournisseurs ({data!.unpaidSupplierInvoices.length})
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="clients">
+                    <div className="max-h-[300px] overflow-y-auto scrollbar-visible">
+                      {data!.unpaidClientInvoices.length === 0 ? (
+                        <div className="text-center py-6 text-muted-foreground text-sm">Aucune facture impayée</div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>N°</TableHead>
+                              <TableHead>Client</TableHead>
+                              <TableHead className="text-right">Reste</TableHead>
+                              <TableHead className="text-right">Échéance</TableHead>
+                              <TableHead>Statut</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {data!.unpaidClientInvoices.map((inv) => {
+                              const remaining = inv.totalTTC - inv.amountPaid
+                              const isOverdue = inv.status === 'overdue' || new Date(inv.dueDate) < new Date()
+                              return (
+                                <TableRow key={inv.number}>
+                                  <TableCell className="font-mono text-xs">{inv.number}</TableCell>
+                                  <TableCell className="text-sm max-w-[100px] truncate">{inv.client.name}</TableCell>
+                                  <TableCell className="text-right font-medium text-sm">{formatCurrency(remaining)}</TableCell>
+                                  <TableCell className="text-right text-xs text-muted-foreground">{format(new Date(inv.dueDate), 'dd/MM/yyyy')}</TableCell>
+                                  <TableCell>
+                                    {isOverdue ? (
+                                      <Badge variant="destructive" className="text-[10px]">En retard</Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="text-[10px]">En attente</Badge>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="fournisseurs">
+                    <div className="max-h-[300px] overflow-y-auto scrollbar-visible">
+                      {data!.unpaidSupplierInvoices.length === 0 ? (
+                        <div className="text-center py-6 text-muted-foreground text-sm">Aucune facture impayée</div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>N°</TableHead>
+                              <TableHead>Fournisseur</TableHead>
+                              <TableHead className="text-right">Reste</TableHead>
+                              <TableHead className="text-right">Échéance</TableHead>
+                              <TableHead>Statut</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {data!.unpaidSupplierInvoices.map((inv) => {
+                              const remaining = inv.totalTTC - inv.amountPaid
+                              const isOverdue = inv.status === 'overdue' || new Date(inv.dueDate) < new Date()
+                              return (
+                                <TableRow key={inv.number}>
+                                  <TableCell className="font-mono text-xs">{inv.number}</TableCell>
+                                  <TableCell className="text-sm max-w-[100px] truncate">{inv.supplier.name}</TableCell>
+                                  <TableCell className="text-right font-medium text-sm">{formatCurrency(remaining)}</TableCell>
+                                  <TableCell className="text-right text-xs text-muted-foreground">{format(new Date(inv.dueDate), 'dd/MM/yyyy')}</TableCell>
+                                  <TableCell>
+                                    {isOverdue ? (
+                                      <Badge variant="destructive" className="text-[10px]">En retard</Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="text-[10px]">En attente</Badge>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Open Price Requests */}
+          <motion.div variants={staggerItem}>
+            <Card className="h-full overflow-hidden chart-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Demandes de prix ouvertes
+                  <Badge variant="secondary">{data!.openPriceRequestsCount}</Badge>
+                </CardTitle>
+                <CardDescription>En attente de devis fournisseurs</CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-hidden">
+                <div className="max-h-[300px] overflow-y-auto scrollbar-visible">
+                  {data!.openPriceRequests.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground text-sm">Aucune demande ouverte</div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>N°</TableHead>
+                          <TableHead>Titre</TableHead>
+                          <TableHead className="text-center">Devis</TableHead>
+                          <TableHead>Statut</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data!.openPriceRequests.map((pr) => {
+                          const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+                            draft: { label: 'Brouillon', variant: 'secondary' },
+                            sent: { label: 'Envoyée', variant: 'outline' },
+                            answered: { label: 'Répondue', variant: 'default' },
+                            partially_answered: { label: 'Partielle', variant: 'outline' },
+                          }
+                          const st = statusMap[pr.status] || { label: pr.status, variant: 'secondary' as const }
+                          return (
+                            <TableRow key={pr.id}>
+                              <TableCell className="font-mono text-xs">{pr.number}</TableCell>
+                              <TableCell className="text-sm max-w-[140px] truncate">{pr.title || '—'}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className="text-[10px]">{pr._count.supplierQuotes}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── Row 5.5: Pending Deliveries + Unreconciled ─────────────────── */}
+      {!loading && (
+        <div className="grid grid-cols-2 gap-4">
+          <motion.div variants={staggerItem}>
+            <Card className="border-l-4 border-l-cyan-400">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-muted-foreground">BL en attente</span>
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-bold">{data!.pendingDeliveries}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+          <motion.div variants={staggerItem}>
+            <Card className={`border-l-4 ${data!.unreconciledTransactions > 0 ? 'border-l-amber-400' : 'border-l-green-400'}`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-muted-foreground">Transactions non rapprochées</span>
+                  <Landmark className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-bold">{data!.unreconciledTransactions}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── Row 6: Low Stock + Recent Activity ─────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Low Stock Alerts */}
         <motion.div variants={staggerItem}>

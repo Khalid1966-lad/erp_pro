@@ -157,6 +157,73 @@ export async function GET(req: NextRequest) {
       _sum: { balance: true },
     })
 
+    // ── Client Invoices (Factures clients) ──────────────────────────────────
+    const unpaidClientInvoices = await db.invoice.findMany({
+      where: { status: { in: ['validated', 'sent', 'overdue', 'partially_paid'] } },
+      select: { number: true, totalTTC: true, amountPaid: true, dueDate: true, status: true, client: { select: { name: true } } },
+      orderBy: { dueDate: 'asc' },
+      take: 10,
+    })
+    const unpaidClientTotal = await db.invoice.aggregate({
+      where: { status: { in: ['validated', 'sent', 'overdue', 'partially_paid'] } },
+      _sum: { totalTTC: true, amountPaid: true },
+    })
+    const overdueClientCount = await db.invoice.count({
+      where: { status: { in: ['overdue'] } },
+    })
+    const overdueClientTotal = await db.invoice.aggregate({
+      where: { status: { in: ['overdue'] } },
+      _sum: { totalTTC: true, amountPaid: true },
+    })
+
+    // ── Supplier Invoices (Factures fournisseurs) ──────────────────────────
+    const unpaidSupplierInvoices = await db.supplierInvoice.findMany({
+      where: { status: { in: ['received', 'verified', 'overdue', 'partially_paid'] } },
+      select: { number: true, totalTTC: true, amountPaid: true, dueDate: true, status: true, supplier: { select: { name: true } } },
+      orderBy: { dueDate: 'asc' },
+      take: 10,
+    })
+    const unpaidSupplierTotal = await db.supplierInvoice.aggregate({
+      where: { status: { in: ['received', 'verified', 'overdue', 'partially_paid'] } },
+      _sum: { totalTTC: true, amountPaid: true },
+    })
+
+    // ── Open Price Requests ────────────────────────────────────────────────
+    const openPriceRequests = await db.priceRequest.findMany({
+      where: { status: { in: ['draft', 'sent', 'answered', 'partially_answered'] } },
+      select: { id: true, number: true, title: true, createdAt: true, status: true, _count: { select: { supplierQuotes: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    })
+    const openPriceRequestsCount = await db.priceRequest.count({
+      where: { status: { in: ['draft', 'sent', 'answered', 'partially_answered'] } },
+    })
+
+    // ── Pending Purchase Orders ────────────────────────────────────────────
+    const pendingPurchaseOrders = await db.purchaseOrder.findMany({
+      where: { status: { in: ['draft', 'sent', 'partially_received'] } },
+      select: { number: true, totalTTC: true, status: true, createdAt: true, supplier: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    })
+    const pendingPurchaseOrdersCount = await db.purchaseOrder.count({
+      where: { status: { in: ['draft', 'sent', 'partially_received'] } },
+    })
+    const pendingPurchaseOrdersTotal = await db.purchaseOrder.aggregate({
+      where: { status: { in: ['draft', 'sent', 'partially_received'] } },
+      _sum: { totalTTC: true },
+    })
+
+    // ── Pending Deliveries ─────────────────────────────────────────────────
+    const pendingDeliveries = await db.deliveryNote.count({
+      where: { status: { in: ['draft', 'confirmed'] } },
+    })
+
+    // ── Unreconciled Bank Transactions ─────────────────────────────────────
+    const unreconciledTransactions = await db.bankTransaction.count({
+      where: { isReconciled: false },
+    })
+
     // Recent activity (last 20 audit logs)
     const recentActivity = await db.auditLog.findMany({
       take: 20,
@@ -181,6 +248,25 @@ export async function GET(req: NextRequest) {
       cashBalance: cashBalanceResult._sum.balance || 0,
       bankBalance: bankBalanceResult._sum.balance || 0,
       recentActivity,
+      // NEW: Client invoices
+      unpaidClientInvoices,
+      unpaidClientTotal: (unpaidClientTotal._sum.totalTTC || 0) - (unpaidClientTotal._sum.amountPaid || 0),
+      overdueClientCount,
+      overdueClientTotal: (overdueClientTotal._sum.totalTTC || 0) - (overdueClientTotal._sum.amountPaid || 0),
+      // NEW: Supplier invoices
+      unpaidSupplierInvoices,
+      unpaidSupplierTotal: (unpaidSupplierTotal._sum.totalTTC || 0) - (unpaidSupplierTotal._sum.amountPaid || 0),
+      // NEW: Price requests
+      openPriceRequests,
+      openPriceRequestsCount,
+      // NEW: Purchase orders
+      pendingPurchaseOrders,
+      pendingPurchaseOrdersCount,
+      pendingPurchaseOrdersTotal: pendingPurchaseOrdersTotal._sum.totalTTC || 0,
+      // NEW: Pending deliveries
+      pendingDeliveries,
+      // NEW: Unreconciled
+      unreconciledTransactions,
     })
   } catch (error) {
     console.error('Dashboard error:', error)

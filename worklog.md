@@ -1,4 +1,43 @@
 ---
+Task ID: enrich-dashboard
+Agent: main
+Task: Enrich dashboard with financial alerts, unpaid invoices, price requests, purchase orders, pending deliveries, unreconciled transactions
+
+Work Log:
+- Task 1: Enriched Dashboard API (src/app/api/dashboard/route.ts)
+  - Added 13 new database queries alongside existing ones (lines 160-225)
+  - Client invoices: unpaid invoices list (top 10), unpaid total, overdue count, overdue total
+  - Supplier invoices: unpaid invoices list (top 10), unpaid total
+  - Price requests: open requests list (top 10), count
+  - Purchase orders: pending orders list (top 10), count, total
+  - Pending deliveries: count of draft/confirmed delivery notes
+  - Unreconciled transactions: count of non-reconciled bank transactions
+  - Added all new fields to JSON response (lines 251-269)
+- Task 2: Updated DashboardData interface (src/components/erp/dashboard/dashboard-view.tsx)
+  - Added 7 new type blocks to interface (lines 203-248)
+  - unpaidClientInvoices[], unpaidClientTotal, overdueClientCount, overdueClientTotal
+  - unpaidSupplierInvoices[], unpaidSupplierTotal
+  - openPriceRequests[], openPriceRequestsCount
+  - pendingPurchaseOrders[], pendingPurchaseOrdersCount, pendingPurchaseOrdersTotal
+  - pendingDeliveries, unreconciledTransactions
+- Task 3: Enhanced Dashboard UI
+  - Added 3 new Lucide icon imports: Receipt, Search, Truck
+  - Added Tabs component import from @/components/ui/tabs
+  - Updated overdue invoices card to use data.overdueClientCount instead of data.overdueInvoices
+  - Added Row 2.5: Financial Alerts (4 compact cards in grid-cols-2 lg:grid-cols-4)
+  - Added Row 5: Detailed Tables (2-column grid with unpaid invoices tabs + price requests table)
+  - Added Row 5.5: Mini-cards for BL en attente + Transactions non rapprochees
+  - All new sections use motion.div with staggerItem variants
+- Lint: 0 errors
+
+Stage Summary:
+- Dashboard API now returns 13 additional data points covering financial health
+- Dashboard UI enriched with 3 new rows: financial alert cards, detailed invoice/price request tables, BL + bank reconciliation mini-cards
+- Existing content preserved: KPIs, revenue chart, pie charts, work orders, low stock, recent activity
+- Files changed: src/app/api/dashboard/route.ts, src/components/erp/dashboard/dashboard-view.tsx
+- Lint: 0 errors
+
+---
 Task ID: 1
 Agent: main
 Task: Rewrite accounting guide, add Excel export & print to accounting view
