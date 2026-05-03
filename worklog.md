@@ -2286,3 +2286,29 @@ Stage Summary:
 - All activity text now displays in French across dashboard and audit log
 - Print footer lines repeat on every A4 page via CSS fixed positioning
 - Commit de8d3bf pushed to main
+---
+Task ID: 1
+Agent: Main
+Task: Comparateur de prix fournisseurs — implémentation complète
+
+Work Log:
+- Analysé le schéma existant: PriceRequest, PriceRequestLine, SupplierQuote, SupplierQuoteLine, PurchaseOrder
+- Modifié prisma/schema.prisma: ajouté targetPrice/maxPrice à PriceRequestLine, deliveryFrequency/selectedForPO à SupplierQuote, availability/deliveryDelay/discount à SupplierQuoteLine
+- Créé /api/price-requests/[id]/comparison/route.ts: API de comparaison avec matrice produits×fournisseurs et scoring pondéré
+- Créé /api/supplier-quotes/[id]/transform/route.ts: API transformation DFR → Commande fournisseur
+- Modifié /api/supplier-quotes/route.ts: support nouveaux champs (availability, deliveryDelay, discount, deliveryFrequency, selectedForPO)
+- Modifié /api/price-requests/route.ts: support targetPrice/maxPrice sur lignes
+- Modifié /api/purchase-orders/route.ts: support supplierQuoteId à la création
+- Créé price-comparison-view.tsx: comparateur multi-fournisseur complet avec scoring, sélection, impression
+- Modifié stores.ts: ajouté ViewId "price-comparison" + openComparison(priceRequestId)
+- Modifié page.tsx: ajouté routeur pour price-comparison view
+- Modifié erp-layout.tsx: ajouté label "Comparateur de prix"
+- Modifié price-requests-view.tsx: bouton "Comparer" (≥2 devis) dans tableau + détail + panel inline
+- Modifié supplier-quotes-view.tsx: bouton "Commande" (transform DFR→PO)
+
+Stage Summary:
+- 12 fichiers modifiés/créés, +1072 lignes
+- Commit c7eb6f6 poussé sur main
+- Scoring: Prix 40%, Délai 20%, Couverture 15%, Note 10%, Paiement 15%
+- ATTENTION: Exécuter "npx prisma db push" après déploiement pour appliquer le nouveau schéma
+
