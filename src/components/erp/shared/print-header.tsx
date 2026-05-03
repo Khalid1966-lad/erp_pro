@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { APP_VERSION } from '@/lib/version'
 
 interface CompanyInfo {
   name: string
@@ -185,12 +186,15 @@ export function PrintFooter({ amount, label }: { amount: number; label: string }
         </div>
       )}
       {footerLines.length > 0 && (
-        <div className="border-t pt-4 mt-4 space-y-1">
+        <div className="border-t pt-4 mt-4 space-y-1 print-footer-section">
           {footerLines.map((line, i) => (
-            <p key={i} className="text-[10px] text-center text-muted-foreground">
+            <p key={i} className="text-[10px] text-center text-muted-foreground leading-relaxed">
               {line}
             </p>
           ))}
+          <p className="text-[8px] text-center text-muted-foreground/50 mt-2">
+            GEMA ERP PRO v{APP_VERSION} — Document généré automatiquement
+          </p>
         </div>
       )}
     </div>

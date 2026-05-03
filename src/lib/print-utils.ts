@@ -121,7 +121,7 @@ function buildHeaderHtml(c: CompanyInfo): string {
     : ''
 
   return `
-    <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:12px;">
+    <div class="print-header" style="display:flex;align-items:flex-start;gap:16px;margin-bottom:12px;">
       ${logoBlock}
       <div style="flex:1;">
         ${c.name ? `<div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">${esc(c.name)}</div>` : ''}
@@ -147,6 +147,8 @@ function buildFooterHtml(amountInWords?: string, footerLines?: string[]): string
     footerLines.forEach(line => {
       html += `<div>${esc(line)}</div>`
     })
+    // Page number line
+    html += `<div class="print-footer-page">Page <span class="page-number"></span> / <span class="total-pages"></span></div>`
     html += `</div>`
   }
   return html
@@ -179,6 +181,11 @@ body {
   line-height: 1.7;
 }
 .print-footer div { margin: 1px 0; }
+.print-footer-page {
+  margin-top: 4px !important;
+  font-size: 8px !important;
+  color: #9ca3af !important;
+}
 
 /* Footer — printed output: fixed at very bottom of EVERY A4 page */
 @media print {
@@ -194,6 +201,25 @@ body {
   }
   .page-wrapper {
     padding-bottom: 35mm; /* prevent content from hiding behind fixed footer */
+  }
+  /* Hide page number in print (CSS counters not supported in html2pdf) */
+  .print-footer-page { display: none; }
+}
+/* Header — printed output: fixed at very top of EVERY A4 page */
+@media print {
+  .print-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin-bottom: 0;
+    padding: 10px 15mm;
+    background: #ffffff;
+    z-index: 10;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  .page-wrapper {
+    padding-top: 50mm; /* prevent content from hiding behind fixed header */
   }
 }
 .doc-title {
