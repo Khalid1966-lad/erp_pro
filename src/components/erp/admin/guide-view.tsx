@@ -65,6 +65,7 @@ const sections: Section[] = [
     { id: 'fournisseurs', label: 'Fournisseurs' },
     { id: 'demandes-prix', label: 'Demandes de prix' },
     { id: 'devis-fournisseurs', label: 'Devis fournisseurs' },
+    { id: 'comparateur-prix', label: 'Comparateur de prix' },
     { id: 'commandes-fournisseurs', label: 'Commandes fournisseurs' },
     { id: 'receptions', label: 'Réceptions' },
     { id: 'bons-retour', label: 'Bons de retour' },
@@ -853,8 +854,740 @@ function AchatsSection() {
       </Paragraph>
 
       <TipBox type="info">
-        Pour comparer facilement les offres, utilisez le tableau de comparaison qui affiche les prix unitaires, les remises et les délais de livraison côte à côte.
+        Pour comparer facilement les offres, utilisez le <strong>Comparateur de prix</strong> (voir section dédiée ci-dessous) qui affiche les prix unitaires, les remises et les délais de livraison côte à côte, avec un <strong>score automatique</strong> pondéré.
       </TipBox>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* COMPARATEUR DE PRIX — Section complète                                       */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      <SubTitle id="achats-comparateur-prix">Comparateur de prix fournisseurs</SubTitle>
+
+      <Paragraph>
+        Le <strong>Comparateur de prix</strong> est un outil d'aide à la décision intégré au module Achats.
+        Il permet de comparer automatiquement plusieurs devis fournisseurs reçus en réponse à une même demande de prix,
+        en les évaluant selon <strong>5 critères pondérés</strong>. Le système calcule un score global pour chaque devis
+        et désigne le fournisseur le plus avantageux.
+      </Paragraph>
+
+      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 mb-6">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-3">
+            <ArrowLeftRight className="h-6 w-6 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-amber-900 mb-1">Comment accéder au comparateur ?</h4>
+              <p className="text-sm text-amber-800">
+                Le bouton <strong>« Comparer »</strong> apparaît automatiquement dans la liste des demandes de prix
+                lorsqu'au moins <strong>2 devis fournisseurs</strong> ont été reçus pour la même demande. Cliquez dessus
+                pour ouvrir la vue comparative.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Flux de travail complet ── */}
+      <SubTitle>Flux de travail complet</SubTitle>
+      <FlowDiagram steps={[
+        { label: 'Créer demande', color: 'bg-cyan-50 border-cyan-200 text-cyan-700', icon: FileText },
+        { label: 'Recevoir devis', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: FileSpreadsheet },
+        { label: 'Comparer', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: ArrowLeftRight },
+        { label: 'Sélectionner', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
+        { label: 'Commander', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: ShoppingCart },
+      ]} />
+
+      {/* ── Étape 1 : Créer la demande de prix ── */}
+      <SubTitle>Étape 1 — Créer la demande de prix</SubTitle>
+      <Paragraph>
+        La première étape consiste à créer une demande de prix détaillant les produits recherchés.
+        Vous pouvez optionnellement indiquer un <strong>prix cible</strong> et un <strong>prix maximum</strong> pour chaque ligne.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Achats → Demandes de prix</strong> et cliquez sur <strong>« + Nouveau »</strong>.</Step>
+      <Step num={2}>Ajoutez les lignes de produits avec les quantités souhaitées.</Step>
+      <Step num={3}>Pour chaque ligne, renseignez optionnellement :
+        <ul className="list-disc list-inside text-sm text-muted-foreground mt-1 space-y-1">
+          <li><strong>Prix cible</strong> : le prix idéal que vous espérez obtenir (indicatif, en DH HT)</li>
+          <li><strong>Prix maximum</strong> : le prix au-delà duquel vous n'accepterez pas (seuil d'alerte, en DH HT)</li>
+        </ul>
+      </Step>
+      <Step num={4}>Enregistrez la demande. Les fournisseurs pourront y répondre avec des devis.</Step>
+
+      <ScreenMock title="Demande de prix — Lignes de produits avec prix cible / maximum">
+        <div className="space-y-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Produit</TableHead>
+                <TableHead className="text-right">Quantité</TableHead>
+                <TableHead className="text-right">Prix cible</TableHead>
+                <TableHead className="text-right">Prix maximum</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[{
+                name: 'Tube PVC Ø110 (4m)',
+                qty: '500',
+                target: '12,00 DH',
+                max: '15,00 DH',
+              }, {
+                name: 'Coude PVC 90° Ø110',
+                qty: '200',
+                target: '4,50 DH',
+                max: '6,00 DH',
+              }, {
+                name: 'Colle PVC 500ml',
+                qty: '50',
+                target: '18,00 DH',
+                max: '22,00 DH',
+              }].map((l, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-sm font-medium">{l.name}</TableCell>
+                  <TableCell className="text-right font-mono text-sm">{l.qty}</TableCell>
+                  <TableCell className="text-right font-mono text-sm text-emerald-600">{l.target}</TableCell>
+                  <TableCell className="text-right font-mono text-sm text-red-500">{l.max}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </ScreenMock>
+
+      <TipBox type="info">
+        Les prix cible et maximum sont <strong>indicatifs</strong> et ne bloquent pas le processus d'achat.
+        Ils servent uniquement de repères visuels dans le comparateur pour identifier rapidement
+        les offres au-dessus du seuil.
+      </TipBox>
+
+      {/* ── Étape 2 : Recevoir les devis fournisseurs ── */}
+      <SubTitle>Étape 2 — Recevoir les devis fournisseurs</SubTitle>
+      <Paragraph>
+        Les fournisseurs répondent à votre demande avec des devis. Chaque devis est lié à la demande de prix
+        et contient les prix proposés pour les produits demandés.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Achats → Devis fournisseurs</strong> et créez un devis pour chaque réponse reçue.</Step>
+      <Step num={2}>Sélectionnez la <strong>demande de prix</strong> associée dans le devis.</Step>
+      <Step num={3}>Ajoutez les lignes correspondant aux produits proposés avec :
+        <ul className="list-disc list-inside text-sm text-muted-foreground mt-1 space-y-1">
+          <li><strong>Prix unitaire HT</strong> : le prix proposé par le fournisseur</li>
+          <li><strong>Remise (%)</strong> : éventuelle réduction accordée</li>
+          <li><strong>Disponibilité</strong> : « En stock », « Sur commande », « Épuisé »…</li>
+          <li><strong>Délai de livraison (jours)</strong> : nombre de jours pour la livraison</li>
+        </ul>
+      </Step>
+      <Step num={4}>Renseignez les informations au niveau du devis :
+        <ul className="list-disc list-inside text-sm text-muted-foreground mt-1 space-y-1">
+          <li><strong>Conditions de paiement</strong> : « 30 jours », « 60 jours », « Comptant »…</li>
+          <li><strong>Fréquence de livraison</strong> : livraison en une seule fois, livraisons échelonnées…</li>
+          <li><strong>Date de validité</strong> : date limite de l'offre</li>
+        </ul>
+      </Step>
+      <Step num={5}>Enregistrez le devis. Répétez l'opération pour chaque fournisseur ayant répondu.</Step>
+
+      <ScreenMock title="Exemple : 3 devis reçus pour la même demande de prix">
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { name: 'AcierPlus Industries', city: 'Tanger', total: '12 450 DH HT', rating: '★★★★☆ (4/5)', color: 'border-emerald-300 bg-emerald-50/50' },
+              { name: 'PlastiMaroc SARL', city: 'Casablanca', total: '11 820 DH HT', rating: '★★★★★ (5/5)', color: 'border-sky-300 bg-sky-50/50' },
+              { name: 'TubExpress', city: 'Kénitra', total: '13 100 DH HT', rating: '★★★☆☆ (3/5)', color: 'border-amber-300 bg-amber-50/50' },
+            ].map((q) => (
+              <div key={q.name} className={cn('rounded-lg border p-3', q.color)}>
+                <p className="font-semibold text-sm">{q.name}</p>
+                <p className="text-xs text-muted-foreground">{q.city}</p>
+                <p className="text-lg font-bold mt-1">{q.total}</p>
+                <p className="text-xs text-amber-600">{q.rating}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </ScreenMock>
+
+      <TipBox type="success">
+        Il faut au minimum <strong>2 devis fournisseurs</strong> liés à la même demande de prix pour que le bouton
+        « Comparer » apparaisse. Plus vous avez de devis, plus la comparaison est pertinente.
+      </TipBox>
+
+      {/* ── Étape 3 : Ouvrir le comparateur ── */}
+      <SubTitle>Étape 3 — Ouvrir le comparateur</SubTitle>
+      <Paragraph>
+        Une fois les devis reçus, le comparateur est accessible directement depuis la liste des demandes de prix.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Achats → Demandes de prix</strong>.</Step>
+      <Step num={2}>Repérez la demande de prix pour laquelle vous avez reçu au moins 2 devis.</Step>
+      <Step num={3}>Cliquez sur le bouton <strong>« Comparer »</strong> (icône de balance) dans la colonne Actions.</Step>
+      <Step num={4}>Le comparateur s'ouvre dans une nouvelle vue avec le tableau comparatif et les scores.</Step>
+
+      {/* ── Étape 4 : Analyser les résultats ── */}
+      <SubTitle>Étape 4 — Analyser les résultats du comparateur</SubTitle>
+      <Paragraph>
+        Le comparateur affiche une vue riche composée de plusieurs zones :
+      </Paragraph>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">🏆 Bandeau du gagnant</CardTitle></CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            En haut de page, un bandeau affiche le <strong>fournisseur recommandé</strong> avec son score total,
+            le montant TTC, le délai de livraison et le taux de couverture des produits.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">📊 Tableau des scores</CardTitle></CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            Un tableau détaillé affiche les <strong>5 sous-scores</strong> (Prix, Livraison, Couverture,
+            Note fournisseur, Paiement) ainsi que le score total pondéré pour chaque devis.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">📋 Matrice produits</CardTitle></CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            Un tableau croisé affiche le <strong>prix de chaque fournisseur</strong> pour chaque produit.
+            Le <strong>meilleur prix</strong> est automatiquement surligné en vert.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">💳 Cartes fournisseurs</CardTitle></CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            Chaque fournisseur dispose d'une carte récapitulative avec barres de progression
+            pour le score prix et livraison, le montant total, et les conditions.
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Étape 5 : Sélectionner un fournisseur ── */}
+      <SubTitle>Étape 5 — Sélectionner un fournisseur</SubTitle>
+      <Paragraph>
+        Après analyse, vous pouvez sélectionner le devis de votre choix, qu'il soit ou non celui recommandé
+        par le système. Le score est une <strong>aide à la décision</strong>, pas une obligation.
+      </Paragraph>
+
+      <Step num={1}>Cliquez sur le bouton <strong>« Sélectionner »</strong> sur la carte du fournisseur choisi.</Step>
+      <Step num={2}>Le devis est marqué comme <strong>sélectionné pour commande</strong> (coche verte visible).</Step>
+      <Step num={3}>Si vous changez d'avis, cliquez à nouveau sur « Sélectionner » pour un autre fournisseur
+        (la sélection précédente sera automatiquement annulée).</Step>
+
+      <TipBox type="warning">
+        Vous pouvez sélectionner un fournisseur <strong>différent de celui recommandé</strong> par le score.
+        Le comparateur est un outil d'aide — la décision finale vous appartient toujours.
+      </TipBox>
+
+      {/* ── Étape 6 : Créer la commande fournisseur ── */}
+      <SubTitle>Étape 6 — Créer la commande fournisseur</SubTitle>
+      <Paragraph>
+        Une fois le devis sélectionné, vous pouvez le transformer directement en commande fournisseur.
+      </Paragraph>
+
+      <Step num={1}>Cliquez sur <strong>« Créer commande »</strong> sur le devis sélectionné.</Step>
+      <Step num={2}>Le système crée automatiquement une <strong>commande fournisseur</strong> avec :
+        <ul className="list-disc list-inside text-sm text-muted-foreground mt-1 space-y-1">
+          <li>Les lignes produits du devis (référence, désignation, quantité, prix unitaire)</li>
+          <li>Les montants HT, TVA et TTC</li>
+          <li>Le lien vers le devis fournisseur d'origine</li>
+        </ul>
+      </Step>
+      <Step num={3}>Vous êtes automatiquement redirigé vers la vue <strong>Commandes fournisseurs</strong> pour finaliser.</Step>
+
+      {/* ── Étape 7 : Imprimer la comparaison ── */}
+      <SubTitle>Étape 7 — Imprimer le rapport de comparaison</SubTitle>
+      <Paragraph>
+        Le comparateur permet d'imprimer un rapport complet pour archivage ou validation.
+      </Paragraph>
+
+      <Step num={1}>Dans la vue du comparateur, cliquez sur <strong>« Imprimer »</strong>.</Step>
+      <Step num={2}>Le rapport inclut la matrice produits, le tableau des scores et les informations fournisseur.</Step>
+      <Step num={3}>Le document est optimisé pour le format <strong>A4</strong> avec en-tête et pied de page de l'entreprise.</Step>
+
+      <TipBox type="success">
+        Le rapport imprimé est utile pour <strong>justifier votre choix</strong> auprès de la direction
+        ou pour l'archivage dans le dossier d'achat.
+      </TipBox>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* SYSTÈME DE PONDÉRATION                                                   */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      <SubTitle>Système de notation — Pondérations</SubTitle>
+      <Paragraph>
+        Chaque devis fournisseur est évalué selon <strong>5 critères</strong>, chacun ayant une pondération
+        spécifique dans le score total. Le score de chaque critère est calculé sur une échelle de <strong>0 à 100</strong>.
+      </Paragraph>
+
+      {/* Tableau des pondérations */}
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Tableau des pondérations</CardTitle>
+          <CardDescription>Répartition des critères dans le score total</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8">#</TableHead>
+                <TableHead>Critère</TableHead>
+                <TableHead className="text-center">Pondération</TableHead>
+                <TableHead>Plage de score</TableHead>
+                <TableHead>Logique</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { num: 1, critere: '💰 Prix', poids: '40 %', plage: '0 – 100', logique: 'Plus le prix est bas, plus le score est élevé' },
+                { num: 2, critere: '🚚 Délai de livraison', poids: '20 %', plage: '0 – 100', logique: 'Plus le délai est court, plus le score est élevé' },
+                { num: 3, critere: '📦 Couverture des produits', poids: '15 %', plage: '0 – 100', logique: 'Plus le devis couvre de produits, plus le score est élevé' },
+                { num: 4, critere: '⭐ Note fournisseur', poids: '10 %', plage: '0 – 100', logique: 'Meilleure est la note du fournisseur, plus le score est élevé' },
+                { num: 5, critere: '💳 Conditions de paiement', poids: '15 %', plage: '0 – 100', logique: 'Plus le délai de paiement est long, plus le score est élevé' },
+              ].map((r) => (
+                <TableRow key={r.num}>
+                  <TableCell className="text-center font-bold text-primary">{r.num}</TableCell>
+                  <TableCell className="font-medium text-sm">{r.critere}</TableCell>
+                  <TableCell className="text-center font-mono text-xs font-bold">{r.poids}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{r.plage}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.logique}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <TipBox type="info">
+        Le <strong>prix total</strong> représente <strong>40 %</strong> du score, ce qui en fait le critère le plus important.
+        Mais les autres critères (délai, couverture, note fournisseur, paiement) comptent pour les <strong>60 % restants</strong>,
+        ce qui permet d'éviter de choisir un fournisseur uniquement sur le prix.
+      </TipBox>
+
+      {/* ── Détail du calcul de chaque critère ── */}
+      <SubTitle>Calcul détaillé de chaque critère</SubTitle>
+
+      {/* Critère 1 : Prix */}
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">1</span>
+            💰 Critère Prix — Pondération <strong>40 %</strong>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <Paragraph>
+            Le score prix mesure la <strong>compétitivité globale</strong> d'un devis par rapport au meilleur prix
+            constaté pour chaque produit. Il ne compare pas seulement le total, mais le prix produit par produit.
+          </Paragraph>
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <p className="font-semibold text-foreground text-xs uppercase tracking-wider">Formule :</p>
+            <div className="font-mono text-xs space-y-1">
+              <p>1. Pour chaque produit, calculer l'écart : <code className="bg-background px-1 rounded">écart = (prix_fournisseur − meilleur_prix) / meilleur_prix</code></p>
+              <p>2. Calculer la moyenne des écarts sur tous les produits couverts : <code className="bg-background px-1 rounded">écart_moyen = Σ écarts / nombre_produits</code></p>
+              <p>3. Score = <code className="bg-background px-1 rounded">100 − (écart_moyen × 200)</code></p>
+              <p>4. Le score est ramené entre <strong>0</strong> et <strong>100</strong>.</p>
+            </div>
+          </div>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <p className="font-semibold text-emerald-800 text-xs mb-1">📌 Exemple :</p>
+            <p className="text-xs text-emerald-700">
+              Le fournisseur A propose un tube à <strong>12,50 DH</strong>, le meilleur prix est <strong>11,80 DH</strong>.
+              Écart = (12,50 − 11,80) / 11,80 = <strong>5,93 %</strong>.<br />
+              Si l'écart moyen sur tous les produits est de 8 %, le score = 100 − (0,08 × 200) = <strong>84 / 100</strong>.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Critère 2 : Délai de livraison */}
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-sky-100 text-sky-700 text-xs font-bold">2</span>
+            🚚 Critère Délai de livraison — Pondération <strong>20 %</strong>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <Paragraph>
+            Le score délai évalue la <strong>rapidité de livraison</strong> annoncée par le fournisseur.
+            Un délai de 1 jour obtient le score maximal, et le score diminue de 3 points par jour supplémentaire.
+          </Paragraph>
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <p className="font-semibold text-foreground text-xs uppercase tracking-wider">Formule :</p>
+            <div className="font-mono text-xs space-y-1">
+              <p>Score = <code className="bg-background px-1 rounded">100 − ((délai_en_jours − 1) × 3)</code></p>
+              <p>Le score est ramené entre <strong>0</strong> et <strong>100</strong>.</p>
+              <p>Si le délai n'est pas renseigné, la valeur par défaut est <strong>7 jours</strong>.</p>
+            </div>
+          </div>
+          <div className="bg-sky-50 border border-sky-200 rounded-lg p-3">
+            <p className="font-semibold text-sky-800 text-xs mb-1">📌 Exemples :</p>
+            <ul className="text-xs text-sky-700 space-y-1">
+              <li>Délai <strong>3 jours</strong> → Score = 100 − (2 × 3) = <strong>94 / 100</strong></li>
+              <li>Délai <strong>7 jours</strong> → Score = 100 − (6 × 3) = <strong>82 / 100</strong></li>
+              <li>Délai <strong>15 jours</strong> → Score = 100 − (14 × 3) = <strong>58 / 100</strong></li>
+              <li>Délai <strong>30 jours</strong> → Score = 100 − (29 × 3) = <strong>13 / 100</strong> (ramené à 0)</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Critère 3 : Couverture */}
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-violet-100 text-violet-700 text-xs font-bold">3</span>
+            📦 Critère Couverture des produits — Pondération <strong>15 %</strong>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <Paragraph>
+            Le score couverture mesure la <strong>proportion de produits demandés</strong> que le fournisseur
+            propose effectivement dans son devis. Un devis qui couvre tous les produits obtient 100.
+          </Paragraph>
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <p className="font-semibold text-foreground text-xs uppercase tracking-wider">Formule :</p>
+            <div className="font-mono text-xs space-y-1">
+              <p>Score = <code className="bg-background px-1 rounded">(produits_couverts / total_produits_demandés) × 100</code></p>
+            </div>
+          </div>
+          <div className="bg-violet-50 border border-violet-200 rounded-lg p-3">
+            <p className="font-semibold text-violet-800 text-xs mb-1">📌 Exemple :</p>
+            <p className="text-xs text-violet-700">
+              Vous avez demandé <strong>5 produits</strong>. Le fournisseur A en propose 5 → Score = <strong>100 / 100</strong>.<br />
+              Le fournisseur B n'en propose que 3 → Score = (3/5) × 100 = <strong>60 / 100</strong>.<br />
+              Le fournisseur C n'en propose que 1 → Score = (1/5) × 100 = <strong>20 / 100</strong>.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Critère 4 : Note fournisseur */}
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">4</span>
+            ⭐ Critère Note fournisseur — Pondération <strong>10 %</strong>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <Paragraph>
+            Ce critère utilise la <strong>note attribuée au fournisseur</strong> dans sa fiche (de 1 à 5 étoiles).
+            Il récompense la fiabilité et la qualité de service du fournisseur sur le long terme.
+          </Paragraph>
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <p className="font-semibold text-foreground text-xs uppercase tracking-wider">Formule :</p>
+            <div className="font-mono text-xs space-y-1">
+              <p>Score = <code className="bg-background px-1 rounded">(note_fournisseur / 5) × 100</code></p>
+              <p>Si aucune note n'est attribuée, la note par défaut est <strong>3/5 → 60/100</strong>.</p>
+            </div>
+          </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="font-semibold text-amber-800 text-xs mb-1">📌 Exemples :</p>
+            <ul className="text-xs text-amber-700 space-y-1">
+              <li>Note <strong>5/5</strong> (excellent) → Score = <strong>100 / 100</strong></li>
+              <li>Note <strong>4/5</strong> (très bon) → Score = <strong>80 / 100</strong></li>
+              <li>Note <strong>3/5</strong> (moyen) → Score = <strong>60 / 100</strong></li>
+              <li>Note <strong>2/5</strong> (médiocre) → Score = <strong>40 / 100</strong></li>
+              <li>Note <strong>1/5</strong> (mauvais) → Score = <strong>20 / 100</strong></li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Critère 5 : Conditions de paiement */}
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">5</span>
+            💳 Critère Conditions de paiement — Pondération <strong>15 %</strong>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <Paragraph>
+            Les conditions de paiement sont évaluées selon des <strong>paliers prédéfinis</strong>.
+            Un délai de paiement plus long est considéré comme avantageux (meilleure trésorerie pour l'acheteur).
+          </Paragraph>
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <p className="font-semibold text-foreground text-xs uppercase tracking-wider">Barème :</p>
+            <div className="font-mono text-xs">
+              <p>• « 90 jours » ou similaire → <strong>90 / 100</strong></p>
+              <p>• « 60 jours » ou similaire → <strong>80 / 100</strong></p>
+              <p>• Autres conditions → <strong>60 / 100</strong> (valeur par défaut)</p>
+              <p>• « Comptant » ou paiement immédiat → <strong>30 / 100</strong></p>
+            </div>
+          </div>
+          <div className="bg-rose-50 border border-rose-200 rounded-lg p-3">
+            <p className="font-semibold text-rose-800 text-xs mb-1">📌 Exemples :</p>
+            <ul className="text-xs text-rose-700 space-y-1">
+              <li>« 90 jours fin de mois » → <strong>90 / 100</strong></li>
+              <li>« 60 jours net » → <strong>80 / 100</strong></li>
+              <li>« 30 jours » → <strong>60 / 100</strong></li>
+              <li>« À la commande » → <strong>60 / 100</strong></li>
+              <li>« Comptant » ou « À la livraison » → <strong>30 / 100</strong></li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Formule du score total ── */}
+      <SubTitle>Formule du score total</SubTitle>
+      <Paragraph>
+        Le score total de chaque devis est la <strong>somme pondérée</strong> des 5 sous-scores :
+      </Paragraph>
+
+      <div className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-xl p-5 mb-6">
+        <p className="font-semibold text-foreground text-sm mb-3 text-center">Score total =</p>
+        <div className="font-mono text-sm text-center space-y-2">
+          <p>(Prix × <span className="text-emerald-600 font-bold">40 %</span>) + (Livraison × <span className="text-sky-600 font-bold">20 %</span>) + (Couverture × <span className="text-violet-600 font-bold">15 %</span>) + (Note × <span className="text-amber-600 font-bold">10 %</span>) + (Paiement × <span className="text-rose-600 font-bold">15 %</span>)</p>
+        </div>
+      </div>
+
+      {/* ── Code couleur des scores ── */}
+      <SubTitle>Code couleur des scores</SubTitle>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Plage de score</TableHead>
+                <TableHead>Couleur</TableHead>
+                <TableHead>Signification</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-mono font-bold text-emerald-600">≥ 75</TableCell>
+                <TableCell><span className="inline-block w-4 h-4 rounded bg-emerald-500" /></TableCell>
+                <TableCell className="text-sm text-emerald-700 font-medium">Excellent — Offre très compétitive</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono font-bold text-amber-600">50 – 74</TableCell>
+                <TableCell><span className="inline-block w-4 h-4 rounded bg-amber-500" /></TableCell>
+                <TableCell className="text-sm text-amber-700 font-medium">Acceptable — Offre correcte</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono font-bold text-red-600">&lt; 50</TableCell>
+                <TableCell><span className="inline-block w-4 h-4 rounded bg-red-500" /></TableCell>
+                <TableCell className="text-sm text-red-700 font-medium">Faible — Offre peu compétitive</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* ── Exemple complet de calcul ── */}
+      <SubTitle>Exemple complet de calcul</SubTitle>
+      <Paragraph>
+        Voici un exemple concret pour comprendre comment le système calcule les scores.
+        Imaginons une demande de prix pour <strong>3 produits</strong> avec <strong>2 devis reçus</strong> :
+      </Paragraph>
+
+      {/* Matrice produits de l'exemple */}
+      <ScreenMock title="Matrice produits — Exemple comparatif">
+        <div className="space-y-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Produit</TableHead>
+                <TableHead className="text-right">Qté</TableHead>
+                <TableHead className="text-right">Prix cible</TableHead>
+                <TableHead className="text-right">Meilleur prix</TableHead>
+                <TableHead className="text-right">Fournisseur A</TableHead>
+                <TableHead className="text-right">Fournisseur B</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { name: 'Tube PVC Ø110', qty: '500', target: '12,00', best: '11,80', fa: '12,50', fb: '11,80' },
+                { name: 'Coude 90° Ø110', qty: '200', target: '4,50', best: '4,20', fa: '4,80', fb: '4,20' },
+                { name: 'Colle PVC 500ml', qty: '50', target: '18,00', best: '17,50', fa: '—', fb: '17,50' },
+              ].map((l, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-sm font-medium">{l.name}</TableCell>
+                  <TableCell className="text-right font-mono text-sm">{l.qty}</TableCell>
+                  <TableCell className="text-right font-mono text-xs text-muted-foreground">{l.target}</TableCell>
+                  <TableCell className="text-right font-mono text-sm text-emerald-600 font-bold">{l.best}</TableCell>
+                  <TableCell className={cn('text-right font-mono text-sm', l.fa === '—' ? 'text-muted-foreground' : '')}>{l.fa}</TableCell>
+                  <TableCell className="text-right font-mono text-sm text-emerald-600 font-medium">{l.fb}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-block w-3 h-3 rounded bg-emerald-500" /> Meilleur prix
+          </div>
+        </div>
+      </ScreenMock>
+
+      {/* Informations fournisseurs de l'exemple */}
+      <ScreenMock title="Informations des devis — Exemple">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-lg border border-sky-200 bg-sky-50/50 p-3">
+            <p className="font-semibold text-sm">Fournisseur A — AcierPlus</p>
+            <div className="text-xs text-muted-foreground space-y-1 mt-2">
+              <p>📦 Couverture : <strong>2/3 produits</strong> (pas de colle)</p>
+              <p>🚚 Délai : <strong>5 jours</strong></p>
+              <p>⭐ Note : <strong>4/5</strong></p>
+              <p>💳 Paiement : <strong>30 jours</strong></p>
+              <p>💰 Total HT : <strong>7 410 DH</strong></p>
+            </div>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+            <p className="font-semibold text-sm">Fournisseur B — PlastiMaroc</p>
+            <div className="text-xs text-muted-foreground space-y-1 mt-2">
+              <p>📦 Couverture : <strong>3/3 produits</strong></p>
+              <p>🚚 Délai : <strong>10 jours</strong></p>
+              <p>⭐ Note : <strong>5/5</strong></p>
+              <p>💳 Paiement : <strong>60 jours</strong></p>
+              <p>💰 Total HT : <strong>7 215 DH</strong></p>
+            </div>
+          </div>
+        </div>
+      </ScreenMock>
+
+      {/* Calcul détaillé */}
+      <SubTitle>Calcul pas à pas</SubTitle>
+
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Fournisseur A — AcierPlus Industries</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start gap-3 p-2 rounded bg-emerald-50/50">
+              <span className="font-bold text-emerald-600 w-24 shrink-0">Prix (40%)</span>
+              <span className="text-muted-foreground">
+                Tube : (12,50−11,80)/11,80 = 5,93% | Coude : (4,80−4,20)/4,20 = 14,29%<br />
+                Écart moyen = (5,93 + 14,29) / 2 = 10,11% → Score = 100 − (0,1011 × 200) = <strong className="text-foreground">80</strong>
+              </span>
+            </div>
+            <div className="flex items-start gap-3 p-2 rounded bg-sky-50/50">
+              <span className="font-bold text-sky-600 w-24 shrink-0">Livraison (20%)</span>
+              <span className="text-muted-foreground">
+                Délai = 5 jours → Score = 100 − (4 × 3) = <strong className="text-foreground">88</strong>
+              </span>
+            </div>
+            <div className="flex items-start gap-3 p-2 rounded bg-violet-50/50">
+              <span className="font-bold text-violet-600 w-24 shrink-0">Couverture (15%)</span>
+              <span className="text-muted-foreground">
+                2 produits sur 3 → Score = (2/3) × 100 = <strong className="text-foreground">67</strong>
+              </span>
+            </div>
+            <div className="flex items-start gap-3 p-2 rounded bg-amber-50/50">
+              <span className="font-bold text-amber-600 w-24 shrink-0">Note (10%)</span>
+              <span className="text-muted-foreground">
+                4/5 étoiles → Score = (4/5) × 100 = <strong className="text-foreground">80</strong>
+              </span>
+            </div>
+            <div className="flex items-start gap-3 p-2 rounded bg-rose-50/50">
+              <span className="font-bold text-rose-600 w-24 shrink-0">Paiement (15%)</span>
+              <span className="text-muted-foreground">
+                30 jours → Score = <strong className="text-foreground">60</strong>
+              </span>
+            </div>
+            <Separator className="my-2" />
+            <div className="flex items-center gap-3 p-2 rounded bg-primary/5 font-semibold">
+              <span className="w-24 shrink-0">Total :</span>
+              <span className="font-mono text-sm">
+                (80×0,40) + (88×0,20) + (67×0,15) + (80×0,10) + (60×0,15) = 32 + 17,6 + 10,05 + 8 + 9 = <strong className="text-primary">76,65 ≈ 77 / 100</strong>
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Fournisseur B — PlastiMaroc SARL</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start gap-3 p-2 rounded bg-emerald-50/50">
+              <span className="font-bold text-emerald-600 w-24 shrink-0">Prix (40%)</span>
+              <span className="text-muted-foreground">
+                Tube : (11,80−11,80)/11,80 = 0% | Coude : (4,20−4,20)/4,20 = 0% | Colle : 0%<br />
+                Écart moyen = 0% → Score = 100 − (0 × 200) = <strong className="text-foreground">100</strong>
+              </span>
+            </div>
+            <div className="flex items-start gap-3 p-2 rounded bg-sky-50/50">
+              <span className="font-bold text-sky-600 w-24 shrink-0">Livraison (20%)</span>
+              <span className="text-muted-foreground">
+                Délai = 10 jours → Score = 100 − (9 × 3) = <strong className="text-foreground">73</strong>
+              </span>
+            </div>
+            <div className="flex items-start gap-3 p-2 rounded bg-violet-50/50">
+              <span className="font-bold text-violet-600 w-24 shrink-0">Couverture (15%)</span>
+              <span className="text-muted-foreground">
+                3 produits sur 3 → Score = (3/3) × 100 = <strong className="text-foreground">100</strong>
+              </span>
+            </div>
+            <div className="flex items-start gap-3 p-2 rounded bg-amber-50/50">
+              <span className="font-bold text-amber-600 w-24 shrink-0">Note (10%)</span>
+              <span className="text-muted-foreground">
+                5/5 étoiles → Score = (5/5) × 100 = <strong className="text-foreground">100</strong>
+              </span>
+            </div>
+            <div className="flex items-start gap-3 p-2 rounded bg-rose-50/50">
+              <span className="font-bold text-rose-600 w-24 shrink-0">Paiement (15%)</span>
+              <span className="text-muted-foreground">
+                60 jours → Score = <strong className="text-foreground">80</strong>
+              </span>
+            </div>
+            <Separator className="my-2" />
+            <div className="flex items-center gap-3 p-2 rounded bg-primary/5 font-semibold">
+              <span className="w-24 shrink-0">Total :</span>
+              <span className="font-mono text-sm">
+                (100×0,40) + (73×0,20) + (100×0,15) + (100×0,10) + (80×0,15) = 40 + 14,6 + 15 + 10 + 12 = <strong className="text-primary">91,60 ≈ 92 / 100</strong>
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Résultat final de l'exemple */}
+      <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 mb-6">
+        <CardContent className="p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-emerald-900">Résultat : PlastiMaroc SARL recommandé</h4>
+              <p className="text-sm text-emerald-700">Score total : <strong>92 / 100</strong> vs 77 / 100 pour AcierPlus</p>
+            </div>
+          </div>
+          <div className="text-sm text-emerald-800 space-y-1">
+            <p>Bien que PlastiMaroc ait un délai de livraison plus long (10j vs 5j), il compense par :</p>
+            <ul className="list-disc list-inside ml-2 space-y-0.5">
+              <li>Le <strong>meilleur prix sur tous les produits</strong> (score prix = 100)</li>
+              <li>La <strong>couverture complète</strong> des 3 produits demandés</li>
+              <li>Une <strong>note fournisseur parfaite</strong> (5/5)</li>
+              <li>Des <strong>conditions de paiement avantageuses</strong> (60 jours)</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Conseils pratiques */}
+      <SubTitle>Conseils pratiques</SubTitle>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <TipBox type="success">
+          <strong>Exprimez vos besoins clairement</strong> dans la demande de prix pour que les devis soient comparables.
+          Spécifiez les références, quantités et qualités attendues.
+        </TipBox>
+        <TipBox type="success">
+          <strong>Maintenez les notes fournisseurs à jour</strong> pour que le critère « Note » reflète la réalité.
+          Réévaluez-les périodiquement.
+        </TipBox>
+        <TipBox type="warning">
+          <strong>Ne vous fiez pas au score seul.</strong> Un fournisseur avec un score de 92 n'est pas forcément le meilleur
+          si vous avez des contraintes spécifiques (urgence, relation historique, volume minimum).
+        </TipBox>
+        <TipBox type="info">
+          <strong>Utilisez le rapport imprimé</strong> pour documenter vos décisions d'achat et les justifier
+          en cas d'audit interne ou de contrôle.
+        </TipBox>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* FIN COMPARATEUR DE PRIX                                                  */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
 
       {/* Commandes fournisseurs */}
       <SubTitle id="achats-commandes-fournisseurs">Commandes fournisseurs</SubTitle>

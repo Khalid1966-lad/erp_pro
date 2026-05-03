@@ -2312,3 +2312,36 @@ Stage Summary:
 - Scoring: Prix 40%, Délai 20%, Couverture 15%, Note 10%, Paiement 15%
 - ATTENTION: Exécuter "npx prisma db push" après déploiement pour appliquer le nouveau schéma
 
+---
+Task ID: 1
+Agent: Main Agent
+Task: Documenter le Comparateur de Prix dans le guide d'utilisation avec exemples et pondérations
+
+Work Log:
+- Analysé la structure existante du guide-view.tsx (2200+ lignes, composants réutilisables)
+- Ajouté l'entrée « Comparateur de prix » dans la navigation Achats (section children)
+- Créé une section complète « achats-comparateur-prix » avec :
+  - Présentation générale et carte d'accès
+  - Flux de travail complet en 7 étapes (FlowDiagram)
+  - Étape 1 : Créer la demande de prix (avec prix cible/max) + ScreenMock
+  - Étape 2 : Recevoir les devis fournisseurs + ScreenMock (3 devis)
+  - Étape 3 : Ouvrir le comparateur
+  - Étape 4 : Analyser les résultats (4 cartes : bandeau gagnant, scores, matrice, cartes)
+  - Étape 5 : Sélectionner un fournisseur
+  - Étape 6 : Créer la commande fournisseur
+  - Étape 7 : Imprimer le rapport
+  - Tableau des pondérations (5 critères avec colonnes #, Critère, Pondération, Plage, Logique)
+  - Calcul détaillé de chaque critère (5 cartes avec formule + exemples chiffrés)
+  - Formule du score total (bloc visuel avec couleurs par critère)
+  - Code couleur des scores (≥75 vert, 50-74 amber, <50 rouge)
+  - Exemple complet de calcul (matrice 3 produits, 2 fournisseurs, calcul pas à pas)
+  - Résultat final avec justification
+  - 4 conseils pratiques (TipBox)
+- Mis à jour le TipBox existant des devis fournisseurs pour pointer vers la nouvelle section
+- Vérifié les imports (Separator, CardDescription déjà présents)
+- Lint passé sans erreur
+
+Stage Summary:
+- Section « Comparateur de prix » complète ajoutée au guide d'utilisation
+- Documentation couvre : workflow 7 étapes, 5 critères pondérés, formules de calcul, exemples chiffrés, code couleur, conseils
+- Fichier modifié : src/components/erp/admin/guide-view.tsx (+700 lignes environ)
