@@ -24,8 +24,9 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Plus, Trash2, BookOpen, Scale, Layers, AlertCircle, CheckCircle2, Search, Pencil
+  Plus, Trash2, BookOpen, Scale, Layers, AlertCircle, CheckCircle2, Search, Pencil, Download, Printer
 } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -292,6 +293,46 @@ export default function AccountingView() {
     setBatchEntries(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handleExportExcel = () => {
+    const rows = filteredEntries.map(e => ({
+      Date: format(new Date(e.date), 'dd/MM/yyyy'),
+      Compte: e.account,
+      Libellé: e.label,
+      Débit: e.debit || '',
+      Crédit: e.credit || '',
+      Pièce: e.documentRef || '',
+    }))
+    rows.push({
+      Date: '',
+      Compte: '',
+      Libellé: 'TOTAUX',
+      Débit: filteredTotals.totalDebit,
+      Crédit: filteredTotals.totalCredit,
+      Pièce: '',
+    })
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [
+      { wch: 14 }, { wch: 12 }, { wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 20 },
+    ]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Journal')
+    const dateStr = format(new Date(), 'yyyy-MM-dd')
+    XLSX.writeFile(wb, `journal-comptable-${dateStr}.xlsx`)
+  }
+
+  const handlePrint = () => {
+    const el = document.getElementById('printable-accounting')
+    if (el) {
+      el.setAttribute('data-print-date', `Imprimé le ${format(new Date(), 'dd/MM/yyyy à HH:mm')}`)
+    }
+    document.body.classList.add('print-accounting-mode')
+    window.print()
+    setTimeout(() => {
+      document.body.classList.remove('print-accounting-mode')
+      if (el) el.removeAttribute('data-print-date')
+    }, 500)
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -327,6 +368,14 @@ export default function AccountingView() {
           <Button onClick={openBatch} size="sm">
             <Layers className="h-4 w-4 mr-1" />
             Opération multiple
+          </Button>
+          <Button onClick={handleExportExcel} size="sm" variant="outline">
+            <Download className="h-4 w-4 mr-1" />
+            Export Excel
+          </Button>
+          <Button onClick={handlePrint} size="sm" variant="outline">
+            <Printer className="h-4 w-4 mr-1" />
+            Imprimer
           </Button>
         </div>
       </div>
@@ -407,6 +456,7 @@ export default function AccountingView() {
       </div>
 
       {/* Journal Table */}
+      <div id="printable-accounting">
       <Card>
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
@@ -520,6 +570,8 @@ export default function AccountingView() {
           </div>
         </CardContent>
       </Card>
+
+      </div>
 
       {/* Single Entry Dialog */}
       <Dialog open={singleDialogOpen} onOpenChange={setSingleDialogOpen}>

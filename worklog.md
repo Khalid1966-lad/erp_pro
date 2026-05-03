@@ -1,4 +1,37 @@
 ---
+Task ID: 1
+Agent: main
+Task: Rewrite accounting guide, add Excel export & print to accounting view
+
+Work Log:
+- Task 1: Rewrote the accounting help section in guide-view.tsx (lines 2436-2768)
+  - Replaced minimal 10-line Comptabilité section with comprehensive 330-line guide
+  - Added 8 sub-sections: Journal Comptable explanation, Écriture simple, Champs du formulaire, Opération multiple, Modifier/Supprimer, Comptes disponibles, Filtres, Export & Impression
+  - Added 2 concrete examples in ScreenMock tables: RADEEMA electricity bill (3 lines, 1,250 DH TTC) and TechnoMat client payment by bank transfer (2 lines, 3,195.20 DH)
+  - Added available accounts table (9 accounts: 411000, 401000, 706000, 445710, 445660, 512000, 530000, 606000, 370000)
+  - Added filter documentation with 3 info cards (Search, Compte, Date)
+  - Added export/print documentation with 2 info cards
+  - Added 3 new Lucide imports: Pencil, Trash2, Calendar, Search
+- Task 2: Added Excel export to accounting-view.tsx
+  - Added `import * as XLSX from 'xlsx'` and `Download` icon from lucide-react
+  - Added `handleExportExcel` function: maps filteredEntries to rows with Date, Compte, Libellé, Débit, Crédit, Pièce columns
+  - Added totals row, column widths, downloads as `journal-comptable-YYYY-MM-DD.xlsx`
+  - Added Export Excel button next to Opération multiple button
+- Task 3: Added print functionality to accounting-view.tsx
+  - Added `Printer` icon from lucide-react
+  - Added `handlePrint` function: sets data-print-date attribute, adds print-accounting-mode class to body, calls window.print(), cleans up after 500ms
+  - Wrapped journal table in `<div id="printable-accounting">` for print targeting
+  - Added Imprimer button next to Export Excel button
+  - Added print CSS to globals.css: hides non-printable elements, removes max-height scroll, hides Actions column, adds print header with "Journal Comptable — GEMA ERP PRO" and date, table borders, clean formatting
+- Lint: 0 errors
+
+Stage Summary:
+- Guide: 330-line comprehensive accounting help section with examples, tables, and step-by-step instructions in French
+- Excel export: filtered entries exported to .xlsx with totals row and proper formatting
+- Print: clean print output with header, date, table borders, hidden UI elements
+- Files changed: src/components/erp/admin/guide-view.tsx, src/components/erp/finance/accounting-view.tsx, src/app/globals.css
+
+---
 Task ID: 8
 Agent: main
 Task: Fix backup creation button not working

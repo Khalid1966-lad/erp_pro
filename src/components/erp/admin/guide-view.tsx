@@ -13,7 +13,7 @@ import {
   ArrowRight, Info, AlertCircle, CircleDot, ArrowDown, Eye,
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
-  FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database,
+  FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database, Pencil, Trash2, Calendar, Search,
   Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Hammer, Globe, Hash, Zap, Send, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -2435,14 +2435,335 @@ function FinanceSection() {
 
       {/* Comptabilité */}
       <SubTitle id="finance-comptabilite">Comptabilité</SubTitle>
+
+      <SubTitle>Qu'est-ce que le Journal Comptable ?</SubTitle>
       <Paragraph>
-        Le sous-module Comptabilité offre une vue d'ensemble des écritures comptables générées automatiquement
-        par les opérations commerciales (factures, paiements, avoirs). Les écritures sont classées par journal
-        et par période.
+        Le <strong>Journal Comptable</strong> est le registre central qui enregistre <strong>toutes les opérations financières</strong> de l'entreprise.
+        Il fonctionne selon le principe de la <strong>comptabilité en partie double</strong> : chaque opération affecte au moins
+        deux comptes — un compte <strong>débité</strong> (Débit) et un compte <strong>crédité</strong> (Crédit) — et le total des débits
+        doit toujours être égal au total des crédits.
+      </Paragraph>
+      <Paragraph>
+        Par exemple, un achat de marchandises sera enregistré au débit du compte « Achats » et au crédit du compte « Fournisseurs ».
+        Cette méthode garantit l'<strong>équilibre comptable</strong> et permet de dresser un bilan et un compte de résultat à tout moment.
+      </Paragraph>
+
+      <TipBox type="info">
+        Le journal comptable de GEMA ERP PRO vous permet de créer, modifier et consulter les écritures manuellement, en plus des écritures
+        générées automatiquement par les factures, paiements et avoirs.
+      </TipBox>
+
+      {/* ─── Écriture simple ─── */}
+      <SubTitle>Créer une écriture simple</SubTitle>
+      <Paragraph>
+        Une <strong>écriture simple</strong> permet d'enregistrer rapidement une opération comptable ponctuelle (une seule ligne de débit
+        et une seule ligne de crédit). Suivez les étapes ci-dessous :
+      </Paragraph>
+
+      <Step num={1}>Cliquez sur le bouton <strong>« Écriture simple »</strong> en haut à droite de l'écran comptable.</Step>
+      <Step num={2}>Remplissez le formulaire avec les informations de l'écriture (voir les champs ci-dessous).</Step>
+      <Step num={3}>Vérifiez que les montants sont corrects, puis cliquez sur <strong>« Enregistrer »</strong>.</Step>
+
+      <SubTitle>Champs du formulaire</SubTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Date</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Date de l'opération comptable. Par défaut, la date du jour est proposée.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Hash className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Compte</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Sélectionnez le compte comptable concerné dans la liste déroulante (voir la table des comptes ci-dessous).</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Libellé</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Description de l'opération. Exemple : « Achat fournitures bureau » ou « Paiement client Dupont ».</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Calculator className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Débit / Crédit</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Montant au débit (en rouge) ou au crédit (en vert). Un seul des deux champs doit être renseigné par écriture simple.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Receipt className="h-4 w-4 text-primary" />
+            <span className="font-semibold text-sm">Référence pièce</span>
+          </div>
+          <p className="text-sm text-muted-foreground">Numéro de la facture, du bon de commande ou du justificatif lié à cette écriture. Ce champ est facultatif mais recommandé pour la traçabilité.</p>
+        </CardContent>
+      </Card>
+
+      <TipBox type="success">
+        <strong>Exemple concret :</strong> Paiement de la facture RADEEMA d'électricité de 1 250 DH (TTC).
+        Cet achat se décompose en : montant HT (601000 Achats) = 1 041,67 DH + TVA (445660 TVA déductible) = 208,33 DH = 1 250 DH TTC (401000 Fournisseurs).
+        Vous devez créer une <strong>opération multiple</strong> (voir section suivante) pour enregistrer les 3 lignes.
+      </TipBox>
+
+      <ScreenMock title="Exemple — Paiement RADEEMA (Opération multiple)">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Compte</TableHead>
+              <TableHead>Libellé</TableHead>
+              <TableHead className="text-right">Débit</TableHead>
+              <TableHead className="text-right">Crédit</TableHead>
+              <TableHead>Pièce</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="text-xs font-mono text-muted-foreground">15/06/2025</TableCell>
+              <TableCell><Badge variant="secondary" className="font-mono text-xs bg-red-50 text-red-800">601000</Badge></TableCell>
+              <TableCell className="text-sm">Facture RADEEMA — Électricité (HT)</TableCell>
+              <TableCell className="text-right text-red-600 font-medium">1 041,67 DH</TableCell>
+              <TableCell className="text-right text-muted-foreground">—</TableCell>
+              <TableCell className="text-xs text-muted-foreground">RADEEMA-2025-06</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="text-xs font-mono text-muted-foreground">15/06/2025</TableCell>
+              <TableCell><Badge variant="secondary" className="font-mono text-xs bg-purple-50 text-purple-800">445660</Badge></TableCell>
+              <TableCell className="text-sm">TVA déductible sur électricité</TableCell>
+              <TableCell className="text-right text-red-600 font-medium">208,33 DH</TableCell>
+              <TableCell className="text-right text-muted-foreground">—</TableCell>
+              <TableCell className="text-xs text-muted-foreground">RADEEMA-2025-06</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="text-xs font-mono text-muted-foreground">15/06/2025</TableCell>
+              <TableCell><Badge variant="secondary" className="font-mono text-xs bg-orange-50 text-orange-800">401000</Badge></TableCell>
+              <TableCell className="text-sm">RADEEMA — Fournisseur (TTC)</TableCell>
+              <TableCell className="text-right text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-green-600 font-medium">1 250,00 DH</TableCell>
+              <TableCell className="text-xs text-muted-foreground">RADEEMA-2025-06</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </ScreenMock>
+
+      {/* ─── Opération multiple ─── */}
+      <SubTitle>Créer une opération multiple</SubTitle>
+      <Paragraph>
+        Une <strong>opération multiple</strong> permet d'enregistrer plusieurs écritures comptables liées à une même opération
+        en une seule fois. C'est indispensable lorsque l'opération nécessite <strong>plusieurs lignes</strong> qui doivent s'équilibrer
+        (total Débit = total Crédit).
+      </Paragraph>
+      <Paragraph>
+        Par exemple : l'encaissement d'un règlement client par virement bancaire, un achat avec TVA, ou un paiement
+        de facture fournisseur.
+      </Paragraph>
+
+      <Step num={1}>Cliquez sur le bouton <strong>« Opération multiple »</strong> en haut à droite de l'écran.</Step>
+      <Step num={2}>Ajoutez une description générale (facultatif) pour identifier l'opération.</Step>
+      <Step num={3}>Remplissez les lignes d'écriture : Date, Compte, Libellé, Débit, Crédit.</Step>
+      <Step num={4}>
+        Vérifiez l'<strong>indicateur d'équilibre</strong> en temps réel affiché au-dessus du tableau :
+        il passe au vert (<StatusBadge status="Actif">Équilibré</StatusBadge>) lorsque le total Débit = total Crédit.
+        Sinon, il affiche l'écart en jaune.
+      </Step>
+      <Step num={5}>Cliquez sur <strong>« Enregistrer N écritures »</strong> (le bouton est désactivé tant que l'opération n'est pas équilibrée).</Step>
+
+      <TipBox type="warning">
+        Le système exige que le total des débits soit <strong>strictement égal</strong> au total des crédits (à 0,01 DH près).
+        Si l'écart n'est pas nul, l'enregistrement sera bloqué.
+      </TipBox>
+
+      <TipBox type="success">
+        <strong>Exemple concret :</strong> Le client TechnoMat règle la facture FAC-202501-0001 de 3 195,20 DH par virement bancaire.
+        La banque encaisse (512000 Banque = Débit 3 195,20 DH) et la dette client est éteinte (411000 Clients = Crédit 3 195,20 DH).
+      </TipBox>
+
+      <ScreenMock title="Exemple — Règlement client TechnoMat par virement">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Compte</TableHead>
+              <TableHead>Libellé</TableHead>
+              <TableHead className="text-right">Débit</TableHead>
+              <TableHead className="text-right">Crédit</TableHead>
+              <TableHead>Pièce</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="text-xs font-mono text-muted-foreground">20/06/2025</TableCell>
+              <TableCell><Badge variant="secondary" className="font-mono text-xs bg-cyan-50 text-cyan-800">512000</Badge></TableCell>
+              <TableCell className="text-sm">Règlement TechnoMat — Virement bancaire</TableCell>
+              <TableCell className="text-right text-red-600 font-medium">3 195,20 DH</TableCell>
+              <TableCell className="text-right text-muted-foreground">—</TableCell>
+              <TableCell className="text-xs text-muted-foreground">FAC-202501-0001</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="text-xs font-mono text-muted-foreground">20/06/2025</TableCell>
+              <TableCell><Badge variant="secondary" className="font-mono text-xs bg-blue-50 text-blue-800">411000</Badge></TableCell>
+              <TableCell className="text-sm">TechnoMat — Extinction créance</TableCell>
+              <TableCell className="text-right text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-green-600 font-medium">3 195,20 DH</TableCell>
+              <TableCell className="text-xs text-muted-foreground">FAC-202501-0001</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </ScreenMock>
+
+      {/* ─── Modifier une écriture ─── */}
+      <SubTitle>Modifier une écriture</SubTitle>
+      <Paragraph>
+        Pour modifier une écriture existante, cliquez sur l'icône <strong>crayon</strong> (<Pencil className="h-4 w-4 inline text-blue-600" />) dans la colonne « Actions » de la ligne concernée.
+        Une boîte de dialogue s'ouvre avec les champs pré-remplis : modifiez les informations souhaitées puis cliquez sur <strong>« Modifier »</strong>.
+      </Paragraph>
+
+      <TipBox type="info">
+        Seuls les champs modifiables apparaissent dans le dialogue : Date, Compte, Libellé, Débit, Crédit et Référence pièce.
+        L'identifiant de l'écriture (ID) ne peut pas être modifié.
+      </TipBox>
+
+      {/* ─── Supprimer une écriture ─── */}
+      <SubTitle>Supprimer une écriture</SubTitle>
+      <Paragraph>
+        Pour supprimer une écriture, cliquez sur l'icône <strong>corbeille</strong> (<Trash2 className="h-4 w-4 inline text-destructive" />)
+        dans la colonne « Actions ». Une fenêtre de confirmation s'affiche demandant de valider la suppression.
       </Paragraph>
 
       <TipBox type="warning">
-        Pour une comptabilité complète conforme au PCG Maroc (Plan Comptable Général), l'export vers un logiciel comptable dédié est recommandé.
+        <strong>Attention :</strong> La suppression d'une écriture affecte l'équilibre du journal. Assurez-vous de comprendre
+        l'impact sur vos états financiers avant de supprimer. Il est préférable d'utiliser une <strong>écriture d'extinction</strong>
+        (écriture inverse) plutôt que de supprimer directement.
+      </TipBox>
+
+      {/* ─── Comptes disponibles ─── */}
+      <SubTitle>Comptes disponibles</SubTitle>
+      <Paragraph>
+        Voici la liste des comptes comptables disponibles dans GEMA ERP PRO. Utilisez ces codes lors de la création
+        de vos écritures :
+      </Paragraph>
+
+      <ScreenMock title="Plan des comptes — GEMA ERP PRO">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Code</TableHead>
+              <TableHead>Libellé</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[
+              { code: '411000', label: 'Clients' },
+              { code: '401000', label: 'Fournisseurs' },
+              { code: '706000', label: 'Ventes de services' },
+              { code: '445710', label: 'TVA collectée' },
+              { code: '445660', label: 'TVA déductible' },
+              { code: '512000', label: 'Banque' },
+              { code: '530000', label: 'Caisse' },
+              { code: '606000', label: 'Achats' },
+              { code: '370000', label: 'Stock' },
+            ].map((a) => (
+              <TableRow key={a.code}>
+                <TableCell className="font-mono text-xs font-bold">{a.code}</TableCell>
+                <TableCell className="text-sm">{a.label}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ScreenMock>
+
+      {/* ─── Filtres ─── */}
+      <SubTitle>Filtrer les écritures</SubTitle>
+      <Paragraph>
+        La barre de filtres située au-dessus du tableau vous permet de retrouver rapidement des écritures spécifiques :
+      </Paragraph>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Search className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Recherche</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Tapez un mot-clé pour filtrer par libellé, numéro de compte ou référence pièce.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Hash className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Compte</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Sélectionnez un compte spécifique dans la liste déroulante pour n'afficher que ses écritures.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Date</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Sélectionnez une date précise pour filtrer les écritures de cette journée.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <TipBox type="info">
+        Le bouton <strong>« Réinitialiser »</strong> apparaît dès qu'un filtre est actif. Cliquez dessus pour effacer tous les filtres
+        et afficher l'intégralité du journal.
+      </TipBox>
+
+      {/* ─── Export et Impression ─── */}
+      <SubTitle>Export et Impression</SubTitle>
+      <Paragraph>
+        Deux boutons vous permettent d'exporter ou d'imprimer le journal comptable :
+      </Paragraph>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+              <span className="font-semibold text-sm">Export Excel</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Génère un fichier <strong>.xlsx</strong> contenant toutes les écritures filtrées (Date, Compte, Libellé, Débit, Crédit, Pièce)
+              avec une ligne de totaux. Le fichier est nommé <code className="bg-muted px-1 rounded text-xs">journal-comptable-YYYY-MM-DD.xlsx</code>.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Printer className="h-4 w-4 text-blue-600" />
+              <span className="font-semibold text-sm">Imprimer</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Ouvre la boîte de dialogue d'impression du navigateur avec le tableau du journal comptable.
+              Les filtres, boutons d'action et la barre latérale sont masqués automatiquement pour un rendu propre.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <TipBox type="success">
+        Les deux boutons tiennent compte des <strong>filtres actifs</strong>. Si vous filtrez par compte « Banque »,
+        l'export et l'impression ne contiendront que les écritures de ce compte.
       </TipBox>
 
       {/* États financiers */}

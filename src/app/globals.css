@@ -881,3 +881,71 @@
     transform: translateY(0);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ACCOUNTING PRINT MODE
+   Hides filters/action buttons/sidebar when printing
+   from the accounting view.
+   ═══════════════════════════════════════════════════════════ */
+
+body.print-accounting-mode > *:not(#__next) {
+  display: none !important;
+}
+
+body.print-accounting-mode #printable-accounting {
+  display: block !important;
+}
+
+body.print-accounting-mode #printable-accounting .max-h-\[500px\] {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+body.print-accounting-mode #printable-accounting td:last-child,
+body.print-accounting-mode #printable-accounting th:last-child {
+  display: none !important;
+}
+
+@media print {
+  body.print-accounting-mode {
+    background: white !important;
+  }
+
+  body.print-accounting-mode #printable-accounting::before {
+    content: "Journal Comptable — GEMA ERP PRO";
+    display: block;
+    font-size: 16pt;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 4pt;
+    color: #000;
+  }
+
+  body.print-accounting-mode #printable-accounting::after {
+    content: attr(data-print-date);
+    display: block;
+    font-size: 10pt;
+    text-align: center;
+    margin-bottom: 12pt;
+    color: #555;
+  }
+
+  body.print-accounting-mode table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  body.print-accounting-mode table th,
+  body.print-accounting-mode table td {
+    border: 1px solid #ccc !important;
+    padding: 4pt 6pt !important;
+    font-size: 9pt !important;
+    color: #000 !important;
+    background: white !important;
+  }
+
+  body.print-accounting-mode table th {
+    background: #f5f5f5 !important;
+    font-weight: 600 !important;
+  }
+}
