@@ -2345,3 +2345,20 @@ Stage Summary:
 - Section « Comparateur de prix » complète ajoutée au guide d'utilisation
 - Documentation couvre : workflow 7 étapes, 5 critères pondérés, formules de calcul, exemples chiffrés, code couleur, conseils
 - Fichier modifié : src/components/erp/admin/guide-view.tsx (+700 lignes environ)
+---
+Task ID: 2
+Agent: Main Agent
+Task: Corriger les erreurs d'accès à la page demandes de prix (401 + TypeError null.status)
+
+Work Log:
+- Diagnostic de 2 bugs simultanés dans la page demandes de prix
+- Bug #1 (critique): `selected.status` accédé sans vérification null dans price-requests-view.tsx ligne 547 — le DialogFooter était en dehors du guard `{selected && (`
+- Bug #2 (console): `/api/settings` retournait 401 car le SidebarLogo dans erp-layout.tsx faisait un fetch sans token d'auth
+- Fix #1: Ajouté `{selected && (` guard avant `selected.status` dans price-requests-view.tsx
+- Fix #2: Ajouté le header Authorization avec token du useAuthStore dans le fetch du logo
+- Lint passé sans erreur
+
+Stage Summary:
+- 2 bugs corrigés dans price-requests-view.tsx et erp-layout.tsx
+- La page demandes de prix fonctionne maintenant sans crash
+- Le logo sidebar charge correctement avec auth

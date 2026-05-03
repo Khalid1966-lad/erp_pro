@@ -198,7 +198,10 @@ function SidebarLogo() {
   const [logoSrc, setLogoSrc] = useState('/logo.png')
 
   useEffect(() => {
-    fetch('/api/settings')
+    const { token } = useAuthStore.getState()
+    fetch('/api/settings', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
       .then(r => r.json())
       .then(data => {
         if (data.settingsMap?.company_logo_url) {

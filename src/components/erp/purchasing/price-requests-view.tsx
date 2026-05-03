@@ -544,7 +544,7 @@ export default function PriceRequestsView() {
             </div>
           )}
           <DialogFooter>
-            {(selected.status === 'sent' || selected.status === 'partially_answered' || selected.status === 'answered') && (selected.supplierQuotes?.length || 0) >= 2 && (
+            {selected && (selected.status === 'sent' || selected.status === 'partially_answered' || selected.status === 'answered') && (selected.supplierQuotes?.length || 0) >= 2 && (
               <Button className="text-primary hover:text-primary" onClick={() => { setDetailOpen(false); openComparison(selected.id) }}>
                 <BarChart3 className="h-4 w-4 mr-1" />
                 Comparer les offres
