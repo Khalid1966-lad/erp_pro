@@ -192,35 +192,19 @@ const roleLabels: Record<string, string> = {
   direction: 'Direction'
 }
 
-// ─── Logo component: uses custom uploaded logo if set, else default ───
+// ─── Logo component: always shows the GEMA ERP PRO app logo ───
 function SidebarLogo() {
   const { sidebarOpen } = useNavStore()
-  const [logoSrc, setLogoSrc] = useState('/logo.png')
-
-  useEffect(() => {
-    const { token } = useAuthStore.getState()
-    fetch('/api/settings', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.settingsMap?.company_logo_url) {
-          setLogoSrc(data.settingsMap.company_logo_url)
-        }
-      })
-      .catch(() => {})
-  }, [])
-
   const size = sidebarOpen ? 'w-9 h-9' : 'w-8 h-8'
 
   return (
     <div className={cn('relative shrink-0', size)}>
       <Image
-        src={logoSrc}
+        src="/logo.png"
         alt="GEMA ERP PRO"
         fill
         className="object-contain"
-        unoptimized={logoSrc.startsWith('/api/')}
+        priority
       />
     </div>
   )
