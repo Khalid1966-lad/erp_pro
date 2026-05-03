@@ -34,6 +34,12 @@ interface CompanyInfo {
 let companyCache: CompanyInfo | null = null
 let companyFetchPromise: Promise<CompanyInfo> | null = null
 
+/** Invalidate company info cache (call after settings update) */
+export function invalidateCompanyCache(): void {
+  companyCache = null
+  companyFetchPromise = null
+}
+
 export async function getCompanyInfo(): Promise<CompanyInfo> {
   if (companyCache) return companyCache
   if (companyFetchPromise) return companyFetchPromise
@@ -160,20 +166,16 @@ body {
   color: #1a1a1a; font-size: 11px; line-height: 1.5;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
-.page-wrapper { padding: 15mm; min-height: 100vh; padding-bottom: 40mm; }
+.page-wrapper { padding: 15mm; min-height: 100vh; }
 .print-footer {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  padding: 8mm 15mm 10mm;
+  margin-top: 24px;
+  padding-top: 10px;
   border-top: 1px solid #d1d5db;
-  background: #fff;
   text-align: center;
   font-size: 9px; color: #6b7280;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 .print-footer div { margin: 1px 0; }
-@media screen {
-  .print-footer { display: none; }
-}
 .doc-title {
   text-align: center; font-size: 15px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 12px;

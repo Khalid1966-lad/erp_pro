@@ -21,6 +21,7 @@ import { useAuthStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
 import { APP_VERSION, APP_NAME, BUILD_DATE } from '@/lib/version'
 import { toast } from 'sonner'
+import { invalidateCompanyCache } from '@/lib/print-utils'
 import BackupSection from './backup-section'
 import { HelpButton } from '@/components/erp/shared/help-button'
 
@@ -746,6 +747,8 @@ export default function SettingsView() {
       setSaving(true)
       await api.put('/settings', { settings: settingsMap })
       setOriginalMap({ ...settingsMap })
+      // Invalidate company info cache so next print uses fresh settings
+      invalidateCompanyCache()
       toast.success('Paramètres sauvegardés')
     } catch (err: any) {
       toast.error(err.message || 'Erreur sauvegarde')
