@@ -2362,3 +2362,26 @@ Stage Summary:
 - 2 bugs corrigés dans price-requests-view.tsx et erp-layout.tsx
 - La page demandes de prix fonctionne maintenant sans crash
 - Le logo sidebar charge correctement avec auth
+
+---
+Task ID: version-1.4.0
+Agent: main
+Task: Create version 1.4.0 — update references and footers
+
+Work Log:
+- Bumped version from 1.3.1 to 1.4.0 in src/lib/version.ts
+- Updated BUILD_DATE to 2025-07-16
+- Updated package.json version to 1.4.0
+- Enhanced PrintFooter component: added "GEMA ERP PRO v1.4.0 — Document généré automatiquement" line after custom footer lines
+- Added APP_VERSION import to print-header.tsx for proper version display
+- Added print-header CSS class to header HTML in print-utils.ts for header repetition on every printed page
+- Added @media print rules for fixed header (top) and fixed footer (bottom) on every A4 page
+- Added print-footer-page placeholder for page numbering (Page X / Y)
+- Improved footer typography: leading-relaxed, better spacing
+
+Stage Summary:
+- Version 1.4.0 released and pushed to GitHub (commit 527176d)
+- Print system: header and footer now repeat on every printed A4 page
+- Print footer shows: custom footer lines + "Document généré automatiquement" + version
+- Lint: 0 errors
+- 4 files changed: package.json, src/lib/version.ts, src/components/erp/shared/print-header.tsx, src/lib/print-utils.ts
