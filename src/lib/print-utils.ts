@@ -167,15 +167,35 @@ body {
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
 .page-wrapper { padding: 15mm; min-height: 100vh; }
+
+/* Footer — screen preview: stays in content flow */
 .print-footer {
   margin-top: 24px;
   padding-top: 10px;
+  padding-bottom: 4px;
   border-top: 1px solid #d1d5db;
   text-align: center;
   font-size: 9px; color: #6b7280;
   line-height: 1.7;
 }
 .print-footer div { margin: 1px 0; }
+
+/* Footer — printed output: fixed at very bottom of EVERY A4 page */
+@media print {
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin-top: 0;
+    padding: 8px 15mm 10px;
+    background: #ffffff;
+    z-index: 10;
+  }
+  .page-wrapper {
+    padding-bottom: 35mm; /* prevent content from hiding behind fixed footer */
+  }
+}
 .doc-title {
   text-align: center; font-size: 15px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 12px;
