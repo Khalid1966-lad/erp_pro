@@ -2263,3 +2263,26 @@ Stage Summary:
 - 4 previously silent failures (empty exports) fixed with proper SQL table name mapping
 - DateTime fields for Chantier, CustomerReturn, PaymentCodeCounter, and DeliveryNote.dueDate now properly handled during restore
 - File modified: src/lib/backup.ts
+---
+Task ID: 2
+Agent: Main
+Task: Traduire l'activité récente en français + Pied de page A4 sur chaque page imprimée
+
+Work Log:
+- Analyzed dashboard-view.tsx: found raw English action/entity strings at lines 1017 & 1024
+- Analyzed audit-log-view.tsx: found incorrect kebab-case entity keys (e.g. 'sales-order' instead of 'SalesOrder')
+- Added 30+ French action translations (create→Création, deliver→Livraison, pay→Paiement, etc.)
+- Added 40+ French entity translations with correct PascalCase keys matching DB
+- Updated dashboard rendering: replaced separate action text + Badge with single French label via getActivityLabel()
+- Fixed audit-log-view: replaced all kebab-case entity keys with PascalCase, added all missing action/entity labels
+- Added action color badges for 24 action types in audit log
+- Updated print-utils.ts buildFooterHtml() to use CSS position:fixed for page footer
+- Added .print-footer CSS class with fixed positioning, border-top, centered text
+- Added padding-bottom:40mm to page-wrapper to prevent content-footer overlap
+- Added @media screen rule to hide print footer on screen
+
+Stage Summary:
+- 3 files modified: dashboard-view.tsx, audit-log-view.tsx, print-utils.ts
+- All activity text now displays in French across dashboard and audit log
+- Print footer lines repeat on every A4 page via CSS fixed positioning
+- Commit de8d3bf pushed to main
