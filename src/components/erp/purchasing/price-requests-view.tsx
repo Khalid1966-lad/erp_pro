@@ -23,13 +23,14 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, Send, FileQuestion, XCircle, Pencil, Printer, CheckCircle2, FileText, Clock, MessageSquare } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, Send, FileQuestion, XCircle, Pencil, Printer, CheckCircle2, FileText, Clock, MessageSquare, BarChart3 } from 'lucide-react'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { printDocument, fmtDate as fmtDateP } from '@/lib/print-utils'
+import { useNavStore } from '@/lib/stores'
 
 /** HTML pour encadrés Notes + Visa Fournisseur / Visa Administration dans les impressions */
 function buildSupplierVisaHtml(notes?: string | null): string {
@@ -164,6 +165,7 @@ function fmtMoney(n: number) {
 
 // ── Component ──────────────────────────────────────────
 export default function PriceRequestsView() {
+  const { openComparison } = useNavStore()
   const [items, setItems] = useState<PriceRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -542,6 +544,12 @@ export default function PriceRequestsView() {
             </div>
           )}
           <DialogFooter>
+            {(selected.status === 'sent' || selected.status === 'partially_answered' || selected.status === 'answered') && (selected.supplierQuotes?.length || 0) >= 2 && (
+              <Button className="text-primary hover:text-primary" onClick={() => { setDetailOpen(false); openComparison(selected.id) }}>
+                <BarChart3 className="h-4 w-4 mr-1" />
+                Comparer les offres
+              </Button>
+            )}
             <Button variant="outline" onClick={() => {
               if (!selected) return
               const statusLabel = statusConfig[selected.status]?.label || selected.status
@@ -644,6 +652,17 @@ export default function PriceRequestsView() {
                           )}
                           {(item.status === 'sent' || item.status === 'partially_answered' || item.status === 'answered') && (
                             <Button
+                              variant="ghost" size="sm" className="h-8 text-xs gap-1 text-primary hover:text-primary"
+                              disabled={transitioning === item.id || (item.supplierQuotes?.length || 0) < 2}
+                              onClick={(e) => { e.stopPropagation(); openComparison(item.id) }}
+                              title="Comparer les offres (minimum 2 devis requis)"
+                            >
+                              <BarChart3 className="h-3.5 w-3.5" />
+                              Comparer
+                            </Button>
+                          )}
+                          {(item.status === 'sent' || item.status === 'partially_answered' || item.status === 'answered') && (
+                            <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"
                               disabled={transitioning === item.id}
                               onClick={(e) => { e.stopPropagation(); handleTransition(item.id, 'closed') }}
@@ -718,6 +737,12 @@ export default function PriceRequestsView() {
                     <Eye className="h-4 w-4 mr-1" />
                     Ouvrir
                   </Button>
+                  {(item.status === 'sent' || item.status === 'partially_answered' || item.status === 'answered') && (item.supplierQuotes?.length || 0) >= 2 && (
+                    <Button variant="outline" size="sm" className="text-primary hover:text-primary" onClick={() => openComparison(item.id)}>
+                      <BarChart3 className="h-4 w-4 mr-1" />
+                      Comparer
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => {
                     if (!item) return
                     const statusLabel = statusConfig[item.status]?.label || item.status

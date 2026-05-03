@@ -7,6 +7,8 @@ const priceRequestLineSchema = z.object({
   productId: z.string(),
   quantity: z.number().min(0.01),
   description: z.string().optional(),
+  targetPrice: z.number().min(0).optional(),
+  maxPrice: z.number().min(0).optional(),
 })
 
 const priceRequestSchema = z.object({

@@ -452,6 +452,7 @@ export function ERPHeader() {
     'receptions': 'Réceptions',
     'price-requests': 'Demandes de prix',
     'supplier-quotes': 'Devis fournisseurs',
+    'price-comparison': 'Comparateur de prix',
     'supplier-invoices': 'Factures fournisseurs',
     'supplier-returns': 'Bons de retour',
     'supplier-credit-notes': 'Avoirs fournisseurs',

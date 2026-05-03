@@ -49,6 +49,7 @@ export type ViewId =
   | 'receptions'
   | 'price-requests'
   | 'supplier-quotes'
+  | 'price-comparison'
   | 'supplier-invoices'
   | 'supplier-returns'
   | 'supplier-credit-notes'
@@ -81,11 +82,13 @@ export interface NavState {
   sidebarOpen: boolean
   helpTarget: { section: string; sub?: string } | null
   previousView: ViewId | null
+  comparisonPriceRequestId: string | null
   setCurrentView: (view: ViewId) => void
   toggleSidebar: () => void
   setSidebarOpen: (open: boolean) => void
   openHelp: (section: string, sub?: string) => void
   clearHelp: () => void
+  openComparison: (priceRequestId: string) => void
 }
 
 export const useNavStore = create<NavState>()((set) => ({
@@ -93,6 +96,7 @@ export const useNavStore = create<NavState>()((set) => ({
   sidebarOpen: true,
   helpTarget: null,
   previousView: null,
+  comparisonPriceRequestId: null,
   setCurrentView: (view) => set((s) => ({ currentView: view, previousView: s.currentView === 'guide' ? s.previousView : s.currentView })),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -102,6 +106,11 @@ export const useNavStore = create<NavState>()((set) => ({
     currentView: 'guide',
   })),
   clearHelp: () => set({ helpTarget: null }),
+  openComparison: (priceRequestId) => set((s) => ({
+    previousView: s.currentView,
+    currentView: 'price-comparison',
+    comparisonPriceRequestId: priceRequestId,
+  })),
 }))
 
 // ═══ Notification Store ═══

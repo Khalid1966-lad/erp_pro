@@ -23,6 +23,7 @@ const PurchaseOrdersView = dynamic(() => import('@/components/erp/purchasing/pur
 const ReceptionsView = dynamic(() => import('@/components/erp/purchasing/receptions-view'), { ssr: false })
 const PriceRequestsView = dynamic(() => import('@/components/erp/purchasing/price-requests-view'), { ssr: false })
 const SupplierQuotesView = dynamic(() => import('@/components/erp/purchasing/supplier-quotes-view'), { ssr: false })
+const PriceComparisonView = dynamic(() => import('@/components/erp/purchasing/price-comparison-view'), { ssr: false })
 const SupplierInvoicesView = dynamic(() => import('@/components/erp/purchasing/supplier-invoices-view'), { ssr: false })
 const SupplierReturnsView = dynamic(() => import('@/components/erp/purchasing/supplier-returns-view'), { ssr: false })
 const SupplierCreditNotesView = dynamic(() => import('@/components/erp/purchasing/supplier-credit-notes-view'), { ssr: false })
@@ -64,7 +65,7 @@ const pageTransition = {
 }
 
 function ViewRouter() {
-  const { currentView } = useNavStore()
+  const { currentView, comparisonPriceRequestId } = useNavStore()
 
   let view: React.ReactNode
   switch (currentView) {
@@ -83,6 +84,9 @@ function ViewRouter() {
     case 'receptions': view = <ReceptionsView />; break
     case 'price-requests': view = <PriceRequestsView />; break
     case 'supplier-quotes': view = <SupplierQuotesView />; break
+    case 'price-comparison':
+      view = comparisonPriceRequestId ? <PriceComparisonView priceRequestId={comparisonPriceRequestId} /> : <PriceRequestsView />
+      break
     case 'supplier-invoices': view = <SupplierInvoicesView />; break
     case 'supplier-returns': view = <SupplierReturnsView />; break
     case 'supplier-credit-notes': view = <SupplierCreditNotesView />; break

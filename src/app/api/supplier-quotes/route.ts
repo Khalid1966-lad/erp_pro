@@ -8,6 +8,9 @@ const supplierQuoteLineSchema = z.object({
   quantity: z.number().min(0.01),
   unitPrice: z.number().min(0),
   tvaRate: z.number().default(20),
+  availability: z.string().optional(),
+  deliveryDelay: z.number().optional(),
+  discount: z.number().min(0).optional(),
 })
 
 const supplierQuoteSchema = z.object({
@@ -15,8 +18,10 @@ const supplierQuoteSchema = z.object({
   supplierId: z.string(),
   validUntil: z.string().datetime().optional(),
   deliveryDelay: z.number().default(7),
+  deliveryFrequency: z.string().optional(),
   paymentTerms: z.string().default('30 jours'),
   notes: z.string().optional(),
+  selectedForPO: z.boolean().optional(),
   lines: z.array(supplierQuoteLineSchema).min(1, 'Au moins une ligne requise'),
 })
 
@@ -113,6 +118,9 @@ export async function POST(req: NextRequest) {
         unitPrice: line.unitPrice,
         tvaRate: line.tvaRate,
         totalHT: lineHT,
+        availability: line.availability || null,
+        deliveryDelay: line.deliveryDelay ?? null,
+        discount: line.discount ?? null,
       }
     })
 
@@ -125,6 +133,7 @@ export async function POST(req: NextRequest) {
         supplierId: data.supplierId,
         validUntil: data.validUntil ? new Date(data.validUntil) : null,
         deliveryDelay: data.deliveryDelay,
+        deliveryFrequency: data.deliveryFrequency || null,
         paymentTerms: data.paymentTerms,
         notes: data.notes,
         totalHT,
@@ -184,9 +193,11 @@ export async function PUT(req: NextRequest) {
     const data: Record<string, unknown> = {}
     if (updateData.validUntil !== undefined) data.validUntil = updateData.validUntil ? new Date(updateData.validUntil) : null
     if (updateData.deliveryDelay !== undefined) data.deliveryDelay = updateData.deliveryDelay
+    if (updateData.deliveryFrequency !== undefined) data.deliveryFrequency = updateData.deliveryFrequency || null
     if (updateData.paymentTerms !== undefined) data.paymentTerms = updateData.paymentTerms
     if (updateData.notes !== undefined) data.notes = updateData.notes
     if (updateData.status !== undefined) data.status = updateData.status
+    if (updateData.selectedForPO !== undefined) data.selectedForPO = updateData.selectedForPO
 
     // If lines are provided, replace them and recalculate totals
     if (lines && Array.isArray(lines) && lines.length > 0) {
@@ -212,6 +223,9 @@ export async function PUT(req: NextRequest) {
           unitPrice: line.unitPrice,
           tvaRate: line.tvaRate,
           totalHT: lineHT,
+          availability: line.availability || null,
+          deliveryDelay: line.deliveryDelay ?? null,
+          discount: line.discount ?? null,
         }
       })
 

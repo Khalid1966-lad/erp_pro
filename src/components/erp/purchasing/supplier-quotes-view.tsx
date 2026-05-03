@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, FileText, CheckCircle2, XCircle, Pencil, Printer, Clock, PackageCheck } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, FileText, CheckCircle2, XCircle, Pencil, Printer, Clock, PackageCheck, ShoppingCart } from 'lucide-react'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
@@ -32,6 +32,7 @@ import { HelpButton } from '@/components/erp/shared/help-button'
 import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { cn } from '@/lib/utils'
+import { useNavStore } from '@/lib/stores'
 
 /** HTML pour encadrés Notes + Visa Fournisseur / Visa Administration dans les impressions */
 function buildSupplierVisaHtml(notes?: string | null): string {
@@ -161,6 +162,7 @@ function fmtMoney(n: number) {
 
 // ── Component ──────────────────────────────────────────
 export default function SupplierQuotesView() {
+  const { setCurrentView } = useNavStore()
   const [items, setItems] = useState<SupplierQuote[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -176,6 +178,7 @@ export default function SupplierQuotesView() {
   const [isEditing, setIsEditing] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [transforming, setTransforming] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Form state
@@ -351,6 +354,19 @@ export default function SupplierQuotesView() {
       toast.error(err.message || 'Erreur lors de la suppression')
     } finally {
       setDeleting(null)
+    }
+  }
+
+  const handleTransform = async (id: string) => {
+    try {
+      setTransforming(id)
+      const result = await api.post(`/supplier-quotes/${id}/transform`, {})
+      toast.success(`Commande ${result.number} créée avec succès`)
+      setCurrentView('purchase-orders')
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la transformation en commande')
+    } finally {
+      setTransforming(null)
     }
   }
 
@@ -743,6 +759,16 @@ export default function SupplierQuotesView() {
                             >
                               <XCircle className="h-3.5 w-3.5" />
                               Rejeter
+                            </Button>
+                          )}
+                          {(item.status === 'received' || item.status === 'accepted') && (
+                            <Button
+                              variant="ghost" size="sm" className="h-8 text-xs gap-1 text-primary hover:text-primary"
+                              disabled={transforming === item.id}
+                              onClick={(e) => { e.stopPropagation(); handleTransform(item.id) }}
+                            >
+                              <ShoppingCart className="h-3.5 w-3.5" />
+                              Commande
                             </Button>
                           )}
                           {item.status === 'received' && (

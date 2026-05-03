@@ -817,6 +817,8 @@ model PriceRequestLine {
   product         Product      @relation(fields: [productId], references: [id])
   quantity        Float
   description     String?
+  targetPrice     Float?
+  maxPrice        Float?
 }
 
 // ============ DEVIS FOURNISSEUR ============
@@ -839,11 +841,13 @@ model SupplierQuote {
   date            DateTime            @default(now())
   validUntil      DateTime?
   deliveryDelay   Int                 @default(7)
+  deliveryFrequency String?
   paymentTerms    String              @default("30 jours")
   notes           String?
   totalHT         Float               @default(0)
   totalTVA        Float               @default(0)
   totalTTC        Float               @default(0)
+  selectedForPO   Boolean             @default(false)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
@@ -861,6 +865,9 @@ model SupplierQuoteLine {
   unitPrice       Float
   tvaRate         Float           @default(20)
   totalHT         Float           @default(0)
+  availability    String?
+  deliveryDelay   Int?
+  discount        Float?
 }
 
 // ============ FACTURE FOURNISSEUR ============
