@@ -322,15 +322,55 @@ export default function AccountingView() {
 
   const handlePrint = () => {
     const el = document.getElementById('printable-accounting')
-    if (el) {
-      el.setAttribute('data-print-date', `Imprimé le ${format(new Date(), 'dd/MM/yyyy à HH:mm')}`)
+    if (!el) return
+
+    // Clone the printable content into a new temporary window for clean printing
+    const printWindow = window.open('', '_blank', 'width=800,height=600')
+    if (!printWindow) {
+      toast.error('Veuillez autoriser les fenêtres pop-up pour imprimer')
+      return
     }
-    document.body.classList.add('print-accounting-mode')
-    window.print()
-    setTimeout(() => {
-      document.body.classList.remove('print-accounting-mode')
-      if (el) el.removeAttribute('data-print-date')
-    }, 500)
+
+    const printDate = format(new Date(), 'dd/MM/yyyy à HH:mm')
+    const html = el.innerHTML
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Journal Comptable — GEMA ERP PRO</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20mm 10mm; color: #000; }
+    h1 { text-align: center; font-size: 16pt; margin-bottom: 4pt; }
+    .print-date { text-align: center; font-size: 10pt; color: #555; margin-bottom: 12pt; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8pt; }
+    th, td { border: 1px solid #ccc; padding: 4pt 6pt; font-size: 9pt; text-align: left; }
+    th { background: #f5f5f5; font-weight: 600; text-align: left; }
+    td.text-right, th.text-right { text-align: right; }
+    td.hidden-print, th.hidden-print { display: none; }
+    tfoot td { font-weight: 600; background: #f0f0f0; }
+    @media print { body { padding: 10mm; } }
+  </style>
+</head>
+<body>
+  <h1>Journal Comptable — GEMA ERP PRO</h1>
+  <p class="print-date">Imprimé le ${printDate}</p>
+  ${html}
+  <script>
+    // Remove the last column (Actions) from all rows
+    document.querySelectorAll('table tr').forEach(tr => {
+      const lastCell = tr.lastElementChild
+      if (lastCell && (lastCell.tagName === 'TD' || lastCell.tagName === 'TH')) {
+        lastCell.remove()
+      }
+    });
+    window.onafterprint = () => window.close();
+    setTimeout(() => { window.print(); }, 300);
+  </script>
+</body>
+</html>`)
+    printWindow.document.close()
   }
 
   if (loading) {
