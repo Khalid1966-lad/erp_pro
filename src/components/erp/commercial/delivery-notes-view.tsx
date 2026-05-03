@@ -35,6 +35,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { useNavStore } from '@/lib/stores'
 
 // ─── Helpers ───
 
@@ -286,6 +287,17 @@ export default function DeliveryNotesView() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
+
+  const navigationParams = useNavStore((s) => s.navigationParams)
+
+  // Apply navigation params from dashboard
+  useEffect(() => {
+    if (navigationParams?.status === 'pending') {
+      // Pending delivery notes are draft or confirmed (not delivered/cancelled)
+      setStatusFilter('draft')
+      useNavStore.setState({ navigationParams: null })
+    }
+  }, [navigationParams])
 
   // Dialogs
   const [createOpen, setCreateOpen] = useState(false)

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { useNavStore } from '@/lib/stores'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -178,6 +179,18 @@ export default function SupplierInvoicesView() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  const navigationParams = useNavStore((s) => s.navigationParams)
+
+  // Apply navigation params from dashboard
+  useEffect(() => {
+    if (navigationParams?.status === 'unpaid') {
+      // Supplier invoices with status received, verified, overdue, partially_paid are unpaid
+      setStatusFilter('received')
+      useNavStore.setState({ navigationParams: null })
+    }
+  }, [navigationParams])
+
   const [supplierFilter, setSupplierFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)

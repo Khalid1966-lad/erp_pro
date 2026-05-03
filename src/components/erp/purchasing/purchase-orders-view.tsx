@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer, ShoppingCart, XCircle, CheckCircle2, FileText, Truck } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useNavStore } from '@/lib/stores'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -160,6 +161,7 @@ export default function PurchaseOrdersView() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null)
@@ -176,6 +178,17 @@ export default function PurchaseOrdersView() {
   const [expectedDate, setExpectedDate] = useState('')
   const [notes, setNotes] = useState('')
   const [lines, setLines] = useState<Array<{ productId: string; quantity: number; unitPrice: number; tvaRate: number }>>([])
+
+  const navigationParams = useNavStore((s) => s.navigationParams)
+
+  // Apply navigation params from dashboard
+  useEffect(() => {
+    if (navigationParams?.status === 'pending') {
+      // Pending POs are draft+sent+partially_received
+      setStatusFilter('sent')
+      useNavStore.setState({ navigationParams: null })
+    }
+  }, [navigationParams])
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -208,10 +221,13 @@ export default function PurchaseOrdersView() {
   useEffect(() => { fetchOrders() }, [fetchOrders])
   useEffect(() => { fetchSuppliers(); fetchProducts() }, [fetchSuppliers, fetchProducts])
 
-  const filtered = orders.filter((o) =>
-    o.number.toLowerCase().includes(search.toLowerCase()) ||
-    o.supplier?.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = orders.filter((o) => {
+    const matchSearch =
+      o.number.toLowerCase().includes(search.toLowerCase()) ||
+      o.supplier?.name.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = statusFilter === 'all' || o.status === statusFilter
+    return matchSearch && matchStatus
+  })
 
   const addLine = () => {
     setLines((prev) => [...prev, { productId: '', quantity: 1, unitPrice: 0, tvaRate: 20 }])
@@ -347,6 +363,17 @@ export default function PurchaseOrdersView() {
             className="pl-9"
           />
         </div>
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setExpandedId(null) }}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Statut" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            <SelectItem value="draft">Brouillon</SelectItem>
+            <SelectItem value="sent">Envoyée</SelectItem>
+            <SelectItem value="partially_received">Partiellement reçue</SelectItem>
+            <SelectItem value="received">Reçue</SelectItem>
+            <SelectItem value="cancelled">Annulée</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-2">
           <HelpButton section="achats" sub="commandes-fournisseurs" />
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>

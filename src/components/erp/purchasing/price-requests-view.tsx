@@ -166,10 +166,21 @@ function fmtMoney(n: number) {
 // ── Component ──────────────────────────────────────────
 export default function PriceRequestsView() {
   const { openComparison } = useNavStore()
+  const navigationParams = useNavStore((s) => s.navigationParams)
+
   const [items, setItems] = useState<PriceRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  // Apply navigation params from dashboard
+  useEffect(() => {
+    if (navigationParams?.status === 'open') {
+      // Price requests that are not closed or cancelled
+      setStatusFilter('sent')
+      useNavStore.setState({ navigationParams: null })
+    }
+  }, [navigationParams])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selected, setSelected] = useState<PriceRequest | null>(null)

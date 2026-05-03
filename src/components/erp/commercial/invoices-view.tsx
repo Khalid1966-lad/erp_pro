@@ -35,6 +35,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { cn } from '@/lib/utils'
+import { useNavStore } from '@/lib/stores'
 import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
@@ -204,6 +205,21 @@ export default function InvoicesView() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  const navigationParams = useNavStore((s) => s.navigationParams)
+
+  // Apply navigation params from dashboard
+  useEffect(() => {
+    if (navigationParams?.status) {
+      if (navigationParams.status === 'unpaid') {
+        setStatusFilter('validated') // Show validated+sent+overdue = unpaid
+      } else if (navigationParams.status === 'overdue') {
+        setStatusFilter('overdue')
+      }
+      useNavStore.setState({ navigationParams: null })
+    }
+  }, [navigationParams])
+
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)

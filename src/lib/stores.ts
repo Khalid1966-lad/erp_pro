@@ -83,7 +83,9 @@ export interface NavState {
   helpTarget: { section: string; sub?: string } | null
   previousView: ViewId | null
   comparisonPriceRequestId: string | null
-  setCurrentView: (view: ViewId) => void
+  /** Params passed from dashboard clicks to pre-filter views */
+ navigationParams: Record<string, string> | null
+  setCurrentView: (view: ViewId, params?: Record<string, string> | null) => void
   toggleSidebar: () => void
   setSidebarOpen: (open: boolean) => void
   openHelp: (section: string, sub?: string) => void
@@ -97,7 +99,12 @@ export const useNavStore = create<NavState>()((set) => ({
   helpTarget: null,
   previousView: null,
   comparisonPriceRequestId: null,
-  setCurrentView: (view) => set((s) => ({ currentView: view, previousView: s.currentView === 'guide' ? s.previousView : s.currentView })),
+  navigationParams: null,
+  setCurrentView: (view, params) => set((s) => ({
+    currentView: view,
+    previousView: s.currentView === 'guide' ? s.previousView : s.currentView,
+    navigationParams: params ?? null,
+  })),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   openHelp: (section, sub) => set((s) => ({

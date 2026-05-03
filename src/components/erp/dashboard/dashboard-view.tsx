@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '@/lib/api'
+import { useNavStore } from '@/lib/stores'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { motion } from 'framer-motion'
@@ -40,6 +41,7 @@ import {
   Landmark,
   AlertCircle,
   Activity,
+  ArrowRight,
   Receipt,
   Search,
   Truck,
@@ -511,12 +513,38 @@ function KpiCard({ title, value, rawValue, subtitle, icon, iconBg, iconColor, is
   )
 }
 
+// ── Navigate Card (clickable dashboard card) ──────────────────────────────
+
+function NavigateCard({ onClick, children, className }: { onClick: () => void; children: React.ReactNode; className?: string }) {
+  return (
+    <Card
+      className={`${className || ''} cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group`}
+      onClick={onClick}
+    >
+      {children}
+    </Card>
+  )
+}
+
+function SeeAllLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors shrink-0"
+    >
+      Voir tout
+      <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+    </button>
+  )
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function DashboardView() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const setCurrentView = useNavStore((s) => s.setCurrentView)
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -966,7 +994,10 @@ export default function DashboardView() {
         <motion.div variants={staggerContainer} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Unpaid Client Invoices */}
           <motion.div variants={staggerItem}>
-            <Card className={`border-l-4 ${data!.unpaidClientTotal > 0 ? 'border-l-red-400' : 'border-l-green-400'}`}>
+            <NavigateCard
+              onClick={() => setCurrentView('invoices', { status: 'unpaid' })}
+              className={`border-l-4 ${data!.unpaidClientTotal > 0 ? 'border-l-red-400' : 'border-l-green-400'}`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-muted-foreground">Factures clients impayées</span>
@@ -980,12 +1011,15 @@ export default function DashboardView() {
                   </Badge>
                 )}
               </CardContent>
-            </Card>
+            </NavigateCard>
           </motion.div>
 
           {/* Unpaid Supplier Invoices */}
           <motion.div variants={staggerItem}>
-            <Card className="border-l-4 border-l-amber-400">
+            <NavigateCard
+              onClick={() => setCurrentView('supplier-invoices', { status: 'unpaid' })}
+              className="border-l-4 border-l-amber-400"
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-muted-foreground">Factures fournisseurs impayées</span>
@@ -994,12 +1028,15 @@ export default function DashboardView() {
                 <p className="text-lg font-bold">{formatCurrency(data!.unpaidSupplierTotal)}</p>
                 <p className="text-xs text-muted-foreground">{data!.unpaidSupplierInvoices.length} facture(s)</p>
               </CardContent>
-            </Card>
+            </NavigateCard>
           </motion.div>
 
           {/* Open Price Requests */}
           <motion.div variants={staggerItem}>
-            <Card className={`border-l-4 ${data!.openPriceRequestsCount > 0 ? 'border-l-blue-400' : 'border-l-green-400'}`}>
+            <NavigateCard
+              onClick={() => setCurrentView('price-requests', { status: 'open' })}
+              className={`border-l-4 ${data!.openPriceRequestsCount > 0 ? 'border-l-blue-400' : 'border-l-green-400'}`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-muted-foreground">Demandes de prix ouvertes</span>
@@ -1008,12 +1045,15 @@ export default function DashboardView() {
                 <p className="text-lg font-bold">{data!.openPriceRequestsCount}</p>
                 <p className="text-xs text-muted-foreground">En attente de réponse ou comparaison</p>
               </CardContent>
-            </Card>
+            </NavigateCard>
           </motion.div>
 
           {/* Pending Purchase Orders */}
           <motion.div variants={staggerItem}>
-            <Card className={`border-l-4 ${data!.pendingPurchaseOrdersCount > 0 ? 'border-l-violet-400' : 'border-l-green-400'}`}>
+            <NavigateCard
+              onClick={() => setCurrentView('purchase-orders', { status: 'pending' })}
+              className={`border-l-4 ${data!.pendingPurchaseOrdersCount > 0 ? 'border-l-violet-400' : 'border-l-green-400'}`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-muted-foreground">Commandes fournisseurs en cours</span>
@@ -1022,7 +1062,7 @@ export default function DashboardView() {
                 <p className="text-lg font-bold">{formatCurrency(data!.pendingPurchaseOrdersTotal)}</p>
                 <p className="text-xs text-muted-foreground">{data!.pendingPurchaseOrdersCount} commande(s)</p>
               </CardContent>
-            </Card>
+            </NavigateCard>
           </motion.div>
         </motion.div>
       )}
@@ -1097,7 +1137,10 @@ export default function DashboardView() {
                   <Receipt className="h-5 w-5" />
                   Factures impayées
                 </CardTitle>
-                <CardDescription>Factures clients et fournisseurs en attente de règlement</CardDescription>
+                <CardDescription className="flex items-center justify-between">
+                  <span>Factures clients et fournisseurs en attente de règlement</span>
+                  <SeeAllLink onClick={() => setCurrentView('invoices', { status: 'unpaid' })} />
+                </CardDescription>
               </CardHeader>
               <CardContent className="overflow-hidden">
                 <Tabs defaultValue="clients">
@@ -1206,7 +1249,10 @@ export default function DashboardView() {
                   Demandes de prix ouvertes
                   <Badge variant="secondary">{data!.openPriceRequestsCount}</Badge>
                 </CardTitle>
-                <CardDescription>En attente de devis fournisseurs</CardDescription>
+                <CardDescription className="flex items-center justify-between">
+                  <span>En attente de devis fournisseurs</span>
+                  <SeeAllLink onClick={() => setCurrentView('price-requests', { status: 'open' })} />
+                </CardDescription>
               </CardHeader>
               <CardContent className="overflow-hidden">
                 <div className="max-h-[300px] overflow-y-auto scrollbar-visible">
@@ -1258,7 +1304,10 @@ export default function DashboardView() {
       {!loading && (
         <div className="grid grid-cols-2 gap-4">
           <motion.div variants={staggerItem}>
-            <Card className="border-l-4 border-l-cyan-400">
+            <NavigateCard
+              onClick={() => setCurrentView('delivery-notes', { status: 'pending' })}
+              className="border-l-4 border-l-cyan-400"
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium text-muted-foreground">BL en attente</span>
@@ -1266,10 +1315,13 @@ export default function DashboardView() {
                 </div>
                 <p className="text-lg font-bold">{data!.pendingDeliveries}</p>
               </CardContent>
-            </Card>
+            </NavigateCard>
           </motion.div>
           <motion.div variants={staggerItem}>
-            <Card className={`border-l-4 ${data!.unreconciledTransactions > 0 ? 'border-l-amber-400' : 'border-l-green-400'}`}>
+            <NavigateCard
+              onClick={() => setCurrentView('bank-accounts')}
+              className={`border-l-4 ${data!.unreconciledTransactions > 0 ? 'border-l-amber-400' : 'border-l-green-400'}`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium text-muted-foreground">Transactions non rapprochées</span>
@@ -1277,7 +1329,7 @@ export default function DashboardView() {
                 </div>
                 <p className="text-lg font-bold">{data!.unreconciledTransactions}</p>
               </CardContent>
-            </Card>
+            </NavigateCard>
           </motion.div>
         </div>
       )}
@@ -1300,8 +1352,9 @@ export default function DashboardView() {
                     </Badge>
                   )}
                 </CardTitle>
-                <CardDescription>
-                  Produits sous le seuil minimum de stock
+                <CardDescription className="flex items-center justify-between">
+                  <span>Produits sous le seuil minimum de stock</span>
+                  <SeeAllLink onClick={() => setCurrentView('stock-alerts')} />
                 </CardDescription>
               </CardHeader>
               <CardContent className="overflow-hidden">
