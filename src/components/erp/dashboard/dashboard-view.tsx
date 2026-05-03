@@ -62,6 +62,93 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
+// ── Traductions activité récente (FR) ─────────────────────────────────────────
+
+const actionLabelsFr: Record<string, string> = {
+  create: 'Création',
+  update: 'Modification',
+  delete: 'Suppression',
+  validate: 'Validation',
+  login: 'Connexion',
+  logout: 'Déconnexion',
+  cancel: 'Annulation',
+  send: 'Envoi',
+  pay: 'Paiement',
+  plan: 'Planification',
+  launch: 'Lancement',
+  complete: 'Clôture',
+  close: 'Fermeture',
+  start: 'Démarrage',
+  import: 'Importation',
+  deliver: 'Livraison',
+  undeliver: 'Annulation livraison',
+  block: 'Blocage',
+  unblock: 'Déblocage',
+  update_avatar: 'Mise à jour avatar',
+  register: 'Inscription',
+  reject: 'Rejet',
+  apply: 'Application',
+  edit_lines: 'Modification lignes',
+  update_line: 'Modification ligne',
+  receive: 'Réception',
+  restore: 'Restauration',
+  backup: 'Sauvegarde',
+  confirm: 'Confirmation',
+  print: 'Impression',
+  reopen: 'Réouverture',
+  return: 'Retour',
+}
+
+const entityLabelsFr: Record<string, string> = {
+  User: 'Utilisateur',
+  Client: 'Client',
+  Product: 'Produit',
+  Quote: 'Devis',
+  SalesOrder: 'Commande',
+  PreparationOrder: 'Préparation',
+  DeliveryNote: 'Bon de livraison',
+  Invoice: 'Facture',
+  CreditNote: 'Avoir',
+  CustomerReturn: 'Retour client',
+  Supplier: 'Fournisseur',
+  PriceRequest: 'Demande de prix',
+  SupplierQuote: 'Devis fournisseur',
+  PurchaseOrder: 'Commande fournisseur',
+  Reception: 'Réception',
+  SupplierInvoice: 'Facture fournisseur',
+  SupplierReturn: 'Retour fournisseur',
+  SupplierCreditNote: 'Avoir fournisseur',
+  WorkOrder: 'Ordre de travail',
+  WorkStation: 'Poste de travail',
+  Equipement: 'Équipement',
+  PlanMaintenance: 'Plan maintenance',
+  OrdreTravailMaintenance: 'OT Maintenance',
+  ProductionBatch: 'Lot production',
+  QualityControl: 'Contrôle qualité',
+  StockMovement: 'Mouvement stock',
+  Inventory: 'Inventaire',
+  CashRegister: 'Caisse',
+  CashMovement: 'Mouvement caisse',
+  BankAccount: 'Compte bancaire',
+  BankTransaction: 'Transaction bancaire',
+  Payment: 'Paiement',
+  EffetCheque: 'Effet / Chèque',
+  AccountingEntry: 'Écriture comptable',
+  Setting: 'Paramètre',
+  Chantier: 'Chantier',
+  BomComponent: 'Nomenclature',
+  Lot: 'Lot',
+  Notification: 'Notification',
+  Backup: 'Sauvegarde',
+  PaymentCodeCounter: 'Compteur codes paiement',
+}
+
+function getActivityLabel(action: string, entity: string): string {
+  const a = actionLabelsFr[action.toLowerCase()] || action
+  const e = entityLabelsFr[entity] || entity
+  return `${a} ${e.toLowerCase()}`
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface DashboardData {
@@ -1014,15 +1101,8 @@ export default function DashboardView() {
                               </span>
                               {` `}
                               <span className="text-muted-foreground">
-                                {activity.action.toLowerCase()}
+                                {getActivityLabel(activity.action, activity.entity)}
                               </span>
-                              {` `}
-                              <Badge
-                                variant="secondary"
-                                className="mx-1 text-[10px] px-1.5 py-0 max-w-[140px] truncate align-middle"
-                              >
-                                {activity.entity}
-                              </Badge>
                             </p>
                             <p className="mt-0.5 text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(activity.createdAt), {
