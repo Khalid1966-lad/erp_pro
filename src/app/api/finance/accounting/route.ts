@@ -4,12 +4,13 @@ import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
 import { z } from 'zod'
 
 const accountingEntrySchema = z.object({
+  id: z.string().optional(),
   date: z.string().datetime().optional(),
   label: z.string().min(1, 'Le libellé est requis'),
   account: z.string().min(1, 'Le compte est requis'),
   debit: z.number().min(0).default(0),
   credit: z.number().min(0).default(0),
-  documentRef: z.string().optional(),
+  documentRef: z.string().nullable().optional(),
 })
 
 const batchEntrySchema = z.object({
@@ -144,6 +145,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Données invalides', details: error.errors }, { status: 400 })
     }
     console.error('Accounting entry create error:', error)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+}
+
+// PUT - Update accounting entry
+export async function PUT(req: NextRequest) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+  if (!hasPermission(auth, 'accounting:write')) {
+    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  }
+
+  try {
+    const body = await req.json()
+    const { id, ...updateData } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID requis' }, { status: 400 })
+    }
+
+    const existing = await db.accountingEntry.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Écriture comptable introuvable' }, { status: 404 })
+    }
+
+    const data = accountingEntrySchema.parse(body)
+
+    const updated = await db.accountingEntry.update({
+      where: { id },
+      data: {
+        date: data.date ? new Date(data.date) : existing.date,
+        label: data.label,
+        account: data.account,
+        debit: data.debit,
+        credit: data.credit,
+        documentRef: data.documentRef !== undefined ? data.documentRef : existing.documentRef,
+      },
+    })
+
+    await auditLog(auth.userId, 'update', 'AccountingEntry', id, existing, updated)
+    return NextResponse.json(updated)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Données invalides', details: error.errors }, { status: 400 })
+    }
+    console.error('Accounting entry update error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Plus, Trash2, BookOpen, Scale, Layers, AlertCircle, CheckCircle2, Search
+  Plus, Trash2, BookOpen, Scale, Layers, AlertCircle, CheckCircle2, Search, Pencil
 } from 'lucide-react'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
@@ -122,6 +122,7 @@ export default function AccountingView() {
   const [singleDialogOpen, setSingleDialogOpen] = useState(false)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [singleForm, setSingleForm] = useState(emptySingleEntry)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [batchEntries, setBatchEntries] = useState<BatchEntry[]>([emptyBatchEntry()])
   const [batchDescription, setBatchDescription] = useState('')
   const [saving, setSaving] = useState(false)
@@ -174,7 +175,21 @@ export default function AccountingView() {
   const batchIsBalanced = Math.abs(batchTotalDebit - batchTotalCredit) < 0.01
 
   const openSingle = () => {
+    setEditingId(null)
     setSingleForm(emptySingleEntry)
+    setSingleDialogOpen(true)
+  }
+
+  const openEdit = (entry: AccountingEntry) => {
+    setEditingId(entry.id)
+    setSingleForm({
+      date: format(new Date(entry.date), 'yyyy-MM-dd'),
+      label: entry.label,
+      account: entry.account,
+      debit: entry.debit > 0 ? String(entry.debit) : '',
+      credit: entry.credit > 0 ? String(entry.credit) : '',
+      documentRef: entry.documentRef || ''
+    })
     setSingleDialogOpen(true)
   }
 
@@ -192,16 +207,23 @@ export default function AccountingView() {
     }
     try {
       setSaving(true)
-      await api.post('/finance/accounting', {
+      const payload = {
         date: singleForm.date ? new Date(singleForm.date).toISOString() : new Date().toISOString(),
         label: singleForm.label.trim(),
         account: singleForm.account,
         debit: singleForm.debit ? parseFloat(singleForm.debit) : 0,
         credit: singleForm.credit ? parseFloat(singleForm.credit) : 0,
         documentRef: singleForm.documentRef || null
-      })
-      toast.success('Écriture enregistrée')
+      }
+      if (editingId) {
+        await api.put('/finance/accounting', { id: editingId, ...payload })
+        toast.success('Écriture modifiée')
+      } else {
+        await api.post('/finance/accounting', payload)
+        toast.success('Écriture enregistrée')
+      }
       setSingleDialogOpen(false)
+      setEditingId(null)
       fetchEntries()
     } catch (err: any) {
       toast.error(err.message || 'Erreur enregistrement')
@@ -397,7 +419,7 @@ export default function AccountingView() {
                   <TableHead className="text-right w-[130px]">Débit</TableHead>
                   <TableHead className="text-right w-[130px]">Crédit</TableHead>
                   <TableHead className="hidden md:table-cell">Pièce</TableHead>
-                  <TableHead className="text-right pr-4 w-[50px]"></TableHead>
+                  <TableHead className="text-right pr-4 w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -443,12 +465,22 @@ export default function AccountingView() {
                         {entry.documentRef || '—'}
                       </TableCell>
                       <TableCell className="text-right pr-4">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                            onClick={() => openEdit(entry)}
+                            title="Modifier"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Supprimer l&apos;écriture</AlertDialogTitle>
@@ -463,7 +495,8 @@ export default function AccountingView() {
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
-                        </AlertDialog>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -492,7 +525,7 @@ export default function AccountingView() {
       <Dialog open={singleDialogOpen} onOpenChange={setSingleDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nouvelle écriture</DialogTitle>
+            <DialogTitle>{editingId ? 'Modifier l\'écriture' : 'Nouvelle écriture'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -565,9 +598,9 @@ export default function AccountingView() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSingleDialogOpen(false)}>Annuler</Button>
+            <Button variant="outline" onClick={() => { setSingleDialogOpen(false); setEditingId(null) }}>Annuler</Button>
             <Button onClick={handleSaveSingle} disabled={!singleForm.label.trim() || !singleForm.account || (!singleForm.debit && !singleForm.credit) || saving}>
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
+              {saving ? 'Enregistrement...' : editingId ? 'Modifier' : 'Enregistrer'}
             </Button>
           </DialogFooter>
         </DialogContent>
