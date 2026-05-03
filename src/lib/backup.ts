@@ -146,7 +146,6 @@ const DATETIME_FIELDS: Record<string, string[]> = {
   PlanMaintenance: ['derniereExecution', 'prochaineExecution', 'createdAt', 'updatedAt'],
   OrdreTravailMaintenance: ['datePlanifiee', 'dateDebut', 'dateFin', 'arretDebut', 'arretFin', 'createdAt', 'updatedAt'],
   QualityControl: ['date', 'createdAt', 'updatedAt'],
-  QualityControlLine: ['createdAt'],
   PaymentLine: ['createdAt'],
   Notification: ['createdAt'],
   Conversation: ['createdAt', 'updatedAt'],
