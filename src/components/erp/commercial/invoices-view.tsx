@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   Receipt, Plus, Search, MoreVertical, Eye, Send, CheckCircle,
-  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText, Printer, Pencil, AlertCircle, Clock
+  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText, Printer, Pencil, AlertCircle, Clock, RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -598,6 +598,10 @@ export default function InvoicesView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="ventes" sub="factures-tva" />
+          <Button variant="outline" size="sm" onClick={fetchInvoices} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4 mr-1" />
             Nouvelle facture

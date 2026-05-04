@@ -20,7 +20,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Edit, Trash2, Star, Phone, Mail, Building2, Eye, ArrowUpDown, AlertTriangle } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Star, Phone, Mail, Building2, Eye, ArrowUpDown, AlertTriangle, RefreshCw } from 'lucide-react'
 import SupplierDetailView from './supplier-detail-view'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
@@ -222,6 +222,10 @@ export default function SuppliersView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="achats" sub="fournisseurs" />
+          <Button variant="outline" size="sm" onClick={fetchSuppliers} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={openCreate}>

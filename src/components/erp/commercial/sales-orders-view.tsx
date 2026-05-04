@@ -29,7 +29,7 @@ import {
 import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
   Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2,
-  Truck, Package, Edit, Printer, Pencil, BadgeCheck, Clock
+  Truck, Package, Edit, Printer, Pencil, BadgeCheck, Clock, RefreshCw
 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -560,6 +560,10 @@ export default function SalesOrdersView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="ventes" sub="commandes" />
+          <Button variant="outline" size="sm" onClick={fetchOrders} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4 mr-1" />
             Nouvelle commande

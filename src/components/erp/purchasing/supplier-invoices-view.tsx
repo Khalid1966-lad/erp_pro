@@ -24,7 +24,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, Receipt, CheckCircle2, ShieldCheck, Pencil, Printer, XCircle, AlertCircle, Clock } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, Receipt, CheckCircle2, ShieldCheck, Pencil, Printer, XCircle, AlertCircle, Clock, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -413,6 +413,10 @@ export default function SupplierInvoicesView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="achats" sub="factures-fournisseurs" />
+          <Button variant="outline" size="sm" onClick={fetchItems} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
             <DialogTrigger asChild>
               <Button onClick={() => { resetForm(); resetLineSearches() }}>

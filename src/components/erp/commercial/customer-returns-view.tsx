@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, CheckCircle2, XCircle, Printer, Clock, AlertCircle, ShieldCheck, Ban, FileText } from 'lucide-react'
+import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, CheckCircle2, XCircle, Printer, Clock, AlertCircle, ShieldCheck, Ban, FileText, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -442,6 +442,10 @@ export default function CustomerReturnsView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="ventes" sub="bons-retour-clients" />
+          <Button variant="outline" size="sm" onClick={fetchItems} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (o) { resetLineSearches() } else { resetForm(); setIsEditing(false) } }}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>

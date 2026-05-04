@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, FileText, CheckCircle2, XCircle, Pencil, Printer, Clock, PackageCheck, ShoppingCart } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, FileText, CheckCircle2, XCircle, Pencil, Printer, Clock, PackageCheck, ShoppingCart, RefreshCw } from 'lucide-react'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
@@ -407,6 +407,10 @@ export default function SupplierQuotesView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="achats" sub="devis-fournisseurs" />
+          <Button variant="outline" size="sm" onClick={fetchItems} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>

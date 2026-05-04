@@ -19,7 +19,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Warehouse, CheckCircle2, XCircle, AlertCircle, Printer } from 'lucide-react'
+import { Plus, Search, Eye, Warehouse, CheckCircle2, XCircle, AlertCircle, Printer, RefreshCw } from 'lucide-react'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -292,6 +292,10 @@ export default function ReceptionsView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="achats" sub="receptions" />
+          <Button variant="outline" size="sm" onClick={fetchReceptions} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button>

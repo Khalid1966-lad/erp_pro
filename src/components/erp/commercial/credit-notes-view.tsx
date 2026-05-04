@@ -26,7 +26,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  RotateCcw, Plus, Search, MoreVertical, Eye, Trash2, CheckCircle, XCircle, ShieldCheck, Pencil, Printer, FileText
+  RotateCcw, Plus, Search, MoreVertical, Eye, Trash2, CheckCircle, XCircle, ShieldCheck, Pencil, Printer, FileText, RefreshCw
 } from 'lucide-react'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -393,6 +393,10 @@ export default function CreditNotesView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="ventes" sub="avoirs" />
+          <Button variant="outline" size="sm" onClick={fetchCreditNotes} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4 mr-1" />
             Nouvel avoir

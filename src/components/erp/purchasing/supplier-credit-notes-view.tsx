@@ -23,7 +23,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, ArrowLeftRight, CheckCircle2, XCircle, Pencil, Printer } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, ArrowLeftRight, CheckCircle2, XCircle, Pencil, Printer, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -338,6 +338,10 @@ export default function SupplierCreditNotesView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="achats" sub="avoirs-fournisseurs" />
+          <Button variant="outline" size="sm" onClick={fetchItems} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (o) { resetLineSearches() } else { resetForm(); setIsEditing(false) } }}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>

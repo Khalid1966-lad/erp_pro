@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/popover'
 import {
   FileText, Plus, Search, MoreVertical, Eye, Send, CheckCircle, XCircle, ArrowRight,
-  Trash2, Edit, Printer, Check, ChevronsUpDown, Loader2, Pencil, Clock
+  Trash2, Edit, Printer, Check, ChevronsUpDown, Loader2, Pencil, Clock, RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -493,6 +493,10 @@ export default function QuotesView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="ventes" sub="devis" />
+          <Button variant="outline" size="sm" onClick={fetchQuotes} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4 mr-1" />
             Nouveau devis

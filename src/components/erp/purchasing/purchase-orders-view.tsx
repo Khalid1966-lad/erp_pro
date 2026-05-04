@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer, ShoppingCart, XCircle, CheckCircle2, FileText, Truck } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, CircleDot, Printer, ShoppingCart, XCircle, CheckCircle2, FileText, Truck, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useNavStore } from '@/lib/stores'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
@@ -377,6 +377,10 @@ export default function PurchaseOrdersView() {
         </Select>
         <div className="flex items-center gap-2">
           <HelpButton section="achats" sub="commandes-fournisseurs" />
+          <Button variant="outline" size="sm" onClick={fetchOrders} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
