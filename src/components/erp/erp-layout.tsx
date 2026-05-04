@@ -471,22 +471,26 @@ function UpdateCheckButton() {
   const handleCheck = async () => {
     if (checking) return
     setChecking(true)
+    const id = toast.loading('Vérification des mises à jour...')
     try {
       const available = await checkForUpdates()
       if (available) {
         toast.success('Nouvelle version disponible', {
+          id,
           description: 'Mise à jour en cours...',
           duration: 3000,
         })
         setTimeout(() => applyUpdate(), 1500)
       } else {
-        toast.info('Application à jour', {
-          description: 'Aucune mise à jour disponible.',
+        toast.info('Application à jour ✓', {
+          id,
+          description: 'Vous utilisez la dernière version.',
           duration: 3000,
         })
       }
     } catch {
       toast.error('Erreur', {
+        id,
         description: 'Impossible de vérifier les mises à jour.',
         duration: 3000,
       })

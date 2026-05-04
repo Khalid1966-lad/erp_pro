@@ -89,7 +89,7 @@ export function checkForUpdates(): Promise<boolean> {
         .then(() => {
           // The browser fetched sw.js. If no updatefound fired within
           // a few seconds, there's genuinely no update.
-          setTimeout(() => done(false), 5000)
+          setTimeout(() => done(false), 3000)
         })
         .catch(() => done(false))
     }).catch(() => resolve(false))
