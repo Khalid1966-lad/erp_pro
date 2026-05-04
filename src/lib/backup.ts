@@ -90,6 +90,10 @@ export const BACKUP_TABLES = [
 // ─── SQL table names for tables with @@map annotation ───
 // Used for raw SQL queries (export) where actual PostgreSQL table name differs from Prisma model name
 const TABLE_SQL_NAMES: Record<string, string> = {
+  Role: 'roles',
+  RolePermission: 'role_permissions',
+  EmployeeFunction: 'employee_functions',
+  Employee: 'employees',
   Chantier: 'chantiers',
   CustomerReturn: 'customer_returns',
   CustomerReturnLine: 'customer_return_lines',
