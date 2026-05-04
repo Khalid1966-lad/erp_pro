@@ -2457,3 +2457,21 @@ Stage Summary:
 - Print footer shows: custom footer lines + "Document généré automatiquement" + version
 - Lint: 0 errors
 - 4 files changed: package.json, src/lib/version.ts, src/components/erp/shared/print-header.tsx, src/lib/print-utils.ts
+---
+Task ID: 1
+Agent: Main Agent
+Task: Version 1.5.0 — Devis manuel, vérification sauvegarde, mise à jour version
+
+Work Log:
+- Reverted to commit 596b953 (interactive dashboard) as requested by user
+- Modified `/src/app/api/quotes/route.ts`: Added `number` field to Zod schema (min 1 char), replaced auto-generated `generateQuoteNumber()` with client-provided number, added uniqueness check (409 error on duplicate), stripped number from PUT update data to prevent post-creation changes
+- Modified `/src/components/erp/commercial/quotes-view.tsx`: Added `formNumber` state, added number input field in creation form (font-mono, disabled in edit mode with info text), added number to POST payload, added `setFormNumber('')` in openCreate, added `setFormNumber(quote.number)` in openEdit, added validation check for empty number
+- Verified backup/restore coverage: 68/69 Prisma models covered (Backup model correctly excluded by design), all DateTime fields handled, all @@map SQL overrides managed
+- Updated `/src/lib/version.ts`: 1.4.0 → 1.5.0, BUILD_DATE → 2025-07-18
+- Fixed stale hardcoded version in `/src/components/erp/admin/settings-view.tsx`: "Brochure commerciale v1.2.9" → dynamic `v{APP_VERSION}`
+- Lint clean, committed as 0d053c6, pushed to GitHub main
+
+Stage Summary:
+- Quote numbers are now manually entered alphanumeric fields (no auto-generation)
+- Backup/restore system verified complete — all 68 data tables covered
+- Version updated to 1.5.0 with all references and footers synchronized
