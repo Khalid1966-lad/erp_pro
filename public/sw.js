@@ -2,7 +2,7 @@
 // GEMA ERP PRO — Service Worker (PWA)
 // ═══════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'gema-erp-v1.6.2';
+const CACHE_NAME = 'gema-erp-v1.6.3';
 const STATIC_ASSETS = [
   '/',
   '/favicon.ico',
@@ -22,7 +22,7 @@ self.addEventListener('install', (event) => {
       });
     })
   );
-  self.skipWaiting();
+  // Don't skipWaiting here — wait for the client to trigger it
 });
 
 // Activate: clean old caches
@@ -37,6 +37,13 @@ self.addEventListener('activate', (event) => {
     })
   );
   self.clients.claim();
+});
+
+// Listen for SKIP_WAITING message from client
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Fetch: network first for API, cache first for static

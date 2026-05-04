@@ -67,6 +67,7 @@ import {
   Sun,
   Moon,
   Lock,
+  RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -462,6 +463,43 @@ function ThemeToggle() {
   )
 }
 
+// ─── Update check button (small icon + tooltip) ───
+function UpdateCheckButton() {
+  const [checking, setChecking] = useState(false)
+
+  const handleCheck = () => {
+    const fn = (window as unknown as Record<string, unknown>).__pwaCheckUpdates as (() => Promise<void>) | undefined
+    if (!fn) return
+    setChecking(true)
+    fn().finally(() => setTimeout(() => setChecking(false), 2000))
+  }
+
+  return (
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-lg hover:bg-muted"
+          onClick={handleCheck}
+          disabled={checking}
+          aria-label="Vérifier les mises à jour"
+        >
+          <motion.div
+            animate={checking ? { rotate: 360 } : { rotate: 0 }}
+            transition={checking ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
+          >
+            <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+          </motion.div>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">
+        Vérifier les mises à jour
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 export function ERPHeader() {
   const { user, logout } = useAuthStore()
   const { currentView, sidebarOpen, toggleSidebar, setCurrentView } = useNavStore()
@@ -538,6 +576,7 @@ export function ERPHeader() {
       {user && (
         <>
           <AgendaButton />
+          <UpdateCheckButton />
           <ThemeToggle />
           <NotificationBell />
           <DropdownMenu>
