@@ -3,6 +3,7 @@
 import { useAuthStore, useNavStore } from '@/lib/stores'
 import dynamic from 'next/dynamic'
 import { AnimatePresence, motion } from 'framer-motion'
+import { Lock } from 'lucide-react'
 
 import LoginPage from '@/components/erp/login-page'
 import { ERPSidebar, ERPHeader } from '@/components/erp/erp-layout'
@@ -65,8 +66,90 @@ const pageTransition = {
   ease: [0.16, 1, 0.3, 1],
 }
 
+const VIEW_PERMISSIONS: Record<string, string | undefined> = {
+  'dashboard': undefined,
+  'clients': 'clients:read',
+  'quotes': 'quotes:read',
+  'sales-orders': 'sales_orders:read',
+  'preparations': 'preparations:read',
+  'delivery-notes': 'delivery_notes:read',
+  'customer-returns': 'delivery_notes:read',
+  'invoices': 'invoices:read',
+  'credit-notes': 'credit_notes:read',
+  'suppliers': 'suppliers:read',
+  'price-requests': 'purchase_orders:read',
+  'supplier-quotes': 'purchase_orders:read',
+  'purchase-orders': 'purchase_orders:read',
+  'receptions': 'receptions:read',
+  'supplier-returns': 'purchase_orders:read',
+  'supplier-credit-notes': 'purchase_orders:read',
+  'supplier-invoices': 'purchase_orders:read',
+  'stock-movements': 'stock:read',
+  'stock-alerts': 'stock:read',
+  'inventory': 'stock:read',
+  'lots': 'stock:read',
+  'products': 'products:read',
+  'bom': 'bom:read',
+  'routing': 'routing:read',
+  'workstations': 'workstations:read',
+  'work-orders': 'work_orders:read',
+  'equipements': 'work_orders:read',
+  'maintenance': 'work_orders:read',
+  'cash-registers': 'cash:read',
+  'bank-accounts': 'bank:read',
+  'payments': 'payments:read',
+  'effets': 'payments:read',
+  'accounting': 'accounting:read',
+  'financial-reports': 'accounting:read',
+  'settings': 'settings:read',
+  'audit-log': undefined,
+  'users': undefined,
+  'roles': undefined,
+  'guide': undefined,
+  'profile': undefined,
+  'messages': undefined,
+  'quality-control': 'work_orders:read',
+}
+
+const SUPER_ADMIN_ONLY_VIEWS = new Set(['users', 'roles'])
+
+function LockedPlaceholder() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
+      <Lock className="h-12 w-12 text-muted-foreground" />
+      <h3 className="text-lg font-semibold">Accès restreint</h3>
+      <p className="text-sm text-muted-foreground">Vous n&apos;avez pas la permission d&apos;accéder à cette section.</p>
+    </div>
+  )
+}
+
 function ViewRouter() {
   const { currentView, comparisonPriceRequestId } = useNavStore()
+  const { user, hasPermission } = useAuthStore()
+
+  // Check if the current view is accessible
+  const isSuperAdmin = user?.role === 'super_admin' || user?.isSuperAdmin
+  const isSuperAdminOnly = SUPER_ADMIN_ONLY_VIEWS.has(currentView)
+  const requiredPerm = VIEW_PERMISSIONS[currentView]
+  const hasViewAccess = isSuperAdmin || (!isSuperAdminOnly && (!requiredPerm || hasPermission(requiredPerm)))
+
+  if (!hasViewAccess) {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentView}
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={pageTransition}
+          className="h-full"
+        >
+          <LockedPlaceholder />
+        </motion.div>
+      </AnimatePresence>
+    )
+  }
 
   let view: React.ReactNode
   switch (currentView) {

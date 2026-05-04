@@ -30,7 +30,6 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
-import { PrintHeader } from '@/components/erp/shared/print-header'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -706,3 +705,4 @@ export default function CashRegistersView() {
       toast.error('Erreur d\'impression', { description: 'Impossible de générer le relevé.' })
     }
   }
+}

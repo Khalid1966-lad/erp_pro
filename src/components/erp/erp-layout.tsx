@@ -72,6 +72,7 @@ import { APP_VERSION } from '@/lib/version'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import React, { useState, useEffect, useRef } from 'react'
+import { toast } from 'sonner'
 import { NotificationBell } from '@/components/erp/notifications/notification-bell'
 import { AgendaButton } from '@/components/erp/agenda/agenda-panel'
 
@@ -257,12 +258,6 @@ function SidebarContent() {
           {navigation.map((group) => {
             const isCollapsed = collapsedGroups.has(group.title)
             const hasActiveItem = group.items.some((item) => item.id === currentView)
-            const visibleItems = group.items.filter((item) => {
-              if (item.superAdminOnly && user?.role !== 'super_admin' && !user?.isSuperAdmin) return false
-              return true
-            })
-
-            if (visibleItems.length === 0 && group.items.every(i => i.superAdminOnly)) return null
 
             return (
               <div key={group.title} className="mb-1">
@@ -297,40 +292,65 @@ function SidebarContent() {
                 {/* Show items always when collapsed, only when not collapsed when open */}
                 {(sidebarOpen ? !isCollapsed : true) && (
                   <div className="space-y-0.5 mt-0.5">
-                    {visibleItems.map((item) => {
+                    {group.items.map((item) => {
                       const isActive = currentView === item.id
+                      const accessible = isItemAccessible(item)
+                      const handleClick = () => {
+                        if (!accessible) {
+                          toast.error('Accès restreint', {
+                            description: 'Vous n\'avez pas la permission d\'accéder à cette section.'
+                          })
+                          return
+                        }
+                        setCurrentView(item.id)
+                      }
                       return (
                         <Tooltip key={item.id} delayDuration={0}>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={() => setCurrentView(item.id)}
+                              onClick={handleClick}
                               className={cn(
                                 'sidebar-nav-item relative flex items-center gap-3 w-full px-3 py-[7px] text-[13px] rounded-lg transition-all duration-150 group',
                                 !sidebarOpen && 'justify-center px-2',
-                                isActive
+                                !accessible && 'opacity-50 cursor-not-allowed hover:bg-transparent hover:text-muted-foreground',
+                                accessible && isActive
                                   ? 'sidebar-nav-active font-medium text-foreground'
-                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                                  : accessible && 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
                               )}
                             >
                               {/* Active indicator bar */}
-                              {isActive && (
+                              {isActive && accessible && (
                                 <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
                               )}
                               {/* Icon */}
                               <span className={cn(
                                 'shrink-0 transition-colors',
-                                isActive
+                                isActive && accessible
                                   ? 'text-primary'
-                                  : item.color
+                                  : !accessible ? 'text-muted-foreground' : item.color
                               )}>
                                 {item.icon}
                               </span>
-                              {sidebarOpen && <span className="truncate">{item.label}</span>}
+                              {sidebarOpen && (
+                                <span className="truncate flex items-center gap-1.5">
+                                  {item.label}
+                                  {!accessible && <Lock className="h-3 w-3 text-muted-foreground" />}
+                                </span>
+                              )}
+                              {/* Lock icon in collapsed mode */}
+                              {!sidebarOpen && !accessible && (
+                                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center">
+                                  <Lock className="h-2.5 w-2.5 text-muted-foreground" />
+                                </span>
+                              )}
                             </button>
                           </TooltipTrigger>
                           {!sidebarOpen && (
                             <TooltipContent side="right" className="font-medium">
-                              {item.label}
+                              <span className="flex items-center gap-1.5">
+                                {item.label}
+                                {!accessible && <Lock className="h-3 w-3" />}
+                              </span>
                             </TooltipContent>
                           )}
                         </Tooltip>
