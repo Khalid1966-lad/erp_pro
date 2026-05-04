@@ -112,3 +112,34 @@ Stage Summary:
 - Photo upload with automatic compression (max 500KB)
 - Guide updated with RH module, RBAC, and Actualiser button documentation
 - Version 1.6.1
+
+---
+Task ID: 2
+Agent: Main
+Task: Date picker manuel + codes auto-incrémentés (CL/FR/PROD)
+
+Work Log:
+- Replaced Calendar/Popover date picker in employees-view.tsx with native `<Input type="date">` allowing year selection and manual keyboard entry
+- Removed unused Popover/Calendar imports from employees-view.tsx
+- Added `code String @unique` field to Client model in prisma/schema.prisma
+- Used raw SQL migration to add column, generate unique codes (CL-0001 to CL-0760) for 760 existing rows, and add unique constraint
+- Updated /api/clients POST to auto-generate client code (CL-XXXX format)
+- Updated /api/clients GET with ?nextCode=true query param for preview
+- Added code to client GET select fields (list and dropdown)
+- Updated /api/suppliers POST to auto-generate supplier code (FR-XXXX format)
+- Updated /api/suppliers GET with ?nextCode=true query param
+- Updated /api/products POST to auto-generate product reference (PROD-XXXX format)
+- Updated /api/products GET with ?nextCode=true query param
+- Updated suppliers-view.tsx: openCreate fetches next code, code field now disabled (read-only), removed client-side code validation
+- Updated products-view.tsx: openCreate fetches next code, reference field disabled during creation, removed reference check in handleSave
+- Updated clients-view.tsx: added code field to Client interface, added Code column to table, added autoCode state with useEffect to fetch next code, displayed code as read-only in form
+- Updated prisma/seed.ts: added code field to all client and supplier seed data
+- All changes pushed to GitHub (commit 917fba3)
+
+Stage Summary:
+- Date picker: native HTML5 date input with year/month/day dropdowns and manual keyboard entry
+- Client code: auto-incremented CL-0001, CL-0002, etc. — displayed in form and list table
+- Supplier code: auto-incremented FR-0001, FR-0002, etc. — read-only field
+- Product reference: auto-incremented PROD-0001, PROD-0002, etc. — read-only during creation
+- All existing 760 clients retroactively assigned unique codes
+- API endpoints support ?nextCode=true for preview
