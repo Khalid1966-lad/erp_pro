@@ -24,3 +24,45 @@ Stage Summary:
 - 15 files modified, commit e2a2c70 pushed to GitHub main branch
 - All dropdowns now show ALL clients/suppliers/products with search functionality
 - Product columns now wide enough to show full product names
+
+---
+Task ID: 2
+Agent: Main
+Task: Sidebar cadenas (lock) for unauthorized sections + fix caisse print
+
+Work Log:
+- Analyzed existing sidebar navigation code in erp-layout.tsx
+- Analyzed existing permission system: hasPermission in auth store, permission mapping on NavItems
+- Analyzed ViewRouter in page.tsx for view-level permission control
+- Analyzed caisse print code in cash-registers-view.tsx
+
+Changes applied:
+1. erp-layout.tsx - Sidebar lock implementation:
+   - ALL nav items now always visible (removed hiding of superAdminOnly items)
+   - Each item checked with isItemAccessible() for permission
+   - Unauthorized items: opacity-50, cursor-not-allowed, no hover effects
+   - Lock icon (lucide Lock) shown after label in expanded mode
+   - Lock badge shown on icon in collapsed mode
+   - Lock icon shown in tooltip for collapsed mode
+   - Click on locked item: toast.error('Accès restreint') - no navigation
+   - Super admin: all items accessible, no locks shown
+   - Added toast import from 'sonner'
+
+2. page.tsx - View-level permission gate:
+   - Added VIEW_PERMISSIONS mapping (view ID → required permission string)
+   - Added SUPER_ADMIN_ONLY_VIEWS set ('users', 'roles')
+   - Added LockedPlaceholder component (Lock icon + "Accès restreint" message)
+   - ViewRouter checks permissions before rendering views
+   - Unauthorized views show LockedPlaceholder with animation instead of actual view
+   - Super admin bypasses all permission checks
+
+3. cash-registers-view.tsx - Caisse print fix:
+   - Removed unused PrintHeader import (line 33)
+   - Verified handlePrintStatement function is correct
+
+Stage Summary:
+- 3 files modified, commit 28d1ba5 pushed to GitHub main branch
+- Sidebar shows cadenas (lock) for all unauthorized sections
+- No visualization permitted for locked sections
+- Super admins have all powers, no locks displayed
+- Caisse print button fixed (removed unused import)
