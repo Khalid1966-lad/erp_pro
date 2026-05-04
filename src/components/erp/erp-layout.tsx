@@ -65,6 +65,7 @@ import {
   Wrench,
   Sun,
   Moon,
+  Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -213,9 +214,20 @@ function SidebarLogo() {
 }
 
 function SidebarContent() {
-  const { user, logout } = useAuthStore()
+  const { user, logout, hasPermission } = useAuthStore()
   const { currentView, setCurrentView, sidebarOpen } = useNavStore()
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+
+  // Check if a nav item is accessible to the current user
+  const isItemAccessible = (item: NavItem): boolean => {
+    // Super admin bypasses all checks
+    if (user?.role === 'super_admin' || user?.isSuperAdmin) return true
+    // superAdminOnly items
+    if (item.superAdminOnly) return false
+    // Items without permission requirement are always accessible
+    if (!item.permission) return true
+    return hasPermission(item.permission)
+  }
 
   const toggleGroup = (title: string) => {
     setCollapsedGroups((prev) => {
@@ -250,7 +262,7 @@ function SidebarContent() {
               return true
             })
 
-            if (visibleItems.length === 0) return null
+            if (visibleItems.length === 0 && group.items.every(i => i.superAdminOnly)) return null
 
             return (
               <div key={group.title} className="mb-1">
