@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
           role: 'super_admin',
           isSuperAdmin: true,
           avatarUrl: superUser.avatarUrl ?? null,
+          permissions: ['*'],
         },
       })
     }
@@ -123,6 +124,7 @@ export async function POST(req: NextRequest) {
         role: user.role,
         isSuperAdmin: user.isSuperAdmin,
         avatarUrl: user.avatarUrl ?? null,
+        permissions,
       },
     })
   } catch (error) {

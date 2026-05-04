@@ -10,11 +10,13 @@ export interface AuthState {
     role: string
     isSuperAdmin?: boolean
     avatarUrl?: string
+    permissions?: string[]
   } | null
   isAuthenticated: boolean
-  login: (token: string, user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean; avatarUrl?: string }) => void
+  login: (token: string, user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean; avatarUrl?: string; permissions?: string[] }) => void
   logout: () => void
-  setUser: (user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean; avatarUrl?: string }) => void
+  setUser: (user: { id: string; email: string; name: string; role: string; isSuperAdmin?: boolean; avatarUrl?: string; permissions?: string[] }) => void
+  hasPermission: (permission: string) => boolean
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -25,7 +27,15 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       login: (token, user) => set({ token, user, isAuthenticated: true }),
       logout: () => set({ token: null, user: null, isAuthenticated: false }),
-      setUser: (user) => set({ user })
+      setUser: (user) => set({ user }),
+      hasPermission: (permission) => {
+        const state = useAuthStore.getState()
+        if (!state.user) return false
+        if (state.user.role === 'super_admin' || state.user.isSuperAdmin) return true
+        const perms = state.user.permissions || []
+        if (perms.includes('*')) return true
+        return perms.includes(permission) || perms.includes(permission.replace(':write', ':read'))
+      }
     }),
     {
       name: 'gema-erp-auth'

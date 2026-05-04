@@ -646,7 +646,7 @@ export default function CashRegistersView() {
     </div>
   )
 
-  function handlePrintStatement() {
+  async function handlePrintStatement() {
     if (!selectedRegister) return
     const filtered = movements.filter((mv) => {
       const d = new Date(mv.createdAt)
@@ -655,13 +655,10 @@ export default function CashRegistersView() {
       return true
     }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
-    let runningBalance = selectedRegister.balance
-    // Subtract all movements to get balance before first
-    // Actually we need to compute from filtered: start with 0, or better compute running from total
-    // We'll compute the balance before the period by removing the filtered amounts from current balance
     const totalIn = filtered.filter(m => m.type === 'in').reduce((s, m) => s + m.amount, 0)
     const totalOut = filtered.filter(m => m.type === 'out').reduce((s, m) => s + m.amount, 0)
     const startBalance = selectedRegister.balance - totalIn + totalOut
+    let runningBalance = startBalance
 
     const rows: Array<Array<{ value: string | number; align?: string }>> = filtered.map((mv) => {
       runningBalance += mv.type === 'in' ? mv.amount : -mv.amount
@@ -676,7 +673,8 @@ export default function CashRegistersView() {
       ]
     })
 
-    printDocument({
+    try {
+    await printDocument({
       title: 'RELEVÉ DE CAISSE',
       docNumber: selectedRegister.name,
       infoGrid: [
@@ -703,5 +701,8 @@ export default function CashRegistersView() {
       amountInWords: `${selectedRegister.balance.toLocaleString('fr-FR')} dirhams`,
       amountInWordsLabel: 'Arrêté le présent relevé à la somme de',
     })
+    } catch (err) {
+      console.error('Print error:', err)
+      toast.error('Erreur d\'impression', { description: 'Impossible de générer le relevé.' })
+    }
   }
-}
