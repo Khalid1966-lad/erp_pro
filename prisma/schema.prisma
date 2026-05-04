@@ -168,6 +168,7 @@ enum StatutPaiement {
 
 model Client {
   id                      String          @id @default(cuid())
+  code                    String          @unique
 
   // Legacy fields (kept for backward compatibility with existing frontend)
   name                    String?

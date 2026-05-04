@@ -74,6 +74,7 @@ import {
 // ───────────────────── Types ─────────────────────
 interface Client {
   id: string
+  code?: string
   name: string
   email: string | null
   phone: string | null
@@ -758,6 +759,7 @@ function ClientListView({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[100px]">Code</TableHead>
                   <TableHead
                     className="cursor-pointer select-none"
                     onClick={() => onSort('name')}
@@ -791,14 +793,14 @@ function ClientListView({
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={9}>
                         <Skeleton className="h-10 w-full" />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : clients.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {search ? 'Aucun client trouvé.' : 'Aucun client enregistré.'}
                     </TableCell>
                   </TableRow>
@@ -809,6 +811,7 @@ function ClientListView({
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => onDetail(client)}
                     >
+                      <TableCell className="font-mono text-xs">{client.code || '—'}</TableCell>
                       <TableCell className="font-medium">{client.name}</TableCell>
                       <TableCell className="hidden md:table-cell">
                         <Badge variant="outline" className={typeSocieteColorMap[client.typeSociete] || ''}>
@@ -902,13 +905,22 @@ interface ClientFormViewProps {
 function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) {
   const [saving, setSaving] = useState(false)
   const [commerciaux, setCommerciaux] = useState<{ id: string; firstName: string; lastName: string; fonction?: { name: string } }[]>([])
+  const [autoCode, setAutoCode] = useState('')
 
-  // Fetch commercial employees
+  // Fetch commercial employees & next code on create
   useEffect(() => {
     api.get('/employees?commercial=true').then((res: any) => {
       setCommerciaux(res.employees || res.data || [])
     }).catch(() => {})
-  }, [])
+    if (mode === 'create') {
+      api.get('/clients?nextCode=true').then((res: any) => {
+        if (res.nextCode) setAutoCode(res.nextCode)
+      }).catch(() => {})
+    }
+    if (mode === 'edit' && client?.code) {
+      setAutoCode(client.code)
+    }
+  }, [mode, client])
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientFormSchema),
@@ -1050,6 +1062,12 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                   <CardDescription>Informations d&apos;enregistrement légal de l&apos;entreprise</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Code client</Label>
+                    <Input value={autoCode} disabled placeholder="Auto-généré" className="font-mono bg-muted" />
+                    <p className="text-xs text-muted-foreground">Code attribué automatiquement par le système</p>
+                  </div>
+                  <div /> {/* spacer */}
                   <FormField control={form.control} name="raisonSociale" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Raison sociale *</FormLabel>

@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url)
+    const nextCode = searchParams.get('nextCode') === 'true'
     const search = searchParams.get('search') || ''
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const limit = Math.max(1, Math.min(5000, parseInt(searchParams.get('limit') || '50')))
@@ -28,6 +29,20 @@ export async function GET(req: NextRequest) {
 
     const where: Prisma.ClientWhereInput = {
       isDeleted: false,
+    }
+
+    // Return next auto-generated code
+    if (nextCode) {
+      const lastClient = await db.client.findFirst({
+        orderBy: { createdAt: 'desc' },
+        select: { code: true },
+      })
+      let nextNum = 1
+      if (lastClient?.code) {
+        const match = lastClient.code.match(/^CL-(\d+)$/)
+        if (match) nextNum = parseInt(match[1], 10) + 1
+      }
+      return NextResponse.json({ nextCode: `CL-${String(nextNum).padStart(4, '0')}` })
     }
 
     // Search across multiple fields (full list mode)
@@ -75,7 +90,7 @@ export async function GET(req: NextRequest) {
       const clients = await db.client.findMany({
         where,
         orderBy: orderByDropdown,
-        select: { id: true, name: true, raisonSociale: true, nomCommercial: true, ice: true, ville: true, statut: true },
+        select: { id: true, name: true, raisonSociale: true, nomCommercial: true, ice: true, ville: true, statut: true, code: true },
       })
       return NextResponse.json({ clients, total: clients.length })
     }
@@ -88,6 +103,7 @@ export async function GET(req: NextRequest) {
         take: limit,
         select: {
           id: true,
+          code: true,
           name: true,
           raisonSociale: true,
           nomCommercial: true,
@@ -173,8 +189,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Auto-generate client code (CL-001, CL-002, ...)
+    const lastClient = await db.client.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { code: true },
+    })
+    let nextNum = 1
+    if (lastClient?.code) {
+      const match = lastClient.code.match(/^CL-(\d+)$/)
+      if (match) nextNum = parseInt(match[1], 10) + 1
+    }
+    const autoCode = `CL-${String(nextNum).padStart(4, '0')}`
+
+    // Check code uniqueness (race condition guard)
+    const existingCode = await db.client.findUnique({ where: { code: autoCode } })
+    if (existingCode) {
+      return NextResponse.json(
+        { error: 'Erreur de génération du code client' },
+        { status: 409 }
+      )
+    }
+
     // Map date strings to Date objects
-    const createData: Record<string, unknown> = { ...data }
+    const createData: Record<string, unknown> = { ...data, code: autoCode }
     if (data.dateCreation) createData.dateCreation = new Date(data.dateCreation)
 
     // Auto-populate legacy fields from new Moroccan fields

@@ -106,6 +106,7 @@ async function main() {
   const clients = await Promise.all([
     db.client.create({
       data: {
+        code: 'CL-0001',
         name: 'TechnoMat SA', siret: '321 654 987 00011',
         address: '45 Boulevard Zerktouni', city: 'Casablanca', postalCode: '20000', phone: '+212 522 00 00 01',
         raisonSociale: 'TechnoMat SA', ice: '001234567000011', patente: '12345678', cnss: '98765432',
@@ -126,6 +127,7 @@ async function main() {
     }),
     db.client.create({
       data: {
+        code: 'CL-0002',
         name: 'MécaPro Industries', siret: '654 321 987 00022',
         address: '12 Avenue Mohammed V', city: 'Rabat', postalCode: '10000', phone: '+212 537 00 00 02',
         raisonSociale: 'MécaPro Industries SARL', ice: '002345678000022', patente: '23456789', cnss: '87654321',
@@ -146,6 +148,7 @@ async function main() {
     }),
     db.client.create({
       data: {
+        code: 'CL-0003',
         name: 'AutoParts Maroc', siret: '789 456 123 00033',
         address: '8 Zone Industrielle Nord', city: 'Tanger', postalCode: '90000', phone: '+212 539 00 00 03',
         raisonSociale: 'AutoParts Maroc SA', ice: '003456789000033', patente: '34567890',
@@ -165,6 +168,7 @@ async function main() {
     }),
     db.client.create({
       data: {
+        code: 'CL-0004',
         name: 'BatiConseil SARL', siret: '147 258 369 00044',
         address: '23 Rue Semlalia', city: 'Marrakech', postalCode: '40000', phone: '+212 524 00 00 04',
         raisonSociale: 'BatiConseil SARL', ice: '004567890000044', patente: '45678901',
@@ -184,6 +188,7 @@ async function main() {
     }),
     db.client.create({
       data: {
+        code: 'CL-0005',
         name: 'AluTech GmbH',
         address: 'Zone Franche', city: 'Casablanca', postalCode: '20100', phone: '+212 522 00 00 05',
         raisonSociale: 'AluTech GmbH', ice: '005678901000055',
@@ -205,6 +210,7 @@ async function main() {
     }),
     db.client.create({
       data: {
+        code: 'CL-0006',
         name: 'ElecDistrib SA', siret: '963 852 741 00055',
         address: '56 Avenue Hassan II', city: 'Fès', postalCode: '30000', phone: '+212 535 00 00 06',
         raisonSociale: 'ElecDistrib SA', ice: '006789012000066', patente: '56789012',
@@ -225,11 +231,11 @@ async function main() {
   // ============ SUPPLIERS ============
   console.log('🚛 Creating suppliers...')
   const suppliers = await Promise.all([
-    db.supplier.create({ data: { name: 'AcierPlus', siret: '111 222 333 00001', address: 'Zone Industrielle Est', city: 'Marseille', postalCode: '13000', phone: '04 91 00 00 01', email: 'ventes@acierplus.fr', deliveryDelay: 5, paymentTerms: '30 jours', rating: 4.5 } }),
-    db.supplier.create({ data: { name: 'Plastiform SA', siret: '222 333 444 00002', address: '15 Rue des Matériaux', city: 'Lyon', postalCode: '69008', phone: '04 78 00 00 02', email: 'contact@plastiform.fr', deliveryDelay: 3, paymentTerms: '15 jours', rating: 4.8 } }),
-    db.supplier.create({ data: { name: 'ElectroSupply', siret: '333 444 555 00003', address: '8 Chemin des Composants', city: 'Grenoble', postalCode: '38000', phone: '04 76 00 00 03', email: 'order@electrosupply.fr', deliveryDelay: 7, paymentTerms: '45 jours', rating: 3.9 } }),
-    db.supplier.create({ data: { name: 'VisseriePro', siret: '444 555 666 00004', address: '90 Route du Boulon', city: 'Clermont-Ferrand', postalCode: '63000', phone: '04 73 00 00 04', email: 'pro@visseriepro.fr', deliveryDelay: 2, paymentTerms: '30 jours', rating: 4.2 } }),
-    db.supplier.create({ data: { name: 'PeintureMax', siret: '555 666 777 00005', address: '33 Allée des Peintures', city: 'Valence', postalCode: '26000', phone: '04 75 00 00 05', email: 'contact@peinturemax.fr', deliveryDelay: 4, paymentTerms: '30 jours', rating: 4.0 } }),
+    db.supplier.create({ data: { code: 'FR-0001', name: 'AcierPlus', siret: '111 222 333 00001', address: 'Zone Industrielle Est', city: 'Marseille', postalCode: '13000', phone: '04 91 00 00 01', email: 'ventes@acierplus.fr', deliveryDelay: 5, paymentTerms: '30 jours', rating: 4.5 } }),
+    db.supplier.create({ data: { code: 'FR-0002', name: 'Plastiform SA', siret: '222 333 444 00002', address: '15 Rue des Matériaux', city: 'Lyon', postalCode: '69008', phone: '04 78 00 00 02', email: 'contact@plastiform.fr', deliveryDelay: 3, paymentTerms: '15 jours', rating: 4.8 } }),
+    db.supplier.create({ data: { code: 'FR-0003', name: 'ElectroSupply', siret: '333 444 555 00003', address: '8 Chemin des Composants', city: 'Grenoble', postalCode: '38000', phone: '04 76 00 00 03', email: 'order@electrosupply.fr', deliveryDelay: 7, paymentTerms: '45 jours', rating: 3.9 } }),
+    db.supplier.create({ data: { code: 'FR-0004', name: 'VisseriePro', siret: '444 555 666 00004', address: '90 Route du Boulon', city: 'Clermont-Ferrand', postalCode: '63000', phone: '04 73 00 00 04', email: 'pro@visseriepro.fr', deliveryDelay: 2, paymentTerms: '30 jours', rating: 4.2 } }),
+    db.supplier.create({ data: { code: 'FR-0005', name: 'PeintureMax', siret: '555 666 777 00005', address: '33 Allée des Peintures', city: 'Valence', postalCode: '26000', phone: '04 75 00 00 05', email: 'contact@peinturemax.fr', deliveryDelay: 4, paymentTerms: '30 jours', rating: 4.0 } }),
   ])
 
   // ============ PRODUCTS ============

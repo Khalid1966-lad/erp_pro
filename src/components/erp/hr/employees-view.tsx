@@ -29,10 +29,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import {
-  Popover, PopoverContent, PopoverTrigger
-} from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
-import {
   Users, Plus, Edit, Trash2, Search, RefreshCw, UserCog,
   Phone, Mail, Briefcase, CalendarDays, Building2, MapPin,
   FileText, CreditCard, Hash, Loader2, UserCheck, UserX, DollarSign, Camera
@@ -246,38 +242,21 @@ function DatePickerField({
   placeholder?: string
   id?: string
 }) {
-  const [open, setOpen] = useState(false)
-  const dateValue = value ? new Date(value) : undefined
-
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            variant="outline"
-            className={cn(
-              'w-full justify-start text-left font-normal',
-              !value && 'text-muted-foreground'
-            )}
-          >
-            <CalendarDays className="mr-2 h-4 w-4" />
-            {dateValue ? format(dateValue, 'dd MMM yyyy', { locale: fr }) : placeholder}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={dateValue}
-            onSelect={(d) => {
-              onChange(d ? d.toISOString().split('T')[0] : '')
-              setOpen(false)
-            }}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
+      <div className="relative">
+        <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          id={id}
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="pl-9"
+          max={new Date().toISOString().split('T')[0]}
+        />
+      </div>
     </div>
   )
 }

@@ -137,6 +137,12 @@ export default function SuppliersView() {
   const openCreate = () => {
     setEditing(null)
     setForm(emptyForm)
+    // Fetch next auto-generated code
+    api.get('/suppliers?nextCode=true').then((res: any) => {
+      if (res.nextCode) {
+        setForm(prev => ({ ...prev, code: res.nextCode }))
+      }
+    }).catch(() => {})
     setDialogOpen(true)
   }
 
@@ -153,10 +159,6 @@ export default function SuppliersView() {
   }
 
   const handleSave = async () => {
-    if (!form.code.trim()) {
-      toast.error('Le code fournisseur est obligatoire')
-      return
-    }
     if (!form.name.trim()) {
       toast.error('La raison sociale est obligatoire')
       return
@@ -241,7 +243,7 @@ export default function SuppliersView() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Code *</Label>
-                  <Input value={form.code} onChange={(e) => updateField('code', e.target.value)} placeholder="FR0001" disabled={!!editing} />
+                  <Input value={form.code} onChange={(e) => updateField('code', e.target.value)} placeholder="Auto-généré" disabled />
                 </div>
                 <div className="space-y-2">
                   <Label>Raison Sociale *</Label>

@@ -229,6 +229,12 @@ export default function ProductsView() {
   const openCreate = () => {
     setEditingProduct(null)
     setForm(emptyProduct)
+    // Fetch next auto-generated reference
+    api.get('/products?nextCode=true').then((res: any) => {
+      if (res.nextCode) {
+        setForm(prev => ({ ...prev, reference: res.nextCode }))
+      }
+    }).catch(() => {})
     setDialogOpen(true)
   }
 
@@ -254,7 +260,7 @@ export default function ProductsView() {
   }
 
   const handleSave = async () => {
-    if (!form.reference.trim() || !form.designation.trim()) return
+    if (!form.designation.trim()) return
     try {
       setSaving(true)
       const body = {
@@ -630,7 +636,7 @@ export default function ProductsView() {
               <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b border-border pb-2">Identification</h4></div>
               <div className="space-y-2">
                 <Label htmlFor="reference">Référence *</Label>
-                <Input id="reference" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="REF-001" className="font-mono" />
+                <Input id="reference" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="Auto-généré" className="font-mono" disabled={!!editingProduct} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="designation">Désignation *</Label>
@@ -683,7 +689,7 @@ export default function ProductsView() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleSave} disabled={!form.reference.trim() || !form.designation.trim() || saving}>
+            <Button onClick={handleSave} disabled={!form.designation.trim() || saving}>
               {saving ? 'Enregistrement...' : editingProduct ? 'Modifier' : 'Créer'}
             </Button>
           </DialogFooter>

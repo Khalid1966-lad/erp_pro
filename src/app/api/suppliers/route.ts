@@ -34,6 +34,21 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
     const dropdown = searchParams.get('dropdown') === 'true'
+    const nextCode = searchParams.get('nextCode') === 'true'
+
+    // Return next auto-generated code
+    if (nextCode) {
+      const lastSupplier = await db.supplier.findFirst({
+        orderBy: { createdAt: 'desc' },
+        select: { code: true },
+      })
+      let nextNum = 1
+      if (lastSupplier?.code) {
+        const match = lastSupplier.code.match(/^FR-(\d+)$/)
+        if (match) nextNum = parseInt(match[1], 10) + 1
+      }
+      return NextResponse.json({ nextCode: `FR-${String(nextNum).padStart(4, '0')}` })
+    }
 
     const where: Record<string, unknown> = {}
     if (search) {
@@ -95,12 +110,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const data = supplierSchema.parse(body)
 
-    const existing = await db.supplier.findUnique({ where: { code: data.code } })
+    // Auto-generate supplier code (FR-0001, FR-0002, ...)
+    const lastSupplier = await db.supplier.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { code: true },
+    })
+    let nextNum = 1
+    if (lastSupplier?.code) {
+      const match = lastSupplier.code.match(/^FR-(\d+)$/)
+      if (match) nextNum = parseInt(match[1], 10) + 1
+    }
+    const autoCode = `FR-${String(nextNum).padStart(4, '0')}`
+
+    // If a code was provided in the body, use it instead (backward compatibility)
+    const finalCode = data.code?.trim() || autoCode
+
+    const existing = await db.supplier.findUnique({ where: { code: finalCode } })
     if (existing) {
       return NextResponse.json({ error: 'Ce code fournisseur existe déjà' }, { status: 409 })
     }
 
-    const supplier = await db.supplier.create({ data })
+    const supplier = await db.supplier.create({ data: { ...data, code: finalCode } })
 
     await auditLog(auth.userId, 'create', 'Supplier', supplier.id, null, supplier)
     return NextResponse.json(supplier, { status: 201 })

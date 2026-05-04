@@ -44,6 +44,21 @@ export async function GET(req: NextRequest) {
     const dropdown = searchParams.get('dropdown') === 'true'
     const sortField = searchParams.get('sortField') || 'reference'
     const sortDir = searchParams.get('sortDir') || 'asc'
+    const nextCode = searchParams.get('nextCode') === 'true'
+
+    // Return next auto-generated reference
+    if (nextCode) {
+      const lastProduct = await db.product.findFirst({
+        orderBy: { createdAt: 'desc' },
+        select: { reference: true },
+      })
+      let nextNum = 1
+      if (lastProduct?.reference) {
+        const match = lastProduct.reference.match(/^PROD-(\d+)$/)
+        if (match) nextNum = parseInt(match[1], 10) + 1
+      }
+      return NextResponse.json({ nextCode: `PROD-${String(nextNum).padStart(4, '0')}` })
+    }
 
     const where: Record<string, unknown> = {}
     if (searchDesignation) {
@@ -125,12 +140,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const data = productSchema.parse(body)
 
-    const existing = await db.product.findUnique({ where: { reference: data.reference } })
+    // Auto-generate product reference (PROD-0001, PROD-0002, ...)
+    const lastProduct = await db.product.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { reference: true },
+    })
+    let nextNum = 1
+    if (lastProduct?.reference) {
+      const match = lastProduct.reference.match(/^PROD-(\d+)$/)
+      if (match) nextNum = parseInt(match[1], 10) + 1
+    }
+    const autoRef = `PROD-${String(nextNum).padStart(4, '0')}`
+
+    // If a reference was provided in the body, use it instead (backward compatibility)
+    const finalRef = data.reference?.trim() || autoRef
+
+    const existing = await db.product.findUnique({ where: { reference: finalRef } })
     if (existing) {
       return NextResponse.json({ error: 'Cette référence existe déjà' }, { status: 409 })
     }
 
-    const product = await db.product.create({ data })
+    const product = await db.product.create({ data: { ...data, reference: finalRef } })
 
     await auditLog(auth.userId, 'create', 'Product', product.id, null, product)
 
