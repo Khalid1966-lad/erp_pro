@@ -228,3 +228,24 @@ Stage Summary:
 - All `salesOrder.number` references replaced with `salesOrder.clientOrderNumber`
 - All IconLegend components moved outside Table, allowing proper horizontal flex layout
 - ESLint passes with no errors
+
+---
+Task ID: 6
+Agent: Main
+Task: Suppression numéro BC auto + clientOrderNumber unique obligatoire + légendes horizontales
+
+Work Log:
+- Confirmed SalesOrder schema already has clientOrderNumber @unique (no auto number field)
+- Confirmed sales-orders API already removed generateSONumber() and uses clientOrderNumber
+- Confirmed delivery-notes and preparations APIs reference clientOrderNumber (not number)
+- Confirmed sales-orders-view.tsx has manual clientOrderNumber field (required validation)
+- Confirmed delivery-notes-view.tsx has clientOrderNumber filter
+- Verified ALL IconLegend components across 15 views use flex flex-wrap (horizontal layout)
+- Ran prisma db push to verify Neon PostgreSQL schema is in sync
+- Committed all 19 modified files and pushed to GitHub
+
+Stage Summary:
+- Commit 8e99d15 pushed to GitHub main branch
+- No auto BC number: only clientOrderNumber (manually entered, unique, required)
+- All legends verified horizontal (flex-wrap) across all views
+- Neon database already in sync with schema
