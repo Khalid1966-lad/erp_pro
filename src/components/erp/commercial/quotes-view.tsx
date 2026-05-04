@@ -172,6 +172,7 @@ export default function QuotesView() {
   const [lineSearches, setLineSearches] = useState<Record<number, string>>({})
 
   // Form state
+  const [formNumber, setFormNumber] = useState('')
   const [formClientId, setFormClientId] = useState('')
   const [formValidUntil, setFormValidUntil] = useState('')
   const [formDiscountRate, setFormDiscountRate] = useState('0')
@@ -270,6 +271,7 @@ export default function QuotesView() {
   const openCreate = () => {
     setEditingQuote(null)
     setSelectedQuote(null)
+    setFormNumber('')
     setFormClientId('')
     setClientSearch('')
     setLineSearches({})
@@ -322,6 +324,10 @@ export default function QuotesView() {
   }
 
   const handleSave = async () => {
+    if (!formNumber.trim()) {
+      toast.error('Veuillez saisir le numéro de devis')
+      return
+    }
     if (!formClientId) {
       toast.error('Veuillez sélectionner un client')
       return
@@ -340,6 +346,7 @@ export default function QuotesView() {
       setSaving(true)
       const validUntilDate = new Date(formValidUntil + 'T23:59:59.000Z')
       await api.post('/quotes', {
+        number: formNumber.trim(),
         clientId: formClientId,
         status: 'draft',
         validUntil: validUntilDate.toISOString(),
@@ -368,6 +375,7 @@ export default function QuotesView() {
   const openEdit = (quote: Quote) => {
     setEditingQuote(quote)
     setSelectedQuote(quote)
+    setFormNumber(quote.number)
     setFormClientId(quote.client.id)
     setClientSearch('')
     setLineSearches({})
@@ -400,6 +408,7 @@ export default function QuotesView() {
       const validUntilDate = new Date(formValidUntil + 'T23:59:59.000Z')
       await api.put('/quotes', {
         id: editingQuote.id,
+        number: formNumber.trim(),
         clientId: formClientId,
         validUntil: validUntilDate.toISOString(),
         discountRate: parseFloat(formDiscountRate) || 0,
@@ -805,6 +814,20 @@ export default function QuotesView() {
           <div className="overflow-auto scrollbar-visible max-h-[calc(90vh-8rem)]">
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Quote Number */}
+              <div className="space-y-2">
+                <Label>N° Devis *</Label>
+                <Input
+                  placeholder="Ex: DEV-2025-0001 ou référence libre"
+                  value={formNumber}
+                  onChange={(e) => setFormNumber(e.target.value)}
+                  className="font-mono"
+                  disabled={!!editingQuote}
+                />
+                {editingQuote && (
+                  <p className="text-[10px] text-muted-foreground">Le numéro ne peut pas être modifié après création</p>
+                )}
+              </div>
               {/* Client searchable combobox */}
               <div className="space-y-2">
                 <Label>Client *</Label>

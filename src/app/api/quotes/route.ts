@@ -12,6 +12,7 @@ const quoteLineSchema = z.object({
 })
 
 const quoteSchema = z.object({
+  number: z.string().min(1, 'Le numéro de devis est requis'),
   clientId: z.string(),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired']).default('draft'),
   validUntil: z.string().datetime(),
@@ -124,11 +125,15 @@ export async function POST(req: NextRequest) {
     const discountedHT = totalHT * (1 - data.discountRate / 100)
     const finalTotalHT = discountedHT + data.shippingCost
 
-    const number = await generateQuoteNumber()
+    // Check uniqueness of the manual number
+    const existingNumber = await db.quote.findUnique({ where: { number: data.number } })
+    if (existingNumber) {
+      return NextResponse.json({ error: `Un devis avec le numéro "${data.number}" existe déjà` }, { status: 409 })
+    }
 
     const quote = await db.quote.create({
       data: {
-        number,
+        number: data.number.trim(),
         clientId: data.clientId,
         status: data.status,
         validUntil: new Date(data.validUntil),
@@ -168,7 +173,10 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { id, action, ...updateData } = body
+    const { id, action, number: _number, ...updateData } = body
+
+    // Number cannot be changed after creation - ignore it
+    void _number
 
     if (!id) {
       return NextResponse.json({ error: 'ID requis' }, { status: 400 })
