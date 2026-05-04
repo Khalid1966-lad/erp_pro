@@ -710,8 +710,8 @@ export default function SupplierInvoicesView() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <IconLegend items={supplierInvoiceLegendItems} />
               <Table>
-                <IconLegend items={supplierInvoiceLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>

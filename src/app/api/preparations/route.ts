@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
     if (search) {
       where.OR = [
         { number: { contains: search, mode: 'insensitive' } },
-        { salesOrder: { number: { contains: search, mode: 'insensitive' } } },
+        { salesOrder: { clientOrderNumber: { contains: search, mode: 'insensitive' } } },
         { salesOrder: { client: { name: { contains: search, mode: 'insensitive' } } } },
       ]
     }

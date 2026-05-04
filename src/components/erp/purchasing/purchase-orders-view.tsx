@@ -648,8 +648,8 @@ export default function PurchaseOrdersView() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <IconLegend items={purchaseOrderLegendItems} />
               <Table>
-                <IconLegend items={purchaseOrderLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>

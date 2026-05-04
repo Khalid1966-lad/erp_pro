@@ -79,7 +79,6 @@ interface ClientOption {
 
 interface SalesOrderOption {
   id: string
-  number: string
   clientOrderNumber: string
   status: string
   client: { id: string; name: string }
@@ -138,7 +137,6 @@ interface DeliveryNote {
   salesOrderId: string | null
   salesOrder: {
     id: string
-    number: string
     clientOrderNumber: string
     lines: SalesOrderLineInfo[]
   } | null
@@ -1150,8 +1148,8 @@ export default function DeliveryNotesView() {
       <Card>
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
+            <IconLegend items={deliveryNoteLegendItems} />
             <Table>
-              <IconLegend items={deliveryNoteLegendItems} />
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
@@ -1317,7 +1315,7 @@ export default function DeliveryNotesView() {
                         { label: 'N° BL', value: en.number },
                         { label: 'Date du BL', value: fmtDate(en.date) },
                         ...(en.salesOrder?.clientOrderNumber ? [{ label: 'N° Cmd Client', value: en.salesOrder.clientOrderNumber }] : []),
-                        ...(en.salesOrder ? [{ label: 'Commande', value: en.salesOrder.number }] : []),
+                        ...(en.salesOrder ? [{ label: 'Commande', value: en.salesOrder.clientOrderNumber }] : []),
                         { label: 'Date d\'échéance', value: fmtDate(en.dueDate || '') || '—' },
                         { label: 'Client', value: en.client.name },
                         { label: 'Adresse de livraison', value: (() => {
@@ -1567,7 +1565,7 @@ export default function DeliveryNotesView() {
                         {availableOrders.map((order) => (
                           <SelectItem key={order.id} value={order.id}>
                             <div className="flex flex-col">
-                              <span className="font-mono text-sm">{order.number} - {order.client.name}</span>
+                              <span className="font-mono text-sm">{order.clientOrderNumber} - {order.client.name}</span>
                               <span className="text-xs text-muted-foreground">
                                 {formatCurrency(order.totalTTC)}
                               </span>
@@ -2787,7 +2785,7 @@ export default function DeliveryNotesView() {
                         { label: 'N° BL', value: selectedNote.number },
                         { label: 'Date du BL', value: fmtDate(selectedNote.date) },
                         ...(selectedNote.salesOrder?.clientOrderNumber ? [{ label: 'N° Cmd Client', value: selectedNote.salesOrder.clientOrderNumber }] : []),
-                        ...(selectedNote.salesOrder ? [{ label: 'Commande', value: selectedNote.salesOrder.number }] : []),
+                        ...(selectedNote.salesOrder ? [{ label: 'Commande', value: selectedNote.salesOrder.clientOrderNumber }] : []),
                         { label: 'Date d\'échéance', value: fmtDate(selectedNote.dueDate || '') || '—' },
                         { label: 'Client', value: selectedNote.client.name },
                         { label: 'Adresse de livraison', value: (() => {

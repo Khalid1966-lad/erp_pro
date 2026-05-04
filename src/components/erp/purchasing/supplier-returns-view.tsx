@@ -684,8 +684,8 @@ export default function SupplierReturnsView() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <IconLegend items={supplierReturnLegendItems} />
               <Table>
-                <IconLegend items={supplierReturnLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>

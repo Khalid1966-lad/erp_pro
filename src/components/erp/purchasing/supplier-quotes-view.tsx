@@ -714,8 +714,8 @@ export default function SupplierQuotesView() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <IconLegend items={supplierQuoteLegendItems} />
               <Table>
-                <IconLegend items={supplierQuoteLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>

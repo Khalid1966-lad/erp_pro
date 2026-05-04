@@ -59,7 +59,6 @@ interface SalesOrderLine {
 
 interface SalesOrder {
   id: string
-  number: string
   clientOrderNumber: string
   status: string
   date: string
@@ -375,7 +374,7 @@ export default function SalesOrdersView() {
   const handleStatusChange = async (order: SalesOrder, newStatus: string) => {
     try {
       await api.put('/sales-orders', { id: order.id, status: newStatus })
-      toast.success(`Commande ${order.number} mise à jour`)
+      toast.success(`Commande ${order.clientOrderNumber} mise à jour`)
       fetchOrders()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur'
@@ -386,7 +385,7 @@ export default function SalesOrdersView() {
   const handleCreatePreparation = async (order: SalesOrder) => {
     try {
       await api.put('/sales-orders', { id: order.id, action: 'create_preparation' })
-      toast.success(`Préparation créée pour ${order.number}`)
+      toast.success(`Préparation créée pour ${order.clientOrderNumber}`)
       fetchOrders()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur'
@@ -397,7 +396,7 @@ export default function SalesOrdersView() {
   const handleCreateInvoice = async (order: SalesOrder) => {
     try {
       await api.put('/sales-orders', { id: order.id, action: 'create_invoice' })
-      toast.success(`Facture créée depuis ${order.number}`)
+      toast.success(`Facture créée depuis ${order.clientOrderNumber}`)
       fetchOrders()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur'
@@ -524,7 +523,7 @@ export default function SalesOrdersView() {
   // ─── Delivery tracking helpers ───
 
   const handleCreateDelivery = (order: SalesOrder) => {
-    toast.info(`Redirection vers la création d'un BL pour ${order.number}`)
+    toast.info(`Redirection vers la création d'un BL pour ${order.clientOrderNumber}`)
     // Dispatch a custom event that the parent page can listen to
     window.dispatchEvent(new CustomEvent('erp:navigate-delivery-notes', {
       detail: { salesOrderId: order.id }
@@ -615,12 +614,11 @@ export default function SalesOrdersView() {
       <Card>
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
+            <IconLegend items={salesOrderLegendItems} />
             <Table>
-              <IconLegend items={salesOrderLegendItems} />
               <TableHeader>
                 <TableRow>
-                  <TableHead>N° Interne</TableHead>
-                  <TableHead>N° Cmd Client</TableHead>
+                  <TableHead>N° Commande</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead className="hidden md:table-cell">Date</TableHead>
                   <TableHead className="hidden lg:table-cell">Livraison</TableHead>
@@ -634,7 +632,7 @@ export default function SalesOrdersView() {
               <TableBody>
                 {orders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {search || statusFilter !== 'all' ? 'Aucune commande trouvée.' : 'Aucune commande enregistrée.'}
                     </TableCell>
                   </TableRow>
@@ -645,7 +643,7 @@ export default function SalesOrdersView() {
                         <div className="flex items-center gap-2">
                           {getStatusIcon(order.status)}
                           <div className="flex flex-col gap-0.5">
-                            <span className="font-mono font-medium">{order.number}</span>
+                            <span className="font-mono font-medium text-primary">{order.clientOrderNumber}</span>
                             {order.quoteId && order.quote && (
                               <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                                 <FileText className="h-3 w-3" />
@@ -654,9 +652,6 @@ export default function SalesOrdersView() {
                             )}
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono text-sm font-semibold text-primary">{order.clientOrderNumber || '—'}</span>
                       </TableCell>
                       <TableCell>{order.client.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
@@ -732,7 +727,7 @@ export default function SalesOrdersView() {
                                         <AlertDialogHeader>
                                           <AlertDialogTitle>Supprimer la commande</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                            Êtes-vous sûr de vouloir supprimer la commande <strong>{order.number}</strong> ?
+                                            Êtes-vous sûr de vouloir supprimer la commande <strong>{order.clientOrderNumber}</strong> ?
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -772,7 +767,7 @@ export default function SalesOrdersView() {
                   <FileText className="h-5 w-5 text-primary" />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold font-mono">{eq.number}</span>
+                      <span className="font-semibold font-mono text-primary">{eq.clientOrderNumber}</span>
                       <Badge variant="secondary" className={statusColors[eq.status]}>{statusLabels[eq.status]}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{eq.client.name} — {format(new Date(eq.date), 'dd/MM/yyyy', { locale: fr })}</p>
@@ -787,7 +782,7 @@ export default function SalesOrdersView() {
                     if (!eq) return
                     printDocument({
                       title: 'COMMANDE',
-                      docNumber: eq.number,
+                      docNumber: eq.clientOrderNumber,
                       infoGrid: [
                         { label: 'Client', value: eq.client.name },
                         { label: 'N° Cmd Client', value: eq.clientOrderNumber },

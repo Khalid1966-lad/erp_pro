@@ -807,8 +807,8 @@ export default function CustomerReturnsView() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <IconLegend items={customerReturnLegendItems} />
               <Table>
-                <IconLegend items={customerReturnLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>

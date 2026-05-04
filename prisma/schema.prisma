@@ -415,8 +415,7 @@ enum SalesOrderStatus {
 
 model SalesOrder {
   id                 String            @id @default(cuid())
-  number             String            @unique
-  clientOrderNumber  String
+  clientOrderNumber  String            @unique
   quoteId            String?
   quote              Quote?            @relation(fields: [quoteId], references: [id])
   clientId           String

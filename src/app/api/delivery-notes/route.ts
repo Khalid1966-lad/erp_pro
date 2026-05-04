@@ -87,7 +87,6 @@ const deliveryNoteInclude = {
   salesOrder: {
     select: {
       id: true,
-      number: true,
       clientOrderNumber: true,
       status: true,
       client: { select: { id: true, name: true, raisonSociale: true, address: true, city: true } },
@@ -185,7 +184,6 @@ export async function GET(req: NextRequest) {
         { number: { contains: search, mode: 'insensitive' } },
         { client: { name: { contains: search, mode: 'insensitive' } } },
         { client: { raisonSociale: { contains: search, mode: 'insensitive' } } },
-        { salesOrder: { number: { contains: search, mode: 'insensitive' } } },
         { salesOrder: { clientOrderNumber: { contains: search, mode: 'insensitive' } } },
         { transporteur: { contains: search, mode: 'insensitive' } },
       ]

@@ -171,3 +171,60 @@ Stage Summary:
 - Liste commandes: colonnes N° Interne + N° Cmd Client
 - Liste BL: colonne N° Cmd Client visible + filtre dédié
 - Impressions: N° Cmd Client affiché sur les documents Commande et BL
+
+---
+Task ID: 5
+Agent: Main
+Task: Replace salesOrder.number with salesOrder.clientOrderNumber + Move IconLegend outside Table
+
+Work Log:
+
+**Task A: Replace `salesOrder.number` → `salesOrder.clientOrderNumber` in 3 frontend files**
+
+1. delivery-notes-view.tsx:
+   - Removed `number: string` from `SalesOrderOption` interface
+   - Removed `number: string` from `DeliveryNote.salesOrder` sub-interface (kept `clientOrderNumber`)
+   - Changed `en.salesOrder.number` → `en.salesOrder.clientOrderNumber` (inline print)
+   - Changed `order.number` → `order.clientOrderNumber` (order selector in create dialog)
+   - Changed `selectedNote.salesOrder.number` → `selectedNote.salesOrder.clientOrderNumber` (detail print)
+
+2. invoices-view.tsx:
+   - Changed `Invoice.salesOrder` type: `{ id: string; number: string }` → `{ id: string; clientOrderNumber: string }`
+   - Changed `UninvoicedBL.salesOrder` type: same replacement
+   - Changed `invoice.salesOrder.number` → `invoice.salesOrder.clientOrderNumber` (table row)
+   - Changed `bl.salesOrder.number` → `bl.salesOrder.clientOrderNumber` (BL selection dialog)
+   - Changed `selectedInvoice.salesOrder.number` → `selectedInvoice.salesOrder.clientOrderNumber` (detail dialog)
+
+3. preparations-view.tsx:
+   - Changed `Preparation.salesOrder.number` → `clientOrderNumber` in interface
+   - Changed `SalesOrderOption.number` → `clientOrderNumber` in interface
+   - Changed `prep.salesOrder.number` → `prep.salesOrder.clientOrderNumber` (table row)
+   - Changed `ep.salesOrder.number` → `ep.salesOrder.clientOrderNumber` (inline detail, 2 locations)
+   - Changed `selectedPrep.salesOrder.number` → `selectedPrep.salesOrder.clientOrderNumber` (detail dialog, 2 locations)
+   - Changed `so.number` → `so.clientOrderNumber` (create dialog order selector)
+
+**Task B: Move `<IconLegend>` outside `<Table>` in 12 files**
+
+Moved `<IconLegend items={...LegendItems} />` from inside `<Table>` to before it, fixing invalid HTML (`<div>` inside `<table>`):
+
+Commercial (6 files):
+1. delivery-notes-view.tsx — line ~1151
+2. quotes-view.tsx — line ~540
+3. invoices-view.tsx — line ~646
+4. credit-notes-view.tsx — line ~439
+5. preparations-view.tsx — line ~561
+6. customer-returns-view.tsx — line ~810
+
+Purchasing (6 files):
+7. purchase-orders-view.tsx — line ~651
+8. receptions-view.tsx — line ~508
+9. supplier-quotes-view.tsx — line ~717
+10. supplier-invoices-view.tsx — line ~713
+11. supplier-returns-view.tsx — line ~687
+12. price-requests-view.tsx — line ~627
+
+Stage Summary:
+- 15 files modified total (3 for Task A, 12 for Task B; delivery-notes-view.tsx, invoices-view.tsx, preparations-view.tsx had both tasks applied)
+- All `salesOrder.number` references replaced with `salesOrder.clientOrderNumber`
+- All IconLegend components moved outside Table, allowing proper horizontal flex layout
+- ESLint passes with no errors

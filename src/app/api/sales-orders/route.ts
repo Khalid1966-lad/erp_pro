@@ -22,12 +22,6 @@ const salesOrderSchema = z.object({
   lines: z.array(salesOrderLineSchema).optional(),
 })
 
-async function generateSONumber(): Promise<string> {
-  const count = await db.salesOrder.count()
-  const year = new Date().getFullYear()
-  return `BC-${year}-${String(count + 1).padStart(4, '0')}`
-}
-
 // GET - List sales orders
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req)
@@ -55,7 +49,6 @@ export async function GET(req: NextRequest) {
     }
     if (search) {
       where.OR = [
-        { number: { contains: search, mode: 'insensitive' } },
         { clientOrderNumber: { contains: search, mode: 'insensitive' } },
         { client: { name: { contains: search } } },
       ]
@@ -143,11 +136,8 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    const number = await generateSONumber()
-
     const order = await db.salesOrder.create({
       data: {
-        number,
         clientOrderNumber: data.clientOrderNumber,
         clientId: data.clientId,
         quoteId: data.quoteId || null,
@@ -167,7 +157,7 @@ export async function POST(req: NextRequest) {
     })
 
     await auditLog(auth.userId, 'create', 'SalesOrder', order.id, null, order)
-    notifyAll({ title: 'Nouvelle commande', message: `Commande ${order.number}`, type: 'success', category: 'order', entityType: 'SalesOrder', entityId: order.id }).catch(() => {})
+    notifyAll({ title: 'Nouvelle commande', message: `Commande ${order.clientOrderNumber}`, type: 'success', category: 'order', entityType: 'SalesOrder', entityId: order.id }).catch(() => {})
     return NextResponse.json(order, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {

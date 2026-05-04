@@ -436,8 +436,8 @@ export default function CreditNotesView() {
       <Card>
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
+            <IconLegend items={creditNoteLegendItems} />
             <Table>
-              <IconLegend items={creditNoteLegendItems} />
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>

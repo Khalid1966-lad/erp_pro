@@ -505,8 +505,8 @@ export default function ReceptionsView() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <IconLegend items={receptionLegendItems} />
               <Table>
-                <IconLegend items={receptionLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>

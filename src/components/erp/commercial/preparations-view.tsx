@@ -98,7 +98,7 @@ interface Preparation {
   lines: PrepLine[]
   salesOrder: {
     id: string
-    number: string
+    clientOrderNumber: string
     status: string
     client: { id: string; name: string }
     lines: SalesOrderLineInfo[]
@@ -107,7 +107,7 @@ interface Preparation {
 
 interface SalesOrderOption {
   id: string
-  number: string
+  clientOrderNumber: string
   status: string
   client: { id: string; name: string }
   lines: Array<{
@@ -558,8 +558,8 @@ export default function PreparationsView() {
       <Card>
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
+            <IconLegend items={preparationLegendItems} />
             <Table>
-              <IconLegend items={preparationLegendItems} />
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
@@ -593,7 +593,7 @@ export default function PreparationsView() {
                           <span className="font-mono font-medium">{prep.number}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{prep.salesOrder.number}</TableCell>
+                      <TableCell className="font-mono text-sm">{prep.salesOrder.clientOrderNumber}</TableCell>
                       <TableCell>{prep.salesOrder.client.name}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={statusColors[prep.status] || ''}>
@@ -705,7 +705,7 @@ export default function PreparationsView() {
                       <Badge variant="secondary" className={statusColors[ep.status]}>{statusLabels[ep.status]}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Commande {ep.salesOrder.number} — {ep.salesOrder.client.name}
+                      Commande {ep.salesOrder.clientOrderNumber} — {ep.salesOrder.client.name}
                     </p>
                   </div>
                 </div>
@@ -723,7 +723,7 @@ export default function PreparationsView() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div className="rounded-lg bg-muted/50 p-2.5">
                   <span className="text-muted-foreground text-xs">Commande</span>
-                  <p className="font-medium font-mono">{ep.salesOrder.number}</p>
+                  <p className="font-medium font-mono">{ep.salesOrder.clientOrderNumber}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
                   <span className="text-muted-foreground text-xs">Client</span>
@@ -848,7 +848,7 @@ export default function PreparationsView() {
                   ) : (
                     salesOrders.map((so) => (
                       <SelectItem key={so.id} value={so.id}>
-                        {so.number} — {so.client.name}
+                        {so.clientOrderNumber} — {so.client.name}
                       </SelectItem>
                     ))
                   )}
@@ -1007,7 +1007,7 @@ export default function PreparationsView() {
             </DialogTitle>
             {selectedPrep && (
               <DialogDescription>
-                Commande {selectedPrep.salesOrder.number} — {selectedPrep.salesOrder.client.name}
+                Commande {selectedPrep.salesOrder.clientOrderNumber} — {selectedPrep.salesOrder.client.name}
               </DialogDescription>
             )}
           </DialogHeader>
@@ -1019,7 +1019,7 @@ export default function PreparationsView() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Commande</span>
-                  <p className="font-mono font-medium">{selectedPrep.salesOrder.number}</p>
+                  <p className="font-mono font-medium">{selectedPrep.salesOrder.clientOrderNumber}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Client</span>

@@ -84,7 +84,7 @@ interface Invoice {
   totalTVA: number
   totalTTC: number
   client: { id: string; name: string }
-  salesOrder: { id: string; number: string } | null
+  salesOrder: { id: string; clientOrderNumber: string } | null
   lines: InvoiceLine[]
   payments: { id: string; amount: number; date: string; method: string; code?: string | null }[]
   creditNotes: { id: string; number: string; totalTTC: number }[]
@@ -103,7 +103,7 @@ interface UninvoicedBL {
   totalHT: number
   totalTVA: number
   totalTTC: number
-  salesOrder: { id: string; number: string } | null
+  salesOrder: { id: string; clientOrderNumber: string } | null
   client: { id: string; name: string }
   lines: {
     id: string
@@ -643,8 +643,8 @@ export default function InvoicesView() {
       <Card>
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
+            <IconLegend items={invoiceLegendItems} />
             <Table>
-              <IconLegend items={invoiceLegendItems} />
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
@@ -678,7 +678,7 @@ export default function InvoicesView() {
                           <span className="font-medium">{invoice.client.name}</span>
                           <div className="flex items-center gap-1 mt-0.5">
                             {invoice.salesOrder && (
-                              <span className="text-xs text-muted-foreground">BC {invoice.salesOrder.number}</span>
+                              <span className="text-xs text-muted-foreground">BC {invoice.salesOrder.clientOrderNumber}</span>
                             )}
                             {invoice.deliveryNotes && invoice.deliveryNotes.length > 0 && (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-medium bg-amber-50 text-amber-700 border-amber-200">
@@ -1183,7 +1183,7 @@ export default function InvoicesView() {
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                                   {bl.salesOrder ? (
-                                    <span className="font-mono">{bl.salesOrder.number}</span>
+                                    <span className="font-mono">{bl.salesOrder.clientOrderNumber}</span>
                                   ) : (
                                     <span className="italic">—</span>
                                   )}
@@ -1343,7 +1343,7 @@ export default function InvoicesView() {
               {selectedInvoice.salesOrder && (
                 <div className="text-sm">
                   <span className="text-muted-foreground">Commande associée :</span>{' '}
-                  <span className="font-mono font-medium">{selectedInvoice.salesOrder.number}</span>
+                  <span className="font-mono font-medium">{selectedInvoice.salesOrder.clientOrderNumber}</span>
                 </div>
               )}
 

@@ -624,8 +624,8 @@ export default function PriceRequestsView() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <IconLegend items={priceRequestLegendItems} />
               <Table>
-                <IconLegend items={priceRequestLegendItems} />
                 <TableHeader>
                   <TableRow>
                     <TableHead>Référence</TableHead>
