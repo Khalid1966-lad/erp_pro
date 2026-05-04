@@ -728,6 +728,7 @@ export default function DashboardView() {
               </CardHeader>
               <CardContent>
                 <div className="h-[320px] w-full">
+                  {data!.revenueByMonth.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                       data={data!.revenueByMonth}
@@ -776,6 +777,9 @@ export default function DashboardView() {
                       />
                     </AreaChart>
                   </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Aucune donnée de chiffre d'affaires</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -891,6 +895,7 @@ export default function DashboardView() {
               </CardHeader>
               <CardContent>
                 <div className="h-[280px] w-full">
+                  {ordersPieData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -925,6 +930,9 @@ export default function DashboardView() {
                       <Legend content={<PieLegendCustom />} />
                     </PieChart>
                   </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Aucune commande</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -948,6 +956,7 @@ export default function DashboardView() {
               </CardHeader>
               <CardContent>
                 <div className="h-[280px] w-full">
+                  {quotesPieData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -982,6 +991,9 @@ export default function DashboardView() {
                       <Legend content={<PieLegendCustom />} />
                     </PieChart>
                   </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Aucun devis</div>
+                  )}
                 </div>
               </CardContent>
             </Card>

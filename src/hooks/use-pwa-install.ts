@@ -38,7 +38,7 @@ function subscribeInstalled(cb: () => void) {
 }
 
 export function usePWAInstall() {
-  const [canInstall] = useSyncExternalStore(subscribeInstall, getInstallSnapshot, getInstallSnapshot)
+  const canInstall = useSyncExternalStore(subscribeInstall, getInstallSnapshot, getInstallSnapshot)
   const isInstalled = useSyncExternalStore(subscribeInstalled, getIsInstalledSnapshot, getIsInstalledSnapshot)
 
   useEffect(() => {
