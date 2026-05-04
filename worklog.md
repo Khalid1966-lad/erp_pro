@@ -66,3 +66,27 @@ Stage Summary:
 - No visualization permitted for locked sections
 - Super admins have all powers, no locks displayed
 - Caisse print button fixed (removed unused import)
+---
+Task ID: 2
+Agent: main
+Task: Implement hierarchical RBAC role permission system with sidebar-mirroring checkboxes and cadenas (lock) icons
+
+Work Log:
+- Created shared permissions config at `src/lib/permissions.ts` defining MENU_PERMISSIONS structure that mirrors sidebar hierarchy
+- Updated `src/components/erp/erp-layout.tsx` — assigned unique individual permissions to ALL sidebar sub-menu items (previously many shared composite permissions like `stock:read`)
+- Updated `src/lib/auth.ts` — added backward-compatible permission expansion (old composite keys like `stock:read` auto-grant new sub-permissions), updated hardcodedPermissions, expanded permissions in getPermissionsForUser
+- Updated `src/app/api/roles/route.ts` — now imports ALL_PERMISSION_FLAT from shared config
+- Rewrote `src/components/erp/admin/roles-view.tsx` — new hierarchical checkbox UI with:
+  - Collapsible groups matching sidebar (Tableau de bord, Ventes, Achats, Stock, Production, Finance, Communication, Administration)
+  - Parent checkbox per group to select/deselect all items
+  - Child checkbox per sub-menu item with lock/unlock icons
+  - Counter badges showing X/Y items checked per group
+  - Read-only view dialog showing locked (cadenas) vs unlocked items
+  - "Tout sélectionner / Tout désélectionner" for all menus
+
+Stage Summary:
+- 40 individual permission keys now cover every sidebar sub-menu independently
+- Backward compatibility ensures existing roles with old composite permissions still work
+- Super admin has unrestricted access (no cadenas)
+- Custom roles with checkbox-based permission management matching sidebar structure
+- Sidebar already shows cadenas (Lock icon from lucide-react) on unauthorized items with toast message

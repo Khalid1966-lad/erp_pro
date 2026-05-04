@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, Component } from 'react'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
+import { MENU_PERMISSIONS, TOTAL_MENU_ITEMS } from '@/lib/permissions'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -58,7 +59,17 @@ import {
   ShieldCheck,
   Loader2,
   Eye,
+  ChevronDown,
   ChevronRight,
+  LayoutDashboard,
+  ShoppingCart,
+  Truck,
+  Box,
+  Factory,
+  Landmark,
+  MessageSquare,
+  Settings,
+  Ban,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
@@ -103,56 +114,17 @@ class RolesErrorBoundary extends Component<
   }
 }
 
-// ───────────────────── Permission Modules ─────────────────────
-const PERMISSION_MODULES: Record<string, string[]> = {
-  'Tableau de bord': ['dashboard:read'],
-  Rapports: ['reports:read'],
-  Paramètres: ['settings:read', 'settings:write'],
-  Clients: ['clients:read', 'clients:write'],
-  Produits: ['products:read', 'products:write'],
-  Devis: ['quotes:read', 'quotes:write'],
-  'Commandes clients': ['sales_orders:read', 'sales_orders:write'],
-  'Bons de livraison': ['delivery_notes:read', 'delivery_notes:write'],
-  Préparations: ['preparations:read', 'preparations:write'],
-  'Factures clients': ['invoices:read', 'invoices:write'],
-  'Avoirs clients': ['credit_notes:read', 'credit_notes:write'],
-  'Retours clients': ['customer_returns:read', 'customer_returns:write'],
-  Fournisseurs: ['suppliers:read', 'suppliers:write'],
-  'Commandes fournisseurs': ['purchase_orders:read', 'purchase_orders:write'],
-  Réceptions: ['receptions:read', 'receptions:write'],
-  'Devis fournisseurs': ['supplier_quotes:read', 'supplier_quotes:write'],
-  'Factures fournisseurs': ['supplier_invoices:read', 'supplier_invoices:write'],
-  'Avoirs fournisseurs': ['supplier_credit_notes:read', 'supplier_credit_notes:write'],
-  'Retours fournisseurs': ['supplier_returns:read', 'supplier_returns:write'],
-  'Demandes de prix': ['price_requests:read', 'price_requests:write'],
-  Stock: ['stock:read', 'stock:write'],
-  Production: ['production:read', 'production:write'],
-  'Ordres de fabrication': ['work_orders:read', 'work_orders:write'],
-  Nomenclatures: ['bom:read', 'bom:write'],
-  Gammes: ['routing:read', 'routing:write'],
-  'Postes de travail': ['workstations:read', 'workstations:write'],
-  Paiements: ['payments:read', 'payments:write'],
-  Banque: ['bank:read', 'bank:write'],
-  Caisse: ['cash:read', 'cash:write'],
-  Comptabilité: ['accounting:read', 'accounting:write'],
-  'Effets & Chèques': ['effets_cheques:read', 'effets_cheques:write'],
+// ─── Group icons (match sidebar) ───
+const GROUP_ICONS: Record<string, React.ReactNode> = {
+  'Tableau de bord': <LayoutDashboard className="h-4 w-4" />,
+  'Ventes': <ShoppingCart className="h-4 w-4" />,
+  'Achats': <Truck className="h-4 w-4" />,
+  'Stock': <Box className="h-4 w-4" />,
+  'Production': <Factory className="h-4 w-4" />,
+  'Finance': <Landmark className="h-4 w-4" />,
+  'Communication': <MessageSquare className="h-4 w-4" />,
+  'Administration': <Settings className="h-4 w-4" />,
 }
-
-/** Derive a display label for a permission key like "clients:read" → "Lecture" */
-function permLabel(key: string): string {
-  const action = key.split(':')[1]
-  switch (action) {
-    case 'read':
-      return 'Lecture'
-    case 'write':
-      return 'Écriture'
-    default:
-      return action
-  }
-}
-
-/** Get total count of all available permissions */
-const TOTAL_PERMISSIONS = Object.values(PERMISSION_MODULES).flat().length
 
 // ───────────────────── Types ─────────────────────
 interface Role {
@@ -192,6 +164,9 @@ function RolesViewInner() {
   const [formPermissions, setFormPermissions] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
 
+  // Collapsed groups state
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+
   // ─── Fetch ───
   const fetchRoles = useCallback(async () => {
     try {
@@ -223,35 +198,51 @@ function RolesViewInner() {
     : roles
 
   // ─── Permission helpers ───
-  const isModuleFullySelected = (modulePerms: string[]) =>
-    modulePerms.every((p) => formPermissions.includes(p))
 
-  const isModulePartiallySelected = (modulePerms: string[]) =>
-    modulePerms.some((p) => formPermissions.includes(p)) &&
-    !isModuleFullySelected(modulePerms)
+  // Check if a single sub-menu item is fully checked (all its permissions)
+  const isItemChecked = (itemPerms: string[]) =>
+    itemPerms.every((p) => formPermissions.includes(p))
 
-  const toggleModule = (modulePerms: string[]) => {
-    if (isModuleFullySelected(modulePerms)) {
-      setFormPermissions((prev) => prev.filter((p) => !modulePerms.includes(p)))
+  // Check if a group is fully checked (all items checked)
+  const isGroupChecked = (items: { permissions: string[] }[]) =>
+    items.every((item) => isItemChecked(item.permissions))
+
+  // Check if a group is partially checked (some items checked)
+  const isGroupPartial = (items: { permissions: string[] }[]) =>
+    items.some((item) => isItemChecked(item.permissions)) && !isGroupChecked(items)
+
+  // Toggle a single sub-menu item
+  const toggleItem = (itemPerms: string[]) => {
+    if (isItemChecked(itemPerms)) {
+      setFormPermissions((prev) => prev.filter((p) => !itemPerms.includes(p)))
     } else {
       setFormPermissions((prev) => {
         const set = new Set(prev)
-        modulePerms.forEach((p) => set.add(p))
+        itemPerms.forEach((p) => set.add(p))
         return Array.from(set)
       })
     }
   }
 
-  const togglePermission = (perm: string) => {
-    setFormPermissions((prev) =>
-      prev.includes(perm)
-        ? prev.filter((p) => p !== perm)
-        : [...prev, perm]
-    )
+  // Toggle an entire group (all items)
+  const toggleGroup = (items: { permissions: string[] }[]) => {
+    if (isGroupChecked(items)) {
+      // Uncheck all items in this group
+      const allGroupPerms = items.flatMap((item) => item.permissions)
+      setFormPermissions((prev) => prev.filter((p) => !allGroupPerms.includes(p)))
+    } else {
+      // Check all items in this group
+      const allGroupPerms = items.flatMap((item) => item.permissions)
+      setFormPermissions((prev) => {
+        const set = new Set(prev)
+        allGroupPerms.forEach((p) => set.add(p))
+        return Array.from(set)
+      })
+    }
   }
 
-  // ─── Select all / deselect all ───
-  const allPerms = Object.values(PERMISSION_MODULES).flat()
+  // Toggle all permissions across all groups
+  const allPerms = MENU_PERMISSIONS.flatMap((g) => g.items.flatMap((i) => i.permissions))
   const isAllSelected = allPerms.every((p) => formPermissions.includes(p))
   const isAllPartial = allPerms.some((p) => formPermissions.includes(p)) && !isAllSelected
 
@@ -263,12 +254,29 @@ function RolesViewInner() {
     }
   }
 
+  // Count checked items (sub-menus, not individual permission keys)
+  const checkedItemCount = MENU_PERMISSIONS.reduce(
+    (sum, g) => sum + g.items.filter((item) => isItemChecked(item.permissions)).length,
+    0
+  )
+
+  // Toggle collapsed group in the permission editor
+  const toggleCollapsed = (group: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(group)) next.delete(group)
+      else next.add(group)
+      return next
+    })
+  }
+
   // ─── Create role ───
   const openCreate = () => {
     setFormName('')
     setFormLabel('')
     setFormDescription('')
     setFormPermissions([])
+    setCollapsedGroups(new Set())
     setCreateOpen(true)
   }
 
@@ -314,6 +322,7 @@ function RolesViewInner() {
     setFormLabel(role.label)
     setFormDescription(role.description || '')
     setFormPermissions([...role.permissions])
+    setCollapsedGroups(new Set())
     setEditOpen(true)
   }
 
@@ -381,6 +390,8 @@ function RolesViewInner() {
   // ─── View permissions ───
   const openViewPerms = (role: Role) => {
     setSelectedRole(role)
+    setFormPermissions([...role.permissions])
+    setCollapsedGroups(new Set())
     setViewPermsOpen(true)
   }
 
@@ -405,16 +416,19 @@ function RolesViewInner() {
     )
   }
 
-  // ─── Render permission group for dialogs ───
+  // ─── Render hierarchical permission groups for dialogs ───
   const renderPermissionGroups = (readOnly: boolean = false) => (
-    <div className="space-y-3">
-      {/* Select all toggle */}
+    <div className="space-y-1">
+      {/* Header with toggle all */}
       {!readOnly && (
-        <div className="flex items-center justify-between py-1">
-          <Label className="text-sm font-medium">Permissions</Label>
+        <div className="flex items-center justify-between py-1.5 px-1">
+          <Label className="text-sm font-semibold flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            Accès aux menus
+          </Label>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              {formPermissions.length} / {TOTAL_PERMISSIONS}
+            <span className="text-xs text-muted-foreground font-medium">
+              {checkedItemCount} / {TOTAL_MENU_ITEMS} menus
             </span>
             <Button
               variant="ghost"
@@ -425,7 +439,7 @@ function RolesViewInner() {
               {isAllSelected ? (
                 <>
                   <Square className="h-3 w-3" />
-                  Tout déselectionner
+                  Tout désélectionner
                 </>
               ) : (
                 <>
@@ -438,81 +452,169 @@ function RolesViewInner() {
         </div>
       )}
 
-      <ScrollArea className="max-h-[50vh] pr-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {Object.entries(PERMISSION_MODULES).map(([module, perms]) => {
-            const fullySelected = isModuleFullySelected(perms)
-            const partiallySelected = isModulePartiallySelected(perms)
+      <ScrollArea className="max-h-[55vh] pr-1">
+        <div className="space-y-1">
+          {MENU_PERMISSIONS.map((menuGroup) => {
+            const groupChecked = isGroupChecked(menuGroup.items)
+            const groupPartial = isGroupPartial(menuGroup.items)
+            const isCollapsed = collapsedGroups.has(menuGroup.group)
+            const checkedInGroup = menuGroup.items.filter((item) =>
+              isItemChecked(item.permissions)
+            ).length
 
             return (
               <div
-                key={module}
+                key={menuGroup.group}
                 className={cn(
-                  'rounded-lg border p-3 space-y-2',
-                  fullySelected && !readOnly
-                    ? 'border-primary/40 bg-primary/5'
-                    : partiallySelected && !readOnly
-                      ? 'border-amber-300 bg-amber-50/50'
+                  'rounded-lg border transition-colors',
+                  groupChecked
+                    ? 'border-primary/30 bg-primary/5'
+                    : groupPartial
+                      ? 'border-amber-300/60 bg-amber-50/40'
                       : 'border-border'
                 )}
               >
-                {/* Module header with select all */}
-                <div className="flex items-center gap-2">
+                {/* Group header with checkbox */}
+                <div
+                  className={cn(
+                    'flex items-center gap-2.5 px-3 py-2.5 rounded-t-lg cursor-pointer select-none',
+                    readOnly && 'cursor-default'
+                  )}
+                  onClick={() => {
+                    if (readOnly) {
+                      toggleCollapsed(menuGroup.group)
+                    } else {
+                      toggleGroup(menuGroup.items)
+                    }
+                  }}
+                >
+                  {/* Collapse toggle (always visible for navigating) */}
+                  {!readOnly && (
+                    <span className="shrink-0 text-muted-foreground" onClick={(e) => { e.stopPropagation(); toggleCollapsed(menuGroup.group) }}>
+                      {isCollapsed ? (
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                  )}
+
+                  {/* Group checkbox */}
                   {!readOnly ? (
                     <Checkbox
-                      checked={fullySelected}
-                      {...(partiallySelected
-                        ? { 'data-state': 'indeterminate' as const, onCheckedChange: () => toggleModule(perms) }
-                        : { onCheckedChange: () => toggleModule(perms) })}
+                      checked={groupChecked}
+                      {...(groupPartial
+                        ? { 'data-state': 'indeterminate' as const }
+                        : {})}
+                      onCheckedChange={() => toggleGroup(menuGroup.items)}
                       className="shrink-0"
                     />
                   ) : (
-                    <CheckSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex items-center justify-center w-4 h-4 shrink-0">
+                      {groupChecked ? (
+                        <CheckSquare className="h-4 w-4 text-primary" />
+                      ) : groupPartial ? (
+                        <Lock className="h-3.5 w-3.5 text-amber-500" />
+                      ) : (
+                        <Ban className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      )}
+                    </span>
                   )}
-                  <span className="text-sm font-medium leading-none truncate">
-                    {module}
+
+                  {/* Group icon */}
+                  <span className="shrink-0 text-muted-foreground">
+                    {GROUP_ICONS[menuGroup.group] || <Settings className="h-4 w-4" />}
                   </span>
+
+                  {/* Group label */}
+                  <span className="text-sm font-semibold flex-1 truncate">
+                    {menuGroup.group}
+                  </span>
+
+                  {/* Count badge */}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px] px-1.5 py-0 h-5 shrink-0',
+                      groupChecked
+                        ? 'bg-primary/10 text-primary border-primary/20'
+                        : groupPartial
+                          ? 'bg-amber-100 text-amber-700 border-amber-200'
+                          : 'text-muted-foreground'
+                    )}
+                  >
+                    {checkedInGroup}/{menuGroup.items.length}
+                  </Badge>
+
+                  {/* Collapse toggle for read-only mode */}
+                  {readOnly && (
+                    <span className="shrink-0 text-muted-foreground">
+                      {isCollapsed ? (
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                  )}
                 </div>
 
-                {/* Individual permissions */}
-                <div className="space-y-1.5 pl-6">
-                  {perms.map((perm) => {
-                    const checked = formPermissions.includes(perm)
-                    return (
-                      <label
-                        key={perm}
-                        className={cn(
-                          'flex items-center gap-2 cursor-pointer',
-                          readOnly && 'cursor-default'
-                        )}
-                      >
-                        {!readOnly ? (
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => togglePermission(perm)}
-                            className="h-3.5 w-3.5"
-                          />
-                        ) : (
-                          <span className="flex items-center justify-center h-3.5 w-3.5">
-                            {checked ? (
-                              <CheckSquare className="h-3.5 w-3.5 text-primary" />
-                            ) : (
-                              <Square className="h-3.5 w-3.5 text-muted-foreground/40" />
-                            )}
-                          </span>
-                        )}
-                        <span
+                {/* Sub-menu items */}
+                {!isCollapsed && (
+                  <div className="border-t border-border/50 bg-muted/20 px-3 py-2 rounded-b-lg space-y-0.5">
+                    {menuGroup.items.map((item) => {
+                      const checked = isItemChecked(item.permissions)
+                      return (
+                        <label
+                          key={item.id}
                           className={cn(
-                            'text-xs',
-                            checked ? 'text-foreground' : 'text-muted-foreground'
+                            'flex items-center gap-2.5 py-1.5 px-2 rounded-md transition-colors cursor-pointer',
+                            readOnly && 'cursor-default',
+                            !readOnly && 'hover:bg-muted/60',
+                            checked && !readOnly && 'bg-primary/5'
                           )}
                         >
-                          {permLabel(perm)}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
+                          {/* Item checkbox */}
+                          {!readOnly ? (
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleItem(item.permissions)}
+                              className="shrink-0"
+                            />
+                          ) : (
+                            <span className="flex items-center justify-center w-4 h-4 shrink-0">
+                              {checked ? (
+                                <CheckSquare className="h-4 w-4 text-primary" />
+                              ) : (
+                                <Ban className="h-3.5 w-3.5 text-muted-foreground/40" />
+                              )}
+                            </span>
+                          )}
+
+                          {/* Item label */}
+                          <span
+                            className={cn(
+                              'text-[13px] flex-1 truncate',
+                              checked ? 'text-foreground font-medium' : 'text-muted-foreground'
+                            )}
+                          >
+                            {item.label}
+                          </span>
+
+                          {/* Lock/unlock indicator */}
+                          {!readOnly && (
+                            <span className="shrink-0">
+                              {checked ? (
+                                <Unlock className="h-3.5 w-3.5 text-emerald-500/60" />
+                              ) : (
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground/40" />
+                              )}
+                            </span>
+                          )}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -616,7 +718,7 @@ function RolesViewInner() {
                   <TableHead>Rôle</TableHead>
                   <TableHead className="hidden md:table-cell">Description</TableHead>
                   <TableHead className="hidden sm:table-cell text-center">
-                    Permissions
+                    Menus autorisés
                   </TableHead>
                   <TableHead className="hidden sm:table-cell text-center">
                     Utilisateurs
@@ -685,7 +787,7 @@ function RolesViewInner() {
                         </span>
                       </TableCell>
 
-                      {/* Permissions count */}
+                      {/* Menus count */}
                       <TableCell className="hidden sm:table-cell text-center">
                         <Button
                           variant="ghost"
@@ -694,9 +796,21 @@ function RolesViewInner() {
                           onClick={() => openViewPerms(role)}
                         >
                           <Eye className="h-3 w-3" />
-                          {role.permissions.length}
+                          {role.permissions.length > 0
+                            ? `${Math.min(
+                                MENU_PERMISSIONS.reduce(
+                                  (sum, g) =>
+                                    sum +
+                                    g.items.filter((item) =>
+                                      item.permissions.every((p) => role.permissions.includes(p))
+                                    ).length,
+                                  0
+                                ),
+                                TOTAL_MENU_ITEMS
+                              )}`
+                            : '0'}
                           <span className="hidden lg:inline text-muted-foreground">
-                            / {TOTAL_PERMISSIONS}
+                            / {TOTAL_MENU_ITEMS}
                           </span>
                         </Button>
                       </TableCell>
@@ -721,7 +835,7 @@ function RolesViewInner() {
                         {role.isSystem ? (
                           <Badge
                             variant="outline"
-                            className="bg-amber-50 text-amber-700 border-amber-200 text-xs"
+                            className="bg-amber-100 text-amber-700 border-amber-200 text-xs"
                           >
                             Système
                           </Badge>
@@ -865,7 +979,8 @@ function RolesViewInner() {
               Nouveau rôle
             </DialogTitle>
             <DialogDescription>
-              Créez un rôle personnalisé avec des permissions spécifiques.
+              Créez un rôle personnalisé. Cochez les menus et sous-menus auxquels ce rôle aura accès.
+              Les éléments non cochés seront fermés par un cadenas dans la barre latérale.
             </DialogDescription>
           </DialogHeader>
 
@@ -961,8 +1076,8 @@ function RolesViewInner() {
               Modifier le rôle
             </DialogTitle>
             <DialogDescription>
-              Modifiez les informations et permissions du rôle{' '}
-              <strong>{selectedRole?.label}</strong>.
+              Modifiez les permissions du rôle{' '}
+              <strong>{selectedRole?.label}</strong>. Cochez ou décochez les menus et sous-menus.
             </DialogDescription>
           </DialogHeader>
 
@@ -1092,13 +1207,16 @@ function RolesViewInner() {
           {/* Summary */}
           <div className="flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-primary" />
+              <Unlock className="h-4 w-4 text-emerald-500" />
               <span className="font-medium">
-                {formPermissions.length} permission(s) accordée(s)
+                {checkedItemCount} menu(s) autorisé(s)
               </span>
             </span>
-            <span className="text-muted-foreground">
-              sur {TOTAL_PERMISSIONS} disponibles
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Lock className="h-4 w-4" />
+              <span>
+                {TOTAL_MENU_ITEMS - checkedItemCount} menu(s) fermé(s) par cadenas
+              </span>
             </span>
           </div>
 

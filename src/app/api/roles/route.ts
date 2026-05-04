@@ -1,45 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, auditLog } from '@/lib/auth'
+import { ALL_PERMISSION_FLAT } from '@/lib/permissions'
 import { z } from 'zod'
-
-// All available permissions organized by module
-export const ALL_PERMISSIONS: Record<string, { label: string; permissions: string[] }> = {
-  'Tableau de bord': { label: 'Tableau de bord', permissions: ['dashboard:read'] },
-  'Rapports': { label: 'Rapports', permissions: ['reports:read'] },
-  'Paramètres': { label: 'Paramètres', permissions: ['settings:read', 'settings:write'] },
-  'Clients': { label: 'Clients', permissions: ['clients:read', 'clients:write'] },
-  'Produits': { label: 'Produits', permissions: ['products:read', 'products:write'] },
-  'Devis': { label: 'Devis', permissions: ['quotes:read', 'quotes:write'] },
-  'Commandes clients': { label: 'Commandes clients', permissions: ['sales_orders:read', 'sales_orders:write'] },
-  'Bons de livraison': { label: 'Bons de livraison', permissions: ['delivery_notes:read', 'delivery_notes:write'] },
-  'Préparations': { label: 'Préparations', permissions: ['preparations:read', 'preparations:write'] },
-  'Factures clients': { label: 'Factures clients', permissions: ['invoices:read', 'invoices:write'] },
-  'Avoirs clients': { label: 'Avoirs clients', permissions: ['credit_notes:read', 'credit_notes:write'] },
-  'Retours clients': { label: 'Retours clients', permissions: ['customer_returns:read', 'customer_returns:write'] },
-  'Fournisseurs': { label: 'Fournisseurs', permissions: ['suppliers:read', 'suppliers:write'] },
-  'Commandes fournisseurs': { label: 'Commandes fournisseurs', permissions: ['purchase_orders:read', 'purchase_orders:write'] },
-  'Réceptions': { label: 'Réceptions', permissions: ['receptions:read', 'receptions:write'] },
-  'Devis fournisseurs': { label: 'Devis fournisseurs', permissions: ['supplier_quotes:read', 'supplier_quotes:write'] },
-  'Factures fournisseurs': { label: 'Factures fournisseurs', permissions: ['supplier_invoices:read', 'supplier_invoices:write'] },
-  'Avoirs fournisseurs': { label: 'Avoirs fournisseurs', permissions: ['supplier_credit_notes:read', 'supplier_credit_notes:write'] },
-  'Retours fournisseurs': { label: 'Retours fournisseurs', permissions: ['supplier_returns:read', 'supplier_returns:write'] },
-  'Demandes de prix': { label: 'Demandes de prix', permissions: ['price_requests:read', 'price_requests:write'] },
-  'Stock': { label: 'Stock', permissions: ['stock:read', 'stock:write'] },
-  'Production': { label: 'Production', permissions: ['production:read', 'production:write'] },
-  'Ordres de fabrication': { label: 'Ordres de fabrication', permissions: ['work_orders:read', 'work_orders:write'] },
-  'Nomenclatures': { label: 'Nomenclatures', permissions: ['bom:read', 'bom:write'] },
-  'Gammes': { label: 'Gammes', permissions: ['routing:read', 'routing:write'] },
-  'Postes de travail': { label: 'Postes de travail', permissions: ['workstations:read', 'workstations:write'] },
-  'Paiements': { label: 'Paiements', permissions: ['payments:read', 'payments:write'] },
-  'Banque': { label: 'Banque', permissions: ['bank:read', 'bank:write'] },
-  'Caisse': { label: 'Caisse', permissions: ['cash:read', 'cash:write'] },
-  'Comptabilité': { label: 'Comptabilité', permissions: ['accounting:read', 'accounting:write'] },
-  'Effets & Chèques': { label: 'Effets & Chèques', permissions: ['effets_cheques:read', 'effets_cheques:write'] },
-}
-
-// Flatten for easy lookup
-export const ALL_PERMISSION_FLAT: string[] = Object.values(ALL_PERMISSIONS).flatMap(m => m.permissions)
 
 const roleSchema = z.object({
   name: z.string().min(1, 'Le nom est requis').regex(/^[a-z_]+$/, 'Le nom doit être en minuscules (lettres et _ seulement)'),

@@ -96,7 +96,7 @@ const navigation: NavGroup[] = [
     title: 'Tableau de bord',
     icon: <LayoutDashboard className="h-4 w-4" />,
     items: [
-      { id: 'dashboard', label: 'Vue d\'ensemble', icon: <LayoutDashboard className="h-4 w-4" />, color: 'text-sky-500' }
+      { id: 'dashboard', label: 'Vue d\'ensemble', icon: <LayoutDashboard className="h-4 w-4" />, color: 'text-sky-500', permission: 'dashboard:read' }
     ]
   },
   {
@@ -108,7 +108,7 @@ const navigation: NavGroup[] = [
       { id: 'sales-orders', label: 'Commandes', icon: <ShoppingCart className="h-4 w-4" />, color: 'text-emerald-500', permission: 'sales_orders:read' },
       { id: 'preparations', label: 'Préparations', icon: <ClipboardList className="h-4 w-4" />, color: 'text-blue-500', permission: 'preparations:read' },
       { id: 'delivery-notes', label: 'Bons de livraison', icon: <Truck className="h-4 w-4" />, color: 'text-teal-600', permission: 'delivery_notes:read' },
-      { id: 'customer-returns', label: 'Bons de retour clients', icon: <RotateCcw className="h-4 w-4" />, color: 'text-amber-600', permission: 'delivery_notes:read' },
+      { id: 'customer-returns', label: 'Bons de retour clients', icon: <RotateCcw className="h-4 w-4" />, color: 'text-amber-600', permission: 'customer_returns:read' },
       { id: 'invoices', label: 'Factures', icon: <Receipt className="h-4 w-4" />, color: 'text-rose-500', permission: 'invoices:read' },
       { id: 'credit-notes', label: 'Avoirs', icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500', permission: 'credit_notes:read' }
     ]
@@ -118,13 +118,13 @@ const navigation: NavGroup[] = [
     icon: <Truck className="h-4 w-4" />,
     items: [
       { id: 'suppliers', label: 'Fournisseurs', icon: <Truck className="h-4 w-4" />, color: 'text-indigo-500', permission: 'suppliers:read' },
-      { id: 'price-requests', label: 'Demandes de prix', icon: <FileQuestion className="h-4 w-4" />, color: 'text-purple-500', permission: 'purchase_orders:read' },
-      { id: 'supplier-quotes', label: 'Devis fournisseurs', icon: <FileText className="h-4 w-4" />, color: 'text-sky-500', permission: 'purchase_orders:read' },
+      { id: 'price-requests', label: 'Demandes de prix', icon: <FileQuestion className="h-4 w-4" />, color: 'text-purple-500', permission: 'price_requests:read' },
+      { id: 'supplier-quotes', label: 'Devis fournisseurs', icon: <FileText className="h-4 w-4" />, color: 'text-sky-500', permission: 'supplier_quotes:read' },
       { id: 'purchase-orders', label: 'Commandes fournisseurs', icon: <ArrowDownToLine className="h-4 w-4" />, color: 'text-teal-500', permission: 'purchase_orders:read' },
       { id: 'receptions', label: 'Réceptions', icon: <Warehouse className="h-4 w-4" />, color: 'text-lime-600', permission: 'receptions:read' },
-      { id: 'supplier-returns', label: 'Bons de retour', icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500', permission: 'purchase_orders:read' },
-      { id: 'supplier-credit-notes', label: 'Avoirs fournisseurs', icon: <ArrowLeftRight className="h-4 w-4" />, color: 'text-teal-500', permission: 'purchase_orders:read' },
-      { id: 'supplier-invoices', label: 'Factures fournisseurs', icon: <Receipt className="h-4 w-4" />, color: 'text-rose-500', permission: 'purchase_orders:read' }
+      { id: 'supplier-returns', label: 'Bons de retour', icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500', permission: 'supplier_returns:read' },
+      { id: 'supplier-credit-notes', label: 'Avoirs fournisseurs', icon: <ArrowLeftRight className="h-4 w-4" />, color: 'text-teal-500', permission: 'supplier_credit_notes:read' },
+      { id: 'supplier-invoices', label: 'Factures fournisseurs', icon: <Receipt className="h-4 w-4" />, color: 'text-rose-500', permission: 'supplier_invoices:read' }
     ]
   },
   {
@@ -132,10 +132,10 @@ const navigation: NavGroup[] = [
     icon: <Box className="h-4 w-4" />,
     items: [
       { id: 'products', label: 'Produits', icon: <Package className="h-4 w-4" />, color: 'text-amber-500', permission: 'products:read' },
-      { id: 'stock-movements', label: 'Mouvements', icon: <Box className="h-4 w-4" />, color: 'text-slate-400', permission: 'stock:read' },
-      { id: 'stock-alerts', label: 'Alertes stock', icon: <AlertTriangle className="h-4 w-4" />, color: 'text-red-500', permission: 'stock:read' },
-      { id: 'inventory', label: 'Inventaires', icon: <ClipboardList className="h-4 w-4" />, color: 'text-yellow-500', permission: 'stock:read' },
-      { id: 'lots', label: 'Lots de stock', icon: <Layers className="h-4 w-4" />, color: 'text-violet-500', permission: 'stock:read' }
+      { id: 'stock-movements', label: 'Mouvements', icon: <Box className="h-4 w-4" />, color: 'text-slate-400', permission: 'stock_movements:read' },
+      { id: 'stock-alerts', label: 'Alertes stock', icon: <AlertTriangle className="h-4 w-4" />, color: 'text-red-500', permission: 'stock_alerts:read' },
+      { id: 'inventory', label: 'Inventaires', icon: <ClipboardList className="h-4 w-4" />, color: 'text-yellow-500', permission: 'inventory:read' },
+      { id: 'lots', label: 'Lots de stock', icon: <Layers className="h-4 w-4" />, color: 'text-violet-500', permission: 'stock_lots:read' }
     ]
   },
   {
@@ -146,9 +146,9 @@ const navigation: NavGroup[] = [
       { id: 'routing', label: 'Gammes', icon: <Route className="h-4 w-4" />, color: 'text-fuchsia-500', permission: 'routing:read' },
       { id: 'workstations', label: 'Postes de travail', icon: <Cog className="h-4 w-4" />, color: 'text-stone-500', permission: 'workstations:read' },
       { id: 'work-orders', label: 'Ordres de fabrication', icon: <Factory className="h-4 w-4" />, color: 'text-green-600', permission: 'work_orders:read' },
-      { id: 'equipements', label: 'Équipements', icon: <Cog className="h-4 w-4" />, color: 'text-orange-500', permission: 'work_orders:read' },
-      { id: 'maintenance', label: 'Maintenance', icon: <Wrench className="h-4 w-4" />, color: 'text-amber-500', permission: 'work_orders:read' },
-      { id: 'quality-control', label: 'Contrôle qualité', icon: <ClipboardCheck className="h-4 w-4" />, color: 'text-cyan-600', permission: 'work_orders:read' }
+      { id: 'equipements', label: 'Équipements', icon: <Cog className="h-4 w-4" />, color: 'text-orange-500', permission: 'equipments:read' },
+      { id: 'maintenance', label: 'Maintenance', icon: <Wrench className="h-4 w-4" />, color: 'text-amber-500', permission: 'maintenance:read' },
+      { id: 'quality-control', label: 'Contrôle qualité', icon: <ClipboardCheck className="h-4 w-4" />, color: 'text-cyan-600', permission: 'quality_control:read' }
     ]
   },
   {
@@ -158,16 +158,16 @@ const navigation: NavGroup[] = [
       { id: 'cash-registers', label: 'Caisses', icon: <CreditCard className="h-4 w-4" />, color: 'text-emerald-500', permission: 'cash:read' },
       { id: 'bank-accounts', label: 'Banque', icon: <Landmark className="h-4 w-4" />, color: 'text-blue-600', permission: 'bank:read' },
       { id: 'payments', label: 'Paiements', icon: <CreditCard className="h-4 w-4" />, color: 'text-violet-400', permission: 'payments:read' },
-      { id: 'effets', label: 'Chèques & Effets', icon: <FileText className="h-4 w-4" />, color: 'text-orange-500', permission: 'payments:read' },
+      { id: 'effets', label: 'Chèques & Effets', icon: <FileText className="h-4 w-4" />, color: 'text-orange-500', permission: 'effets_cheques:read' },
       { id: 'accounting', label: 'Comptabilité', icon: <BookOpen className="h-4 w-4" />, color: 'text-amber-600', permission: 'accounting:read' },
-      { id: 'financial-reports', label: 'États financiers', icon: <BarChart3 className="h-4 w-4" />, color: 'text-violet-500', permission: 'accounting:read' }
+      { id: 'financial-reports', label: 'États financiers', icon: <BarChart3 className="h-4 w-4" />, color: 'text-violet-500', permission: 'financial_reports:read' }
     ]
   },
   {
     title: 'Communication',
     icon: <MessageSquare className="h-4 w-4" />,
     items: [
-      { id: 'messages', label: 'Messagerie', icon: <MessageSquare className="h-4 w-4" />, color: 'text-sky-500' }
+      { id: 'messages', label: 'Messagerie', icon: <MessageSquare className="h-4 w-4" />, color: 'text-sky-500', permission: 'messages:read' }
     ]
   },
   {
@@ -176,9 +176,9 @@ const navigation: NavGroup[] = [
     items: [
       { id: 'users', label: 'Utilisateurs', icon: <UserCog className="h-4 w-4" />, color: 'text-emerald-500', superAdminOnly: true },
       { id: 'roles', label: 'Rôles & Permissions', icon: <ShieldCheck className="h-4 w-4" />, color: 'text-amber-500', superAdminOnly: true },
-      { id: 'audit-log', label: 'Journal d\'audit', icon: <Shield className="h-4 w-4" />, color: 'text-slate-500' },
-      { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" />, color: 'text-gray-400' },
-      { id: 'guide', label: "Guide d'utilisation", icon: <BookOpen className="h-4 w-4" />, color: 'text-emerald-500' }
+      { id: 'audit-log', label: "Journal d'audit", icon: <Shield className="h-4 w-4" />, color: 'text-slate-500', permission: 'audit_log:read' },
+      { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" />, color: 'text-gray-400', permission: 'settings:read' },
+      { id: 'guide', label: "Guide d'utilisation", icon: <BookOpen className="h-4 w-4" />, color: 'text-emerald-500', permission: 'guide:read' }
     ]
   }
 ]
