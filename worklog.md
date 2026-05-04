@@ -90,3 +90,25 @@ Stage Summary:
 - Super admin has unrestricted access (no cadenas)
 - Custom roles with checkbox-based permission management matching sidebar structure
 - Sidebar already shows cadenas (Lock icon from lucide-react) on unauthorized items with toast message
+---
+Task ID: 3
+Agent: Main
+Task: Fix employee-functions dropdown, photo upload, guide update, version 1.6.1
+
+Work Log:
+- Fixed employee-functions dropdown API: was returning plain array, now returns { functions: [...] }
+- Fixed employees GET response mapping: API returns fonction: { id, name } but view expected fonctionId/fonctionName — added client-side mapping
+- Replaced photo URL text input with file upload + client-side canvas compression
+- Created compressImage utility: scales to max 1024px, iteratively reduces JPEG quality, falls back to 75% resize
+- Created /api/upload route for server-side size validation
+- Added RHSection to guide-view.tsx covering: fonctions system, salariés management, photo upload, commercial assignment
+- Added RBAC permissions section and Actualiser button section to Administration guide
+- Added 'rh' section to guide sidebar with sous-items: salaries, fonctions
+- Bumped version from 1.6.0 to 1.6.1
+
+Stage Summary:
+- 5 files modified, commit 6ca4b75 pushed to GitHub main
+- Dropdown fonctions now populates correctly in employee form
+- Photo upload with automatic compression (max 500KB)
+- Guide updated with RH module, RBAC, and Actualiser button documentation
+- Version 1.6.1
