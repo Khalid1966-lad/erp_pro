@@ -109,6 +109,10 @@ const sections: Section[] = [
     { id: 'agenda-personnel', label: 'Agenda personnel' },
     { id: 'calendrier', label: 'Calendrier' },
   ]},
+  { id: 'rh', label: 'Ressources Humaines', icon: UserCog, children: [
+    { id: 'salaries', label: 'Salariés' },
+    { id: 'fonctions', label: 'Fonctions' },
+  ]},
   { id: 'administration', label: 'Administration', icon: Settings, children: [
     { id: 'utilisateurs', label: 'Utilisateurs' },
     { id: 'journal-audit', label: 'Journal d\'audit' },
@@ -3114,14 +3118,37 @@ function AdministrationSection() {
         Seul le <strong>Super Administrateur</strong> peut créer, modifier et supprimer des comptes utilisateurs. Le rôle <strong>admin</strong> peut consulter la liste mais pas modifier les rôles.
       </TipBox>
 
-      <SubTitle>Bloquer / Débloquer un utilisateur</SubTitle>
-      <Step num={1}>Accédez à <strong>Administration → Utilisateurs</strong>.</Step>
-      <Step num={2}>Trouvez l'utilisateur dans la liste.</Step>
-      <Step num={3}>Cliquez sur le bouton <strong>« Bloquer »</strong> ou <strong>« Débloquer »</strong>.</Step>
-      <Step num={4}>Un utilisateur bloqué ne peut plus se connecter au système.</Step>
+      {/* Rôles et permissions */}
+      <SubTitle>Rôles et permissions personnalisées (RBAC)</SubTitle>
+      <Paragraph>
+        Outre les 10 rôles prédéfinis, vous pouvez créer des <strong>rôles personnalisés</strong> avec des permissions
+        granulaires. Chaque permission correspond à un sous-menu de la barre latérale.
+      </Paragraph>
+      <Step num={1}>Accédez à <strong>Administration → Rôles et permissions</strong>.</Step>
+      <Step num={2}>Cliquez sur <strong>« + Nouveau rôle »</strong>.</Step>
+      <Step num={3}>Cochez les permissions souhaitées par groupe (Ventes, Achats, Stock, etc.).</Step>
+      <Step num={4}>Enregistrez le rôle.</Step>
+      <Step num={5}>Assignez le rôle à un utilisateur depuis <strong>Administration → Utilisateurs</strong>.</Step>
+
+      <TipBox type="info">
+        Les sections non autorisées sont affichées avec un <strong>cadenas (🔒)</strong> dans la barre latérale.
+        Les utilisateurs ne peuvent pas accéder aux modules non autorisés par leur rôle.
+      </TipBox>
+
+      {/* Bouton Actualiser */}
+      <SubTitle>Bouton Actualiser</SubTitle>
+      <Paragraph>
+        Chaque vue du système dispose d&apos;un <strong>bouton « Actualiser »</strong> (icône ↻) dans l&apos;en-tête,
+        à côté du titre. Ce bouton permet de recharger les données de la vue en cours sans avoir à
+        naviguer vers une autre page. L&apos;icône tourne pendant le chargement.
+      </Paragraph>
+      <TipBox type="success">
+        En environnement multi-utilisateur, utilisez le bouton <strong>Actualiser</strong> pour voir les dernières
+        modifications apportées par d&apos;autres opérateurs (ajouts, modifications, suppressions).
+      </TipBox>
 
       {/* Journal d'audit */}
-      <SubTitle id="administration-journal-audit">Journal d'audit</SubTitle>
+      <SubTitle id="administration-journal-audit">Journal d&apos;audit</SubTitle>
       <Paragraph>
         Le journal d'audit enregistre toutes les actions importantes effectuées dans le système :
         connexions, créations, modifications, suppressions, changements de statut, etc.
@@ -3283,6 +3310,92 @@ function AdministrationSection() {
   )
 }
 
+function RHSection() {
+  return (
+    <div>
+      <SectionTitle icon={UserCog} title="Ressources Humaines" />
+      <Paragraph>
+        Le module Ressources Humaines (RH) gère l&apos;ensemble des salariés de l&apos;entreprise. Il permet
+        de suivre les informations personnelles, professionnelles et administratives de chaque salarié,
+        ainsi que la gestion des fonctions et l&apos;assignation des commerciaux aux clients.
+      </Paragraph>
+
+      <SubTitle id="rh-fonctions">Gestion des fonctions</SubTitle>
+      <Paragraph>
+        Les fonctions définissent les rôles au sein de l&apos;usine. Le système propose des <strong>fonctions prédéfinies</strong> adaptées
+        à une usine de production, et vous pouvez créer des <strong>fonctions personnalisées</strong>.
+      </Paragraph>
+
+      <Card className="mb-4">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fonction</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { name: 'Directeur Général', desc: 'Direction de l\'entreprise' },
+                { name: 'Directeur Usine', desc: 'Responsable de la production' },
+                { name: 'Responsable Production', desc: 'Supervision des ordres de fabrication' },
+                { name: 'Chef d\'équipe', desc: 'Encadrement des opérateurs' },
+                { name: 'Opérateur', desc: 'Exécution des tâches de production' },
+                { name: 'Commercial', desc: 'Représentation et vente' },
+                { name: 'Technicien Maintenance', desc: 'Maintenance des équipements' },
+                { name: 'Magasinier', desc: 'Gestion du stock' },
+                { name: 'Comptable', desc: 'Gestion comptable et financière' },
+                { name: 'Responsable Qualité', desc: 'Contrôle qualité' },
+                { name: 'Chauffeur Livreur', desc: 'Livraison des commandes' },
+                { name: 'Agent de Sécurité', desc: 'Sécurité de l\'usine' },
+                { name: 'Secrétaire', desc: 'Accueil et administration' },
+              ].map((f) => (
+                <TableRow key={f.name}>
+                  <TableCell className="font-medium text-sm">{f.name}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{f.desc}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <TipBox type="info">
+        Les fonctions système ne peuvent pas être supprimées ni renommées. Vous pouvez uniquement modifier leur description.
+        Pour ajouter une nouvelle fonction, cliquez sur <strong>« + Nouvelle fonction »</strong>.
+      </TipBox>
+
+      <SubTitle id="rh-salaries">Gestion des salariés</SubTitle>
+      <Paragraph>
+        La fiche salarié comporte 5 sections : <strong>Identité</strong>, <strong>Coordonnées</strong>, <strong>Professionnel</strong>,
+        <strong>Documents</strong> et <strong>Photo</strong>.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Ressources Humaines → Salariés</strong>.</Step>
+      <Step num={2}>Cliquez sur <strong>« + Nouveau salarié »</strong> pour créer une fiche.</Step>
+      <Step num={3}>Remplissez les informations d&apos;identité (prénom, nom, matricule, genre, date de naissance).</Step>
+      <Step num={4}>Ajoutez les coordonnées (téléphone, email, adresse, ville).</Step>
+      <Step num={5}>Sélectionnez une <strong>fonction</strong> dans la liste déroulante.</Step>
+      <Step num={6}>Renseignez la date d&apos;embauche et le salaire de base.</Step>
+      <Step num={7}>Ajoutez une <strong>photo</strong> (JPEG, PNG, WebP — max 500 Ko, compression automatique).</Step>
+      <Step num={8}>Enregistrez la fiche.</Step>
+
+      <TipBox type="success">
+        <strong>Assignation commerciale :</strong> Les salariés ayant la fonction « Commercial » apparaissent automatiquement
+        dans la liste déroulante « Commercial » de la fiche client. L&apos;assignation d&apos;un commercial à un client est facultative.
+      </TipBox>
+
+      <SubTitle>Statistiques</SubTitle>
+      <Paragraph>
+        Les cartes en haut de la liste des salariés affichent : <strong>Total</strong> des salariés,
+        <strong>Actifs</strong> (en poste), <strong>Commerciaux</strong> (fonction « Commercial ») et <strong>Départis</strong>.
+        Des filtres permettent de filtrer par statut ou par fonction.
+      </Paragraph>
+    </div>
+  )
+}
+
 /* ─── Section content map ─── */
 const sectionComponents: Record<string, () => JSX.Element> = {
   'introduction': IntroSection,
@@ -3296,6 +3409,7 @@ const sectionComponents: Record<string, () => JSX.Element> = {
   'communication': CommunicationSection,
   'impression': ImpressionSection,
   'agenda': AgendaNotificationsSection,
+  'rh': RHSection,
   'administration': AdministrationSection,
 }
 

@@ -136,6 +136,73 @@ function formatDate(d: string | null | undefined): string {
   }
 }
 
+// ───────────────────── Image Compression ─────────────────────
+function compressImage(file: File, maxKb: number, initialQuality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+        const maxDimension = 1024
+
+        // Scale down if too large
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width)
+            width = maxDimension
+          } else {
+            width = Math.round((width * maxDimension) / height)
+            height = maxDimension
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('Canvas not available')); return }
+        ctx.drawImage(img, 0, 0, width, height)
+
+        let quality = initialQuality
+        let dataUrl = canvas.toDataURL('image/jpeg', quality)
+
+        // Iteratively reduce quality until under maxKb
+        while (dataUrl.length > maxKb * 1024 * (4 / 3) && quality > 0.1) {
+          quality -= 0.1
+          dataUrl = canvas.toDataURL('image/jpeg', quality)
+        }
+
+        // If still too big, reduce dimensions
+        if (dataUrl.length > maxKb * 1024 * (4 / 3)) {
+          const scale = 0.75
+          canvas.width = Math.round(width * scale)
+          canvas.height = Math.round(height * scale)
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          quality = initialQuality
+          dataUrl = canvas.toDataURL('image/jpeg', quality)
+          while (dataUrl.length > maxKb * 1024 * (4 / 3) && quality > 0.1) {
+            quality -= 0.1
+            dataUrl = canvas.toDataURL('image/jpeg', quality)
+          }
+        }
+
+        if (dataUrl.length > maxKb * 1024 * (4 / 3)) {
+          reject(new Error(`Impossible de compresser l'image sous ${maxKb} Ko`))
+        } else {
+          resolve(dataUrl)
+        }
+      }
+      img.onerror = () => reject(new Error('Impossible de lire l\'image'))
+      img.src = e.target?.result as string
+    }
+    reader.onerror = () => reject(new Error('Erreur de lecture du fichier'))
+    reader.readAsDataURL(file)
+  })
+}
+
 // ───────────────────── Loading Skeleton ─────────────────────
 function ListSkeleton() {
   return (
@@ -241,8 +308,16 @@ export default function EmployeesView() {
       setLoading(true)
       const params = new URLSearchParams({ limit: '1000' })
       if (searchRef.current) params.set('search', searchRef.current)
-      const res = await api.get<{ employees: Employee[]; total: number }>(`/employees?${params}`)
-      setEmployees(res.employees || [])
+      const res = await api.get<{ employees: Array<Record<string, unknown>>; total: number }>(`/employees?${params}`)
+      const mapped = (res.employees || []).map((e: Record<string, unknown>) => {
+        const fonc = e.fonction as { id: string; name: string } | null
+        return {
+          ...e,
+          fonctionId: fonc?.id || null,
+          fonctionName: fonc?.name || null,
+        } as unknown as Employee
+      })
+      setEmployees(mapped)
     } catch (err) {
       console.error('Erreur chargement salariés:', err)
       toast.error('Erreur de chargement', { description: 'Impossible de charger la liste des salariés.' })
@@ -398,6 +473,27 @@ export default function EmployeesView() {
       toast.error('Erreur de suppression', { description: msg })
     }
   }
+
+  // ─── Photo upload with compression ───
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+
+  const handlePhotoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingPhoto(true)
+    try {
+      const dataUrl = await compressImage(file, 500, 0.8)
+      updateForm('photoUrl', dataUrl)
+      toast.success('Photo ajoutée', { description: `${(dataUrl.length * 3 / 4 / 1024).toFixed(0)} Ko` })
+    } catch (err) {
+      toast.error('Erreur', { description: 'Impossible de traiter cette image.' })
+    } finally {
+      setUploadingPhoto(false)
+      // Reset file input so same file can be re-selected
+      e.target.value = ''
+    }
+  }, [])
 
   // ─── Form update helper ───
   const updateForm = (field: keyof FormState, value: string) => {
@@ -956,20 +1052,44 @@ export default function EmployeesView() {
                 <Camera className="h-4 w-4" />
                 Photo
               </h3>
-              <div className="space-y-2">
-                <Label htmlFor="emp-photoUrl">URL de la photo</Label>
-                <Input
-                  id="emp-photoUrl"
-                  placeholder="https://exemple.com/photo.jpg"
-                  value={form.photoUrl}
-                  onChange={(e) => updateForm('photoUrl', e.target.value)}
-                  autoComplete="off"
-                  data-form-type="other"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Collez l&apos;URL d&apos;une photo. L&apos;importation de fichiers sera disponible prochainement.
-                </p>
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  {form.photoUrl ? (
+                    <AvatarImage src={form.photoUrl} alt="Photo" />
+                  ) : null}
+                  <AvatarFallback className="text-lg font-semibold">
+                    {`${form.firstName?.[0] || ''}${form.lastName?.[0] || ''}`.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-2">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    id="emp-photo-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('emp-photo-upload')?.click()}
+                    disabled={uploadingPhoto}
+                  >
+                    {uploadingPhoto ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Camera className="h-4 w-4 mr-1" />}
+                    {form.photoUrl ? 'Changer la photo' : 'Télécharger une photo'}
+                  </Button>
+                  {form.photoUrl && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => updateForm('photoUrl', '')}>
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      Supprimer
+                    </Button>
+                  )}
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                JPEG, PNG, WebP ou GIF — Max 500 Ko. L&apos;image est compressée automatiquement.
+              </p>
             </div>
 
             <Separator />

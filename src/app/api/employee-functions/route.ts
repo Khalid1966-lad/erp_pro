@@ -14,10 +14,10 @@ export async function GET(req: NextRequest) {
     if (dropdown) {
       const functions = await db.employeeFunction.findMany({
         where: { isActive: true },
-        select: { id: true, name: true },
+        select: { id: true, name: true, description: true, isCustom: true, isActive: true },
         orderBy: { name: 'asc' },
       })
-      return NextResponse.json(functions)
+      return NextResponse.json({ functions })
     }
 
     const functions = await db.employeeFunction.findMany({
