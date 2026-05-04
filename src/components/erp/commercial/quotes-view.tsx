@@ -200,7 +200,7 @@ export default function QuotesView() {
     try {
       setDropdownsLoading(true)
       const [clientsRes, productsRes] = await Promise.all([
-        api.get<{ clients: ClientOption[] }>('/clients?dropdown=true&limit=5000'),
+        api.get<{ clients: ClientOption[] }>('/clients?dropdown=true'),
         api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
       ])
       setAllClients(clientsRes.clients || [])
@@ -928,7 +928,7 @@ export default function QuotesView() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[220px]">Produit</TableHead>
+                      <TableHead className="min-w-[300px]">Produit</TableHead>
                       <TableHead className="w-[80px]">Qté</TableHead>
                       <TableHead className="w-[100px]">P.U. HT</TableHead>
                       <TableHead className="w-[80px]">TVA %</TableHead>

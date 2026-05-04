@@ -408,7 +408,7 @@ export default function DeliveryNotesView() {
   // ─── Fetch filter dropdowns ───
 
   useEffect(() => {
-    api.get<{ clients: ClientOption[] }>('/clients?dropdown=true&limit=200')
+    api.get<{ clients: ClientOption[] }>('/clients?dropdown=true')
       .then(data => setClientOptionsForFilter(data.clients || []))
       .catch(() => {})
   }, [])
@@ -476,7 +476,7 @@ export default function DeliveryNotesView() {
       const [prepData, partData, clientsData, productsData] = await Promise.all([
         api.get<{ orders: any[] }>('/sales-orders?status=prepared&limit=100'),
         api.get<{ orders: any[] }>('/sales-orders?status=partially_delivered&limit=100'),
-        api.get<{ clients: ClientOption[] }>('/clients?limit=500'),
+        api.get<{ clients: ClientOption[] }>('/clients?dropdown=true'),
         api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
       ])
       const allOrders = [...(prepData.orders || []), ...(partData.orders || [])]

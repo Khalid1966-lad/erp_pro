@@ -105,7 +105,7 @@ export function ProductCombobox({
               Aucun produit trouvé.
             </div>
           ) : (
-            products.slice(0, 50).map((p) => (
+            products.map((p) => (
               <div
                 key={p.id}
                 className={cn(

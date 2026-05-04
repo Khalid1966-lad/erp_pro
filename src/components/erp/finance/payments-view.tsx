@@ -394,7 +394,7 @@ export default function PaymentsView() {
 
   const fetchClients = useCallback(async () => {
     try {
-      const data = await api.get<{ clients: Client[] }>('/clients?isDeleted=false&limit=100')
+      const data = await api.get<{ clients: Client[] }>('/clients?dropdown=true')
       setClients(data.clients || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur chargement clients')
@@ -403,7 +403,7 @@ export default function PaymentsView() {
 
   const fetchSuppliers = useCallback(async () => {
     try {
-      const data = await api.get<{ suppliers: Supplier[] }>('/suppliers?limit=100')
+      const data = await api.get<{ suppliers: Supplier[] }>('/suppliers?dropdown=true')
       setSuppliers(data.suppliers || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur chargement fournisseurs')

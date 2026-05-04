@@ -225,14 +225,14 @@ export default function CustomerReturnsView() {
 
   const fetchClients = useCallback(async () => {
     try {
-      const data = await api.get<{ clients: Client[] }>('/clients')
+      const data = await api.get<{ clients: Client[] }>('/clients?dropdown=true')
       setClients(data.clients || [])
     } catch { /* silent */ }
   }, [])
 
   const fetchProducts = useCallback(async () => {
     try {
-      const data = await api.get<{ products: Product[] }>('/products')
+      const data = await api.get<{ products: Product[] }>('/products?dropdown=true')
       setProducts(data.products || [])
     } catch { /* silent */ }
   }, [])
@@ -508,7 +508,7 @@ export default function CustomerReturnsView() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-48">Produit</TableHead>
+                            <TableHead className="min-w-[300px]">Produit</TableHead>
                             <TableHead className="w-24 text-right">Quantité</TableHead>
                             <TableHead className="w-32 text-right">Prix unit. HT</TableHead>
                             <TableHead className="w-24 text-right">TVA %</TableHead>

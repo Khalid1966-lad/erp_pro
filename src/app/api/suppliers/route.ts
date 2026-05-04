@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
+    const dropdown = searchParams.get('dropdown') === 'true'
 
     const where: Record<string, unknown> = {}
     if (search) {
@@ -44,6 +45,24 @@ export async function GET(req: NextRequest) {
       ]
     }
 
+    // Dropdown mode: return all suppliers with minimal fields, no pagination
+    if (dropdown) {
+      const suppliers = await db.supplier.findMany({
+        where,
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          email: true,
+          phone: true,
+          city: true,
+          siret: true,
+        },
+        orderBy: { name: 'asc' },
+      })
+      return NextResponse.json({ suppliers })
+    }
+
     const [suppliers, total] = await Promise.all([
       db.supplier.findMany({
         where,
@@ -52,7 +71,7 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { code: 'asc' },
         skip: (page - 1) * limit,
-        take: limit,
+        take: Math.min(limit, 500),
       }),
       db.supplier.count({ where }),
     ])

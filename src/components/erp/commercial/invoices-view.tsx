@@ -269,7 +269,7 @@ export default function InvoicesView() {
   const fetchDropdowns = useCallback(async () => {
     try {
       const [clientsRes, productsRes] = await Promise.all([
-        api.get<{ clients: Client[] }>('/clients'),
+        api.get<{ clients: Client[] }>('/clients?dropdown=true'),
         api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
       ])
       setClients(clientsRes.clients || [])
@@ -1005,7 +1005,7 @@ export default function InvoicesView() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[220px]">Produit</TableHead>
+                          <TableHead className="min-w-[300px]">Produit</TableHead>
                           <TableHead className="w-[80px]">Qté</TableHead>
                           <TableHead className="w-[100px]">P.U. HT</TableHead>
                           <TableHead className="w-[80px]">TVA %</TableHead>

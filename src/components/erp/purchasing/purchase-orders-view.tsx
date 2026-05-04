@@ -205,7 +205,7 @@ export default function PurchaseOrdersView() {
 
   const fetchSuppliers = useCallback(async () => {
     try {
-      const data = await api.get<{ suppliers: Supplier[] }>('/suppliers')
+      const data = await api.get<{ suppliers: Supplier[] }>('/suppliers?dropdown=true')
       setSuppliers(data.suppliers || [])
     } catch { /* silent */ }
   }, [])
@@ -437,7 +437,7 @@ export default function PurchaseOrdersView() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-48">Produit</TableHead>
+                          <TableHead className="min-w-[300px]">Produit</TableHead>
                           <TableHead className="w-24 text-right">Quantité</TableHead>
                           <TableHead className="w-32 text-right">Prix unit. HT</TableHead>
                           <TableHead className="w-24 text-right">TVA %</TableHead>
