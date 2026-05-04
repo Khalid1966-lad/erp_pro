@@ -26,6 +26,7 @@ import { Plus, Search, Pencil, Trash2, Eye, Send, ArrowDownToLine, Package, Circ
 import { cn } from '@/lib/utils'
 import { useNavStore } from '@/lib/stores'
 import { PrintHeader, PrintFooter } from '@/components/erp/shared/print-header'
+import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -403,14 +404,14 @@ export default function PurchaseOrdersView() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Fournisseur *</Label>
-                  <Select value={supplierId} onValueChange={setSupplierId}>
-                    <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <EntityCombobox
+                    entities={suppliers}
+                    value={supplierId}
+                    onValueChange={setSupplierId}
+                    placeholder="Sélectionner un fournisseur..."
+                    searchPlaceholder="Rechercher par raison sociale, nom, ICE..."
+                    showSubText="ice"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Date de livraison prévue</Label>

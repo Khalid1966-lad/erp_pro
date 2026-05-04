@@ -28,6 +28,8 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
+import { ProductCombobox, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { PrintHeader, PrintFooter, formatCurrency } from '@/components/erp/shared/print-header'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
@@ -185,6 +187,7 @@ export default function SupplierReturnsView() {
   const [invoiceId, setInvoiceId] = useState('')
   const [reason, setReason] = useState('')
   const [lines, setLines] = useState<Array<{ productId: string; quantity: number; unitPrice: number; tvaRate: number }>>([])
+  const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(products)
 
   const fetchItems = useCallback(async () => {
     try {
@@ -260,6 +263,7 @@ export default function SupplierReturnsView() {
     setReason('')
     setLines([])
     setIsEditing(false)
+    resetLineSearches()
   }
 
   const openEdit = (item: SupplierReturn) => {
@@ -384,7 +388,7 @@ export default function SupplierReturnsView() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="achats" sub="bons-retour" />
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (o) { resetLineSearches() } else { resetForm(); setIsEditing(false) } }}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
@@ -398,14 +402,13 @@ export default function SupplierReturnsView() {
             <div className="grid gap-4 py-2">
               <div className="space-y-2">
                 <Label>Fournisseur *</Label>
-                <Select value={supplierId} onValueChange={setSupplierId}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
-                  <SelectContent>
-                    {suppliers.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntityCombobox
+                  entities={suppliers}
+                  value={supplierId}
+                  onValueChange={setSupplierId}
+                  placeholder="Sélectionner un fournisseur..."
+                  searchPlaceholder="Rechercher par raison sociale, nom, ICE..."
+                />
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
@@ -473,16 +476,15 @@ export default function SupplierReturnsView() {
                         {lines.map((line, idx) => (
                           <TableRow key={idx}>
                             <TableCell>
-                              <Select value={line.productId} onValueChange={(v) => updateLine(idx, 'productId', v)}>
-                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Produit..." /></SelectTrigger>
-                                <SelectContent>
-                                  {products.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      {p.reference} — {p.designation}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <ProductCombobox
+                                products={getFilteredProducts(idx)}
+                                value={line.productId}
+                                searchValue={lineSearches[idx] || ''}
+                                onSearchChange={(v) => setLineSearches(prev => ({ ...prev, [idx]: v }))}
+                                onSelect={(productId) => updateLine(idx, 'productId', productId)}
+                                placeholder="Produit..."
+                                className="h-8 text-xs"
+                              />
                             </TableCell>
                             <TableCell>
                               <Input type="number" min={1} value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseInt(e.target.value) || 0)} className="h-8 text-right" />

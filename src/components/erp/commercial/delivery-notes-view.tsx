@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { numberToFrenchWords } from '@/lib/number-to-words'
+import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
 import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { format } from 'date-fns'
@@ -1787,23 +1788,14 @@ export default function DeliveryNotesView() {
                   {loadingClients ? (
                     <Skeleton className="h-10 w-full" />
                   ) : (
-                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un client..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableClients.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            <div className="flex flex-col">
-                              <span className="text-sm">{c.raisonSociale || c.name}</span>
-                              {c.ville && (
-                                <span className="text-xs text-muted-foreground">{c.ville}</span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <EntityCombobox
+                      entities={availableClients}
+                      value={selectedClientId}
+                      onValueChange={setSelectedClientId}
+                      placeholder="Sélectionner un client..."
+                      searchPlaceholder="Rechercher par raison sociale, nom, ICE..."
+                      showSubText="ville"
+                    />
                   )}
                 </div>
 

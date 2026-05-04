@@ -55,7 +55,7 @@ export function ProductCombobox({
   onSelect,
   priceField = 'priceHT',
   placeholder = 'Produit...',
-  contentWidth = 'w-[350px]',
+  contentWidth = 'w-[550px]',
   className,
 }: ProductComboboxProps) {
   const [open, setOpen] = useState(false)

@@ -40,6 +40,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -908,20 +909,17 @@ export default function SalesOrdersView() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Client *</Label>
-                <Select value={formClientId} onValueChange={(val) => {
-                  setFormClientId(val)
-                  // Reset quote import when client changes
-                  clearQuoteImport()
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntityCombobox
+                  entities={clients}
+                  value={formClientId}
+                  onValueChange={(val) => {
+                    setFormClientId(val)
+                    clearQuoteImport()
+                  }}
+                  placeholder="Sélectionner un client"
+                  searchPlaceholder="Rechercher par raison sociale, nom, ICE..."
+                  showSubText="ice"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Date de livraison souhaitée</Label>

@@ -40,6 +40,7 @@ import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -978,16 +979,13 @@ export default function InvoicesView() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Client *</Label>
-                    <Select value={formClientId} onValueChange={setFormClientId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un client" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clients.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <EntityCombobox
+                      entities={clients}
+                      value={formClientId}
+                      onValueChange={setFormClientId}
+                      placeholder="Sélectionner un client"
+                      searchPlaceholder="Rechercher par raison sociale, nom, ICE..."
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Date d&apos;échéance *</Label>
@@ -1098,19 +1096,16 @@ export default function InvoicesView() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Client *</Label>
-                    <Select value={blClientId} onValueChange={(v) => {
-                      setBlClientId(v)
-                      setFormClientId(v) // sync for reference
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un client" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clients.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <EntityCombobox
+                      entities={clients}
+                      value={blClientId}
+                      onValueChange={(v) => {
+                        setBlClientId(v)
+                        setFormClientId(v)
+                      }}
+                      placeholder="Sélectionner un client"
+                      searchPlaceholder="Rechercher par raison sociale, nom, ICE..."
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Date d&apos;échéance *</Label>

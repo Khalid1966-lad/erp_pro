@@ -29,6 +29,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
 import { PrintHeader, PrintFooter, formatCurrency } from '@/components/erp/shared/print-header'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -439,14 +440,13 @@ export default function SupplierInvoicesView() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Fournisseur *</Label>
-                  <Select value={supplierId} onValueChange={setSupplierId}>
-                    <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <EntityCombobox
+                    entities={suppliers}
+                    value={supplierId}
+                    onValueChange={setSupplierId}
+                    placeholder="Sélectionner un fournisseur..."
+                    searchPlaceholder="Rechercher par raison sociale, nom, ICE..."
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Commande fournisseur (optionnel)</Label>
