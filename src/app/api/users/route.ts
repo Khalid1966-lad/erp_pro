@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
         email: true,
         name: true,
         role: true,
+        roleId: true,
+        roleObj: { select: { id: true, name: true, label: true, isActive: true } },
         phone: true,
         isSuperAdmin: true,
         isBlocked: true,
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { email, password, name, role, phone } = body
+    const { email, password, name, role, roleId, phone } = body
 
     if (!email || !password || !name) {
       return NextResponse.json({ error: 'Email, mot de passe et nom sont requis' }, { status: 400 })
@@ -60,6 +62,21 @@ export async function POST(req: NextRequest) {
 
     const validRoles = ['super_admin', 'admin', 'commercial', 'buyer', 'storekeeper', 'prod_manager', 'operator', 'accountant', 'cashier', 'direction']
     const userRole = role && validRoles.includes(role) ? role : 'operator'
+
+    // Resolve roleId from the role name or directly provided roleId
+    let finalRoleId: string | null = null
+    if (roleId) {
+      // Verify the role exists and is active
+      const dbRole = await db.role.findUnique({ where: { id: roleId } })
+      if (dbRole && dbRole.isActive) {
+        finalRoleId = roleId
+      }
+    }
+    if (!finalRoleId && !['super_admin', 'admin'].includes(userRole)) {
+      // Try to find a matching role by name
+      const dbRole = await db.role.findFirst({ where: { name: userRole, isActive: true } })
+      if (dbRole) finalRoleId = dbRole.id
+    }
 
     // Only super_admin can create super_admin or admin users
     if ((userRole === 'super_admin' || userRole === 'admin') && auth.role !== 'super_admin') {
@@ -81,12 +98,13 @@ export async function POST(req: NextRequest) {
         passwordHash,
         name,
         role: userRole,
+        roleId: finalRoleId,
         phone: phone || null,
         isSuperAdmin: userRole === 'super_admin',
       },
     })
 
-    await auditLog(auth.userId, 'create', 'User', user.id, null, { email, name, role: userRole })
+    await auditLog(auth.userId, 'create', 'User', user.id, null, { email, name, role: userRole, roleId: finalRoleId })
 
     return NextResponse.json({
       user: {
@@ -94,6 +112,7 @@ export async function POST(req: NextRequest) {
         email: user.email,
         name: user.name,
         role: user.role,
+        roleId: user.roleId,
         phone: user.phone,
         isSuperAdmin: user.isSuperAdmin,
         isBlocked: user.isBlocked,
@@ -116,7 +135,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { id, name, role, phone, password } = body
+    const { id, name, role, roleId, phone, password } = body
 
     if (!id) {
       return NextResponse.json({ error: 'ID utilisateur requis' }, { status: 400 })
@@ -155,6 +174,20 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    // Handle roleId assignment for DB-based roles
+    if (roleId !== undefined) {
+      if (roleId === null) {
+        updateData.roleId = null
+      } else {
+        const dbRole = await db.role.findUnique({ where: { id: roleId } })
+        if (dbRole && dbRole.isActive) {
+          updateData.roleId = roleId
+          // Keep the role string in sync with the DB role name
+          updateData.role = dbRole.name
+        }
+      }
+    }
+
     if (password) {
       if (password.length < 6) {
         return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 6 caractères' }, { status: 400 })
@@ -177,6 +210,7 @@ export async function PUT(req: NextRequest) {
         email: user.email,
         name: user.name,
         role: user.role,
+        roleId: user.roleId,
         phone: user.phone,
         isSuperAdmin: user.isSuperAdmin,
         isBlocked: user.isBlocked,

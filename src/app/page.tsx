@@ -46,6 +46,7 @@ const FinancialReportsView = dynamic(() => import('@/components/erp/finance/fina
 const AuditLogView = dynamic(() => import('@/components/erp/admin/audit-log-view'), { ssr: false })
 const SettingsView = dynamic(() => import('@/components/erp/admin/settings-view'), { ssr: false })
 const UsersView = dynamic(() => import('@/components/erp/admin/users-view'), { ssr: false })
+const RolesView = dynamic(() => import('@/components/erp/admin/roles-view'), { ssr: false })
 const ProfileView = dynamic(() => import('@/components/erp/admin/profile-view'), { ssr: false })
 const GuideView = dynamic(() => import('@/components/erp/admin/guide-view'), { ssr: false })
 const MessagesView = dynamic(() => import('@/components/erp/messages/messages-view'), { ssr: false })
@@ -109,6 +110,7 @@ function ViewRouter() {
     case 'audit-log': view = <AuditLogView />; break
     case 'settings': view = <SettingsView />; break
     case 'users': view = <UsersView />; break
+    case 'roles': view = <RolesView />; break
     case 'profile': view = <ProfileView />; break
     case 'guide': view = <GuideView />; break
     case 'messages': view = <MessagesView />; break

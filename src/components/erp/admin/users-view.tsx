@@ -59,11 +59,21 @@ class UsersErrorBoundary extends Component<{ children: React.ReactNode }, { hasE
 }
 
 // ───────────────────── Types ─────────────────────
+interface Role {
+  id: string
+  name: string
+  label: string
+  isActive: boolean
+  isSystem?: boolean
+}
+
 interface User {
   id: string
   email: string
   name: string
   role: string
+  roleId: string | null
+  roleObj?: { id: string; name: string; label: string; isActive: boolean; isSystem?: boolean } | null
   phone: string | null
   avatarUrl: string | null
   isSuperAdmin: boolean
@@ -125,6 +135,7 @@ function UsersViewInner() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [roles, setRoles] = useState<Role[]>([])
 
   // Dialog state
   const [createOpen, setCreateOpen] = useState(false)
@@ -137,6 +148,7 @@ function UsersViewInner() {
   const [formPassword, setFormPassword] = useState('')
   const [formPhone, setFormPhone] = useState('')
   const [formRole, setFormRole] = useState('operator')
+  const [formRoleId, setFormRoleId] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -154,9 +166,19 @@ function UsersViewInner() {
     }
   }, [])
 
+  const fetchRoles = useCallback(async () => {
+    try {
+      const data = await api.get<{ roles: Role[] }>('/roles')
+      setRoles(data.roles || [])
+    } catch { /* silent */ }
+  }, [])
+
   useEffect(() => {
-    if (isSuperAdmin) fetchUsers()
-  }, [isSuperAdmin, fetchUsers])
+    if (isSuperAdmin) {
+      fetchUsers()
+      fetchRoles()
+    }
+  }, [isSuperAdmin, fetchUsers, fetchRoles])
 
   // ─── Filtered users ───
   const filteredUsers = search
@@ -174,6 +196,7 @@ function UsersViewInner() {
     setFormPassword('')
     setFormPhone('')
     setFormRole('operator')
+    setFormRoleId('')
     setCreateOpen(true)
   }
 
@@ -190,6 +213,7 @@ function UsersViewInner() {
         password: formPassword,
         phone: formPhone || null,
         role: formRole,
+        roleId: formRoleId || undefined,
       })
       toast.success('Utilisateur créé', { description: `${formName} a été ajouté.` })
       setCreateOpen(false)
@@ -210,6 +234,7 @@ function UsersViewInner() {
     setFormPassword('')
     setFormPhone(user.phone || '')
     setFormRole(user.role)
+    setFormRoleId(user.roleId || '')
     setAvatarPreview(user.avatarUrl || null)
     setEditOpen(true)
   }
@@ -310,6 +335,7 @@ function UsersViewInner() {
         id: selectedUser.id,
         name: formName,
         role: formRole,
+        roleId: formRoleId || null,
         phone: formPhone || null,
       }
       if (formPassword) body.password = formPassword
@@ -546,9 +572,16 @@ function UsersViewInner() {
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <Badge variant="outline" className={roleColorMap[u.role] || ''}>
-                          {roleLabelMap[u.role] || u.role}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className={roleColorMap[u.role] || ''}>
+                            {roleLabelMap[u.role] || u.role}
+                          </Badge>
+                          {u.roleObj && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                              {u.roleObj.label}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
                         {u.phone ? (
@@ -785,6 +818,24 @@ function UsersViewInner() {
                 </SelectContent>
               </Select>
             </div>
+            {roles.length > 0 && (
+              <div className="space-y-2">
+                <Label>Rôle personnalisé</Label>
+                <Select value={formRoleId || 'none'} onValueChange={(v) => setFormRoleId(v === 'none' ? '' : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Aucun (rôle par défaut)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun (rôle par défaut)</SelectItem>
+                    {roles.filter(r => !r.isSystem).map((r) => (
+                      <SelectItem key={r.id} value={r.id} disabled={!r.isActive}>
+                        {r.label} {!r.isActive && '(désactivé)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -926,6 +977,24 @@ function UsersViewInner() {
                 </SelectContent>
               </Select>
             </div>
+            {roles.length > 0 && (
+              <div className="space-y-2">
+                <Label>Rôle personnalisé</Label>
+                <Select value={formRoleId || 'none'} onValueChange={(v) => setFormRoleId(v === 'none' ? '' : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Aucun (rôle par défaut)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun (rôle par défaut)</SelectItem>
+                    {roles.filter(r => !r.isSystem).map((r) => (
+                      <SelectItem key={r.id} value={r.id} disabled={!r.isActive}>
+                        {r.label} {!r.isActive && '(désactivé)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

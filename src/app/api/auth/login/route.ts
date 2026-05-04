@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
-import { createToken, verifyToken } from '@/lib/auth'
+import { createToken, verifyToken, getPermissionsForUser } from '@/lib/auth'
 
 // Hardcoded super admin credentials (emergency access)
 const SUPER_ADMIN = {
@@ -102,12 +102,16 @@ export async function POST(req: NextRequest) {
       data: { lastLogin: new Date() },
     })
 
-    // Create JWT token
+    // Fetch permissions for this user
+    const permissions = await getPermissionsForUser(user.id, user.role)
+
+    // Create JWT token with permissions
     const token = createToken({
       userId: user.id,
       email: user.email,
       role: user.role,
       name: user.name,
+      permissions,
     })
 
     return NextResponse.json({

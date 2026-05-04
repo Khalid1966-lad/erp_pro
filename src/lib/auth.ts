@@ -7,6 +7,32 @@ export interface AuthUser {
   email: string
   role: string
   name: string
+  permissions?: string[] // Will be populated from JWT
+}
+
+// Hardcoded fallback permissions (used when DB is not available or for legacy roles)
+const hardcodedPermissions: Record<string, string[]> = {
+  direction: ['dashboard:read', 'reports:read', 'settings:read', 'clients:read', 'delivery_notes:read'],
+  commercial: [
+    'clients:read', 'clients:write',
+    'products:read', 'quotes:read', 'quotes:write',
+    'sales_orders:read', 'sales_orders:write',
+    'invoices:read', 'invoices:write',
+    'credit_notes:read', 'credit_notes:write',
+    'delivery_notes:read', 'delivery_notes:write',
+  ],
+  buyer: ['suppliers:read', 'suppliers:write', 'purchase_orders:read', 'purchase_orders:write', 'receptions:read', 'receptions:write', 'products:read', 'clients:read'],
+  storekeeper: ['products:read', 'stock:read', 'stock:write', 'preparations:read', 'preparations:write', 'receptions:read', 'clients:read', 'delivery_notes:read', 'delivery_notes:write'],
+  prod_manager: ['production:read', 'production:write', 'work_orders:read', 'work_orders:write', 'bom:read', 'bom:write', 'routing:read', 'routing:write', 'workstations:read', 'workstations:write', 'clients:read'],
+  operator: ['work_orders:read', 'production:read'],
+  accountant: [
+    'invoices:read', 'invoices:write', 'payments:read', 'payments:write',
+    'accounting:read', 'accounting:write',
+    'credit_notes:read', 'credit_notes:write',
+    'bank:read', 'bank:write', 'cash:read', 'cash:write',
+    'clients:read',
+  ],
+  cashier: ['cash:read', 'cash:write', 'payments:read', 'payments:write', 'clients:read'],
 }
 
 export function verifyToken(token: string): AuthUser | null {
@@ -21,19 +47,42 @@ export function verifyToken(token: string): AuthUser | null {
       userId: payload.userId,
       email: payload.email,
       role: payload.role,
-      name: payload.name
+      name: payload.name,
+      permissions: payload.permissions || undefined,
     }
   } catch {
     return null
   }
 }
 
-export function createToken(payload: Record<string, string>): string {
+export function createToken(payload: Record<string, string | string[]>): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
   const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + 24 * 60 * 60 * 1000 })).toString('base64url')
   const secret = process.env.JWT_SECRET || 'erp-secret-key-change-in-production'
   const sig = createHmac('sha256', secret).update(`${header}.${body}`).digest('base64url')
   return `${header}.${body}.${sig}`
+}
+
+// Fetch permissions for a role from DB
+export async function getPermissionsForUser(userId: string, roleName: string): Promise<string[]> {
+  // Super admin and admin have all permissions
+  if (roleName === 'super_admin' || roleName === 'admin') {
+    return ['*']
+  }
+
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { roleId: true, roleObj: { include: { permissions: { select: { permission: true } } } } },
+    })
+    const dbPerms = user?.roleObj?.permissions.map(p => p.permission) || []
+    if (dbPerms.length > 0) return dbPerms
+  } catch {
+    // DB query failed, fall through to hardcoded
+  }
+
+  // Fallback: hardcoded permissions
+  return hardcodedPermissions[roleName] || []
 }
 
 export async function getUser(req: NextRequest): Promise<AuthUser | null> {
@@ -56,34 +105,12 @@ export function hasPermission(user: AuthUser, permission: string): boolean {
   // Admin has all permissions
   if (user.role === 'admin') return true
 
-  const rolePermissions: Record<string, string[]> = {
-    direction: ['dashboard:read', 'reports:read', 'settings:read', 'client:read', 'delivery_notes:read'],
-    commercial: [
-      // New granular permissions
-      'client:read', 'client:create', 'client:edit', 'client:delete',
-      'products:read', 'quotes:read', 'quotes:write',
-      'sales_orders:read', 'sales_orders:write',
-      'invoices:read', 'invoices:write',
-      'credit_notes:read', 'credit_notes:write',
-      'delivery_notes:read', 'delivery_notes:write',
-      // Backward compatibility
-      'clients:read', 'clients:write',
-    ],
-    buyer: ['suppliers:read', 'suppliers:write', 'purchase_orders:read', 'purchase_orders:write', 'receptions:read', 'receptions:write', 'products:read', 'client:read', 'clients:read'],
-    storekeeper: ['products:read', 'stock:read', 'stock:write', 'preparations:read', 'preparations:write', 'receptions:read', 'client:read', 'clients:read', 'delivery_notes:read', 'delivery_notes:write'],
-    prod_manager: ['production:read', 'production:write', 'work_orders:read', 'work_orders:write', 'bom:read', 'bom:write', 'routing:read', 'routing:write', 'workstations:read', 'workstations:write', 'client:read', 'clients:read'],
-    operator: ['work_orders:read', 'production:read'],
-    accountant: [
-      'invoices:read', 'invoices:write', 'payments:read', 'payments:write',
-      'accounting:read', 'accounting:write',
-      'credit_notes:read', 'credit_notes:write',
-      'bank:read', 'bank:write', 'cash:read', 'cash:write',
-      'client:read', 'clients:read',
-    ],
-    cashier: ['cash:read', 'cash:write', 'payments:read', 'payments:write', 'client:read', 'clients:read']
-  }
+  // Check permissions from JWT (loaded from DB at login time)
+  const perms = user.permissions || hardcodedPermissions[user.role] || []
 
-  const perms = rolePermissions[user.role] || []
+  // Wildcard means all permissions
+  if (perms.includes('*')) return true
+
   return perms.includes(permission) || perms.includes(permission.replace(':write', ':read'))
 }
 

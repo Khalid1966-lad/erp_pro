@@ -50,6 +50,7 @@ import {
   CreditCard,
   BookOpen,
   Shield,
+  ShieldCheck,
   LogOut,
   Menu,
   Factory,
@@ -172,6 +173,7 @@ const navigation: NavGroup[] = [
     icon: <Settings className="h-4 w-4" />,
     items: [
       { id: 'users', label: 'Utilisateurs', icon: <UserCog className="h-4 w-4" />, color: 'text-emerald-500', superAdminOnly: true },
+      { id: 'roles', label: 'Rôles & Permissions', icon: <ShieldCheck className="h-4 w-4" />, color: 'text-amber-500', superAdminOnly: true },
       { id: 'audit-log', label: 'Journal d\'audit', icon: <Shield className="h-4 w-4" />, color: 'text-slate-500' },
       { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" />, color: 'text-gray-400' },
       { id: 'guide', label: "Guide d'utilisation", icon: <BookOpen className="h-4 w-4" />, color: 'text-emerald-500' }
@@ -463,6 +465,7 @@ export function ERPHeader() {
     'settings': 'Paramètres',
     'audit-log': "Journal d'audit",
     'users': 'Utilisateurs',
+    'roles': 'Rôles & Permissions',
     'guide': "Guide d'utilisation",
     'profile': 'Mon Profil',
     'messages': 'Messagerie'

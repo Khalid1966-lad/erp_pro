@@ -678,7 +678,7 @@ export default function CashRegistersView() {
 
     printDocument({
       title: 'RELEVÉ DE CAISSE',
-      docNumber: register.name,
+      docNumber: selectedRegister.name,
       infoGrid: [
         { label: 'Caisse', value: selectedRegister.name },
         { label: 'Période du', value: stmtDateFrom ? fmtDate(stmtDateFrom) : 'Début' },
