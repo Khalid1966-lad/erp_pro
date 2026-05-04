@@ -80,6 +80,7 @@ interface ClientOption {
 interface SalesOrderOption {
   id: string
   number: string
+  clientOrderNumber: string
   status: string
   client: { id: string; name: string }
   totalHT: number
@@ -138,6 +139,7 @@ interface DeliveryNote {
   salesOrder: {
     id: string
     number: string
+    clientOrderNumber: string
     lines: SalesOrderLineInfo[]
   } | null
   client: { id: string; name: string; address?: string | null; city?: string | null }
@@ -290,6 +292,7 @@ export default function DeliveryNotesView() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const [filterClientOrderNumber, setFilterClientOrderNumber] = useState('')
 
   const navigationParams = useNavStore((s) => s.navigationParams)
 
@@ -393,6 +396,7 @@ export default function DeliveryNotesView() {
       if (search) params.set('search', search)
       if (clientFilter) params.set('clientId', clientFilter)
       if (chantierFilter) params.set('chantierId', chantierFilter)
+      if (filterClientOrderNumber) params.set('clientOrderNumber', filterClientOrderNumber)
       const data = await api.get<{ deliveryNotes: DeliveryNote[]; total: number }>(`/delivery-notes?${params.toString()}`)
       setDeliveryNotes(data.deliveryNotes)
     } catch (err: any) {
@@ -400,7 +404,7 @@ export default function DeliveryNotesView() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, search, clientFilter, chantierFilter])
+  }, [statusFilter, search, clientFilter, chantierFilter, filterClientOrderNumber])
 
   useEffect(() => {
     fetchDeliveryNotes()
@@ -1094,6 +1098,12 @@ export default function DeliveryNotesView() {
             className="pl-9"
           />
         </div>
+        <Input
+          placeholder="N° Cmd Client..."
+          value={filterClientOrderNumber}
+          onChange={(e) => setFilterClientOrderNumber(e.target.value)}
+          className="w-[180px]"
+        />
         <Select value={clientFilter} onValueChange={setClientFilter}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Tous les clients" />
@@ -1145,7 +1155,7 @@ export default function DeliveryNotesView() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Numéro</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>N° Cmd Client</TableHead>
                   <TableHead className="hidden md:table-cell">Chantier</TableHead>
                   <TableHead>Commande / Client</TableHead>
                   <TableHead>Statut</TableHead>
@@ -1180,19 +1190,15 @@ export default function DeliveryNotesView() {
                             <span className="font-mono font-medium">{note.number}</span>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {note.salesOrderId ? (
-                            <Badge variant="outline" className="text-xs gap-1">
-                              <Link2 className="h-3 w-3" /> Lié
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs gap-1 border-dashed">
-                              <Unlink className="h-3 w-3" /> Autonome
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {note.chantier ? (
+                      <TableCell>
+                        {note.salesOrder?.clientOrderNumber ? (
+                          <span className="font-mono text-sm font-semibold text-primary">{note.salesOrder.clientOrderNumber}</span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {note.chantier ? (
                             <span className="text-sm text-muted-foreground flex items-center gap-1">
                               <HardHat className="h-3 w-3" />
                               {note.chantier.nomProjet}
@@ -1310,6 +1316,8 @@ export default function DeliveryNotesView() {
                       infoGrid: [
                         { label: 'N° BL', value: en.number },
                         { label: 'Date du BL', value: fmtDate(en.date) },
+                        ...(en.salesOrder?.clientOrderNumber ? [{ label: 'N° Cmd Client', value: en.salesOrder.clientOrderNumber }] : []),
+                        ...(en.salesOrder ? [{ label: 'Commande', value: en.salesOrder.number }] : []),
                         { label: 'Date d\'échéance', value: fmtDate(en.dueDate || '') || '—' },
                         { label: 'Client', value: en.client.name },
                         { label: 'Adresse de livraison', value: (() => {
@@ -2778,6 +2786,8 @@ export default function DeliveryNotesView() {
                       infoGrid: [
                         { label: 'N° BL', value: selectedNote.number },
                         { label: 'Date du BL', value: fmtDate(selectedNote.date) },
+                        ...(selectedNote.salesOrder?.clientOrderNumber ? [{ label: 'N° Cmd Client', value: selectedNote.salesOrder.clientOrderNumber }] : []),
+                        ...(selectedNote.salesOrder ? [{ label: 'Commande', value: selectedNote.salesOrder.number }] : []),
                         { label: 'Date d\'échéance', value: fmtDate(selectedNote.dueDate || '') || '—' },
                         { label: 'Client', value: selectedNote.client.name },
                         { label: 'Adresse de livraison', value: (() => {

@@ -414,26 +414,27 @@ enum SalesOrderStatus {
 }
 
 model SalesOrder {
-  id            String            @id @default(cuid())
-  number        String            @unique
-  quoteId       String?
-  quote         Quote?            @relation(fields: [quoteId], references: [id])
-  clientId      String
-  client        Client            @relation(fields: [clientId], references: [id])
-  status        SalesOrderStatus  @default(pending)
-  date          DateTime          @default(now())
-  deliveryDate  DateTime?
-  notes         String?
-  totalHT       Float             @default(0)
-  totalTVA      Float             @default(0)
-  totalTTC      Float             @default(0)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id                 String            @id @default(cuid())
+  number             String            @unique
+  clientOrderNumber  String
+  quoteId            String?
+  quote              Quote?            @relation(fields: [quoteId], references: [id])
+  clientId           String
+  client             Client            @relation(fields: [clientId], references: [id])
+  status             SalesOrderStatus  @default(pending)
+  date               DateTime          @default(now())
+  deliveryDate       DateTime?
+  notes              String?
+  totalHT            Float             @default(0)
+  totalTVA           Float             @default(0)
+  totalTTC           Float             @default(0)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
-  lines         SalesOrderLine[]
-  invoices      Invoice[]
-  preparationOrders PreparationOrder[]
-  deliveryNotes  DeliveryNote[]
+  lines              SalesOrderLine[]
+  invoices           Invoice[]
+  preparationOrders  PreparationOrder[]
+  deliveryNotes      DeliveryNote[]
 }
 
 model SalesOrderLine {

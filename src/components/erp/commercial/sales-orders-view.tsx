@@ -60,6 +60,7 @@ interface SalesOrderLine {
 interface SalesOrder {
   id: string
   number: string
+  clientOrderNumber: string
   status: string
   date: string
   deliveryDate: string | null
@@ -207,6 +208,7 @@ export default function SalesOrdersView() {
 
   // Form state
   const [formClientId, setFormClientId] = useState('')
+  const [formClientOrderNumber, setFormClientOrderNumber] = useState('')
   const [formDeliveryDate, setFormDeliveryDate] = useState('')
   const [formNotes, setFormNotes] = useState('')
   const [formLines, setFormLines] = useState<SalesOrderLine[]>([emptyLine()])
@@ -279,6 +281,7 @@ export default function SalesOrdersView() {
     setEditingOrder(null)
     setSelectedOrder(null)
     setFormClientId('')
+    setFormClientOrderNumber('')
     const in7 = new Date()
     in7.setDate(in7.getDate() + 7)
     setFormDeliveryDate(in7.toISOString().slice(0, 10))
@@ -298,6 +301,7 @@ export default function SalesOrdersView() {
   const openEdit = (order: SalesOrder) => {
     setEditingOrder(order)
     setFormClientId(order.client.id)
+    setFormClientOrderNumber(order.clientOrderNumber || '')
     setFormDeliveryDate(order.deliveryDate ? order.deliveryDate.slice(0, 10) : '')
     setFormNotes(order.notes || '')
     setFormLines(order.lines.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, tvaRate: l.tvaRate, discount: l.discount || 0 })))
@@ -417,6 +421,10 @@ export default function SalesOrdersView() {
       toast.error('Veuillez sélectionner un client')
       return
     }
+    if (!formClientOrderNumber.trim()) {
+      toast.error('Le numéro de commande client est obligatoire')
+      return
+    }
     const validLines = formLines.filter(l => l.productId)
     if (validLines.length === 0) {
       toast.error('Au moins une ligne est requise')
@@ -430,6 +438,7 @@ export default function SalesOrdersView() {
         await api.put('/sales-orders', {
           id: editingOrder.id,
           clientId: formClientId,
+          clientOrderNumber: formClientOrderNumber.trim(),
           deliveryDate,
           notes: formNotes || undefined,
           lines: validLines.map(l => ({
@@ -444,6 +453,7 @@ export default function SalesOrdersView() {
       } else {
         await api.post('/sales-orders', {
           clientId: formClientId,
+          clientOrderNumber: formClientOrderNumber.trim(),
           deliveryDate,
           notes: formNotes || undefined,
           quoteId: formQuoteId || undefined,
@@ -609,7 +619,8 @@ export default function SalesOrdersView() {
               <IconLegend items={salesOrderLegendItems} />
               <TableHeader>
                 <TableRow>
-                  <TableHead>Numéro</TableHead>
+                  <TableHead>N° Interne</TableHead>
+                  <TableHead>N° Cmd Client</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead className="hidden md:table-cell">Date</TableHead>
                   <TableHead className="hidden lg:table-cell">Livraison</TableHead>
@@ -623,7 +634,7 @@ export default function SalesOrdersView() {
               <TableBody>
                 {orders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       {search || statusFilter !== 'all' ? 'Aucune commande trouvée.' : 'Aucune commande enregistrée.'}
                     </TableCell>
                   </TableRow>
@@ -643,6 +654,9 @@ export default function SalesOrdersView() {
                             )}
                           </div>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-sm font-semibold text-primary">{order.clientOrderNumber || '—'}</span>
                       </TableCell>
                       <TableCell>{order.client.name}</TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
@@ -776,6 +790,7 @@ export default function SalesOrdersView() {
                       docNumber: eq.number,
                       infoGrid: [
                         { label: 'Client', value: eq.client.name },
+                        { label: 'N° Cmd Client', value: eq.clientOrderNumber },
                         { label: 'Date', value: fmtDate(eq.date) },
                         ...(eq.deliveryDate ? [{ label: 'Livraison', value: fmtDate(eq.deliveryDate) }] : []),
                         ...(eq.quoteId && eq.quote ? [{ label: 'Devis', value: eq.quote.number }] : []),
@@ -912,7 +927,7 @@ export default function SalesOrdersView() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Client selection + Import button */}
+            {/* Client selection + N° Cmd Client */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Client *</Label>
@@ -928,6 +943,18 @@ export default function SalesOrdersView() {
                   showSubText="ice"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>N° Commande Client *</Label>
+                <Input
+                  placeholder="Saisir le numéro de commande du client"
+                  value={formClientOrderNumber}
+                  onChange={(e) => setFormClientOrderNumber(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Date de livraison */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Date de livraison souhaitée</Label>
                 <Input type="date" value={formDeliveryDate} onChange={(e) => setFormDeliveryDate(e.target.value)} />
@@ -1355,6 +1382,7 @@ export default function SalesOrdersView() {
                       docNumber: selectedOrder.number,
                       infoGrid: [
                         { label: 'Client', value: selectedOrder.client.name },
+                        { label: 'N° Cmd Client', value: selectedOrder.clientOrderNumber },
                         { label: 'Date', value: fmtDate(selectedOrder.date) },
                         { label: 'Livraison', value: fmtDate(selectedOrder.deliveryDate || '') },
                         { label: 'Nb lignes', value: String(selectedOrder.lines.length) },

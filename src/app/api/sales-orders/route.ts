@@ -14,6 +14,7 @@ const salesOrderLineSchema = z.object({
 
 const salesOrderSchema = z.object({
   clientId: z.string(),
+  clientOrderNumber: z.string().min(1, 'Le numéro de commande client est obligatoire'),
   quoteId: z.string().optional(),
   status: z.enum(['pending', 'confirmed', 'in_preparation', 'prepared', 'partially_delivered', 'delivered', 'cancelled']).optional(),
   deliveryDate: z.string().datetime().optional().nullable(),
@@ -48,9 +49,14 @@ export async function GET(req: NextRequest) {
     if (id) where.id = id
     if (status) where.status = status
     if (clientId) where.clientId = clientId
+    const clientOrderNumber = searchParams.get('clientOrderNumber') || ''
+    if (clientOrderNumber) {
+      where.clientOrderNumber = { contains: clientOrderNumber, mode: 'insensitive' }
+    }
     if (search) {
       where.OR = [
-        { number: { contains: search } },
+        { number: { contains: search, mode: 'insensitive' } },
+        { clientOrderNumber: { contains: search, mode: 'insensitive' } },
         { client: { name: { contains: search } } },
       ]
     }
@@ -142,6 +148,7 @@ export async function POST(req: NextRequest) {
     const order = await db.salesOrder.create({
       data: {
         number,
+        clientOrderNumber: data.clientOrderNumber,
         clientId: data.clientId,
         quoteId: data.quoteId || null,
         status: data.status || 'pending',

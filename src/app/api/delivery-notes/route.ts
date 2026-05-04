@@ -85,10 +85,22 @@ async function generateBLNumber() {
 
 const deliveryNoteInclude = {
   salesOrder: {
-    include: {
+    select: {
+      id: true,
+      number: true,
+      clientOrderNumber: true,
+      status: true,
       client: { select: { id: true, name: true, raisonSociale: true, address: true, city: true } },
       lines: {
-        include: {
+        select: {
+          id: true,
+          productId: true,
+          quantity: true,
+          unitPrice: true,
+          tvaRate: true,
+          totalHT: true,
+          quantityPrepared: true,
+          quantityDelivered: true,
           product: { select: { id: true, reference: true, designation: true } },
         },
       },
@@ -164,12 +176,17 @@ export async function GET(req: NextRequest) {
     if (salesOrderId) where.salesOrderId = salesOrderId
     if (standalone === 'true') where.salesOrderId = null
     if (standalone === 'false') where.salesOrderId = { not: null }
+    const clientOrderNumberFilter = searchParams.get('clientOrderNumber') || ''
+    if (clientOrderNumberFilter) {
+      where.salesOrder = { ...(where.salesOrder as Record<string, unknown> || {}), clientOrderNumber: { contains: clientOrderNumberFilter, mode: 'insensitive' } }
+    }
     if (search) {
       where.OR = [
         { number: { contains: search, mode: 'insensitive' } },
         { client: { name: { contains: search, mode: 'insensitive' } } },
         { client: { raisonSociale: { contains: search, mode: 'insensitive' } } },
         { salesOrder: { number: { contains: search, mode: 'insensitive' } } },
+        { salesOrder: { clientOrderNumber: { contains: search, mode: 'insensitive' } } },
         { transporteur: { contains: search, mode: 'insensitive' } },
       ]
     }
