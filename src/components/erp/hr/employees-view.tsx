@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 // ───────────────────── Types ─────────────────────
 interface EmployeeFunction {
@@ -265,6 +266,7 @@ function DatePickerField({
 //  EMPLOYEES VIEW
 // ═══════════════════════════════════════════════════════════════
 export default function EmployeesView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [functions, setFunctions] = useState<EmployeeFunction[]>([])
   const [loading, setLoading] = useState(true)
@@ -714,6 +716,7 @@ export default function EmployeesView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(emp)} title="Modifier">
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {isSuperAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Supprimer">
@@ -739,6 +742,7 @@ export default function EmployeesView() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

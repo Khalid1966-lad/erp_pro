@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
+import { notifyAll } from '@/lib/notify'
 import { z } from 'zod'
 
 const customerReturnLineSchema = z.object({
@@ -144,6 +145,7 @@ export async function POST(req: NextRequest) {
     })
 
     await auditLog(auth.userId, 'create', 'CustomerReturn', customerReturn.id, null, customerReturn)
+    notifyAll({ title: 'Nouveau retour client', message: `Retour ${customerReturn.number}`, type: 'success', category: 'order', entityType: 'CustomerReturn', entityId: customerReturn.id }).catch(() => {})
     return NextResponse.json({ customerReturn }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -322,6 +324,9 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé. Seul le super administrateur peut supprimer.' }, { status: 403 })
+  }
   if (!hasPermission(auth, 'delivery_notes:write')) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }

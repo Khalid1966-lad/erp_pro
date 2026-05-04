@@ -46,6 +46,7 @@ interface Supplier {
   createdAt: string
   updatedAt: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface SupplierFormData {
   code: string
@@ -93,6 +94,7 @@ function Stars({ rating, onChange, size = 'sm' }: { rating: number; onChange?: (
 type SubView = 'list' | 'detail'
 
 export default function SuppliersView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -455,6 +457,7 @@ export default function SuppliersView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {isSuperAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -480,6 +483,7 @@ export default function SuppliersView() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          )}
                         </div>
                       </td>
                     </tr>

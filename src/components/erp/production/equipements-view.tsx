@@ -61,6 +61,7 @@ interface Equipement {
   prochaineMaintenance: string | null
   alerteMaintenance: boolean
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface PlanMaintenance {
   id: string
@@ -175,6 +176,7 @@ const daysUntil = (date: string | null): number | null => {
 // ─── Component ────────────────────────────────────────────────────────────
 
 export default function EquipementsView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [equipements, setEquipements] = useState<Equipement[]>([])
   const [loading, setLoading] = useState(true)
   const [total, setTotal] = useState(0)
@@ -640,6 +642,7 @@ export default function EquipementsView() {
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
+                              {isSuperAdmin && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button
@@ -681,6 +684,7 @@ export default function EquipementsView() {
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>

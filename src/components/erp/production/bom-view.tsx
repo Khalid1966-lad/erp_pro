@@ -58,6 +58,7 @@ interface Product {
   unit: string
   productNature: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface BomComponent {
   id: string
@@ -76,6 +77,7 @@ interface BomComponent {
 }
 
 export default function BomView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [products, setProducts] = useState<Product[]>([])
   const [selectedProductId, setSelectedProductId] = useState('')
   const [components, setComponents] = useState<BomComponent[]>([])
@@ -361,6 +363,7 @@ export default function BomView() {
                             {comp.notes || '-'}
                           </TableCell>
                           <TableCell>
+                            {isSuperAdmin && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
@@ -387,6 +390,7 @@ export default function BomView() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

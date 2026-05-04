@@ -45,6 +45,7 @@ interface BankAccount {
   isActive: boolean
   _count: { bankTransactions: number }
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface BankTransaction {
   id: string
@@ -75,6 +76,7 @@ const emptyTransaction = {
 }
 
 export default function BankAccountsView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -414,6 +416,7 @@ export default function BankAccountsView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditAccount(acc)}>
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {isSuperAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -435,6 +438,7 @@ export default function BankAccountsView() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -536,6 +540,7 @@ export default function BankAccountsView() {
                             {tx.reference || '—'}
                           </TableCell>
                           <TableCell className="text-right pr-4">
+                            {isSuperAdmin && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -557,6 +562,7 @@ export default function BankAccountsView() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))

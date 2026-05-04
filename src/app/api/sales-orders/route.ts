@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
+import { notifyAll } from '@/lib/notify'
 import { z } from 'zod'
 
 const salesOrderLineSchema = z.object({
@@ -159,6 +160,7 @@ export async function POST(req: NextRequest) {
     })
 
     await auditLog(auth.userId, 'create', 'SalesOrder', order.id, null, order)
+    notifyAll({ title: 'Nouvelle commande', message: `Commande ${order.number}`, type: 'success', category: 'order', entityType: 'SalesOrder', entityId: order.id }).catch(() => {})
     return NextResponse.json(order, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -346,6 +348,9 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé. Seul le super administrateur peut supprimer.' }, { status: 403 })
+  }
   if (!hasPermission(auth, 'sales_orders:write')) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }

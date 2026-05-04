@@ -56,6 +56,7 @@ function buildSupplierVisaHtml(notes?: string | null): string {
 
   return notesHtml + visaHtml
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 // ── Types ──────────────────────────────────────────────
 interface Product {
@@ -166,6 +167,7 @@ function fmtMoney(n: number) {
 
 // ── Component ──────────────────────────────────────────
 export default function PriceRequestsView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const { openComparison } = useNavStore()
   const navigationParams = useNavStore((s) => s.navigationParams)
 
@@ -433,9 +435,11 @@ export default function PriceRequestsView() {
                               <Input type="number" min={1} value={line.quantity} onChange={(e) => updateLine(idx, 'quantity', parseInt(e.target.value) || 0)} className="h-8 text-right" />
                             </TableCell>
                             <TableCell>
+                              {isSuperAdmin && (
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -688,7 +692,7 @@ export default function PriceRequestsView() {
                               Fermer
                             </Button>
                           )}
-                          {item.status === 'draft' && (
+                          {item.status === 'draft' && isSuperAdmin && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>

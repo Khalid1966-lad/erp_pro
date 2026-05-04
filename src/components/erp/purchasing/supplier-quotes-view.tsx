@@ -58,6 +58,7 @@ function buildSupplierVisaHtml(notes?: string | null): string {
 
   return notesHtml + visaHtml
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 // ── Types ──────────────────────────────────────────────
 interface Product {
@@ -163,6 +164,7 @@ function fmtMoney(n: number) {
 
 // ── Component ──────────────────────────────────────────
 export default function SupplierQuotesView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const { setCurrentView } = useNavStore()
   const [items, setItems] = useState<SupplierQuote[]>([])
   const [loading, setLoading] = useState(true)
@@ -536,9 +538,11 @@ export default function SupplierQuotesView() {
                               {fmtMoney(line.quantity * line.unitPrice)}
                             </TableCell>
                             <TableCell>
+                              {isSuperAdmin && (
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -775,7 +779,7 @@ export default function SupplierQuotesView() {
                               Commande
                             </Button>
                           )}
-                          {item.status === 'received' && (
+                          {item.status === 'received' && isSuperAdmin && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>

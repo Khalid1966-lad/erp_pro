@@ -42,6 +42,7 @@ interface CashRegister {
   isActive: boolean
   _count: { cashMovements: number }
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface CashMovement {
   id: string
@@ -70,6 +71,7 @@ const emptyRegister = {
 }
 
 export default function CashRegistersView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [registers, setRegisters] = useState<CashRegister[]>([])
   const [movements, setMovements] = useState<CashMovement[]>([])
   const [loading, setLoading] = useState(true)
@@ -343,6 +345,7 @@ export default function CashRegistersView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditRegister(reg)}>
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {isSuperAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -365,6 +368,7 @@ export default function CashRegistersView() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

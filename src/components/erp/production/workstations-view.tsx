@@ -24,6 +24,7 @@ import {
   Factory, Plus, Edit, Trash2, Search, RefreshCw, Cpu, Gauge
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface WorkStation {
   id: string
@@ -55,6 +56,7 @@ const getEfficiencyBg = (eff: number) => {
 }
 
 export default function WorkstationsView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [workstations, setWorkstations] = useState<WorkStation[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -246,6 +248,7 @@ export default function WorkstationsView() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(ws)}>
                               <Edit className="h-4 w-4" />
                             </Button>
+                            {isSuperAdmin && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button
@@ -274,6 +277,7 @@ export default function WorkstationsView() {
                                 </AlertDialogContent>
                               )}
                             </AlertDialog>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

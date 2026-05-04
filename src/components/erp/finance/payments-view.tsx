@@ -61,6 +61,7 @@ interface Payment {
   effetsCheques?: Array<{ id: string; type: string; numero: string; statut: string; montant: number }>
   paymentLines?: Array<PaymentLine>
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface PaymentLine {
   id: string
@@ -186,6 +187,7 @@ const emptyEffet: EffetFormData = {
 
 export default function PaymentsView() {
   // ── Payments list state ───────────────────────────────────────────────────
+  const isSuperAdmin = useIsSuperAdmin()
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -895,6 +897,7 @@ export default function PaymentsView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(payment) }}>
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {isSuperAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
@@ -917,6 +920,7 @@ export default function PaymentsView() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

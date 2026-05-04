@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 // ───────────────────── Types ─────────────────────
 interface EmployeeFunction {
@@ -73,6 +74,7 @@ function ListSkeleton() {
 //  EMPLOYEE FUNCTIONS VIEW
 // ═══════════════════════════════════════════════════════════════
 export default function EmployeeFunctionsView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [functions, setFunctions] = useState<EmployeeFunction[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -456,7 +458,7 @@ export default function EmployeeFunctionsView() {
                           )}
 
                           {/* Delete (custom functions with no employees only) */}
-                          {fn.isCustom && (
+                          {fn.isCustom && isSuperAdmin && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button

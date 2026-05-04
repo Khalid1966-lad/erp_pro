@@ -588,6 +588,9 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé. Seul le super administrateur peut supprimer.' }, { status: 403 })
+  }
   if (!hasPermission(auth, 'stock:write') && !hasPermission(auth, 'work_orders:write')) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }

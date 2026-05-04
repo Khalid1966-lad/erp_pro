@@ -40,6 +40,7 @@ interface Product {
   reference: string
   designation: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface Supplier {
   id: string
@@ -162,6 +163,7 @@ function buildSupplierVisaHtml(notes?: string | null): string {
 
 // ── Component ──────────────────────────────────────────
 export default function SupplierReturnsView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [items, setItems] = useState<SupplierReturn[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -503,9 +505,11 @@ export default function SupplierReturnsView() {
                               {fmtMoney(line.quantity * line.unitPrice)}
                             </TableCell>
                             <TableCell>
+                              {isSuperAdmin && (
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -755,7 +759,7 @@ export default function SupplierReturnsView() {
                               Annuler
                             </Button>
                           )}
-                          {item.status === 'draft' && (
+                          {item.status === 'draft' && isSuperAdmin && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>

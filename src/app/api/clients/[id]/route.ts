@@ -174,6 +174,10 @@ export async function DELETE(
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
+
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé. Seul le super administrateur peut supprimer.' }, { status: 403 })
+  }
   try {
     const { id } = await params
 

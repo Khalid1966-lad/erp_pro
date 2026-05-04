@@ -192,6 +192,7 @@ function buildVisaHtml(notes?: string | null): string {
 }
 
 export default function SalesOrdersView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [orders, setOrders] = useState<SalesOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -705,6 +706,7 @@ export default function SalesOrdersView() {
                                 {(order.status === 'pending') && (
                                   <>
                                     <DropdownMenuSeparator />
+                                    {isSuperAdmin && (
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
                                         <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
@@ -727,6 +729,7 @@ export default function SalesOrdersView() {
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>
+                                    )}
                                   </>
                                 )}
                               </DropdownMenuContent>
@@ -1049,7 +1052,7 @@ export default function SalesOrdersView() {
                             {line.productId ? formatCurrency(line.quantity * line.unitPrice * (1 - ((line.discount || 0) / 100))) : '—'}
                           </TableCell>
                           <TableCell>
-                            {formLines.length > 1 && (
+                            {formLines.length > 1 && isSuperAdmin && (
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -1417,3 +1420,4 @@ export default function SalesOrdersView() {
     </div>
   )
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'

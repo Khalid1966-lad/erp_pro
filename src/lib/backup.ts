@@ -10,12 +10,20 @@ import { APP_VERSION } from '@/lib/version'
 // ─── Table names in FK-safe order (parents before children) ───
 // IMPORTANT: These are Prisma model names used for restore (tx[table].createMany)
 export const BACKUP_TABLES = [
+  // System & Auth
   'Setting',
+  'Role',
+  'RolePermission',
   'User',
+  // HR
+  'EmployeeFunction',
+  'Employee',
+  // Core & Production
   'WorkStation',
+  'Equipement',
+  'Product',
   'CashRegister',
   'BankAccount',
-  'Product',
   'AccountingEntry',
   'AuditLog',
   'Inventory',
@@ -68,7 +76,6 @@ export const BACKUP_TABLES = [
   'ProductionBatch',
   'Lot',
   'LotMouvement',
-  'Equipement',
   'PlanMaintenance',
   'OrdreTravailMaintenance',
   'OTMPiece',

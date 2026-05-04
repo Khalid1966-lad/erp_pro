@@ -44,6 +44,7 @@ interface AccountingEntry {
   documentRef: string | null
   createdAt: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface AccountingResponse {
   entries: AccountingEntry[]
@@ -113,6 +114,7 @@ const emptyBatchEntry = (): BatchEntry => ({
 })
 
 export default function AccountingView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [entries, setEntries] = useState<AccountingEntry[]>([])
   const [totals, setTotals] = useState({ totalDebit: 0, totalCredit: 0, balance: 0 })
   const [loading, setLoading] = useState(true)
@@ -565,6 +567,7 @@ export default function AccountingView() {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          {isSuperAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -586,6 +589,7 @@ export default function AccountingView() {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                           </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

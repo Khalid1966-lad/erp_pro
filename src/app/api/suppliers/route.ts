@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
+import { notifyAll } from '@/lib/notify'
 import { z } from 'zod'
 
 const supplierSchema = z.object({
@@ -133,6 +134,7 @@ export async function POST(req: NextRequest) {
     const supplier = await db.supplier.create({ data: { ...data, code: finalCode } })
 
     await auditLog(auth.userId, 'create', 'Supplier', supplier.id, null, supplier)
+    notifyAll({ title: 'Nouveau fournisseur', message: `${supplier.name} (${supplier.code})`, type: 'success', category: 'order', entityType: 'Supplier', entityId: supplier.id }).catch(() => {})
     return NextResponse.json(supplier, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -194,6 +196,10 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
+
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé. Seul le super administrateur peut supprimer.' }, { status: 403 })
+  }
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')

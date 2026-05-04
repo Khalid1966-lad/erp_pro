@@ -58,6 +58,7 @@ interface StockLot {
   qtyPhysique: number
   mouvements?: LotMouvement[]
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface LotMouvement {
   id: string
@@ -127,6 +128,7 @@ interface LotsViewProps {
 
 export default function LotsView({ embedded = false }: LotsViewProps) {
   // List state
+  const isSuperAdmin = useIsSuperAdmin()
   const [lots, setLots] = useState<StockLot[]>([])
   const [loading, setLoading] = useState(true)
   const [total, setTotal] = useState(0)
@@ -564,7 +566,7 @@ export default function LotsView({ embedded = false }: LotsViewProps) {
                                 {lot.statut === 'bloque' ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                               </Button>
                             ) : null}
-                            {lot.statut === 'actif' && lot.qtyDisponible === lot.quantiteInitiale ? (
+                            {lot.statut === 'actif' && lot.qtyDisponible === lot.quantiteInitiale && isSuperAdmin ? (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" title="Supprimer le lot">

@@ -53,6 +53,7 @@ interface QuoteLine {
   totalHT?: number
   product?: { id: string; reference: string; designation: string }
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface Quote {
   id: string
@@ -148,6 +149,7 @@ const emptyLine = (): QuoteLine => ({
 })
 
 export default function QuotesView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -619,6 +621,7 @@ export default function QuotesView() {
                                 {quote.status === 'draft' && (
                                   <>
                                     <DropdownMenuSeparator />
+                                    {isSuperAdmin && (
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
                                         <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
@@ -641,6 +644,7 @@ export default function QuotesView() {
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>
+                                    )}
                                   </>
                                 )}
                               </DropdownMenuContent>
@@ -985,7 +989,7 @@ export default function QuotesView() {
                           {formatCurrency(line.quantity * line.unitPrice * (1 - (line.discount || 0) / 100))}
                         </TableCell>
                         <TableCell>
-                          {formLines.length > 1 && (
+                          {formLines.length > 1 && isSuperAdmin && (
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(idx)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>

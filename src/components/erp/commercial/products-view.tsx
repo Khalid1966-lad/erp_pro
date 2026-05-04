@@ -49,6 +49,7 @@ interface Product {
   isActive: boolean
   createdAt: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 const emptyProduct = {
   reference: '',
@@ -95,6 +96,7 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100]
 
 export default function ProductsView() {
   // ── Data state ──
+  const isSuperAdmin = useIsSuperAdmin()
   const [products, setProducts] = useState<Product[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -502,6 +504,7 @@ export default function ProductsView() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}>
                               <Edit className="h-4 w-4" />
                             </Button>
+                            {isSuperAdmin && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -521,6 +524,7 @@ export default function ProductsView() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
+                            )}
                           </div>
                         </td>
                       </tr>

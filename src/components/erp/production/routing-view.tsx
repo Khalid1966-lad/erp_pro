@@ -36,6 +36,7 @@ interface Product {
   designation: string
   productNature: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface WorkStation {
   id: string
@@ -62,6 +63,7 @@ interface RoutingStep {
 }
 
 export default function RoutingView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [products, setProducts] = useState<Product[]>([])
   const [workstations, setWorkstations] = useState<WorkStation[]>([])
   const [selectedProductId, setSelectedProductId] = useState('')
@@ -390,6 +392,7 @@ export default function RoutingView() {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(step)}>
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {isSuperAdmin && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -411,6 +414,7 @@ export default function RoutingView() {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+                        )}
                       </div>
                     </div>
                   )

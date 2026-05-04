@@ -55,6 +55,7 @@ interface ProductInfo {
   productNature: string
   unit: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface PrepLine {
   id: string
@@ -228,6 +229,7 @@ function ProgressBadge({ percent }: { percent: number }) {
 
 export default function PreparationsView() {
   // ── State ──
+  const isSuperAdmin = useIsSuperAdmin()
   const [preparations, setPreparations] = useState<Preparation[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -647,6 +649,7 @@ export default function PreparationsView() {
                                       <XCircle className="h-4 w-4 mr-2" />
                                       Annuler
                                     </DropdownMenuItem>
+                                    {isSuperAdmin && (
                                     <DropdownMenuItem
                                       className="text-destructive focus:text-destructive"
                                       onClick={() => setDeleteId(prep.id)}
@@ -654,6 +657,7 @@ export default function PreparationsView() {
                                       <Trash2 className="h-4 w-4 mr-2" />
                                       Supprimer
                                     </DropdownMenuItem>
+                                    )}
                                   </>
                                 )}
                                 {prep.status === 'in_progress' && (
@@ -662,7 +666,7 @@ export default function PreparationsView() {
                                     Annuler
                                   </DropdownMenuItem>
                                 )}
-                                {prep.status === 'cancelled' && (
+                                {prep.status === 'cancelled' && isSuperAdmin && (
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
                                     onClick={() => setDeleteId(prep.id)}

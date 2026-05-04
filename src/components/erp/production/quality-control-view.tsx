@@ -42,6 +42,7 @@ interface Product {
   reference: string
   designation: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface QCLine {
   id: string
@@ -158,6 +159,7 @@ const emptyLine: LineFormData = {
 // ─── Component ────────────────────────────────────────────────────────────
 
 export default function QualityControlView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [items, setItems] = useState<QualityControl[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [workOrders, setWorkOrders] = useState<WorkOrderRef[]>([])
@@ -662,7 +664,7 @@ export default function QualityControlView() {
                                 <FileEdit className="h-4 w-4" />
                               </Button>
                             )}
-                            {item.status !== 'completed' && (
+                            {item.status !== 'completed' && isSuperAdmin && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Supprimer">

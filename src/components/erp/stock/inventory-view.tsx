@@ -29,6 +29,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface Product {
   id: string
@@ -99,6 +100,7 @@ const formatCurrency = (n: number) =>
   n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 export default function InventoryView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [inventories, setInventories] = useState<Inventory[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -368,6 +370,7 @@ export default function InventoryView() {
                                 >
                                   <CheckCircle2 className="h-4 w-4" />
                                 </Button>
+                                {isSuperAdmin && (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -389,6 +392,7 @@ export default function InventoryView() {
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
+                                )}
                               </>
                             )}
                           </div>

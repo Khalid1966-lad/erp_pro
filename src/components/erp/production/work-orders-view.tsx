@@ -46,6 +46,7 @@ interface Product {
   reference: string
   designation: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface WorkOrderStep {
   id: string
@@ -189,6 +190,7 @@ interface StockLot {
 }
 
 export default function WorkOrdersView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -795,7 +797,7 @@ export default function WorkOrdersView() {
                                   </AlertDialogContent>
                                 </AlertDialog>
                               )}
-                              {['draft', 'planned'].includes(wo.status) && (
+                              {['draft', 'planned'].includes(wo.status) && isSuperAdmin && (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Supprimer">
@@ -1283,6 +1285,7 @@ export default function WorkOrdersView() {
                                           >
                                             <Play className="h-3.5 w-3.5" />
                                           </Button>
+                                          {isSuperAdmin && (
                                           <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" title="Supprimer">
@@ -1302,6 +1305,7 @@ export default function WorkOrdersView() {
                                               </AlertDialogFooter>
                                             </AlertDialogContent>
                                           </AlertDialog>
+                                          )}
                                         </>
                                       )}
                                       {['in_progress', 'quality_check'].includes(batch.status) && (

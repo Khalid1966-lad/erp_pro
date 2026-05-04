@@ -42,6 +42,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/stores'
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 import { printDocument } from '@/lib/print-utils'
 import { DocDetailDialog } from './doc-detail-dialog'
 import { HelpButton } from '@/components/erp/shared/help-button'
@@ -443,6 +444,7 @@ function ClientListView({
 }: ClientListViewProps) {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
+  const isSuperAdmin = useIsSuperAdmin()
 
   // ─── Import state ───
   const [importOpen, setImportOpen] = useState(false)
@@ -853,6 +855,7 @@ function ClientListView({
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(client)}>
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {isSuperAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -878,6 +881,7 @@ function ClientListView({
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -2921,6 +2925,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
             <Edit className="h-4 w-4 mr-1" />
             Modifier
           </Button>
+          {isSuperAdmin && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
@@ -2947,6 +2952,7 @@ function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailView
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          )}
         </div>
       </div>
       {/* ── Summary Cards ── */}

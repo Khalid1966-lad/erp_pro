@@ -46,6 +46,7 @@ interface Equipement {
   statut: string
   criticite: string
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 interface OTMPiece {
   id: string
@@ -148,6 +149,7 @@ const formatCurrency = (n: number) =>
 
 export default function MaintenanceView() {
   // Data
+  const isSuperAdmin = useIsSuperAdmin()
   const [ordres, setOrdres] = useState<OTM[]>([])
   const [equipements, setEquipements] = useState<Equipement[]>([])
   const [products, setProducts] = useState<{ id: string; reference: string; designation: string; unit: string }[]>([])
@@ -743,7 +745,7 @@ export default function MaintenanceView() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(otm)}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {isDeletable(otm.statut) && (
+                            {isDeletable(otm.statut) && isSuperAdmin && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Supprimer">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
+import { notifyAll } from '@/lib/notify'
 import { clientCreateSchema } from '@/lib/validations/client'
 import { Prisma } from '@prisma/client'
 
@@ -245,6 +246,7 @@ export async function POST(req: NextRequest) {
     })
 
     await auditLog(auth.userId, 'create', 'Client', client.id, null, client)
+    notifyAll({ title: 'Nouveau client', message: `${client.name} (${client.code})`, type: 'success', category: 'order', entityType: 'Client', entityId: client.id }).catch(() => {})
 
     return NextResponse.json(client, { status: 201 })
   } catch (error) {

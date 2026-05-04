@@ -85,6 +85,7 @@ interface SalesOrderOption {
   totalHT: number
   totalTTC: number
 }
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 /** Sales order line as returned from the API with delivery tracking */
 interface SalesOrderLineInfo {
@@ -284,6 +285,7 @@ const deliveryNoteLegendItems = [
 // ─── Main Component ───
 
 export default function DeliveryNotesView() {
+  const isSuperAdmin = useIsSuperAdmin()
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -1018,7 +1020,7 @@ export default function DeliveryNotesView() {
         actions.push({ label: 'Modifier', icon: <Pencil className="h-4 w-4" />, action: 'edit' })
         actions.push({ label: 'Confirmer', icon: <CheckCircle className="h-4 w-4" />, action: 'confirm' })
         actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancel' })
-        actions.push({ label: 'Supprimer', icon: <Trash2 className="h-4 w-4" />, action: 'delete' })
+        if (isSuperAdmin) actions.push({ label: 'Supprimer', icon: <Trash2 className="h-4 w-4" />, action: 'delete' })
         break
       case 'confirmed':
         actions.push({ label: 'Modifier', icon: <Pencil className="h-4 w-4" />, action: 'edit' })
@@ -2852,7 +2854,7 @@ export default function DeliveryNotesView() {
                     <Truck className="h-4 w-4 mr-1" /> Marquer livré
                   </Button>
                 )}
-                {(selectedNote.status === 'draft' || selectedNote.status === 'cancelled') && (
+                {isSuperAdmin && (selectedNote.status === 'draft' || selectedNote.status === 'cancelled') && (
                   <Button size="sm" variant="destructive" onClick={() => { setDetailOpen(false); confirmDelete(selectedNote.id) }}>
                     <Trash2 className="h-4 w-4 mr-1" /> Supprimer
                   </Button>
