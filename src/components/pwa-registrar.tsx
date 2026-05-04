@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect } from 'react'
 import { toast } from 'sonner'
 
 // ── Global state for update availability ──
@@ -21,6 +21,11 @@ export function subscribeUpdateAvailable(fn: UpdateListener) {
   return () => { updateListeners = updateListeners.filter(l => l !== fn) }
 }
 
+/**
+ * Check for a new service worker version.
+ * Properly waits for the SW to download & install before resolving.
+ * Returns true if a new version is available (waiting SW detected).
+ */
 export function checkForUpdates(): Promise<boolean> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
@@ -32,20 +37,68 @@ export function checkForUpdates(): Promise<boolean> {
         resolve(false)
         return
       }
-      reg.update().then(() => {
-        // If a new SW is waiting, an update is available
-        if (reg.waiting) {
-          updateAvailable = true
-          emitUpdateState()
-          resolve(true)
-        } else {
-          resolve(false)
+
+      // ── Already have a waiting SW → update ready ──
+      if (reg.waiting) {
+        updateAvailable = true
+        emitUpdateState()
+        resolve(true)
+        return
+      }
+
+      let resolved = false
+      const done = (result: boolean) => {
+        if (resolved) return
+        resolved = true
+        cleanup()
+        resolve(result)
+      }
+
+      const cleanup = () => {
+        reg.removeEventListener('updatefound', onUpdateFound)
+      }
+
+      // ── Listen for the updatefound event ──
+      const onUpdateFound = () => {
+        const newWorker = reg.installing
+        if (!newWorker) { done(false); return }
+
+        const onStateChange = () => {
+          if (newWorker.state === 'installed') {
+            if (navigator.serviceWorker.controller) {
+              // New SW installed and old SW still active → real update
+              updateAvailable = true
+              emitUpdateState()
+              done(true)
+            } else {
+              // First install (no previous controller)
+              done(false)
+            }
+          } else if (newWorker.state === 'redundant') {
+            // Install failed
+            done(false)
+          }
         }
-      }).catch(() => resolve(false))
+        newWorker.addEventListener('statechange', onStateChange)
+      }
+
+      reg.addEventListener('updatefound', onUpdateFound)
+
+      // ── Trigger the update check ──
+      reg.update()
+        .then(() => {
+          // The browser fetched sw.js. If no updatefound fired within
+          // a few seconds, there's genuinely no update.
+          setTimeout(() => done(false), 5000)
+        })
+        .catch(() => done(false))
     }).catch(() => resolve(false))
   })
 }
 
+/**
+ * Apply a pending update: tell the waiting SW to skipWaiting, then reload.
+ */
 export function applyUpdate() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
   navigator.serviceWorker.getRegistration().then((reg) => {
@@ -64,8 +117,6 @@ export function applyUpdate() {
 }
 
 export function PwaRegistrar() {
-  const checkingRef = useRef(false)
-
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
@@ -76,7 +127,7 @@ export function PwaRegistrar() {
       .then((registration) => {
         console.log('[PWA] Service Worker registered:', registration.scope)
 
-        // Listen for update found
+        // Listen for updates found in the background
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing
           if (!newWorker) return
@@ -115,38 +166,7 @@ export function PwaRegistrar() {
     })
   }, [])
 
-  // Expose checkForUpdates globally for the header button
-  const handleCheckUpdates = useCallback(async () => {
-    if (checkingRef.current) return
-    checkingRef.current = true
-    try {
-      const available = await checkForUpdates()
-      if (available) {
-        toast.success('Nouvelle version disponible', {
-          description: 'Mise à jour en cours...',
-          duration: 3000,
-        })
-        setTimeout(() => applyUpdate(), 1500)
-      } else {
-        toast.info('Application à jour', {
-          description: 'Aucune mise à jour disponible.',
-          duration: 3000,
-        })
-      }
-    } finally {
-      checkingRef.current = false
-    }
-  }, [])
-
-  // Store the handler on window for the header to access
-  useEffect(() => {
-    ;(window as unknown as Record<string, unknown>).__pwaCheckUpdates = handleCheckUpdates
-    return () => {
-      delete (window as unknown as Record<string, unknown>).__pwaCheckUpdates
-    }
-  }, [handleCheckUpdates])
-
-  // Listen for SKIP_WAITING from SW
+  // Listen for SKIP_WAITING from SW → reload
   useEffect(() => {
     if (typeof window === 'undefined') return
     const handler = () => {

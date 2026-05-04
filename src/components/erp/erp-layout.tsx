@@ -71,6 +71,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
+import { checkForUpdates, applyUpdate } from '@/components/pwa-registrar'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import React, { useState, useEffect, useRef } from 'react'
@@ -467,11 +468,31 @@ function ThemeToggle() {
 function UpdateCheckButton() {
   const [checking, setChecking] = useState(false)
 
-  const handleCheck = () => {
-    const fn = (window as unknown as Record<string, unknown>).__pwaCheckUpdates as (() => Promise<void>) | undefined
-    if (!fn) return
+  const handleCheck = async () => {
+    if (checking) return
     setChecking(true)
-    fn().finally(() => setTimeout(() => setChecking(false), 2000))
+    try {
+      const available = await checkForUpdates()
+      if (available) {
+        toast.success('Nouvelle version disponible', {
+          description: 'Mise à jour en cours...',
+          duration: 3000,
+        })
+        setTimeout(() => applyUpdate(), 1500)
+      } else {
+        toast.info('Application à jour', {
+          description: 'Aucune mise à jour disponible.',
+          duration: 3000,
+        })
+      }
+    } catch {
+      toast.error('Erreur', {
+        description: 'Impossible de vérifier les mises à jour.',
+        duration: 3000,
+      })
+    } finally {
+      setChecking(false)
+    }
   }
 
   return (
