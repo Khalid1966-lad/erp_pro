@@ -111,6 +111,8 @@ export const DELETE_TABLES_ORDER = [...BACKUP_TABLES].reverse()
 // ─── DateTime field names per table ───
 // Used during restore to convert ISO strings back to Date objects
 const DATETIME_FIELDS: Record<string, string[]> = {
+  Role: ['createdAt', 'updatedAt'],
+  RolePermission: ['createdAt'],
   User: ['blockedAt', 'lastLogin', 'lastSeen', 'createdAt', 'updatedAt'],
   WorkStation: ['createdAt', 'updatedAt'],
   CashRegister: ['createdAt', 'updatedAt'],
