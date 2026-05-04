@@ -147,6 +147,9 @@ export const clientCreateSchema = z.object({
   seuilLotMinimal: z.number().int().min(0).optional().nullable(),
   frequenceReporting: z.string().optional(),
 
+  // Commercial assigné
+  commercialId: z.string().optional().nullable(),
+
   // Legacy fields (backward compatibility)
   name: z.string().optional(),
   siret: z.string().optional(),
@@ -276,6 +279,9 @@ export const clientUpdateSchema = z.object({
   planningLivraisonRecurrent: z.string().optional(),
   seuilLotMinimal: z.number().int().min(0).optional().nullable(),
   frequenceReporting: z.string().optional(),
+
+  // Commercial assigné
+  commercialId: z.string().optional().nullable(),
 
   // Legacy fields
   name: z.string().optional(),
@@ -408,6 +414,9 @@ export const defaultClientFormValues: ClientFormData = {
   planningLivraisonRecurrent: '',
   seuilLotMinimal: null,
   frequenceReporting: '',
+
+  // Commercial assigné
+  commercialId: '',
 
   // Legacy fields
   name: '',

@@ -52,6 +52,8 @@ const ProfileView = dynamic(() => import('@/components/erp/admin/profile-view'),
 const GuideView = dynamic(() => import('@/components/erp/admin/guide-view'), { ssr: false })
 const MessagesView = dynamic(() => import('@/components/erp/messages/messages-view'), { ssr: false })
 const QualityControlView = dynamic(() => import('@/components/erp/production/quality-control-view'), { ssr: false })
+const EmployeesView = dynamic(() => import('@/components/erp/hr/employees-view'), { ssr: false })
+const EmployeeFunctionsView = dynamic(() => import('@/components/erp/hr/employee-functions-view'), { ssr: false })
 
 // ── Page transition variants ─────────────────────────────────────────────────
 
@@ -109,6 +111,8 @@ const VIEW_PERMISSIONS: Record<string, string | undefined> = {
   'profile': undefined,
   'messages': undefined,
   'quality-control': 'work_orders:read',
+  'employees': 'employees:read',
+  'employee-functions': 'employees:read',
 }
 
 const SUPER_ADMIN_ONLY_VIEWS = new Set(['users', 'roles'])
@@ -198,6 +202,8 @@ function ViewRouter() {
     case 'guide': view = <GuideView />; break
     case 'messages': view = <MessagesView />; break
     case 'quality-control': view = <QualityControlView />; break
+    case 'employees': view = <EmployeesView />; break
+    case 'employee-functions': view = <EmployeeFunctionsView />; break
     default: view = <DashboardView />; break
   }
 

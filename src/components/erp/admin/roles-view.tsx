@@ -124,6 +124,7 @@ const GROUP_ICONS: Record<string, React.ReactNode> = {
   'Finance': <Landmark className="h-4 w-4" />,
   'Communication': <MessageSquare className="h-4 w-4" />,
   'Administration': <Settings className="h-4 w-4" />,
+  'Ressources Humaines': <Users className="h-4 w-4" />,
 }
 
 // ───────────────────── Types ─────────────────────

@@ -107,6 +107,7 @@ export async function GET(req: NextRequest) {
           conditionsPaiement: true,
           alerteImpaye: true,
           nbImpayes: true,
+          commercialId: true,
           createdAt: true,
           updatedAt: true,
         },

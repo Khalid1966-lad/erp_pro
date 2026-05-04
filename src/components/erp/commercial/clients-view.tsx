@@ -901,6 +901,14 @@ interface ClientFormViewProps {
 
 function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) {
   const [saving, setSaving] = useState(false)
+  const [commerciaux, setCommerciaux] = useState<{ id: string; firstName: string; lastName: string; fonction?: { name: string } }[]>([])
+
+  // Fetch commercial employees
+  useEffect(() => {
+    api.get('/employees?commercial=true').then((res: any) => {
+      setCommerciaux(res.employees || res.data || [])
+    }).catch(() => {})
+  }, [])
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientFormSchema),
@@ -931,6 +939,7 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
           remisePermanente: 0,
           delaiLivraison: null,
           commentairesInternes: client.notes || '',
+          commercialId: (client as any).commercialId || '',
         }
       : defaultClientFormValues,
   })
@@ -956,6 +965,7 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
         creditLimit: data.seuilCredit || 0,
         paymentTerms: conditionsPaiementOptions.find(o => o.value === data.conditionsPaiement)?.label || '30 jours',
         notes: data.commentairesInternes || null,
+        commercialId: data.commercialId || null,
         // Extended fields (will be stored when backend schema is updated)
         ...(mode === 'create' ? {} : { id: client?.id }),
       }
@@ -1402,6 +1412,24 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                   <CardDescription>Conditions de vente et préférences commerciales</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Commercial assigné */}
+                  <FormField control={form.control} name="commercialId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Commercial responsable <span className="text-muted-foreground text-xs">(optionnel)</span></FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || 'none'}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un commercial..." /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">— Aucun —</SelectItem>
+                          {commerciaux.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.firstName} {c.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                   <FormField control={form.control} name="conditionsPaiement" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Conditions de paiement</FormLabel>

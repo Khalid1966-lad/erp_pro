@@ -101,6 +101,13 @@ export const MENU_PERMISSIONS: MenuGroupPermission[] = [
       { id: 'guide', label: "Guide d'utilisation", permissions: ['guide:read'] },
     ],
   },
+  {
+    group: 'Ressources Humaines',
+    items: [
+      { id: 'employees', label: 'Salariés', permissions: ['employees:read', 'employees:write'] },
+      { id: 'employee-functions', label: 'Fonctions', permissions: ['employees:read', 'employees:write'] },
+    ],
+  },
 ]
 
 // Flatten all permissions for validation

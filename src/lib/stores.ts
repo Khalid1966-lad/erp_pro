@@ -81,11 +81,14 @@ export type ViewId =
   | 'settings'
   | 'audit-log'
   | 'users'
+  | 'roles'
   | 'profile'
   | 'guide'
   | 'messages'
   | 'financial-reports'
   | 'quality-control'
+  | 'employees'
+  | 'employee-functions'
 
 export interface NavState {
   currentView: ViewId

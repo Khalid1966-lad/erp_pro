@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider  = "sqlite"
+  url       = "file:./db/custom.db"
 }
 
 // ============ AUTH & RBAC ============
@@ -273,6 +272,10 @@ model Client {
   isDeleted               Boolean         @default(false)
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
+
+  // Commercial assigné (employee)
+  commercialId            String?
+  commercial              Employee?   @relation("EmployeeClients", fields: [commercialId], references: [id], onDelete: SetNull)
 
   // Relations
   contacts                ClientContact[]
@@ -1710,11 +1713,63 @@ model Backup {
   label        String?
   appVersion   String
   schemaHash   String
-  dataCompressed String @db.Text
+  dataCompressed String
   originalSize Int
   compressedSize Int
-  tablesInfo   String   @db.Text
+  tablesInfo   String
   isValid      Boolean  @default(true)
   createdBy    String?
   createdAt    DateTime @default(now())
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GESTION DU PERSONNEL (HR / EMPLOYEES)
+// ═══════════════════════════════════════════════════════════════
+
+model EmployeeFunction {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isCustom    Boolean  @default(false) // true = added by user, false = predefined
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  employees   Employee[]
+
+  @@map("employee_functions")
+}
+
+model Employee {
+  id            String   @id @default(cuid())
+  matricule     String?  // Employee number / badge
+  firstName     String
+  lastName      String
+  dateOfBirth   DateTime?
+  gender        String?  // M, F
+  photoUrl      String?
+  phone         String?
+  email         String?
+  address       String?
+  city          String?
+  postalCode    String?
+  cinNumber     String?  // Carte d'identité nationale
+  cnssNumber    String?  // CNSS
+  dateEmbauche  DateTime? // Hire date
+  dateDepart    DateTime? // Departure date
+  fonctionId    String?
+  fonction      EmployeeFunction? @relation(fields: [fonctionId], references: [id], onDelete: SetNull)
+  department    String?
+  salaryBase    Float?   // Salaire de base
+  notes         String?
+  isActive      Boolean  @default(true)
+  createdBy     String?
+  updatedBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  clientAssignments Client[] @relation("EmployeeClients")
+
+  @@map("employees")
 }

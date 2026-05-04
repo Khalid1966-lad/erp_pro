@@ -57,3 +57,4 @@ server.log
 # Skills directory
 /skills/upload/logo_preview.png
 upload/
+prisma/db/custom.db
