@@ -16,6 +16,7 @@ import {
 import {
   Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload,
   ImageIcon, X, Loader2, ZoomIn, ZoomOut, Printer, Database, FileDown, type LucideIcon,
+  Download, Smartphone, Monitor, CheckCircle2,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
@@ -24,6 +25,7 @@ import { toast } from 'sonner'
 import { invalidateCompanyCache } from '@/lib/print-utils'
 import BackupSection from './backup-section'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { usePWAInstall } from '@/hooks/use-pwa-install'
 
 // ─── Types ───
 
@@ -674,37 +676,186 @@ function BrochureSection() {
   )
 }
 
-// ─── About Section ───
+// ─── Install PWA Section ───
 
-function AboutSection() {
+function InstallPWASection() {
+  const { canInstall, isInstalled, install } = usePWAInstall()
+  const [installing, setInstalling] = useState(false)
+
+  const handleInstall = async () => {
+    setInstalling(true)
+    try {
+      const accepted = await install()
+      if (accepted) {
+        toast.success('Application installée !', {
+          description: 'GEMA ERP PRO a été ajouté à votre écran d\'accueil.',
+          duration: 5000,
+        })
+      }
+    } catch {
+      toast.error('Erreur lors de l\'installation')
+    } finally {
+      setInstalling(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <div className="text-muted-foreground"><Info className="h-5 w-5" /></div>
+          <div className="text-muted-foreground"><Smartphone className="h-5 w-5" /></div>
           <div>
-            <CardTitle className="text-base">À propos</CardTitle>
-            <CardDescription className="text-sm">Informations sur l&apos;application</CardDescription>
+            <CardTitle className="text-base">Installer l&apos;application</CardTitle>
+            <CardDescription className="text-sm">
+              Accédez à GEMA ERP PRO comme une application native
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Application</p>
-            <p className="text-sm font-semibold">{APP_NAME}</p>
+      <CardContent className="space-y-4">
+        {/* Install status */}
+        {isInstalled ? (
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                Application installée
+              </p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                GEMA ERP PRO est accessible depuis votre écran d&apos;accueil
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Version</p>
-            <p className="text-sm font-semibold">v{APP_VERSION}</p>
+        ) : canInstall ? (
+          <>
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <Download className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  Installer sur cet appareil
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Ajouter un raccourci sur votre écran d&apos;accueil
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleInstall}
+                disabled={installing}
+                className="gap-1.5"
+              >
+                {installing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {installing ? 'Installation...' : 'Installer'}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/30">
+              <Smartphone className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Installation disponible depuis le navigateur</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Utilisez le menu du navigateur pour ajouter à l&apos;écran d&apos;accueil
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Android */}
+              <div className="p-3 rounded-lg border bg-card space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">📱</span>
+                  <p className="text-sm font-medium">Android (Chrome)</p>
+                </div>
+                <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Ouvrir le site dans Chrome</li>
+                  <li>Menu ⋮ → <strong>Installer l&apos;application</strong></li>
+                  <li>Confirmer l&apos;installation</li>
+                </ol>
+              </div>
+              {/* iOS */}
+              <div className="p-3 rounded-lg border bg-card space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🍎</span>
+                  <p className="text-sm font-medium">iPhone / iPad (Safari)</p>
+                </div>
+                <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Ouvrir le site dans Safari</li>
+                  <li>Icône Partager 📤 → <strong>Sur l&apos;écran d&apos;accueil</strong></li>
+                  <li>Confirmer l&apos;ajout</li>
+                </ol>
+              </div>
+              {/* PC/Mac Chrome */}
+              <div className="p-3 rounded-lg border bg-card space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🖥️</span>
+                  <p className="text-sm font-medium">PC / Mac (Chrome)</p>
+                </div>
+                <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Ouvrir le site dans Chrome</li>
+                  <li>Menu ⋮ → <strong>Installer GEMA ERP PRO</strong></li>
+                  <li>Confirmer l&apos;installation</li>
+                </ol>
+              </div>
+              {/* PC Edge */}
+              <div className="p-3 rounded-lg border bg-card space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🔵</span>
+                  <p className="text-sm font-medium">PC (Edge)</p>
+                </div>
+                <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Ouvrir le site dans Edge</li>
+                  <li>Menu ⋯ → <strong>Applications</strong> → <strong>Installer</strong></li>
+                  <li>Confirmer l&apos;installation</li>
+                </ol>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Date de build</p>
-            <p className="text-sm font-semibold">{BUILD_DATE}</p>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
+  )
+}
+
+// ─── About Section ───
+
+function AboutSection() {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="text-muted-foreground"><Info className="h-5 w-5" /></div>
+            <div>
+              <CardTitle className="text-base">À propos</CardTitle>
+              <CardDescription className="text-sm">Informations sur l&apos;application</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Application</p>
+              <p className="text-sm font-semibold">{APP_NAME}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Version</p>
+              <p className="text-sm font-semibold">v{APP_VERSION}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Date de build</p>
+              <p className="text-sm font-semibold">{BUILD_DATE}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <InstallPWASection />
+    </div>
   )
 }
 
