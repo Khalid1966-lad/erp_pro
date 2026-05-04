@@ -143,3 +143,31 @@ Stage Summary:
 - Product reference: auto-incremented PROD-0001, PROD-0002, etc. — read-only during creation
 - All existing 760 clients retroactively assigned unique codes
 - API endpoints support ?nextCode=true for preview
+
+---
+Task ID: 4
+Agent: Main
+Task: Ajouter N° Commande Client obligatoire sur les commandes + filtre BL
+
+Work Log:
+- Added `clientOrderNumber String` (required) field to SalesOrder model in prisma/schema.prisma
+- Used SQL migration: added column with default, filled existing 5 rows, set NOT NULL constraint
+- Updated /api/sales-orders POST: added clientOrderNumber to Zod validation (min 1, required), save on create
+- Updated /api/sales-orders GET: added clientOrderNumber search filter (dedicated param + in global search)
+- Updated /api/delivery-notes GET: added clientOrderNumber filter param via salesOrder relation
+- Updated /api/delivery-notes deliveryNoteInclude: switched salesOrder from include to select, added clientOrderNumber
+- Updated sales-orders-view.tsx: added formClientOrderNumber state, validation, field in create/edit dialog
+- Updated sales-orders-view.tsx: added N° Cmd Client column to list table (replacing Numéro with N° Interne + N° Cmd Client)
+- Updated sales-orders-view.tsx: added clientOrderNumber to print infoGrid (inline detail + detail dialog)
+- Updated delivery-notes-view.tsx: added filterClientOrderNumber state + filter input in filters section
+- Updated delivery-notes-view.tsx: added N° Cmd Client column to BL list table
+- Updated delivery-notes-view.tsx: added clientOrderNumber to print infoGrid (inline detail + detail dialog)
+- Updated DeliveryNote and SalesOrderOption TypeScript interfaces
+
+Stage Summary:
+- 5 files modified, commit a996d1a pushed to GitHub main
+- N° Commande Client: champ de saisie manuelle obligatoire dans le formulaire de commande
+- Code auto (BC-YYYY-NNNN) conservé comme numéro interne
+- Liste commandes: colonnes N° Interne + N° Cmd Client
+- Liste BL: colonne N° Cmd Client visible + filtre dédié
+- Impressions: N° Cmd Client affiché sur les documents Commande et BL
