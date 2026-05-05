@@ -307,10 +307,30 @@ export default function DeliveryNotesView() {
     if (navigationParams?.salesOrderId) {
       const salesOrderId = navigationParams.salesOrderId
       useNavStore.setState({ navigationParams: null })
-      // Open create dialog for this order
-      setCreateMode('order')
-      setSelectedOrderId(salesOrderId)
+      // Open create dialog and load order data
       setCreateOpen(true)
+      setCreateMode('order')
+      // Load available orders and pre-select
+      const loadForNavigation = async () => {
+        try {
+          const [prepData, partData, clientsData, productsData] = await Promise.all([
+            api.get<{ orders: any[] }>('/sales-orders?status=prepared&limit=100'),
+            api.get<{ orders: any[] }>('/sales-orders?status=partially_delivered&limit=100'),
+            api.get<{ clients: ClientOption[] }>('/clients?dropdown=true'),
+            api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
+          ])
+          const allOrders = [...(prepData.orders || []), ...(partData.orders || [])]
+          setAvailableOrders(allOrders)
+          setAvailableClients(clientsData.clients || [])
+          setAvailableProducts(productsData.products || [])
+          // Pre-select the order
+          setSelectedOrderId(salesOrderId)
+          await fetchOrderLinesForDelivery(salesOrderId)
+        } catch (err: any) {
+          toast.error(err.message || 'Erreur chargement des données')
+        }
+      }
+      loadForNavigation()
       return
     }
     useNavStore.setState({ navigationParams: null })

@@ -478,14 +478,18 @@ export default function PreparationsView() {
         const updatedLines = prev.lines.map((l) =>
           l.id === lineId ? { ...l, quantityPrepared } : l,
         )
+        // Quantity-based progress
+        const totalRequested = updatedLines.reduce((sum, l) => sum + l.quantityRequested, 0)
+        const totalPrepared = updatedLines.reduce((sum, l) => sum + l.quantityPrepared, 0)
         const fullyPreparedLines = updatedLines.filter(
           (l) => l.quantityPrepared >= l.quantityRequested,
         ).length
         const progressPercent =
-          prev.totalLines > 0 ? Math.round((fullyPreparedLines / prev.totalLines) * 100) : 0
+          totalRequested > 0 ? Math.round((totalPrepared / totalRequested) * 100) : 0
         return {
           ...prev,
           lines: updatedLines,
+          preparedLines: updatedLines.filter((l) => l.quantityPrepared > 0).length,
           fullyPreparedLines,
           progressPercent,
         }
@@ -677,8 +681,8 @@ export default function PreparationsView() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-                              onClick={() => navigateTo('delivery-notes')}
-                              title="Générer BL"
+                              onClick={() => navigateTo('delivery-notes', { salesOrderId: prep.salesOrderId })}
+                              title="Créer BL"
                             >
                               <Truck className="h-4 w-4" />
                             </Button>

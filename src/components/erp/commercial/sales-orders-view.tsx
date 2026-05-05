@@ -833,22 +833,26 @@ export default function SalesOrdersView() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
                 <div className="rounded-lg bg-muted/50 p-2.5">
                   <span className="text-muted-foreground text-xs">Livraison</span>
                   <p className="font-medium">{eq.deliveryDate ? format(new Date(eq.deliveryDate), 'dd/MM/yyyy', { locale: fr }) : '—'}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
-                  <span className="text-muted-foreground text-xs">Remise</span>
-                  <p className="font-medium">{eq.lines.some(l => (l.discount || 0) > 0) ? 'Oui' : '—'}</p>
+                  <span className="text-muted-foreground text-xs">Total commandé</span>
+                  <p className="font-medium">{eq.lines.reduce((s, l) => s + l.quantity, 0)}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
-                  <span className="text-muted-foreground text-xs">Lignes</span>
-                  <p className="font-medium">{eq.lines.length}</p>
+                  <span className="text-muted-foreground text-xs">Total préparé</span>
+                  <p className="font-medium">{eq.lines.reduce((s, l) => s + (l.quantityPrepared || 0), 0)}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
-                  <span className="text-muted-foreground text-xs">Devis</span>
-                  <p className="font-medium">{eq.quoteId && eq.quote ? eq.quote.number : '—'}</p>
+                  <span className="text-muted-foreground text-xs">Total livré</span>
+                  <p className="font-medium">{eq.lines.reduce((s, l) => s + (l.quantityDelivered || 0), 0)}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-2.5">
+                  <span className="text-muted-foreground text-xs">Restant</span>
+                  <p className="font-medium">{eq.lines.reduce((s, l) => s + Math.max(0, l.quantity - (l.quantityDelivered || 0)), 0)}</p>
                 </div>
               </div>
 
@@ -858,7 +862,10 @@ export default function SalesOrdersView() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Produit</TableHead>
-                        <TableHead className="text-right w-[70px]">Qté</TableHead>
+                        <TableHead className="text-right w-[70px]">Commandé</TableHead>
+                        <TableHead className="text-right w-[80px]">Préparé</TableHead>
+                        <TableHead className="text-right w-[80px]">Livré</TableHead>
+                        <TableHead className="text-right w-[80px]">Restant</TableHead>
                         <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
                         <TableHead className="text-right w-[70px]">TVA %</TableHead>
                         <TableHead className="text-right w-[70px]">Remise %</TableHead>
@@ -866,19 +873,40 @@ export default function SalesOrdersView() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {eq.lines.map((line) => (
-                        <TableRow key={line.id || line.productId}>
-                          <TableCell className="font-medium text-sm">
-                            <span className="font-mono text-muted-foreground mr-2">{line.product?.reference || ''}</span>
-                            {line.product?.designation || '—'}
-                          </TableCell>
-                          <TableCell className="text-right">{line.quantity}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
-                          <TableCell className="text-right">{line.tvaRate}%</TableCell>
-                          <TableCell className="text-right">{line.discount || 0}%</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(line.totalHT || 0)}</TableCell>
-                        </TableRow>
-                      ))}
+                      {eq.lines.map((line) => {
+                        const delivered = line.quantityDelivered || 0
+                        const prepared = line.quantityPrepared || 0
+                        const remaining = Math.max(0, line.quantity - delivered)
+                        const isFullyDelivered = delivered >= line.quantity
+                        return (
+                          <TableRow key={line.id || line.productId}>
+                            <TableCell className="font-medium text-sm">
+                              <span className="font-mono text-muted-foreground mr-2">{line.product?.reference || ''}</span>
+                              {line.product?.designation || '—'}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">{line.quantity}</TableCell>
+                            <TableCell className="text-right">
+                              <span className={prepared > 0 ? (prepared >= line.quantity ? 'text-green-600' : 'text-amber-600') : 'text-muted-foreground'}>
+                                {prepared}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={isFullyDelivered ? 'text-green-600 font-medium' : delivered > 0 ? 'text-amber-600' : 'text-muted-foreground'}>
+                                {delivered}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={remaining === 0 ? 'text-green-600' : remaining < line.quantity ? 'text-amber-600' : 'text-muted-foreground'}>
+                                {remaining}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                            <TableCell className="text-right">{line.tvaRate}%</TableCell>
+                            <TableCell className="text-right">{line.discount || 0}%</TableCell>
+                            <TableCell className="text-right font-medium">{formatCurrency(line.totalHT || 0)}</TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>
