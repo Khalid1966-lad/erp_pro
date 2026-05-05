@@ -210,6 +210,7 @@ function StatusBadge({ status }: { status: string }) {
     Accepté: 'bg-emerald-100 text-emerald-700',
     Refusé: 'bg-red-100 text-red-700',
     Expiré: 'bg-orange-100 text-orange-700',
+    Annulé: 'bg-red-100 text-red-700',
     Confirmée: 'bg-emerald-100 text-emerald-700',
     'En préparation': 'bg-sky-100 text-sky-700',
     Prête: 'bg-violet-100 text-violet-700',
@@ -588,16 +589,64 @@ function VentesSection() {
       {/* Devis */}
       <SubTitle id="ventes-devis">Devis</SubTitle>
       <Paragraph>
-        Les devis sont des propositions commerciales envoyées aux clients. Chaque devis suit un cycle de vie :
-        Brouillon → Envoyé → Accepté / Refusé / Expiré.
+        Les devis sont des propositions commerciales envoyées aux clients. Chaque devis suit un cycle de vie
+        comportant 6 statuts. Le numéro de devis est <strong>auto-généré</strong> au format
+        <code className="text-xs bg-muted px-1 py-0.5 rounded font-mono">DEV-YYYY-NNNN</code> et ne peut pas être modifié.
       </Paragraph>
 
       <FlowDiagram steps={[
         { label: 'Brouillon', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: FileText },
-        { label: 'Envoyé', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: ArrowDown },
+        { label: 'Envoyé', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Send },
         { label: 'Accepté', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
-        { label: 'Refusé / Expiré', color: 'bg-red-50 border-red-200 text-red-700', icon: XCircle },
+        { label: 'Rejeté / Expiré / Annulé', color: 'bg-red-50 border-red-200 text-red-700', icon: XCircle },
       ]} />
+
+      <SubTitle>Statuts des devis</SubTitle>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Statut</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Action suivante possible</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell><StatusBadge status="Brouillon" /></TableCell>
+                <TableCell className="text-sm">Création initiale du devis</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Peut être envoyé au client</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Envoyé" /></TableCell>
+                <TableCell className="text-sm">Devis transmis au client (en attente de réponse)</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Le client peut accepter, refuser ou laisser expirer</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Accepté" /></TableCell>
+                <TableCell className="text-sm">Client accepte le devis</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Peut générer une commande client automatiquement</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Refusé" /></TableCell>
+                <TableCell className="text-sm">Client refuse le devis</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Peut revenir en <strong>Brouillon</strong> pour modification</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Expiré" /></TableCell>
+                <TableCell className="text-sm">Validité dépassée (date d&apos;expiration atteinte)</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Peut revenir en <strong>Brouillon</strong> pour modification</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Annulé" /></TableCell>
+                <TableCell className="text-sm">Annulé par l&apos;entreprise</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Peut revenir en <strong>Brouillon</strong> pour modification</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <Step num={1}>Accédez à <strong>Ventes → Devis</strong> et cliquez sur <strong>« + Nouveau devis »</strong>.</Step>
       <Step num={2}>Sélectionnez le client et ajoutez les lignes de produits.</Step>
@@ -606,6 +655,11 @@ function VentesSection() {
 
       <TipBox type="success">
         Un devis accepté peut être converti en <strong>commande client</strong> en un seul clic : les lignes, quantités et prix sont repris automatiquement.
+      </TipBox>
+
+      <TipBox type="info">
+        Les statuts <strong>Rejeté</strong>, <strong>Expiré</strong> et <strong>Annulé</strong> peuvent tous revenir en statut <strong>Brouillon</strong>,
+        permettant de modifier le devis et de le renvoyer au client sans avoir à le recréer.
       </TipBox>
 
       {/* Commandes */}

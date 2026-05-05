@@ -36,12 +36,10 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { numberToFrenchWords } from '@/lib/number-to-words'
-import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
+import { printDocument, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { HelpButton } from '@/components/erp/shared/help-button'
 
-const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 // ═══════════════════════════════════════════════════════
 // Types
@@ -283,11 +281,11 @@ export default function PreparationsView() {
   // ── Fetch sales orders for create dialog ──
   const fetchSalesOrders = useCallback(async () => {
     try {
-      const data = await api.get<{ salesOrders: SalesOrderOption[] }>(
-        '/sales-orders?status=confirmed&status=in_preparation&limit=100',
+      const data = await api.get<{ orders: SalesOrderOption[] }>(
+        '/sales-orders?status=confirmed&status=in_preparation&limit=100&includeLines=true',
       )
       // Filter to get only confirmed and in_preparation
-      const filtered = data.salesOrders.filter(
+      const filtered = data.orders.filter(
         (so) => so.status === 'confirmed' || so.status === 'in_preparation',
       )
       setSalesOrders(filtered)
@@ -1263,46 +1261,6 @@ export default function PreparationsView() {
                   <span className="text-sm text-muted-foreground">Vérification du stock...</span>
                 </div>
               )}
-
-              {/* ── Totaux ── */}
-              {(() => {
-                const totals = selectedPrep.salesOrder.lines.reduce(
-                  (acc, line) => {
-                    const tva = line.totalHT * line.tvaRate / 100
-                    return { totalHT: acc.totalHT + line.totalHT, totalTVA: acc.totalTVA + tva }
-                  },
-                  { totalHT: 0, totalTVA: 0 },
-                )
-                const totalTTC = totals.totalHT + totals.totalTVA
-                return (
-                  <div className="space-y-3">
-                    <Separator />
-                    <div className="flex justify-end">
-                      <div className="w-64 space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total HT</span>
-                          <span className="font-mono font-medium">{formatCurrency(totals.totalHT)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total TVA</span>
-                          <span className="font-mono font-medium">{formatCurrency(totals.totalTVA)}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between font-semibold">
-                          <span>Total TTC</span>
-                          <span className="font-mono">{formatCurrency(totalTTC)}</span>
-                        </div>
-                        <div className="text-sm italic text-muted-foreground pt-1">
-                          <span>Arrêté le présent bon de préparation à la somme de :</span>
-                        </div>
-                        <div className="text-sm font-medium italic text-right mt-1">
-                          {numberToFrenchWords(totalTTC)} dirhams
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
 
               {/* ── Notes ── */}
               {selectedPrep.notes && (

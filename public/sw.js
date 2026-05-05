@@ -1,8 +1,23 @@
 // ═══════════════════════════════════════════════════════════════
 // GEMA ERP PRO — Service Worker (PWA)
 // ═══════════════════════════════════════════════════════════════
+//
+// ⚠️  RELEASE CHECKLIST — UPDATE CACHE_NAME ON EVERY DEPLOYMENT ⚠️
+//
+// The browser detects a Service Worker update by comparing the
+// byte-for-byte content of sw.js on the server vs. its cached copy.
+// If this file doesn't change, `reg.update()` always returns "no update"
+// and users are stuck on the old cached version.
+//
+// When bumping the app version in `src/lib/version.ts`, you MUST also
+// update CACHE_NAME below to match.  See also BUILD_STAMP.
+//
+// ═══════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'gema-erp-v1.6.3';
+// 🔧  CACHE_NAME  — must match APP_VERSION in src/lib/version.ts
+const CACHE_NAME = 'gema-erp-v1.6.4';
+// 🔧  BUILD_STAMP — extra line that guarantees byte-level change
+const BUILD_STAMP = '2025-07-19';
 const STATIC_ASSETS = [
   '/',
   '/favicon.ico',

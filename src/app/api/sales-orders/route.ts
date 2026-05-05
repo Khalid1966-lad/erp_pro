@@ -33,15 +33,16 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id') || ''
-    const status = searchParams.get('status') || ''
+    const statuses = searchParams.getAll('status').filter(Boolean)
     const clientId = searchParams.get('clientId') || ''
     const search = searchParams.get('search') || ''
+    const includeLines = searchParams.get('includeLines') === 'true'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
 
     const where: Record<string, unknown> = {}
     if (id) where.id = id
-    if (status) where.status = status
+    if (statuses.length > 0) where.status = { in: statuses }
     if (clientId) where.clientId = clientId
     const clientOrderNumber = searchParams.get('clientOrderNumber') || ''
     if (clientOrderNumber) {
@@ -59,7 +60,9 @@ export async function GET(req: NextRequest) {
         where,
         include: {
           client: { select: { id: true, name: true } },
-          lines: { include: { product: { select: { id: true, reference: true, designation: true } } } },
+          lines: includeLines
+            ? { include: { product: { select: { id: true, reference: true, designation: true, currentStock: true, productNature: true, unit: true } } } }
+            : { include: { product: { select: { id: true, reference: true, designation: true } } } },
           preparationOrders: true,
           quote: { select: { id: true, number: true } },
         },
