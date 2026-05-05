@@ -11,6 +11,10 @@ import { z } from 'zod'
 const createPrepSchema = z.object({
   salesOrderId: z.string().min(1, 'ID de commande requis'),
   notes: z.string().optional(),
+  lines: z.array(z.object({
+    salesOrderLineId: z.string().min(1),
+    quantity: z.number().min(1),
+  })).optional(),
 })
 
 const updateLineSchema = z.object({
@@ -245,7 +249,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { salesOrderId, notes } = createPrepSchema.parse(body)
+    const { salesOrderId, notes, lines: customLines } = createPrepSchema.parse(body)
 
     // Fetch SO with lines and products
     const salesOrder = await db.salesOrder.findUnique({
@@ -270,23 +274,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Check if there's already a non-cancelled preparation for this order
-    const existingActivePrep = await db.preparationOrder.findFirst({
-      where: {
-        salesOrderId,
-        status: { in: ['pending', 'in_progress'] },
-      },
-    })
-
-    if (existingActivePrep) {
-      return NextResponse.json(
-        { error: 'Une préparation active existe déjà pour cette commande' },
-        { status: 400 },
-      )
-    }
-
     // Build preparation lines: skip fully prepared lines
-    const linesToPrepare = salesOrder.lines
+    let linesToPrepare = salesOrder.lines
       .map((line) => {
         const quantityRequested = line.quantity - (line.quantityPrepared || 0)
         return {
@@ -298,6 +287,19 @@ export async function POST(req: NextRequest) {
         }
       })
       .filter((l) => l.quantityRequested > 0)
+
+    // If custom lines provided, override quantities
+    if (customLines && customLines.length > 0) {
+      for (const customLine of customLines) {
+        const match = linesToPrepare.find(l => l.salesOrderLineId === customLine.salesOrderLineId)
+        if (match) {
+          // Cap at remaining quantity
+          match.quantityRequested = Math.min(customLine.quantity, match.quantityRequested)
+        }
+      }
+      // Re-filter lines with quantity > 0
+      linesToPrepare = linesToPrepare.filter(l => l.quantityRequested > 0)
+    }
 
     if (linesToPrepare.length === 0) {
       return NextResponse.json(

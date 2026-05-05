@@ -241,6 +241,7 @@ export default function PreparationsView() {
   const [createPreview, setCreatePreview] = useState<SalesOrderOption | null>(null)
   const [createNotes, setCreateNotes] = useState('')
   const [creating, setCreating] = useState(false)
+  const [createLineQtys, setCreateLineQtys] = useState<Record<string, number>>({})
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false)
@@ -278,6 +279,36 @@ export default function PreparationsView() {
     fetchPreparations()
   }, [fetchPreparations])
 
+  // ── Listen for navigation from sales orders (create prep for specific order) ──
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent).detail as { target: string; createForOrderId?: string }
+      if (detail?.createForOrderId) {
+        const orders = await api.get<{ orders: SalesOrderOption[] }>(
+          '/sales-orders?status=confirmed&status=in_preparation&limit=100&includeLines=true',
+        ).then(d => d.orders.filter(so => so.status === 'confirmed' || so.status === 'in_preparation'))
+        setSalesOrders(orders)
+        setCreateNotes('')
+        setCreateLineQtys({})
+        // Pre-select the order
+        setSelectedOrderId(detail.createForOrderId)
+        const order = orders.find((so) => so.id === detail.createForOrderId)
+        setCreatePreview(order || null)
+        if (order) {
+          const qtys: Record<string, number> = {}
+          order.lines.forEach((l) => {
+            const remaining = l.quantity - (l.quantityPrepared || 0)
+            if (remaining > 0) qtys[l.id] = remaining
+          })
+          setCreateLineQtys(qtys)
+        }
+        setCreateOpen(true)
+      }
+    }
+    window.addEventListener('erp:navigate', handler)
+    return () => window.removeEventListener('erp:navigate', handler)
+  }, [])
+
   // ── Fetch sales orders for create dialog ──
   const fetchSalesOrders = useCallback(async () => {
     try {
@@ -300,6 +331,7 @@ export default function PreparationsView() {
     setSelectedOrderId('')
     setCreatePreview(null)
     setCreateNotes('')
+    setCreateLineQtys({})
     setCreateOpen(true)
     await fetchSalesOrders()
   }
@@ -309,6 +341,17 @@ export default function PreparationsView() {
     setSelectedOrderId(orderId)
     const order = salesOrders.find((so) => so.id === orderId)
     setCreatePreview(order || null)
+    // Initialize quantities with remaining amounts
+    if (order) {
+      const qtys: Record<string, number> = {}
+      order.lines.forEach((l) => {
+        const remaining = l.quantity - (l.quantityPrepared || 0)
+        if (remaining > 0) qtys[l.id] = remaining
+      })
+      setCreateLineQtys(qtys)
+    } else {
+      setCreateLineQtys({})
+    }
   }
 
   // ── Create preparation ──
@@ -319,9 +362,24 @@ export default function PreparationsView() {
     }
     try {
       setCreating(true)
+      // Build lines array with custom quantities
+      const lines = createPreview
+        ? createPreview.lines
+            .filter((l) => {
+              const remaining = l.quantity - (l.quantityPrepared || 0)
+              return remaining > 0
+            })
+            .map((l) => ({
+              salesOrderLineId: l.id,
+              quantity: createLineQtys[l.id] ?? (l.quantity - (l.quantityPrepared || 0)),
+            }))
+            .filter((l) => l.quantity > 0)
+        : undefined
+
       const result = await api.post<Preparation>('/preparations', {
         salesOrderId: selectedOrderId,
         notes: createNotes || undefined,
+        lines,
       })
       toast.success(`Préparation ${result.number} créée avec succès`)
       setCreateOpen(false)
@@ -818,7 +876,7 @@ export default function PreparationsView() {
       {/* ═══════════════════════════════════════════════════
           Create Dialog
           ═══════════════════════════════════════════════════ */}
-      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) { setCreatePreview(null); setSelectedOrderId('') } }}>
+      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) { setCreatePreview(null); setSelectedOrderId(''); setCreateLineQtys({}) } }}>
         <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -908,7 +966,20 @@ export default function PreparationsView() {
                               <TableCell className="text-right text-muted-foreground">
                                 {line.quantityPrepared || 0}
                               </TableCell>
-                              <TableCell className="text-right font-medium">{toPrepare}</TableCell>
+                              <TableCell className="text-right">
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={toPrepare}
+                                  value={createLineQtys[line.id] ?? toPrepare}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0
+                                    const clamped = Math.min(Math.max(0, val), toPrepare)
+                                    setCreateLineQtys(prev => ({ ...prev, [line.id]: clamped }))
+                                  }}
+                                  className="h-8 w-20 text-right ml-auto"
+                                />
+                              </TableCell>
                               <TableCell className="text-right">
                                 <span className={hasStock ? 'text-green-600' : 'text-red-600'}>
                                   {line.product.currentStock}

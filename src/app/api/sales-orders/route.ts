@@ -197,7 +197,7 @@ export async function PUT(req: NextRequest) {
 
     // Create preparation order
     if (action === 'create_preparation') {
-      if (existing.status !== 'confirmed') {
+      if (!['confirmed', 'in_preparation'].includes(existing.status)) {
         return NextResponse.json({ error: 'Le bon de commande doit être confirmé' }, { status: 400 })
       }
 

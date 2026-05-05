@@ -383,14 +383,11 @@ export default function SalesOrdersView() {
   }
 
   const handleCreatePreparation = async (order: SalesOrder) => {
-    try {
-      await api.put('/sales-orders', { id: order.id, action: 'create_preparation' })
-      toast.success(`Préparation créée pour ${order.clientOrderNumber}`)
-      fetchOrders()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur'
-      toast.error(msg || 'Erreur création préparation')
-    }
+    // Navigate to preparations page with the order pre-selected
+    toast.info(`Redirection vers la création d'une préparation pour ${order.clientOrderNumber}`)
+    window.dispatchEvent(new CustomEvent('erp:navigate', {
+      detail: { target: 'preparations', createForOrderId: order.id }
+    }))
   }
 
   const handleCreateInvoice = async (order: SalesOrder) => {
@@ -503,7 +500,12 @@ export default function SalesOrdersView() {
         actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancelled' })
         break
       case 'in_preparation':
-        actions.push({ label: 'Marquer préparé', icon: <CheckCircle className="h-4 w-4" />, action: 'prepared' })
+        actions.push({ label: 'Créer préparation', icon: <ClipboardList className="h-4 w-4" />, action: 'create_preparation' })
+        // Only show "Marquer préparé" if all lines are fully prepared
+        const allFullyPrepared = order.lines.every((l) => (l.quantityPrepared || 0) >= l.quantity)
+        if (allFullyPrepared) {
+          actions.push({ label: 'Marquer préparé', icon: <CheckCircle className="h-4 w-4" />, action: 'prepared' })
+        }
         break
       case 'prepared':
         actions.push({ label: 'Créer BL', icon: <Truck className="h-4 w-4" />, action: 'create_delivery' })
