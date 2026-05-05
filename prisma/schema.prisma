@@ -367,6 +367,7 @@ enum QuoteStatus {
   accepted
   rejected
   expired
+  cancelled
 }
 
 model Quote {

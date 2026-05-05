@@ -95,7 +95,8 @@ const statusLabels: Record<string, string> = {
   sent: 'Envoyé',
   accepted: 'Accepté',
   rejected: 'Rejeté',
-  expired: 'Expiré'
+  expired: 'Expiré',
+  cancelled: 'Annulé'
 }
 
 const statusColors: Record<string, string> = {
@@ -103,7 +104,8 @@ const statusColors: Record<string, string> = {
   sent: 'bg-blue-100 text-blue-800',
   accepted: 'bg-green-100 text-green-800',
   rejected: 'bg-red-100 text-red-800',
-  expired: 'bg-orange-100 text-orange-800'
+  expired: 'bg-orange-100 text-orange-800',
+  cancelled: 'bg-gray-200 text-gray-700'
 }
 
 function getStatusIcon(status: string) {
@@ -113,6 +115,7 @@ function getStatusIcon(status: string) {
     accepted: { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-500' },
     rejected: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
     expired: { icon: <Clock className="h-4 w-4" />, color: 'text-orange-500' },
+    cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-gray-500' },
   }
   const c = config[status]
   if (!c) return null
@@ -138,6 +141,7 @@ const quoteLegendItems = [
   { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Accepté', color: 'text-green-500' },
   { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Rejeté', color: 'text-red-500' },
   { icon: <Clock className="h-3.5 w-3.5" />, label: 'Expiré', color: 'text-orange-500' },
+  { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulé', color: 'text-gray-500' },
 ]
 
 const emptyLine = (): QuoteLine => ({
@@ -273,7 +277,7 @@ export default function QuotesView() {
   const openCreate = () => {
     setEditingQuote(null)
     setSelectedQuote(null)
-    setFormNumber('')
+    setFormNumber('') // auto-generated server-side
     setFormClientId('')
     setClientSearch('')
     setLineSearches({})
@@ -326,10 +330,7 @@ export default function QuotesView() {
   }
 
   const handleSave = async () => {
-    if (!formNumber.trim()) {
-      toast.error('Veuillez saisir le numéro de devis')
-      return
-    }
+    // Number is auto-generated — no manual validation needed
     if (!formClientId) {
       toast.error('Veuillez sélectionner un client')
       return
@@ -348,7 +349,6 @@ export default function QuotesView() {
       setSaving(true)
       const validUntilDate = new Date(formValidUntil + 'T23:59:59.000Z')
       await api.post('/quotes', {
-        number: formNumber.trim(),
         clientId: formClientId,
         status: 'draft',
         validUntil: validUntilDate.toISOString(),
@@ -410,7 +410,6 @@ export default function QuotesView() {
       const validUntilDate = new Date(formValidUntil + 'T23:59:59.000Z')
       await api.put('/quotes', {
         id: editingQuote.id,
-        number: formNumber.trim(),
         clientId: formClientId,
         validUntil: validUntilDate.toISOString(),
         discountRate: parseFloat(formDiscountRate) || 0,
@@ -455,6 +454,7 @@ export default function QuotesView() {
     switch (quote.status) {
       case 'draft':
         actions.push({ label: 'Envoyer', icon: <Send className="h-4 w-4" />, status: 'sent' })
+        actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, status: 'cancelled' })
         break
       case 'sent':
         actions.push({ label: 'Accepter', icon: <CheckCircle className="h-4 w-4" />, status: 'accepted' })
@@ -463,6 +463,7 @@ export default function QuotesView() {
         break
       case 'rejected':
       case 'expired':
+      case 'cancelled':
         actions.push({ label: 'Remettre en brouillon', icon: <Edit className="h-4 w-4" />, status: 'draft' })
         break
       case 'accepted':
@@ -529,6 +530,7 @@ export default function QuotesView() {
             <SelectItem value="accepted">Accepté</SelectItem>
             <SelectItem value="rejected">Rejeté</SelectItem>
             <SelectItem value="expired">Expiré</SelectItem>
+            <SelectItem value="cancelled">Annulé</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -590,7 +592,7 @@ export default function QuotesView() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(quote)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {(quote.status === 'draft' || quote.status === 'rejected' || quote.status === 'expired') && (
+                          {(quote.status === 'draft' || quote.status === 'rejected' || quote.status === 'expired' || quote.status === 'cancelled') && (
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(quote) }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -723,7 +725,7 @@ export default function QuotesView() {
                     <Printer className="h-4 w-4 mr-1" />
                     Imprimer
                   </Button>
-                  {(eq.status === 'draft' || eq.status === 'rejected' || eq.status === 'expired') && (
+                  {(eq.status === 'draft' || eq.status === 'rejected' || eq.status === 'expired' || eq.status === 'cancelled') && (
                     <Button variant="outline" size="sm" onClick={() => openEdit(eq)}>
                       <Pencil className="h-4 w-4 mr-1" />
                       Modifier
@@ -822,19 +824,15 @@ export default function QuotesView() {
           <div className="overflow-auto scrollbar-visible max-h-[calc(90vh-8rem)]">
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Quote Number */}
+              {/* Quote Number — auto-generated */}
               <div className="space-y-2">
-                <Label>N° Devis *</Label>
+                <Label>N° Devis</Label>
                 <Input
-                  placeholder="Ex: DEV-2025-0001 ou référence libre"
-                  value={formNumber}
-                  onChange={(e) => setFormNumber(e.target.value)}
-                  className="font-mono"
-                  disabled={!!editingQuote}
+                  value={editingQuote ? editingQuote.number : 'Auto-généré à la création'}
+                  className="font-mono bg-muted/50"
+                  disabled
                 />
-                {editingQuote && (
-                  <p className="text-[10px] text-muted-foreground">Le numéro ne peut pas être modifié après création</p>
-                )}
+                <p className="text-[10px] text-muted-foreground">Numéro automatique non modifiable (DEV-YYYY-NNNN)</p>
               </div>
               {/* Client searchable combobox */}
               <div className="space-y-2">
@@ -1148,7 +1146,7 @@ export default function QuotesView() {
                   <Printer className="h-4 w-4 mr-1" />
                   Imprimer
                 </Button>
-                {(selectedQuote.status === 'draft' || selectedQuote.status === 'rejected' || selectedQuote.status === 'expired') && (
+                {(selectedQuote.status === 'draft' || selectedQuote.status === 'rejected' || selectedQuote.status === 'expired' || selectedQuote.status === 'cancelled') && (
                   <Button
                     variant="outline"
                     onClick={() => {

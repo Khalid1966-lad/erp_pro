@@ -13,7 +13,8 @@ const quoteLineSchema = z.object({
 })
 
 const quoteSchema = z.object({
-  number: z.string().min(1, 'Le numéro de devis est requis'),
+  // number is auto-generated server-side — ignored from client input
+  number: z.string().optional(),
   clientId: z.string(),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired']).default('draft'),
   validUntil: z.string().datetime(),
@@ -23,11 +24,23 @@ const quoteSchema = z.object({
   lines: z.array(quoteLineSchema).min(1, 'Au moins une ligne requise'),
 })
 
-// Generate next quote number
+// Generate next quote number: DEV-YYYY-NNNN (per-year sequence)
 async function generateQuoteNumber(): Promise<string> {
-  const count = await db.quote.count()
   const year = new Date().getFullYear()
-  return `DEV-${year}-${String(count + 1).padStart(4, '0')}`
+  const prefix = `DEV-${year}-`
+  // Find the highest sequential number for this year
+  const lastQuote = await db.quote.findFirst({
+    where: { number: { startsWith: prefix } },
+    orderBy: { number: 'desc' },
+    select: { number: true },
+  })
+  let next = 1
+  if (lastQuote) {
+    const numPart = lastQuote.number.replace(prefix, '')
+    const parsed = parseInt(numPart, 10)
+    if (!isNaN(parsed)) next = parsed + 1
+  }
+  return `${prefix}${String(next).padStart(4, '0')}`
 }
 
 // GET - List quotes
@@ -126,15 +139,18 @@ export async function POST(req: NextRequest) {
     const discountedHT = totalHT * (1 - data.discountRate / 100)
     const finalTotalHT = discountedHT + data.shippingCost
 
-    // Check uniqueness of the manual number
-    const existingNumber = await db.quote.findUnique({ where: { number: data.number } })
+    // Generate auto number (server-side, non-editable)
+    const autoNumber = await generateQuoteNumber()
+
+    // Verify uniqueness (safety check against race conditions)
+    const existingNumber = await db.quote.findUnique({ where: { number: autoNumber } })
     if (existingNumber) {
-      return NextResponse.json({ error: `Un devis avec le numéro "${data.number}" existe déjà` }, { status: 409 })
+      return NextResponse.json({ error: 'Erreur de numérotation. Veuillez réessayer.' }, { status: 409 })
     }
 
     const quote = await db.quote.create({
       data: {
-        number: data.number.trim(),
+        number: autoNumber,
         clientId: data.clientId,
         status: data.status,
         validUntil: new Date(data.validUntil),
@@ -238,6 +254,7 @@ export async function PUT(req: NextRequest) {
         accepted: [],
         rejected: ['draft'],
         expired: ['draft'],
+        cancelled: ['draft'],
       }
       const allowed = validTransitions[existing.status] || []
       if (!allowed.includes(updateData.status)) {
