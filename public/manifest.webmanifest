@@ -3,10 +3,13 @@
   "short_name": "GEMA ERP",
   "description": "ERP de Production — Commercial, Achats, Stock, Production, Finance",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
+  "version": "1.6.5",
   "categories": ["business", "productivity"],
   "icons": [
     {

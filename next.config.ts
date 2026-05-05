@@ -29,6 +29,16 @@ const nextConfig: NextConfig = {
           { key: 'Expires', value: '0' },
         ],
       },
+      {
+        // Web App Manifest must always be fresh so Windows/browser
+        // reads the latest version number and app identity (id).
+        source: '/manifest.webmanifest',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Pragma', value: 'no-cache' },
+          { key: 'Expires', value: '0' },
+        ],
+      },
     ];
   },
 };
