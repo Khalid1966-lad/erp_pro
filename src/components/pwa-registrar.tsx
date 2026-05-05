@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { toast } from 'sonner'
+import { APP_VERSION } from '@/lib/version'
 
 // ── Global state for update availability ──
 type UpdateListener = (available: boolean) => void
@@ -121,9 +122,16 @@ export function PwaRegistrar() {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
 
-    // Register SW
+    // ── Cache-bust the manifest link so Windows/browser always reads latest version ──
+    const manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')
+    if (manifestLink) {
+      const base = manifestLink.href.split('?')[0]
+      manifestLink.href = `${base}?v=${APP_VERSION}`
+    }
+
+    // Register SW with updateViaCache: none to force update checks
     navigator.serviceWorker
-      .register('/sw.js')
+      .register('/sw.js', { updateViaCache: 'none' })
       .then((registration) => {
         console.log('[PWA] Service Worker registered:', registration.scope)
 
@@ -145,11 +153,11 @@ export function PwaRegistrar() {
           })
         })
 
-        // Check immediately + every 30 minutes
+        // Check immediately + every 5 minutes (more aggressive for Windows PWA)
         registration.update()
         const interval = setInterval(() => {
           registration.update()
-        }, 30 * 60 * 1000)
+        }, 5 * 60 * 1000)
 
         return () => clearInterval(interval)
       })
