@@ -297,13 +297,23 @@ export default function DeliveryNotesView() {
 
   const navigationParams = useNavStore((s) => s.navigationParams)
 
-  // Apply navigation params from dashboard
+  // Apply navigation params from dashboard or other views
   useEffect(() => {
+    if (!navigationParams) return
     if (navigationParams?.status === 'pending') {
-      // Pending delivery notes are draft or confirmed (not delivered/cancelled)
       setStatusFilter('draft')
-      useNavStore.setState({ navigationParams: null })
     }
+    // When navigated from preparations with a salesOrderId, open create dialog
+    if (navigationParams?.salesOrderId) {
+      const salesOrderId = navigationParams.salesOrderId
+      useNavStore.setState({ navigationParams: null })
+      // Open create dialog for this order
+      setCreateMode('order')
+      setSelectedOrderId(salesOrderId)
+      setCreateOpen(true)
+      return
+    }
+    useNavStore.setState({ navigationParams: null })
   }, [navigationParams])
 
   // Dialogs

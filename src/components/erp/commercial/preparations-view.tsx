@@ -39,6 +39,8 @@ import { fr } from 'date-fns/locale'
 import { printDocument, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { HelpButton } from '@/components/erp/shared/help-button'
+import { useNavStore } from '@/lib/stores'
+import type { ViewId } from '@/lib/stores'
 
 
 // ═══════════════════════════════════════════════════════
@@ -279,20 +281,22 @@ export default function PreparationsView() {
     fetchPreparations()
   }, [fetchPreparations])
 
-  // ── Listen for navigation from sales orders (create prep for specific order) ──
+  // ── Listen for navigation params from sales orders ──
+  const navigationParams = useNavStore((s) => s.navigationParams)
+
   useEffect(() => {
-    const handler = async (e: Event) => {
-      const detail = (e as CustomEvent).detail as { target: string; createForOrderId?: string }
-      if (detail?.createForOrderId) {
+    if (navigationParams?.createForOrderId) {
+      const orderId = navigationParams.createForOrderId
+      useNavStore.setState({ navigationParams: null })
+
+      const loadAndOpen = async () => {
         const orders = await api.get<{ orders: SalesOrderOption[] }>(
           '/sales-orders?status=confirmed&status=in_preparation&limit=100&includeLines=true',
         ).then(d => d.orders.filter(so => so.status === 'confirmed' || so.status === 'in_preparation'))
         setSalesOrders(orders)
         setCreateNotes('')
-        setCreateLineQtys({})
-        // Pre-select the order
-        setSelectedOrderId(detail.createForOrderId)
-        const order = orders.find((so) => so.id === detail.createForOrderId)
+        setSelectedOrderId(orderId)
+        const order = orders.find((so) => so.id === orderId)
         setCreatePreview(order || null)
         if (order) {
           const qtys: Record<string, number> = {}
@@ -304,10 +308,9 @@ export default function PreparationsView() {
         }
         setCreateOpen(true)
       }
+      loadAndOpen()
     }
-    window.addEventListener('erp:navigate', handler)
-    return () => window.removeEventListener('erp:navigate', handler)
-  }, [])
+  }, [navigationParams])
 
   // ── Fetch sales orders for create dialog ──
   const fetchSalesOrders = useCallback(async () => {
@@ -532,11 +535,10 @@ export default function PreparationsView() {
     }
   }
 
-  // ── Navigate to purchase orders or work orders ──
-  const navigateTo = (target: string) => {
-    window.dispatchEvent(
-      new CustomEvent('erp:navigate', { detail: { target } }),
-    )
+  // ── Navigate using nav store ──
+  const setCurrentView = useNavStore((s) => s.setCurrentView)
+  const navigateTo = (target: string, params?: Record<string, string> | null) => {
+    setCurrentView(target as ViewId, params)
   }
 
   // ═══════════════════════════════════════════════════════
@@ -675,13 +677,7 @@ export default function PreparationsView() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-                              onClick={() => {
-                                window.dispatchEvent(
-                                  new CustomEvent('erp:navigate-delivery-notes', {
-                                    detail: { salesOrderId: prep.salesOrder.id, preparationId: prep.id },
-                                  }),
-                                )
-                              }}
+                              onClick={() => navigateTo('delivery-notes')}
                               title="Générer BL"
                             >
                               <Truck className="h-4 w-4" />

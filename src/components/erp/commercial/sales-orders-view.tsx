@@ -41,6 +41,9 @@ import { fr } from 'date-fns/locale'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
+import { useIsSuperAdmin } from '@/hooks/use-super-admin'
+import { useNavStore } from '@/lib/stores'
+import type { ViewId } from '@/lib/stores'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
@@ -385,9 +388,8 @@ export default function SalesOrdersView() {
   const handleCreatePreparation = async (order: SalesOrder) => {
     // Navigate to preparations page with the order pre-selected
     toast.info(`Redirection vers la création d'une préparation pour ${order.clientOrderNumber}`)
-    window.dispatchEvent(new CustomEvent('erp:navigate', {
-      detail: { target: 'preparations', createForOrderId: order.id }
-    }))
+    const { setCurrentView } = useNavStore.getState()
+    setCurrentView('preparations', { createForOrderId: order.id })
   }
 
   const handleCreateInvoice = async (order: SalesOrder) => {
@@ -526,10 +528,8 @@ export default function SalesOrdersView() {
 
   const handleCreateDelivery = (order: SalesOrder) => {
     toast.info(`Redirection vers la création d'un BL pour ${order.clientOrderNumber}`)
-    // Dispatch a custom event that the parent page can listen to
-    window.dispatchEvent(new CustomEvent('erp:navigate-delivery-notes', {
-      detail: { salesOrderId: order.id }
-    }))
+    const { setCurrentView } = useNavStore.getState()
+    setCurrentView('delivery-notes', { salesOrderId: order.id } as unknown as Record<string, string>)
   }
 
   const executeAction = async (order: SalesOrder, action: string) => {
@@ -1238,7 +1238,7 @@ export default function SalesOrdersView() {
               </div>
 
               {/* ── Delivery Tracking Section ── */}
-              {(selectedOrder.status === 'partially_delivered' || selectedOrder.status === 'delivered' || selectedOrder.status === 'prepared') && (
+              {selectedOrder.status !== 'pending' && selectedOrder.status !== 'cancelled' && (
                 <div className="rounded-md border p-4 space-y-3">
                   <h4 className="text-sm font-semibold flex items-center gap-2">
                     <Truck className="h-4 w-4 text-blue-600" />
@@ -1445,4 +1445,3 @@ export default function SalesOrdersView() {
     </div>
   )
 }
-import { useIsSuperAdmin } from '@/hooks/use-super-admin'

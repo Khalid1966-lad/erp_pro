@@ -202,9 +202,12 @@ export async function GET(req: NextRequest) {
       const totalLines = prep.lines.length
       const preparedLines = prep.lines.filter((l) => l.quantityPrepared > 0).length
       const fullyPreparedLines = prep.lines.filter((l) => l.quantityPrepared >= l.quantityRequested).length
-      const progressPercent = totalLines > 0
-        ? Math.round((fullyPreparedLines / totalLines) * 100)
-        : 0
+      // Completed preparations always show 100%
+      const progressPercent = prep.status === 'completed'
+        ? 100
+        : totalLines > 0
+          ? Math.round((fullyPreparedLines / totalLines) * 100)
+          : 0
 
       const linesWithStock = prep.lines.map((line) => {
         const deficit = Math.max(0, line.quantityRequested - line.product.currentStock)
