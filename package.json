@@ -1,10 +1,10 @@
 {
   "name": "nextjs_tailwind_shadcn_ts",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "prisma generate && next build",
+    "build": "node scripts/prebuild.js && prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "prisma generate",

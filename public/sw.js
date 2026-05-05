@@ -2,22 +2,22 @@
 // GEMA ERP PRO — Service Worker (PWA)
 // ═══════════════════════════════════════════════════════════════
 //
-// ⚠️  RELEASE CHECKLIST — UPDATE CACHE_NAME ON EVERY DEPLOYMENT ⚠️
-//
-// The browser detects a Service Worker update by comparing the
-// byte-for-byte content of sw.js on the server vs. its cached copy.
-// If this file doesn't change, `reg.update()` always returns "no update"
-// and users are stuck on the old cached version.
-//
-// When bumping the app version in `src/lib/version.ts`, you MUST also
-// update CACHE_NAME below to match.  See also BUILD_STAMP.
+// UPDATE MECHANISM:
+// - The prebuild script generates /public/build-meta.json with a
+//   timestamp and version before each build.
+// - CACHE_NAME embeds this timestamp so that sw.js itself changes
+//   on EVERY build, guaranteeing the browser detects the update.
+// - sw.js and build-meta.json are served with Cache-Control: no-cache
+//   so the browser always fetches the latest copy from the server.
 //
 // ═══════════════════════════════════════════════════════════════
 
-// 🔧  CACHE_NAME  — must match APP_VERSION in src/lib/version.ts
-const CACHE_NAME = 'gema-erp-v1.6.4';
-// 🔧  BUILD_STAMP — extra line that guarantees byte-level change
-const BUILD_STAMP = '2025-07-19';
+// 🔄  AUTO-GENERATED — do not edit CACHE_NAME manually
+// Build script writes build-meta.json → sw.js reads it at install time.
+// Fallback values are used only if build-meta.json is missing (dev mode).
+let CACHE_NAME = 'gema-erp-fallback';
+let BUILD_STAMP = 'dev';
+
 const STATIC_ASSETS = [
   '/',
   '/favicon.ico',
@@ -28,12 +28,28 @@ const STATIC_ASSETS = [
   '/manifest.webmanifest',
 ];
 
-// Install: pre-cache static shell
+// ── Fetch build metadata to determine cache name ──
+async function loadBuildMeta() {
+  try {
+    const res = await fetch('/build-meta.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const meta = await res.json();
+    CACHE_NAME = meta.cacheName || CACHE_NAME;
+    BUILD_STAMP = meta.buildDate || BUILD_STAMP;
+    console.log('[PWA] Build meta loaded:', CACHE_NAME, '|', BUILD_STAMP);
+  } catch {
+    console.warn('[PWA] Could not load build-meta.json, using fallback cache name');
+  }
+}
+
+// Install: load build meta → set cache name → pre-cache static shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch(() => {
-        // Silently fail for individual assets that might not exist
+    loadBuildMeta().then(() => {
+      return caches.open(CACHE_NAME).then((cache) => {
+        return cache.addAll(STATIC_ASSETS).catch(() => {
+          // Silently fail for individual assets that might not exist
+        });
       });
     })
   );

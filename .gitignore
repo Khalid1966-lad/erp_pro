@@ -58,3 +58,4 @@ server.log
 /skills/upload/logo_preview.png
 upload/
 prisma/db/custom.db
+public/build-meta.json
