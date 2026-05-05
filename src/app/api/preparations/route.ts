@@ -173,7 +173,7 @@ export async function GET(req: NextRequest) {
                 },
               },
             },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { id: 'asc' },
           },
           salesOrder: {
             include: {
@@ -370,7 +370,7 @@ export async function POST(req: NextRequest) {
                 },
               },
             },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { id: 'asc' },
           },
           salesOrder: {
             include: {
