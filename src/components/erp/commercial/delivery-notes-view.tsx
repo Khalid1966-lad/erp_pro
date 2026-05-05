@@ -42,6 +42,9 @@ import { useNavStore } from '@/lib/stores'
 
 const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
+/** Parse a French-formatted number input (accepts both comma and dot as decimal separator) */
+const parseNum = (val: string) => parseFloat(val.replace(',', '.')) || 0
+
 /** HTML pour encadrés Notes + Visa Client / Visa Administration dans les impressions */
 function buildVisaHtml(notes?: string | null): string {
   const notesHtml = notes
@@ -1667,7 +1670,7 @@ export default function DeliveryNotesView() {
                                         step="0.01"
                                         value={qty}
                                         disabled={!isIncluded}
-                                        onChange={(e) => updateDeliveryQuantity(line.id, Math.min(parseFloat(e.target.value) || 0, line.remaining))}
+                                        onChange={(e) => updateDeliveryQuantity(line.id, Math.min(parseNum(e.target.value), line.remaining))}
                                         className="h-8 text-right text-sm"
                                       />
                                     </TableCell>
@@ -1743,12 +1746,12 @@ export default function DeliveryNotesView() {
                                     </TableCell>
                                     <TableCell>
                                       <Input type="number" min="0.01" step="1" value={line.quantity}
-                                        onChange={(e) => updateEditableLine(line.tempId, 'quantity', parseFloat(e.target.value) || 0)}
+                                        onChange={(e) => updateEditableLine(line.tempId, 'quantity', parseNum(e.target.value))}
                                         className="w-full h-8" />
                                     </TableCell>
                                     <TableCell>
                                       <Input type="number" min="0" step="0.01" value={line.unitPrice}
-                                        onChange={(e) => updateEditableLine(line.tempId, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                        onChange={(e) => updateEditableLine(line.tempId, 'unitPrice', parseNum(e.target.value))}
                                         className="w-full h-8 text-right" />
                                     </TableCell>
                                     <TableCell>
@@ -1857,7 +1860,7 @@ export default function DeliveryNotesView() {
                                   min="0.01"
                                   step="0.01"
                                   value={line.quantity}
-                                  onChange={(e) => updateEditableLine(line.tempId, 'quantity', parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateEditableLine(line.tempId, 'quantity', parseNum(e.target.value))}
                                   className="h-8 text-right text-sm"
                                 />
                               </TableCell>
@@ -1867,7 +1870,7 @@ export default function DeliveryNotesView() {
                                   min="0"
                                   step="0.01"
                                   value={line.unitPrice}
-                                  onChange={(e) => updateEditableLine(line.tempId, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateEditableLine(line.tempId, 'unitPrice', parseNum(e.target.value))}
                                   className="h-8 text-right text-sm"
                                 />
                               </TableCell>
@@ -2424,7 +2427,7 @@ export default function DeliveryNotesView() {
                             min={0.01}
                             step={0.5}
                             value={line.quantity}
-                            onChange={(e) => updateEditLine(line.tempId, 'quantity', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateEditLine(line.tempId, 'quantity', parseNum(e.target.value))}
                             className="text-right h-8 text-sm"
                           />
                         </TableCell>
@@ -2434,7 +2437,7 @@ export default function DeliveryNotesView() {
                             min={0}
                             step={0.01}
                             value={line.unitPrice}
-                            onChange={(e) => updateEditLine(line.tempId, 'unitPrice', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateEditLine(line.tempId, 'unitPrice', parseNum(e.target.value))}
                             className="text-right h-8 text-sm"
                           />
                         </TableCell>
@@ -2445,7 +2448,7 @@ export default function DeliveryNotesView() {
                             max={100}
                             step={1}
                             value={line.tvaRate}
-                            onChange={(e) => updateEditLine(line.tempId, 'tvaRate', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateEditLine(line.tempId, 'tvaRate', parseNum(e.target.value))}
                             className="text-right h-8 text-sm"
                           />
                         </TableCell>
