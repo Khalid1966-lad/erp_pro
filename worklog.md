@@ -249,3 +249,29 @@ Stage Summary:
 - No auto BC number: only clientOrderNumber (manually entered, unique, required)
 - All legends verified horizontal (flex-wrap) across all views
 - Neon database already in sync with schema
+
+---
+Task ID: analysis-1
+Agent: Main
+Task: Analyze 7-step sales workflow vs current implementation (no code changes)
+
+Work Log:
+- Read prisma/schema.prisma: analyzed SalesOrder, SalesOrderLine, PreparationOrder, PreparationLine, DeliveryNote, DeliveryNoteLine models
+- Read src/app/api/sales-orders/route.ts: analyzed create preparation and create invoice actions
+- Read src/app/api/preparations/route.ts: analyzed create, start, validate, cancel, updateLine actions
+- Read src/app/api/delivery-notes/route.ts: analyzed create, deliver, undeliver, cancel, edit_lines actions
+- Traced full stock flow: preparation validate → stock OUT, BL deliver → stock OUT AGAIN (double decrement)
+- Traced quantityPrepared flow: incremented at prep validation, NEVER decremented at BL delivery
+
+Critical bugs found:
+1. DOUBLE STOCK DECREMENT: Stock decremented at both preparation validation AND BL delivery. Same goods counted twice.
+2. QUANTITY PREPARED NEVER DECREASES: When BL delivered, quantityDelivered increases but quantityPrepared stays same. Violates user's step 6 "préparé → livré".
+3. BL CREATION BLOCKED ON in_preparation: Status check only allows prepared/partially_delivered/delivered, but partial prep leaves order in in_preparation.
+4. RESTANT CALCULATION: quantityRequested = qty - qtyPrepared only. Should be qty - qtyPrepared - qtyDelivered if prepared decreases on delivery.
+5. UNDELIVER REVERSES STOCK: If we remove stock from deliver, undeliver must also not touch stock.
+6. NO BL ↔ PREPARATION LINK: No database relation between DeliveryNote and PreparationOrder for traceability.
+
+Stage Summary:
+- Analysis complete, 6 issues identified (3 critical, 3 secondary)
+- Fixes localized to 2 backend files: delivery-notes/route.ts and preparations/route.ts
+- Awaiting user approval to implement corrections
