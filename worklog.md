@@ -298,3 +298,24 @@ Stage Summary:
 - Stock flow: preparation only (single decrement)
 - Prepared/Delivered properly tracked and transitioned
 - BL creation no longer blocked on in_preparation status
+
+---
+Task ID: docs-1
+Agent: Main
+Task: Add complete sales workflow to user guide + version bump
+
+Work Log:
+- Added comprehensive "Processus de vente complet" section to guide-view.tsx
+- 7 detailed steps with visual diagrams, screen mocks, and examples
+- Added "Processus de vente" entry in guide sidebar (Ventes section)
+- Explained stock behavior: single decrement at preparation, none at delivery
+- Added example table: 1000 PVC pipes across 3 preparations and 3 BLs
+- Added command status table with automatic transitions
+- Clarified BL autonomous vs BL linked to order (stock behavior difference)
+- Version already at 1.6.8 from previous commit
+- All version references (login, layout, guide, print-header) use APP_VERSION constant
+
+Stage Summary:
+- Commit 0575927 pushed to GitHub main
+- 1 file changed: guide-view.tsx (+328 lines, -28 lines)
+- Version 1.6.8 (already bumped in previous commit 9c05f72)
