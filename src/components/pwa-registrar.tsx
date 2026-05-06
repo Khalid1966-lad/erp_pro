@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { APP_VERSION } from '@/lib/version'
 
@@ -8,6 +8,7 @@ import { APP_VERSION } from '@/lib/version'
 type UpdateListener = (available: boolean) => void
 let updateAvailable = false
 let updateListeners: UpdateListener[] = []
+let serverVersion: string | null = null
 
 function emitUpdateState() {
   updateListeners.forEach(fn => fn(updateAvailable))
@@ -17,107 +18,192 @@ export function isUpdateAvailable() {
   return updateAvailable
 }
 
+export function getServerVersion() {
+  return serverVersion
+}
+
 export function subscribeUpdateAvailable(fn: UpdateListener) {
   updateListeners.push(fn)
   return () => { updateListeners = updateListeners.filter(l => l !== fn) }
 }
 
+// ── Version comparison helpers ──
+function parseVersion(v: string): number[] {
+  return v.replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0)
+}
+
+function isNewerVersion(a: string, b: string): boolean {
+  const pa = parseVersion(a)
+  const pb = parseVersion(b)
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return true
+    if ((pa[i] || 0) < (pb[i] || 0)) return false
+  }
+  return false
+}
+
+// ── Fetch build-meta.json from server to compare versions ──
+//    This is the PRIMARY detection method for Windows PWA where
+//    the browser SW byte-comparison can be unreliable due to caching.
+async function checkServerVersion(): Promise<boolean> {
+  try {
+    const res = await fetch('/build-meta.json?_t=' + Date.now(), {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
+    if (!res.ok) return false
+    const meta = await res.json()
+    const remoteVersion = meta.version
+    serverVersion = remoteVersion
+    console.log('[PWA] Server version:', remoteVersion, '| Local version:', APP_VERSION)
+
+    if (remoteVersion && isNewerVersion(remoteVersion, APP_VERSION)) {
+      return true
+    }
+    return false
+  } catch (err) {
+    console.warn('[PWA] Could not check server version:', err)
+    return false
+  }
+}
+
 /**
- * Check for a new service worker version.
- * Properly waits for the SW to download & install before resolving.
- * Returns true if a new version is available (waiting SW detected).
+ * Check for a new version using BOTH methods:
+ * 1. Server version comparison (build-meta.json) — most reliable
+ * 2. Service Worker byte-diff — as fallback
  */
 export function checkForUpdates(): Promise<boolean> {
   return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-      resolve(false)
-      return
-    }
-    navigator.serviceWorker.getRegistration().then((reg) => {
-      if (!reg) {
-        resolve(false)
-        return
-      }
-
-      // ── Already have a waiting SW → update ready ──
-      if (reg.waiting) {
+    // ── Method 1: Check build-meta.json for version mismatch ──
+    checkServerVersion().then((serverHasUpdate) => {
+      if (serverHasUpdate) {
         updateAvailable = true
         emitUpdateState()
         resolve(true)
         return
       }
 
-      let resolved = false
-      const done = (result: boolean) => {
-        if (resolved) return
-        resolved = true
-        cleanup()
-        resolve(result)
+      // ── Method 2: SW update check (fallback) ──
+      if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+        resolve(false)
+        return
       }
 
-      const cleanup = () => {
-        reg.removeEventListener('updatefound', onUpdateFound)
-      }
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (!reg) {
+          resolve(false)
+          return
+        }
 
-      // ── Listen for the updatefound event ──
-      const onUpdateFound = () => {
-        const newWorker = reg.installing
-        if (!newWorker) { done(false); return }
+        // Already have a waiting SW → update ready
+        if (reg.waiting) {
+          updateAvailable = true
+          emitUpdateState()
+          resolve(true)
+          return
+        }
 
-        const onStateChange = () => {
-          if (newWorker.state === 'installed') {
-            if (navigator.serviceWorker.controller) {
-              // New SW installed and old SW still active → real update
-              updateAvailable = true
-              emitUpdateState()
-              done(true)
-            } else {
-              // First install (no previous controller)
+        let resolved = false
+        const done = (result: boolean) => {
+          if (resolved) return
+          resolved = true
+          cleanup()
+          resolve(result)
+        }
+
+        const cleanup = () => {
+          reg.removeEventListener('updatefound', onUpdateFound)
+        }
+
+        const onUpdateFound = () => {
+          const newWorker = reg.installing
+          if (!newWorker) { done(false); return }
+
+          const onStateChange = () => {
+            if (newWorker.state === 'installed') {
+              if (navigator.serviceWorker.controller) {
+                updateAvailable = true
+                emitUpdateState()
+                done(true)
+              } else {
+                done(false)
+              }
+            } else if (newWorker.state === 'redundant') {
               done(false)
             }
-          } else if (newWorker.state === 'redundant') {
-            // Install failed
-            done(false)
           }
+          newWorker.addEventListener('statechange', onStateChange)
         }
-        newWorker.addEventListener('statechange', onStateChange)
-      }
 
-      reg.addEventListener('updatefound', onUpdateFound)
+        reg.addEventListener('updatefound', onUpdateFound)
 
-      // ── Trigger the update check ──
-      reg.update()
-        .then(() => {
-          // The browser fetched sw.js. If no updatefound fired within
-          // a few seconds, there's genuinely no update.
-          setTimeout(() => done(false), 3000)
-        })
-        .catch(() => done(false))
-    }).catch(() => resolve(false))
+        reg.update()
+          .then(() => {
+            setTimeout(() => done(false), 3000)
+          })
+          .catch(() => done(false))
+      }).catch(() => resolve(false))
+    })
   })
 }
 
 /**
  * Apply a pending update: tell the waiting SW to skipWaiting, then reload.
+ * If no waiting SW (e.g. version detected via build-meta.json), unregister
+ * the old SW and force a full reload to fetch fresh assets.
  */
 export function applyUpdate() {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
-  navigator.serviceWorker.getRegistration().then((reg) => {
-    if (!reg || !reg.waiting) {
-      // No waiting SW — force full reload
-      window.location.reload()
-      return
-    }
-    // Tell the waiting SW to skip waiting and take control
-    reg.waiting.postMessage({ type: 'SKIP_WAITING' })
-    // Once the new SW activates, reload
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
+  if (typeof window === 'undefined') return
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      if (reg && reg.waiting) {
+        // Has waiting SW → activate it
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload()
+        })
+        return
+      }
+
+      // No waiting SW but update detected via version check
+      // → unregister old SW, clear caches, then hard reload
+      if (reg) {
+        reg.unregister().then(() => {
+          caches.keys().then((names) => {
+            Promise.all(names.map(n => caches.delete(n))).then(() => {
+              window.location.reload()
+            })
+          })
+        })
+        return
+      }
+
+      // Fallback: just reload
       window.location.reload()
     })
-  })
+  } else {
+    window.location.reload()
+  }
 }
 
 export function PwaRegistrar() {
+  const [updateBannerDismissed, setUpdateBannerDismissed] = useState(false)
+
+  const showUpdateNotification = useCallback(() => {
+    if (updateBannerDismissed) return
+    toast.info('🔔 Mise à jour disponible', {
+      description: `Une nouvelle version est disponible. Cliquez sur l'icône ↻ dans l'en-tête pour mettre à jour.`,
+      duration: 15000,
+      action: {
+        label: 'Mettre à jour',
+        onClick: () => {
+          applyUpdate()
+        },
+      },
+    })
+  }, [updateBannerDismissed])
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
@@ -135,44 +221,64 @@ export function PwaRegistrar() {
       .then((registration) => {
         console.log('[PWA] Service Worker registered:', registration.scope)
 
-        // Listen for updates found in the background
+        // ── Method 1: Listen for SW updates (byte-diff) ──
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing
           if (!newWorker) return
 
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New SW installed but old one still active → update available
               updateAvailable = true
               emitUpdateState()
-              toast.info('Mise à jour disponible', {
-                description: 'Cliquez sur l\'icône ↻ dans l\'en-tête pour mettre à jour.',
-                duration: 8000,
-              })
+              showUpdateNotification()
             }
           })
         })
 
-        // Check immediately + every 5 minutes (more aggressive for Windows PWA)
-        registration.update()
-        const interval = setInterval(() => {
+        // ── Method 2: Check server version immediately (reliable on Windows PWA) ──
+        //    This is the main mechanism: compare build-meta.json version with APP_VERSION
+        checkServerVersion().then((hasUpdate) => {
+          if (hasUpdate) {
+            updateAvailable = true
+            emitUpdateState()
+            showUpdateNotification()
+          }
+        })
+
+        // ── Periodic checks every 2 minutes ──
+        //    More aggressive for Windows PWA where SW byte-check can be unreliable
+        const versionInterval = setInterval(async () => {
+          const hasUpdate = await checkServerVersion()
+          if (hasUpdate && !updateAvailable) {
+            updateAvailable = true
+            emitUpdateState()
+            showUpdateNotification()
+          }
+        }, 2 * 60 * 1000)
+
+        // Also do periodic SW byte-check every 5 minutes
+        const swInterval = setInterval(() => {
           registration.update()
         }, 5 * 60 * 1000)
 
-        return () => clearInterval(interval)
+        return () => {
+          clearInterval(versionInterval)
+          clearInterval(swInterval)
+        }
       })
       .catch((error) => {
         console.warn('[PWA] Service Worker registration failed:', error)
       })
 
-    // Listen for messages from SW (e.g. SKIP_WAITING response)
+    // Listen for messages from SW
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'UPDATE_AVAILABLE') {
         updateAvailable = true
         emitUpdateState()
+        showUpdateNotification()
       }
     })
-  }, [])
+  }, [showUpdateNotification])
 
   // Listen for SKIP_WAITING from SW → reload
   useEffect(() => {

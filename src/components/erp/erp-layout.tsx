@@ -71,7 +71,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
-import { checkForUpdates, applyUpdate } from '@/components/pwa-registrar'
+import { checkForUpdates, applyUpdate, subscribeUpdateAvailable, getServerVersion } from '@/components/pwa-registrar'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import React, { useState, useEffect, useRef } from 'react'
@@ -467,6 +467,13 @@ function ThemeToggle() {
 // ─── Update check button (small icon + tooltip) ───
 function UpdateCheckButton() {
   const [checking, setChecking] = useState(false)
+  const [hasUpdate, setHasUpdate] = useState(false)
+
+  useEffect(() => {
+    return subscribeUpdateAvailable((available) => {
+      setHasUpdate(available)
+    })
+  }, [])
 
   const handleCheck = async () => {
     if (checking) return
@@ -475,16 +482,17 @@ function UpdateCheckButton() {
     try {
       const available = await checkForUpdates()
       if (available) {
-        toast.success('Nouvelle version disponible', {
+        const sv = getServerVersion()
+        toast.success('Nouvelle version disponible !', {
           id,
-          description: 'Mise à jour en cours...',
+          description: sv ? `Version ${sv} disponible — mise à jour en cours...` : 'Mise à jour en cours...',
           duration: 3000,
         })
         setTimeout(() => applyUpdate(), 1500)
       } else {
         toast.info('Application à jour ✓', {
           id,
-          description: 'Vous utilisez la dernière version.',
+          description: `Vous utilisez la version ${APP_VERSION}.`,
           duration: 3000,
         })
       }
@@ -499,27 +507,47 @@ function UpdateCheckButton() {
     }
   }
 
+  const handleClick = () => {
+    if (hasUpdate) {
+      applyUpdate()
+    } else {
+      handleCheck()
+    }
+  }
+
   return (
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
         <Button
-          variant="ghost"
+          variant={hasUpdate ? 'default' : 'ghost'}
           size="icon"
-          className="h-8 w-8 rounded-lg hover:bg-muted"
-          onClick={handleCheck}
+          className={cn(
+            'h-8 w-8 rounded-lg',
+            hasUpdate
+              ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm relative'
+              : 'hover:bg-muted'
+          )}
+          onClick={handleClick}
           disabled={checking}
-          aria-label="Vérifier les mises à jour"
+          aria-label={hasUpdate ? 'Mise à jour disponible — cliquer pour mettre à jour' : 'Vérifier les mises à jour'}
         >
+          {hasUpdate && (
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"
+            />
+          )}
           <motion.div
             animate={checking ? { rotate: 360 } : { rotate: 0 }}
             transition={checking ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
           >
-            <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+            <RefreshCw className={cn('h-3.5 w-3.5', hasUpdate ? 'text-white' : 'text-muted-foreground')} />
           </motion.div>
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="text-xs">
-        Vérifier les mises à jour
+        {hasUpdate ? '🔔 Mise à jour disponible — cliquer pour appliquer' : 'Vérifier les mises à jour'}
       </TooltipContent>
     </Tooltip>
   )
