@@ -283,7 +283,7 @@ export async function POST(req: NextRequest) {
     // Build preparation lines: skip fully prepared lines
     let linesToPrepare = salesOrder.lines
       .map((line) => {
-        const quantityRequested = line.quantity - (line.quantityPrepared || 0)
+        const quantityRequested = line.quantity - (line.quantityPrepared || 0) - (line.quantityDelivered || 0)
         return {
           salesOrderLineId: line.id,
           productId: line.productId,

@@ -238,24 +238,24 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Bon de commande introuvable' }, { status: 404 })
       }
 
-      if (salesOrder.status !== 'prepared' && salesOrder.status !== 'partially_delivered' && salesOrder.status !== 'delivered') {
+      if (!['in_preparation', 'prepared', 'partially_delivered', 'delivered'].includes(salesOrder.status)) {
         return NextResponse.json(
-          { error: 'Le bon de commande doit être en statut "préparé", "partiellement livré" ou "livré"' },
+          { error: 'Aucune quantité préparée disponible pour cette commande' },
           { status: 400 }
         )
       }
 
-      // Validate each order line's quantity against remaining (ordered - already delivered)
+      // Validate each order line's quantity against prepared-but-not-yet-delivered
       for (const line of data.lines) {
         if (!line.salesOrderLineId) continue // supplementary line, skip validation
         const soLine = salesOrder.lines.find((l) => l.id === line.salesOrderLineId)
         if (!soLine) {
           return NextResponse.json({ error: `Ligne de commande introuvable: ${line.salesOrderLineId}` }, { status: 400 })
         }
-        const remaining = soLine.quantity - soLine.quantityDelivered
-        if (line.quantity > remaining + 0.001) {
+        const availableForDelivery = (soLine.quantityPrepared || 0) - (soLine.quantityDelivered || 0)
+        if (line.quantity > availableForDelivery + 0.001) {
           return NextResponse.json({
-            error: `Quantité ${line.quantity} dépasse le restant (${remaining}) pour ${soLine.product?.designation || 'produit'}`
+            error: `Quantité ${line.quantity} dépasse le préparé non livré (${availableForDelivery}) pour ${soLine.product?.designation || 'produit'}`
           }, { status: 400 })
         }
       }
@@ -594,9 +594,10 @@ export async function PUT(req: NextRequest) {
             if (!soLine) continue
 
             const newDelivered = Math.max(0, soLine.quantityDelivered + delta)
+            const newPrepared = Math.max(0, (soLine.quantityPrepared || 0) - delta)
             await tx.salesOrderLine.update({
               where: { id: soLineId },
-              data: { quantityDelivered: newDelivered },
+              data: { quantityDelivered: newDelivered, quantityPrepared: newPrepared },
             })
           }
 
@@ -641,8 +642,8 @@ export async function PUT(req: NextRequest) {
           }
         }
 
-        // 5. Apply cascading: Stock deltas
-        if (isDelivered && stockDeltas.size > 0) {
+        // 5. Apply cascading: Stock deltas (only for standalone BLs — order-linked stock managed at preparation)
+        if (isDelivered && stockDeltas.size > 0 && !existing.salesOrderId) {
           for (const [productId, delta] of stockDeltas) {
             if (Math.abs(delta) < 0.001) continue
 
@@ -715,7 +716,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(deliveryNote)
     }
 
-    // Action: deliver (with quantityDelivered tracking + stock movements)
+    // Action: deliver (update delivered/prepared qty, NO stock movement for order-linked BLs)
     if (action === 'deliver') {
       if (existing.status !== 'confirmed' && existing.status !== 'draft') {
         return NextResponse.json(
@@ -736,26 +737,18 @@ export async function PUT(req: NextRequest) {
           include: deliveryNoteInclude,
         })
 
-        // Update quantityDelivered on SalesOrderLines + create stock movements
+        // Update quantityDelivered + quantityPrepared on SalesOrderLines (no stock movement — already done at preparation)
         if (existing.salesOrderId && existing.lines.length > 0) {
           for (const blLine of existing.lines) {
             if (blLine.salesOrderLineId) {
               await tx.salesOrderLine.update({
                 where: { id: blLine.salesOrderLineId },
                 data: {
-                  quantityDelivered: {
-                    increment: blLine.quantity,
-                  },
+                  quantityDelivered: { increment: blLine.quantity },
+                  quantityPrepared: { decrement: blLine.quantity },
                 },
               })
             }
-
-            // Create stock movement (stock OUT for sale)
-            await createStockMovement(
-              tx, blLine.productId, 'out', blLine.quantity, 'sale',
-              existing.number,
-              `Livraison ${existing.number}`
-            )
           }
 
           // Re-fetch all SO lines to check delivery status
@@ -781,7 +774,7 @@ export async function PUT(req: NextRequest) {
             })
           }
         } else if (existing.lines.length > 0) {
-          // Standalone BL: just create stock movements
+          // Standalone BL (no preparation): stock movement required
           for (const blLine of existing.lines) {
             await createStockMovement(
               tx, blLine.productId, 'out', blLine.quantity, 'sale',
@@ -841,7 +834,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(deliveryNote)
     }
 
-    // Action: undeliver (reverse delivery - set back to confirmed)
+    // Action: undeliver (reverse delivery — adjust delivered/prepared, NO stock for order-linked BLs)
     if (action === 'undeliver') {
       if (existing.status !== 'delivered') {
         return NextResponse.json(
@@ -857,16 +850,17 @@ export async function PUT(req: NextRequest) {
           include: deliveryNoteInclude,
         })
 
-        // Reverse SO quantityDelivered
+        // Reverse SO quantityDelivered and quantityPrepared
         if (existing.salesOrderId && existing.lines.length > 0) {
           for (const blLine of existing.lines) {
             if (blLine.salesOrderLineId) {
               const soLine = existing.salesOrder?.lines.find(l => l.id === blLine.salesOrderLineId)
               if (soLine) {
                 const newDelivered = Math.max(0, soLine.quantityDelivered - blLine.quantity)
+                const newPrepared = Math.max(0, (soLine.quantityPrepared || 0) + blLine.quantity)
                 await tx.salesOrderLine.update({
                   where: { id: blLine.salesOrderLineId },
-                  data: { quantityDelivered: newDelivered },
+                  data: { quantityDelivered: newDelivered, quantityPrepared: newPrepared },
                 })
               }
             }
@@ -907,13 +901,15 @@ export async function PUT(req: NextRequest) {
           }
         }
 
-        // Reverse stock movements
-        for (const blLine of existing.lines) {
-          await createStockMovement(
-            tx, blLine.productId, 'in', blLine.quantity, 'return',
-            existing.number,
-            `Annulation livraison ${existing.number}`
-          )
+        // Reverse stock movements only for standalone BLs (order-linked: stock managed at preparation)
+        if (!existing.salesOrderId) {
+          for (const blLine of existing.lines) {
+            await createStockMovement(
+              tx, blLine.productId, 'in', blLine.quantity, 'return',
+              existing.number,
+              `Annulation livraison ${existing.number}`
+            )
+          }
         }
 
         return undelivered
