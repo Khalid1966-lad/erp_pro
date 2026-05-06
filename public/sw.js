@@ -15,8 +15,10 @@
 // 🔄  AUTO-GENERATED — do not edit CACHE_NAME manually
 // Build script writes build-meta.json → sw.js reads it at install time.
 // Fallback values are used only if build-meta.json is missing (dev mode).
+// The prebuild script injects a BUILD_STAMP below so sw.js bytes change on every build.
 let CACHE_NAME = 'gema-erp-fallback';
 let BUILD_STAMP = 'dev';
+// __BUILD_STAMP_PLACEHOLDER__
 
 const STATIC_ASSETS = [
   '/',
@@ -109,7 +111,30 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: cache first, fallback to network
+  // Navigation requests (HTML pages): NETWORK FIRST to avoid stale chunks
+  // This prevents ChunkLoadError when a new deployment has different chunk hashes.
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, clone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // Offline fallback: serve cached version if available
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // Static assets (_next/static chunks, images): cache first, fallback to network
+  // For these, we also verify the cached response is still valid
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

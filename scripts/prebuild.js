@@ -44,4 +44,22 @@ try {
   console.warn(`[prebuild] Could not update manifest.webmanifest: ${err.message}`);
 }
 
+// ── 3. Inject build stamp into sw.js so the file changes on every build ──
+//    The browser compares sw.js bytes to detect updates. Without this,
+//    the browser never sees a new version and the old SW keeps serving
+//    stale cached HTML with outdated chunk references → ChunkLoadError.
+const swPath = path.join(__dirname, '..', 'public', 'sw.js');
+try {
+  let swContent = fs.readFileSync(swPath, 'utf-8');
+  const stampComment = `// BUILD: v${version} | ${buildDate} | ${buildTimestamp}`;
+  swContent = swContent.replace(
+    /\/\/ __BUILD_STAMP_PLACEHOLDER__/,
+    stampComment
+  );
+  fs.writeFileSync(swPath, swContent);
+  console.log(`[prebuild] sw.js build stamp injected — ${stampComment}`);
+} catch (err) {
+  console.warn(`[prebuild] Could not update sw.js: ${err.message}`);
+}
+
 console.log(`[prebuild] build-meta.json generated — v${version} | ${buildDate} | cache: ${cacheName}`);
