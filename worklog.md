@@ -275,3 +275,26 @@ Stage Summary:
 - Analysis complete, 6 issues identified (3 critical, 3 secondary)
 - Fixes localized to 2 backend files: delivery-notes/route.ts and preparations/route.ts
 - Awaiting user approval to implement corrections
+
+---
+Task ID: fix-1
+Agent: Main
+Task: Fix critical sales workflow bugs — stock double decrement + prepared/delivered tracking
+
+Work Log:
+- Fixed double stock decrement: stock OUT only at preparation validation, NOT at BL delivery
+- Fixed quantityPrepared: decrements at BL delivery, increments at BL undeliver
+- Fixed BL creation: now allowed when SO status is 'in_preparation'
+- Fixed BL qty validation: limited to (prepared - delivered) instead of (ordered - delivered)
+- Fixed restant calculation in preparations: qty - prepared - delivered
+- Fixed undeliver: no stock reversal for order-linked BLs, prepared restored
+- Fixed edit_lines: stock adjustments only for standalone BLs, prepared adjusted for order-linked
+- Bumped version to 1.6.8
+- Lint passes clean
+
+Stage Summary:
+- Commit 9c05f72 pushed to GitHub main
+- 3 files changed: delivery-notes/route.ts (10 edits), preparations/route.ts (1 edit), version.ts
+- Stock flow: preparation only (single decrement)
+- Prepared/Delivered properly tracked and transitioned
+- BL creation no longer blocked on in_preparation status
