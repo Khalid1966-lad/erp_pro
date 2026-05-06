@@ -54,6 +54,7 @@ const sections: Section[] = [
     { id: 'clients', label: 'Clients' },
     { id: 'produits', label: 'Produits' },
     { id: 'devis', label: 'Devis' },
+    { id: 'processus', label: 'Processus de vente' },
     { id: 'commandes', label: 'Commandes' },
     { id: 'preparations', label: 'Préparations' },
     { id: 'bons-livraison', label: 'Bons de livraison' },
@@ -662,32 +663,71 @@ function VentesSection() {
         permettant de modifier le devis et de le renvoyer au client sans avoir à le recréer.
       </TipBox>
 
-      {/* Commandes */}
-      <SubTitle id="ventes-commandes">Commandes</SubTitle>
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* PROCESSUS DE VENTE COMPLET (v1.6.8) */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <SubTitle id="ventes-processus">Processus de vente complet</SubTitle>
       <Paragraph>
-        Les commandes clients représentent les engagements fermes. Elles déclenchent le processus de préparation
-        et de livraison. Le cycle : Confirmée → En préparation → Prête → Livrée → Facturée.
+        Le processus de vente est le cœur de l&apos;activité commerciale. Il suit un flux précis en 7 étapes,
+        de la commande client jusqu&apos;à la livraison totale. Voici le détail complet de chaque étape.
       </Paragraph>
 
       <FlowDiagram steps={[
-        { label: 'Confirmée', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
-        { label: 'En préparation', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Package },
-        { label: 'Prête', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: PackageCheck },
-        { label: 'Livrée', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: Truck },
-        { label: 'Facturée', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: Receipt },
+        { label: '1. Commande', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: ShoppingCart },
+        { label: '2. Préparation', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Package },
+        { label: '3. Chargement', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: Warehouse },
+        { label: '4. BL', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: Truck },
+        { label: '5. Livraison', color: 'bg-teal-50 border-teal-200 text-teal-700', icon: CheckCircle },
+        { label: '6. Facture', color: 'bg-rose-50 border-rose-200 text-rose-700', icon: Receipt },
+        { label: '7. Paiement', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: CreditCard },
       ]} />
 
-      {/* Préparations */}
-      <SubTitle id="ventes-preparations">Préparations</SubTitle>
+      {/* Étape 1 */}
+      <SubTitle>Étape 1 : Le client passe commande</SubTitle>
       <Paragraph>
-        Les préparations détaillent le prélèvement en stock pour chaque commande. Le magasinier indique
-        les quantités réellement prélevées et signale les éventuels manquants.
+        Un client passe une commande avec un ou plusieurs articles et quantités. La commande est créée
+        dans <strong>Ventes → Commandes</strong>. Chaque ligne contient un produit, une quantité commandée, un prix unitaire et un taux de TVA.
       </Paragraph>
+      <Step num={1}>Créez la commande avec les articles et quantités souhaités par le client.</Step>
+      <Step num={2}>Confirmez la commande. Le statut passe à <StatusBadge status="Confirmée" />.</Step>
+      <Step num={3}>Dans le détail de la commande, vous voyez les colonnes <strong>Commandé</strong>, <strong>Préparé</strong>, <strong>Livré</strong> et <strong>Restant</strong> pour suivre l&apos;avancement.</Step>
 
-      <ScreenMock title="Préparation de commande CMD-2026-0089">
+      <TipBox type="info">
+        Le champ <strong>Restant</strong> se calcule automatiquement : <code className="text-xs bg-muted px-1 rounded font-mono">Restant = Commandé - Préparé - Livré</code>.
+        Tant que le restant est &gt; 0, de nouvelles préparations peuvent être lancées.
+      </TipBox>
+
+      {/* Étape 2 */}
+      <SubTitle>Étape 2 : Le management lance une préparation</SubTitle>
+      <Paragraph>
+        À partir d&apos;une commande confirmée, le management crée un <strong>bon de préparation</strong>.
+        Ce bon liste tous les articles de la commande avec les quantités restant à préparer.
+      </Paragraph>
+      <Step num={1}>Ouvrez la commande et cliquez sur <strong>« Créer préparation »</strong>.</Step>
+      <Step num={2}>Le système génère automatiquement un bon de préparation avec les quantités restantes.</Step>
+      <Step num={3}>Le statut de la commande passe à <StatusBadge status="En préparation" />.</Step>
+
+      <TipBox type="info">
+        <strong>Préparations multiples :</strong> Si la commande est importante (ex. 1000 unités), vous pouvez créer plusieurs
+        bons de préparation successifs. Chaque nouvelle préparation ne prend que le restant à préparer.
+      </TipBox>
+
+      {/* Étape 3 */}
+      <SubTitle>Étape 3 : Le magasinier traite la préparation</SubTitle>
+      <Paragraph>
+        Le préparateur (magasinier) reçoit le bon de préparation et détermine les quantités réellement
+        disponibles à charger dans les camions. Les quantités préparées peuvent être inférieures aux
+        quantités demandées.
+      </Paragraph>
+      <Step num={1}>Accédez à <strong>Ventes → Préparations</strong>.</Step>
+      <Step num={2}>Démarrez la préparation (statut <StatusBadge status="En préparation" />).</Step>
+      <Step num={3}>Pour chaque ligne, saisissez la <strong>quantité préparée</strong> (≤ quantité demandée).</Step>
+      <Step num={4}>Validez la préparation. Le système vérifie que le stock est suffisant.</Step>
+
+      <ScreenMock title="Préparation PREP-2025-0042 — Magasinier en cours de traitement">
         <div className="space-y-3">
           <div className="flex gap-4 text-sm">
-            <span className="text-muted-foreground">Commande : <strong>CMD-2026-0089</strong></span>
+            <span className="text-muted-foreground">Commande : <strong>CMD-CL-0012</strong></span>
             <span className="text-muted-foreground">Client : <strong>SARL Al Mouataz Industrie</strong></span>
           </div>
           <Table>
@@ -695,43 +735,303 @@ function VentesSection() {
               <TableRow>
                 <TableHead>Produit</TableHead>
                 <TableHead className="text-right">Demandé</TableHead>
+                <TableHead className="text-right">Stock dispo.</TableHead>
                 <TableHead className="text-right">Préparé</TableHead>
                 <TableHead>Statut</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {[
-                { name: 'Armoire industrielle modulable', asked: 3, prepared: 3, status: 'Complet' },
-                { name: 'Banc de travail technique', asked: 2, prepared: 1, status: 'Partiel' },
+                { name: 'Tuyau PVC 110mm (4m)', asked: 500, stock: 320, prepared: 320, status: 'Partiel' },
+                { name: 'Coude PVC 90° 110mm', asked: 200, stock: 200, prepared: 200, status: 'Complet' },
+                { name: 'Collier PVC 110mm', asked: 100, stock: 100, prepared: 100, status: 'Complet' },
               ].map((l) => (
                 <TableRow key={l.name}>
                   <TableCell className="text-sm">{l.name}</TableCell>
                   <TableCell className="text-right font-mono">{l.asked}</TableCell>
+                  <TableCell className="text-right font-mono">{l.stock}</TableCell>
                   <TableCell className="text-right font-mono">{l.prepared}</TableCell>
                   <TableCell><StatusBadge status={l.status === 'Complet' ? 'Actif' : 'Partielle'} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>Tuyau PVC 110mm : stock insuffisant (320/500). Manquant : 180. Créez une production ou une commande fournisseur.</span>
+          </div>
         </div>
       </ScreenMock>
 
-      <TipBox type="success">
-        Une préparation validée peut être convertie directement en <strong>bon de livraison</strong> en un seul clic.
-        Les quantités préparées sont automatiquement reprises dans le BL.
+      <TipBox type="warning">
+        <strong>Stock insuffisant :</strong> Si un produit n&apos;a pas assez de stock, la validation est bloquée.
+        Le système affiche les manquants et suggère les actions appropriées (commande fournisseur pour matières premières,
+        lancement de production pour produits finis).
       </TipBox>
 
-      {/* Bons de livraison */}
-      <SubTitle id="ventes-bons-livraison">Bons de livraison</SubTitle>
+      {/* Étape 3 - Suite : ce qui se passe à la validation */}
+      <SubTitle>Que se passe-t-il quand le magasinier valide ?</SubTitle>
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-600 text-xs font-bold shrink-0">1</div>
+              <div>
+                <p className="text-sm font-medium">Le stock est décrémenté</p>
+                <p className="text-xs text-muted-foreground">Les marchandises sortent physiquement de l&apos;entrepôt. Un mouvement de stock (sortie) est enregistré.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-sky-100 text-sky-600 text-xs font-bold shrink-0">2</div>
+              <div>
+                <p className="text-sm font-medium">La quantité « Préparé » augmente sur la commande</p>
+                <p className="text-xs text-muted-foreground">Exemple : commande de 100, préparation de 60 → Préparé passe à 60, Restant passe à 40.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-violet-100 text-violet-600 text-xs font-bold shrink-0">3</div>
+              <div>
+                <p className="text-sm font-medium">Le statut de la commande est mis à jour</p>
+                <p className="text-xs text-muted-foreground">Si tout est préparé → « Préparé ». Si partiel → reste « En préparation ».</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <TipBox type="success">
+        <strong>Point clé :</strong> Le stock ne sort qu&apos;une seule fois — à la validation de la préparation (quand le magasinier charge le camion).
+        La livraison ultérieure n&apos;affecte plus le stock.
+      </TipBox>
+
+      {/* Étape 4 : Commande mise à jour */}
+      <SubTitle>Étape 4 : La commande est mise à jour</SubTitle>
       <Paragraph>
-        Le bon de livraison (BL) est édité après la préparation complète. Il atteste la remise de la marchandise
-        au client et constitue le document de référence pour la facturation.
+        Après la validation de la préparation, la commande affiche automatiquement les quantités préparées
+        et les quantités restantes. Cliquez sur une commande pour voir le détail dans le panneau du bas.
       </Paragraph>
-      <TipBox type="tip">
-        <strong>Mode édition :</strong> Les BL peuvent être modifiés après création. Cliquez sur l'icône crayon dans les actions
-        pour ouvrir le mode édition. Vous pouvez modifier l'adresse de livraison, les quantités, les prix unitaires
-        et les taux de TVA. Si le BL est lié à une commande, les quantités livrées dans la commande et le stock
-        sont automatiquement mis à jour.
+
+      <ScreenMock title="Détail de la commande CMD-CL-0012 — Suivi des quantités">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Produit</TableHead>
+              <TableHead className="text-right">Commandé</TableHead>
+              <TableHead className="text-right">Préparé</TableHead>
+              <TableHead className="text-right">Livré</TableHead>
+              <TableHead className="text-right">Restant</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[
+              { name: 'Tuyau PVC 110mm', cmd: 500, prep: 320, liv: 0, rest: 180 },
+              { name: 'Coude PVC 90°', cmd: 200, prep: 200, liv: 0, rest: 0 },
+              { name: 'Collier PVC 110mm', cmd: 100, prep: 100, liv: 0, rest: 0 },
+            ].map((l) => (
+              <TableRow key={l.name}>
+                <TableCell className="text-sm">{l.name}</TableCell>
+                <TableCell className="text-right font-mono">{l.cmd}</TableCell>
+                <TableCell className="text-right font-mono font-medium text-sky-600">{l.prep}</TableCell>
+                <TableCell className="text-right font-mono text-emerald-600">{l.liv}</TableCell>
+                <TableCell className="text-right font-mono">
+                  <span className={l.rest > 0 ? 'text-amber-600 font-medium' : 'text-emerald-600'}>{l.rest}</span>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ScreenMock>
+
+      {/* Étape 5 : BL */}
+      <SubTitle>Étape 5 : Le management crée les bons de livraison</SubTitle>
+      <Paragraph>
+        Les bons de livraison (BL) sont créés <strong>manuellement</strong> par le management en fonction des
+        préparations validées. Chaque livraison est unique et ne correspond pas nécessairement aux quantités
+        exactes de la commande — le préparateur peut avoir dispatché les quantités sur plusieurs camions.
+      </Paragraph>
+      <Step num={1}>Accédez à <strong>Ventes → Bons de livraison</strong> et créez un nouveau BL.</Step>
+      <Step num={2}>Sélectionnez la commande client associée.</Step>
+      <Step num={3}>Saisissez les quantités à livrer pour chaque article (≤ préparé non livré).</Step>
+      <Step num={4}>Renseignez les informations de transport (transporteur, véhicule, chauffeur).</Step>
+      <Step num={5}>Confirmez puis livrez le BL.</Step>
+
+      <TipBox type="info">
+        <strong>Validation des quantités :</strong> Le système vérifie que la quantité du BL ne dépasse pas le
+        <strong> préparé non livré</strong> (Préparé - Livré), et non le total commandé.
+      </TipBox>
+
+      {/* Étape 6 : Transition préparé → livré */}
+      <SubTitle>Étape 6 : Les quantités passent de « Préparé » à « Livré »</SubTitle>
+      <Paragraph>
+        Quand un BL est livré (statut « Livré »), les quantités dans la commande sont automatiquement
+        mises à jour : la quantité <strong>Préparé</strong> diminue et la quantité <strong>Livré</strong> augmente du même montant.
+      </Paragraph>
+
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-4">
+          <p className="text-sm font-medium mb-3">Exemple concret :</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground w-24">Après prép. :</span>
+              <span className="font-mono">Commandé=500, Préparé=320, Livré=<strong className="text-emerald-600">0</strong>, Restant=180</span>
+            </div>
+            <ArrowDown className="h-4 w-4 text-muted-foreground ml-10" />
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground w-24">Après BL livré :</span>
+              <span className="font-mono">Commandé=500, Préparé=<strong className="text-sky-600">0</strong>, Livré=<strong className="text-emerald-600">320</strong>, Restant=180</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <TipBox type="success">
+        <strong>Pas de double stock :</strong> La livraison du BL ne touche pas au stock. Le stock a déjà été décrémenté
+        à l&apos;étape de la préparation (chargement du camion). La livraison enregistre seulement que la marchandise
+        est arrivée chez le client.
+      </TipBox>
+
+      {/* Étape 7 : Livraison totale */}
+      <SubTitle>Étape 7 : Livraison totale → commande terminée</SubTitle>
+      <Paragraph>
+        Le processus se répète (préparation → BL → livraison) jusqu&apos;à ce que tous les produits
+        soient livrés. Quand le restant atteint 0 pour toutes les lignes, la commande passe automatiquement
+        en statut <StatusBadge status="Livrée" />.
+      </Paragraph>
+
+      <ScreenMock title="Exemple complet — Commande de 1000 tuyaux PVC">
+        <div className="space-y-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Étape</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead className="text-right">Stock</TableHead>
+                <TableHead className="text-right">Préparé</TableHead>
+                <TableHead className="text-right">Livré</TableHead>
+                <TableHead className="text-right">Restant</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { step: 'Création commande', action: 'Commande de 1000', stock: '10 000', prep: '0', liv: '0', rest: '1000' },
+                { step: 'Préparation 1', action: 'Prépare 600', stock: '9 400', prep: '600', liv: '0', rest: '400' },
+                { step: 'BL-001 livré', action: 'Livre 300', stock: '9 400', prep: '300', liv: '300', rest: '400' },
+                { step: 'BL-002 livré', action: 'Livre 300', stock: '9 400', prep: '0', liv: '600', rest: '400' },
+                { step: 'Préparation 2', action: 'Prépare 400', stock: '9 000', prep: '400', liv: '600', rest: '0' },
+                { step: 'BL-003 livré', action: 'Livre 400', stock: '9 000', prep: '0', liv: '1000', rest: '0' },
+              ].map((r) => (
+                <TableRow key={r.step}>
+                  <TableCell className="text-sm font-medium">{r.step}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{r.action}</TableCell>
+                  <TableCell className="text-right font-mono text-xs">{r.stock}</TableCell>
+                  <TableCell className="text-right font-mono text-xs text-sky-600 font-medium">{r.prep}</TableCell>
+                  <TableCell className="text-right font-mono text-xs text-emerald-600 font-medium">{r.liv}</TableCell>
+                  <TableCell className="text-right font-mono text-xs">
+                    <span className={r.rest === '0' ? 'text-emerald-600 font-bold' : 'text-amber-600 font-medium'}>{r.rest}</span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <strong>Commande livrée intégralement — Prêt pour la facturation.</strong>
+          </div>
+        </div>
+      </ScreenMock>
+
+      <TipBox type="warning">
+        <strong>BL autonomes :</strong> Si vous créez un BL sans le lier à une commande (client direct),
+        le stock est décrémenté à la livraison du BL (car il n&apos;y a pas eu de préparation préalable).
+      </TipBox>
+
+      {/* Résumé des statuts commande */}
+      <SubTitle id="ventes-commandes">Statuts d&apos;une commande</SubTitle>
+      <FlowDiagram steps={[
+        { label: 'En attente', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: Clock },
+        { label: 'Confirmée', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle },
+        { label: 'En préparation', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Package },
+        { label: 'Préparée', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: PackageCheck },
+        { label: 'Partiellement livrée', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: Truck },
+        { label: 'Livrée', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle2 },
+      ]} />
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Statut</TableHead>
+                <TableHead>Signification</TableHead>
+                <TableHead>Transition automatique</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell><StatusBadge status="Brouillon" /></TableCell>
+                <TableCell className="text-sm">Commande en cours de saisie</TableCell>
+                <TableCell className="text-xs text-muted-foreground">→ Confirmée (manuel)</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Confirmée" /></TableCell>
+                <TableCell className="text-sm">Commande validée, prête pour préparation</TableCell>
+                <TableCell className="text-xs text-muted-foreground">→ En préparation (à la 1ère préparation)</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="En préparation" /></TableCell>
+                <TableCell className="text-sm">Au moins une préparation en cours</TableCell>
+                <TableCell className="text-xs text-muted-foreground">→ Préparée (si tout préparé) ou reste En préparation</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Prête" /></TableCell>
+                <TableCell className="text-sm">Toutes les quantités sont préparées</TableCell>
+                <TableCell className="text-xs text-muted-foreground">→ Partiellement livrée (au 1er BL livré)</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Partielle" /></TableCell>
+                <TableCell className="text-sm">Au moins un BL livré, mais pas tout</TableCell>
+                <TableCell className="text-xs text-muted-foreground">→ Livrée (quand tout est livré)</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Payée" /></TableCell>
+                <TableCell className="text-sm">Toutes les quantités livrées</TableCell>
+                <TableCell className="text-xs text-muted-foreground">→ Prêt pour la facturation</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Préparations — compléments */}
+      <SubTitle id="ventes-preparations">Préparations — Guide détaillé</SubTitle>
+      <Paragraph>
+        Les préparations détaillent le prélèvement en stock pour chaque commande. Le magasinier indique
+        les quantités réellement prélevées et signale les éventuels manquants.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Ventes → Préparations</strong> ou créez une préparation depuis une commande.</Step>
+      <Step num={2}>Démarrez la préparation (bouton « Démarrer »).</Step>
+      <Step num={3}>Saissez les quantités préparées pour chaque ligne.</Step>
+      <Step num={4}>Vérifiez les alertes de stock (déficits affichés en orange).</Step>
+      <Step num={5}>Validez la préparation. Le stock est décrémenté et la commande est mise à jour.</Step>
+
+      <TipBox type="success">
+        Après validation, vous pouvez créer un <strong>bon de livraison</strong> directement depuis la préparation
+        en cliquant sur le bouton <strong>« BL »</strong>.
+      </TipBox>
+
+      {/* Bons de livraison — compléments */}
+      <SubTitle id="ventes-bons-livraison">Bons de livraison — Guide détaillé</SubTitle>
+      <Paragraph>
+        Le bon de livraison (BL) est le document qui accompagne la marchandise lors de la livraison au client.
+        Il est créé <strong>manuellement</strong> par le management en fonction des préparations validées.
+      </Paragraph>
+
+      <TipBox type="info">
+        <strong>Mode édition :</strong> Les BL peuvent être modifiés après création. Cliquez sur l&apos;icône crayon dans les actions
+        pour ouvrir le mode édition. Vous pouvez modifier l&apos;adresse de livraison, les quantités, les informations
+        de transport. Si le BL est lié à une commande et déjà livré, les quantités dans la commande sont mises à jour
+        en cascade (aucun impact sur le stock).
       </TipBox>
 
       {/* Icônes de statut — Ventes */}
