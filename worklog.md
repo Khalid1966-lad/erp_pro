@@ -437,3 +437,25 @@ Stage Summary:
 - BL from preparation now fully tracked and protected
 - No duplicate BLs possible for same preparation
 - Lines immutable when BL created from preparation
+
+---
+Task ID: 1
+Agent: main
+Task: Créer version 1.8.0, mettre à jour références et pieds de page, mettre à jour PWA
+
+Work Log:
+- Identified all version references across the project (package.json, version.ts, manifest.webmanifest, sw.js, guide-view.tsx)
+- Updated package.json: 1.7.0 → 1.8.0
+- Updated src/lib/version.ts: APP_VERSION = '1.8.0', BUILD_DATE = '2025-07-20'
+- Updated public/manifest.webmanifest: version = "1.8.0"
+- Fixed public/sw.js: restored __BUILD_STAMP_PLACEHOLDER__ (was hardcoded v1.6.9, prebuild regex couldn't match)
+- Updated guide-view.tsx: processus de vente comment v1.6.8 → v1.7.0
+- Verified all other files import APP_VERSION dynamically (sidebar, login, settings, print-header, backup, PWA registrar)
+- ESLint passed with no errors
+- Committed as e75e6a3 and pushed to main
+
+Stage Summary:
+- Version bumped from 1.7.0 to 1.8.0 across all references
+- PWA manifest version updated
+- Service Worker placeholder bug fixed (prebuild script can now properly inject build stamps)
+- All footers/sidebars/print-headers auto-update via shared APP_VERSION import
