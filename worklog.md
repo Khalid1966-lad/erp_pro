@@ -412,3 +412,28 @@ Stage Summary:
 - Minor TypeScript fix: added missing createdAt to DeliveryNote interface
 - Sales orders: "Date" → "Créé le" column with createdAt sort
 
+---
+Task ID: 2
+Agent: Main
+Task: Lier les BL aux préparations — anti-doublon, verrouillage, bouton camion intelligent
+
+Work Log:
+- Added preparationId to DeliveryNote Prisma model with relation to PreparationOrder
+- Pushed schema to Neon PostgreSQL successfully
+- Backend API: preparationId in createFromOrderSchema, duplicate check (409), included in GET/PUT responses
+- Backend API: edit_lines blocked when preparationId present (400)
+- Frontend BL: added preparation to TypeScript interface
+- Frontend BL: sends preparationId on create, handles 409 duplicate error
+- Frontend BL: shows prep number in expanded detail, detail dialog, edit dialog
+- Frontend BL: edit dialog locks lines (qty/price/tva/article disabled), header-only save
+- Frontend BL: print includes preparation number
+- Frontend BL: support viewDetailId navigation param to open BL directly
+- Frontend Preparations: smart truck button (checks existing BL via API)
+- Frontend Preparations: truck button color changes (blue=exists, teal=new)
+- Fixed TS errors (salesOrder.number→clientOrderNumber, ProductCombobox props, idx variable)
+
+Stage Summary:
+- Commit 5c54992 pushed to main
+- BL from preparation now fully tracked and protected
+- No duplicate BLs possible for same preparation
+- Lines immutable when BL created from preparation
