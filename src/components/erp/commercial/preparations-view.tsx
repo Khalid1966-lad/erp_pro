@@ -681,8 +681,8 @@ export default function PreparationsView() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-                              onClick={() => navigateTo('delivery-notes', { salesOrderId: prep.salesOrderId })}
-                              title="Créer BL"
+                              onClick={() => navigateTo('delivery-notes', { salesOrderId: prep.salesOrderId, preparationId: prep.id })}
+                              title="Créer BL depuis cette préparation"
                             >
                               <Truck className="h-4 w-4" />
                             </Button>

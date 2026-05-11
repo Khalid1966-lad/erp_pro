@@ -185,6 +185,8 @@ interface OrderLineWithDelivery {
   quantityPrepared: number
   remaining: number
   deliveryPercentage: number
+  /** Quantity prepared in the source preparation (when BL comes from a preparation) */
+  prepQuantity: number
   product?: { id: string; reference: string; designation: string }
 }
 
@@ -306,10 +308,15 @@ export default function DeliveryNotesView() {
     // When navigated from preparations with a salesOrderId, open create dialog
     if (navigationParams?.salesOrderId) {
       const salesOrderId = navigationParams.salesOrderId
+      const preparationId = navigationParams.preparationId || null
       useNavStore.setState({ navigationParams: null })
       // Open create dialog and load order data
       setCreateOpen(true)
       setCreateMode('order')
+      // If from preparation, lock the mode and store preparation ID
+      if (preparationId) {
+        setFromPreparationId(preparationId)
+      }
       // Load available orders and pre-select
       const loadForNavigation = async () => {
         try {
@@ -325,7 +332,7 @@ export default function DeliveryNotesView() {
           setAvailableProducts(productsData.products || [])
           // Pre-select the order
           setSelectedOrderId(salesOrderId)
-          await fetchOrderLinesForDelivery(salesOrderId)
+          await fetchOrderLinesForDelivery(salesOrderId, preparationId)
         } catch (err: any) {
           toast.error(err.message || 'Erreur chargement des données')
         }
@@ -371,6 +378,9 @@ export default function DeliveryNotesView() {
   const [deliveryQuantities, setDeliveryQuantities] = useState<Record<string, number>>({})
   const [includedLines, setIncludedLines] = useState<Record<string, boolean>>({})
   const [loadingOrderLines, setLoadingOrderLines] = useState(false)
+
+  // From preparation: lock mode toggle + show prepared quantities as read-only
+  const [fromPreparationId, setFromPreparationId] = useState<string | null>(null)
 
   // Edit form
   const [editTransporteur, setEditTransporteur] = useState('')
@@ -485,6 +495,7 @@ export default function DeliveryNotesView() {
   const openCreateDialog = async () => {
     setCreateOpen(true)
     setCreateMode('order')
+    setFromPreparationId(null)
     setSelectedOrderId('')
     setSelectedClientId('')
     setSelectedChantierId('')
@@ -533,12 +544,30 @@ export default function DeliveryNotesView() {
 
   // ─── Fetch order lines for partial delivery ───
 
-  const fetchOrderLinesForDelivery = async (orderId: string) => {
+  const fetchOrderLinesForDelivery = async (orderId: string, preparationId?: string | null) => {
     setLoadingOrderLines(true)
     setOrderLinesForDelivery([])
     setDeliveryQuantities({})
     setIncludedLines({})
     try {
+      // If from preparation, fetch preparation data first to get prepared quantities
+      let prepLinesMap: Record<string, number> = {}
+      if (preparationId) {
+        try {
+          const prepData = await api.get<{ preparations: any[] }>(`/preparations?id=${preparationId}`)
+          const prep = prepData.preparations?.[0]
+          if (prep && prep.lines) {
+            for (const pl of prep.lines) {
+              if (pl.quantityPrepared > 0 && pl.salesOrderLineId) {
+                prepLinesMap[pl.salesOrderLineId] = pl.quantityPrepared
+              }
+            }
+          }
+        } catch {
+          console.warn('Could not fetch preparation data, falling back to order data')
+        }
+      }
+
       // Fetch the sales order with its lines directly using the id filter
       const data = await api.get<{ orders: any[] }>(`/sales-orders?id=${orderId}&limit=1`)
       const order = data.orders?.[0]
@@ -547,6 +576,8 @@ export default function DeliveryNotesView() {
         setLoadingOrderLines(false)
         return
       }
+
+      const isFromPrep = !!preparationId && Object.keys(prepLinesMap).length > 0
 
       const lines: OrderLineWithDelivery[] = order.lines
         .map((line: any) => {
@@ -562,19 +593,32 @@ export default function DeliveryNotesView() {
             quantityPrepared: line.quantityPrepared || 0,
             remaining,
             deliveryPercentage: pct,
+            prepQuantity: prepLinesMap[line.id] || 0,
             product: line.product,
           }
         })
         .filter((l: OrderLineWithDelivery) => l.remaining > 0)
 
-      setOrderLinesForDelivery(lines)
+      // When from preparation, only show lines that have prepared quantities > 0
+      const filteredLines = isFromPrep
+        ? lines.filter((l: OrderLineWithDelivery) => l.prepQuantity > 0)
+        : lines
 
-      // Default: all lines included with qty = remaining
+      setOrderLinesForDelivery(filteredLines)
+
+      // Default: all lines included
       const qtyMap: Record<string, number> = {}
       const incMap: Record<string, boolean> = {}
-      lines.forEach((l: OrderLineWithDelivery) => {
-        qtyMap[l.id] = l.remaining
-        incMap[l.id] = true
+      filteredLines.forEach((l: OrderLineWithDelivery) => {
+        if (isFromPrep) {
+          // From preparation: quantity = prepared quantity (locked, read-only)
+          qtyMap[l.id] = l.prepQuantity
+          incMap[l.id] = true
+        } else {
+          // Normal: quantity = remaining (editable)
+          qtyMap[l.id] = l.remaining
+          incMap[l.id] = true
+        }
       })
       setDeliveryQuantities(qtyMap)
       setIncludedLines(incMap)
@@ -1527,7 +1571,7 @@ export default function DeliveryNotesView() {
       {/* ═══════════════════════════════════════════════════════ */}
       {/* CREATE DIALOG                                        */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) setFromPreparationId(null) }}>
         <DialogContent resizable className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1543,38 +1587,65 @@ export default function DeliveryNotesView() {
             {/* Mode Toggle */}
             <div className="space-y-2">
               <Label>Type de bon de livraison</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCreateMode('order')}
-                  className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all ${
-                    createMode === 'order'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-muted hover:border-muted-foreground/30'
-                  }`}
-                >
-                  <ShoppingCart className={`h-5 w-5 ${createMode === 'order' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <div>
-                    <p className="font-medium text-sm">Avec commande</p>
-                    <p className="text-xs text-muted-foreground">Lier à un bon de commande existant</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCreateMode('standalone')}
-                  className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all ${
-                    createMode === 'standalone'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-muted hover:border-muted-foreground/30'
-                  }`}
-                >
-                  <Package className={`h-5 w-5 ${createMode === 'standalone' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <div>
-                    <p className="font-medium text-sm">Sans commande</p>
-                    <p className="text-xs text-muted-foreground">BL autonome (sélection manuelle)</p>
-                  </div>
-                </button>
-              </div>
+              {fromPreparationId ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    disabled
+                    className="flex items-center gap-3 rounded-lg border-2 p-4 text-left border-primary bg-primary/5 opacity-90 cursor-default"
+                  >
+                    <ShoppingCart className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium text-sm">Avec commande</p>
+                      <p className="text-xs text-muted-foreground">BL depuis préparation — mode verrouillé</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    className="flex items-center gap-3 rounded-lg border-2 p-4 text-left border-muted opacity-50 cursor-not-allowed"
+                  >
+                    <Package className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-sm text-muted-foreground">Sans commande</p>
+                      <p className="text-xs text-muted-foreground">Non disponible</p>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCreateMode('order')}
+                    className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all ${
+                      createMode === 'order'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-muted hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    <ShoppingCart className={`h-5 w-5 ${createMode === 'order' ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <div>
+                      <p className="font-medium text-sm">Avec commande</p>
+                      <p className="text-xs text-muted-foreground">Lier à un bon de commande existant</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateMode('standalone')}
+                    className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all ${
+                      createMode === 'standalone'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-muted hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    <Package className={`h-5 w-5 ${createMode === 'standalone' ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <div>
+                      <p className="font-medium text-sm">Sans commande</p>
+                      <p className="text-xs text-muted-foreground">BL autonome (sélection manuelle)</p>
+                    </div>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* ── Mode: With Sales Order (Partial Delivery) ── */}
@@ -1636,6 +1707,13 @@ export default function DeliveryNotesView() {
                       </div>
                     ) : (
                       <div className="rounded-md border">
+                        {/* Info banner when from preparation */}
+                        {fromPreparationId && (
+                          <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 border-b text-xs text-primary font-medium">
+                            <HardHat className="h-3.5 w-3.5 shrink-0" />
+                            BL créé depuis une préparation — les quantités sont celles préparées par le magasinier et ne sont pas modifiables.
+                          </div>
+                        )}
                         <div className="max-h-[280px] overflow-y-auto">
                           <Table>
                             <TableHeader>
@@ -1643,13 +1721,14 @@ export default function DeliveryNotesView() {
                                 <TableHead className="w-[40px]">
                                   <Checkbox
                                     checked={orderLinesForDelivery.every((l) => includedLines[l.id])}
+                                    disabled={!!fromPreparationId}
                                     onCheckedChange={(checked) => {
                                       const val = checked === true
                                       const newIncluded: Record<string, boolean> = {}
                                       const newQty: Record<string, number> = {}
                                       orderLinesForDelivery.forEach((l) => {
                                         newIncluded[l.id] = val
-                                        newQty[l.id] = val ? l.remaining : 0
+                                        newQty[l.id] = val ? (fromPreparationId ? l.prepQuantity : l.remaining) : 0
                                       })
                                       setIncludedLines(newIncluded)
                                       setDeliveryQuantities(newQty)
@@ -1657,23 +1736,30 @@ export default function DeliveryNotesView() {
                                   />
                                 </TableHead>
                                 <TableHead className="w-[28%]">Produit</TableHead>
-                                <TableHead className="text-right w-[10%]">Commandé</TableHead>
-                                <TableHead className="text-right w-[10%]">Livré</TableHead>
-                                <TableHead className="text-right w-[10%]">Restant</TableHead>
-                                <TableHead className="text-center w-[12%]">Avancement</TableHead>
-                                <TableHead className="text-right w-[15%]">Qté BL</TableHead>
-                                <TableHead className="text-right w-[15%]">Total HT</TableHead>
+                                <TableHead className="text-right w-[9%]">Commandé</TableHead>
+                                {fromPreparationId && (
+                                  <TableHead className="text-right w-[9%]">Préparé</TableHead>
+                                )}
+                                <TableHead className="text-right w-[9%]">Livré</TableHead>
+                                <TableHead className="text-right w-[9%]">Restant</TableHead>
+                                <TableHead className="text-center w-[10%]">Avancement</TableHead>
+                                <TableHead className="text-right w-[14%]">
+                                  {fromPreparationId ? 'Qté BL' : 'Qté BL'}
+                                </TableHead>
+                                <TableHead className="text-right w-[14%]">Total HT</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {orderLinesForDelivery.map((line) => {
                                 const isIncluded = includedLines[line.id] ?? true
                                 const qty = deliveryQuantities[line.id] ?? 0
+                                const isLocked = !!fromPreparationId
                                 return (
                                   <TableRow key={line.id} className={!isIncluded ? 'opacity-50' : ''}>
                                     <TableCell>
                                       <Checkbox
                                         checked={isIncluded}
+                                        disabled={isLocked}
                                         onCheckedChange={(checked) => toggleLineIncluded(line.id, checked === true)}
                                       />
                                     </TableCell>
@@ -1687,22 +1773,35 @@ export default function DeliveryNotesView() {
                                       </div>
                                     </TableCell>
                                     <TableCell className="text-right text-sm">{line.quantity}</TableCell>
+                                    {fromPreparationId && (
+                                      <TableCell className="text-right text-sm">
+                                        <Badge variant="secondary" className="bg-sky-100 text-sky-800 font-mono text-xs">
+                                          {line.prepQuantity}
+                                        </Badge>
+                                      </TableCell>
+                                    )}
                                     <TableCell className="text-right text-sm text-blue-600 font-medium">{line.quantityDelivered}</TableCell>
                                     <TableCell className="text-right text-sm text-amber-600 font-semibold">{line.remaining}</TableCell>
                                     <TableCell className="text-center">
                                       <DeliveryProgressBar percentage={line.deliveryPercentage} />
                                     </TableCell>
                                     <TableCell>
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        max={line.remaining}
-                                        step="0.01"
-                                        value={qty}
-                                        disabled={!isIncluded}
-                                        onChange={(e) => updateDeliveryQuantity(line.id, Math.min(parseNum(e.target.value), line.remaining))}
-                                        className="h-8 text-right text-sm"
-                                      />
+                                      {isLocked ? (
+                                        <div className="h-8 rounded-md border bg-muted/80 px-3 flex items-center justify-end text-sm font-mono font-medium text-primary">
+                                          {qty}
+                                        </div>
+                                      ) : (
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          max={line.remaining}
+                                          step="0.01"
+                                          value={qty}
+                                          disabled={!isIncluded}
+                                          onChange={(e) => updateDeliveryQuantity(line.id, Math.min(parseNum(e.target.value), line.remaining))}
+                                          className="h-8 text-right text-sm"
+                                        />
+                                      )}
                                     </TableCell>
                                     <TableCell className="text-right text-sm font-medium">
                                       {isIncluded && qty > 0 ? formatCurrency(qty * line.unitPrice) : <span className="text-muted-foreground">—</span>}
