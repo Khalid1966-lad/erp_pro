@@ -18,7 +18,7 @@
 // The prebuild script injects a BUILD_STAMP below so sw.js bytes change on every build.
 let CACHE_NAME = 'gema-erp-fallback';
 let BUILD_STAMP = 'dev';
-// BUILD: v1.6.9 | 2026-05-06 | 1778091336900
+// __BUILD_STAMP_PLACEHOLDER__
 
 const STATIC_ASSETS = [
   '/',

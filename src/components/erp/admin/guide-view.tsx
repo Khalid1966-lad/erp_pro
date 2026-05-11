@@ -664,7 +664,7 @@ function VentesSection() {
       </TipBox>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* PROCESSUS DE VENTE COMPLET (v1.6.8) */}
+      {/* PROCESSUS DE VENTE COMPLET (v1.7.0) */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <SubTitle id="ventes-processus">Processus de vente complet</SubTitle>
       <Paragraph>
