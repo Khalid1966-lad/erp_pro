@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status') || ''
     const salesOrderId = searchParams.get('salesOrderId') || ''
     const search = searchParams.get('search') || ''
+    const preparationId = searchParams.get('id') || ''
     const stockCheckId = searchParams.get('stockCheck') === 'true' ? searchParams.get('id') : null
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
@@ -150,6 +151,7 @@ export async function GET(req: NextRequest) {
 
     // ── List preparations ──
     const where: Record<string, unknown> = {}
+    if (preparationId) where.id = preparationId
     if (status) where.status = status
     if (salesOrderId) where.salesOrderId = salesOrderId
     if (search) {

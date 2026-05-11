@@ -114,6 +114,8 @@ const DATETIME_FIELDS: Record<string, string[]> = {
   Role: ['createdAt', 'updatedAt'],
   RolePermission: ['createdAt'],
   User: ['blockedAt', 'lastLogin', 'lastSeen', 'createdAt', 'updatedAt'],
+  Employee: ['dateOfBirth', 'dateEmbauche', 'dateDepart', 'createdAt', 'updatedAt'],
+  EmployeeFunction: ['createdAt', 'updatedAt'],
   WorkStation: ['createdAt', 'updatedAt'],
   CashRegister: ['createdAt', 'updatedAt'],
   BankAccount: ['createdAt', 'updatedAt'],

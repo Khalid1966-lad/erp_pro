@@ -319,3 +319,48 @@ Stage Summary:
 - Commit 0575927 pushed to GitHub main
 - 1 file changed: guide-view.tsx (+328 lines, -28 lines)
 - Version 1.6.8 (already bumped in previous commit 9c05f72)
+
+---
+Task ID: backup-bl-fix
+Agent: Main
+Task: Verify backup/restore system completeness + Fix BL creation from preparation
+
+Work Log:
+
+**1. Backup/Restore System Verification:**
+- Analyzed all 73 Prisma models in schema.prisma against BACKUP_TABLES array (72 entries)
+- Confirmed all 72 data tables are covered in correct FK-safe order
+- Confirmed Backup model correctly excluded (no recursive backup)
+- Confirmed all 9 TABLE_SQL_NAMES mappings (tables with @@map annotation)
+- **BUG FOUND**: Employee model missing from DATETIME_FIELDS mapping
+  - Employee has 5 DateTime fields: dateOfBirth, dateEmbauche, dateDepart, createdAt, updatedAt
+  - Without this mapping, restore would keep these as ISO strings instead of Date objects
+- **BUG FOUND**: EmployeeFunction also missing from DATETIME_FIELDS
+  - EmployeeFunction has 2 DateTime fields: createdAt, updatedAt
+- Fixed both by adding entries to DATETIME_FIELDS in src/lib/backup.ts
+
+**2. BL Creation from Preparation — 3 bugs found and fixed:**
+
+Bug A: preparations GET API missing `id` filter
+- `fetchOrderLinesForDelivery()` calls `/preparations?id=${preparationId}`
+- API handler only supported `status`, `salesOrderId`, `search` filters — `id` was ignored
+- Result: ALL preparations returned, first one used (wrong preparation!)
+- Fix: Added `preparationId` variable and `if (preparationId) where.id = preparationId` to preparations API
+
+Bug B: `loadForNavigation` missing `in_preparation` status
+- Only fetched orders with `status=prepared` and `status=partially_delivered`
+- After preparation validation, SO might be `in_preparation` (partial prep)
+- Result: Order not in dropdown, Select shows placeholder instead of selected order
+- Fix: Added fetch for `status=in_preparation` orders + fetch specific order by ID
+- Used Map to deduplicate orders before setting availableOrders state
+
+Bug C: Order dropdown not showing selected order
+- Related to Bug B: even though lines loaded correctly via `/sales-orders?id=xxx`,
+  the Select component couldn't display the order because it wasn't in options
+- Fix: Same as Bug B — order is now guaranteed to be in availableOrders
+
+Stage Summary:
+- 3 files modified: backup.ts, delivery-notes-view.tsx, preparations/route.ts
+- Backup system: Employee and EmployeeFunction DateTime fields now properly handled
+- BL from preparation: data auto-loads correctly (quantities, client, order)
+- Lint passes clean, no TypeScript errors

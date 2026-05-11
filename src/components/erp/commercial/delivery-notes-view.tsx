@@ -320,13 +320,21 @@ export default function DeliveryNotesView() {
       // Load available orders and pre-select
       const loadForNavigation = async () => {
         try {
-          const [prepData, partData, clientsData, productsData] = await Promise.all([
+          const [prepData, partData, inPrepData, specificOrderData, clientsData, productsData] = await Promise.all([
             api.get<{ orders: any[] }>('/sales-orders?status=prepared&limit=100'),
             api.get<{ orders: any[] }>('/sales-orders?status=partially_delivered&limit=100'),
+            api.get<{ orders: any[] }>('/sales-orders?status=in_preparation&limit=100'),
+            api.get<{ orders: any[] }>(`/sales-orders?id=${salesOrderId}&limit=1`),
             api.get<{ clients: ClientOption[] }>('/clients?dropdown=true'),
             api.get<{ products: ProductOption[] }>('/products?dropdown=true&productUsage=vente&active=true'),
           ])
-          const allOrders = [...(prepData.orders || []), ...(partData.orders || [])]
+          const orderMap = new Map<string, any>()
+          for (const list of [prepData.orders, partData.orders, inPrepData.orders, specificOrderData.orders]) {
+            for (const order of (list || [])) {
+              orderMap.set(order.id, order)
+            }
+          }
+          const allOrders = Array.from(orderMap.values())
           setAvailableOrders(allOrders)
           setAvailableClients(clientsData.clients || [])
           setAvailableProducts(productsData.products || [])
