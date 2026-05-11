@@ -516,3 +516,22 @@ Stage Summary:
 - Bug: `salesOrder.number` → `salesOrder.clientOrderNumber` in 7 API references across 5 files
 - Commit 9f3cda0 pushed to main — Vercel will auto-deploy
 - All factures, avoirs, and related features should work after deployment
+---
+Task ID: 1
+Agent: main
+Task: Fix bon de retour (customer-returns) server error on Vercel
+
+Work Log:
+- Investigated the customer-returns API route (`src/app/api/customer-returns/route.ts`)
+- Checked Prisma schema for `CustomerReturn` and `CustomerReturnLine` models
+- Verified all reverse relations exist (Client, DeliveryNote, Invoice, Product)
+- Found the bug: API route line 57 had `orderBy: { createdAt: 'asc' }` on the `lines` include, but `CustomerReturnLine` model does NOT have a `createdAt` field
+- This caused a Prisma runtime error → HTTP 500 "Erreur serveur" on every GET request
+- Fixed by removing the `orderBy` clause from the lines include
+- Ran `bun run lint` — passed
+- Committed and pushed to main
+
+Stage Summary:
+- Root cause: `CustomerReturnLine` Prisma model has no `createdAt` field, but the GET endpoint was trying to order lines by `createdAt`
+- Fix: Removed `orderBy: { createdAt: 'asc' }` from the lines include in the findMany query
+- Commit: `31c6d9e` pushed to `main`
