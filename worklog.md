@@ -364,3 +364,25 @@ Stage Summary:
 - Backup system: Employee and EmployeeFunction DateTime fields now properly handled
 - BL from preparation: data auto-loads correctly (quantities, client, order)
 - Lint passes clean, no TypeScript errors
+
+---
+Task ID: print-prep
+Agent: Main
+Task: Ajouter possibilitée d'imprimer le bon de préparation depuis la vue détail (eye icon)
+
+Work Log:
+- Examiné preparations-view.tsx — le bouton Imprimer existait déjà dans la vue détail mais avec données incorrectes
+- Corrigé infoGrid : salesOrder?.number (inexistant) → salesOrder.clientOrderNumber
+- Ajouté champs supplémentaires : N° Préparation, Statut, Progression
+- Ajouté colonne Référence dans le tableau d'impression
+- Ajouté résumé des totaux (total lignes, lignes complètes, progression %)
+- Ajouté bouton Télécharger PDF utilisant downloadPdf depuis print-utils
+- Import ajouté : downloadPdf depuis @/lib/print-utils
+- Lint vérifié : aucun problème
+- Pushé vers GitHub main : commit b91e951
+
+Stage Summary:
+- Le bon de préparation peut être imprimé et téléchargé en PDF depuis la vue détail (clic sur oeil)
+- Les données affichées sont : N° préparation, N° commande, client, statut, dates, progression
+- Le tableau contient : produit, réf, type, demandé, stock actuel, préparé, état
+
