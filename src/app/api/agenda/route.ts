@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
       preparationIds.length > 0
         ? db.preparationOrder.findMany({
             where: { id: { in: preparationIds }, status: { in: ['pending', 'in_progress'] } },
-            include: { salesOrder: { select: { number: true, client: { select: { name: true, nomCommercial: true } } } } },
+            include: { salesOrder: { select: { clientOrderNumber: true, client: { select: { name: true, nomCommercial: true } } } } },
             orderBy: { updatedAt: 'desc' },
             take: 20
           })
@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
       })),
       preparations: myPreparations.map(p => ({
         id: p.id, number: p.number, status: p.status,
-        orderNumber: p.salesOrder?.number || '—',
+        orderNumber: p.salesOrder?.clientOrderNumber || '—',
         clientName: p.salesOrder?.client?.nomCommercial || p.salesOrder?.client?.name || '—',
         createdAt: p.createdAt
       })),

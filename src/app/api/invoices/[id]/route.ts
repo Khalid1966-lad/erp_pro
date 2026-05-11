@@ -22,7 +22,7 @@ export async function GET(
       where: { id },
       include: {
         client: { select: { name: true, ice: true } },
-        salesOrder: { select: { number: true } },
+        salesOrder: { select: { clientOrderNumber: true } },
         lines: {
           include: {
             product: { select: { reference: true, designation: true } },

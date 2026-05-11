@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
             product: { select: { id: true, reference: true, designation: true } },
           },
         },
-        salesOrder: { select: { id: true, number: true } },
+        salesOrder: { select: { id: true, clientOrderNumber: true } },
         client: { select: { id: true, name: true } },
       },
       orderBy: { date: 'asc' },

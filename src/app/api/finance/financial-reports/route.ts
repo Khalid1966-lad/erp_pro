@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
       },
       include: {
         client: { select: { id: true, name: true, ice: true } },
-        salesOrder: { select: { number: true } },
+        salesOrder: { select: { clientOrderNumber: true } },
       },
       orderBy: { date: 'desc' },
     })
@@ -305,7 +305,7 @@ export async function GET(req: NextRequest) {
       date: bl.date.toISOString(),
       clientName: bl.client?.name || bl.client?.ice || '—',
       clientId: bl.clientId,
-      salesOrderNumber: bl.salesOrder?.number || null,
+      salesOrderNumber: bl.salesOrder?.clientOrderNumber || null,
       totalTTC: Math.round(bl.totalTTC * 100) / 100,
     }))
 

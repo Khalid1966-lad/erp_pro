@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
         where,
         include: {
           client: { select: { id: true, name: true } },
-          salesOrder: { select: { id: true, number: true } },
+          salesOrder: { select: { id: true, clientOrderNumber: true } },
           lines: { include: { product: { select: { id: true, reference: true, designation: true } } } },
           payments: true,
           creditNotes: true,
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
         where: { id: { in: data.deliveryNoteIds } },
         include: {
           client: true,
-          salesOrder: { select: { id: true, number: true } },
+          salesOrder: { select: { id: true, clientOrderNumber: true } },
           lines: {
             include: { product: { select: { id: true, reference: true, designation: true } } },
           },
