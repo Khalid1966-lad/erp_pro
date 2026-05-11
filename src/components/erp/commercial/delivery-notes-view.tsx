@@ -129,6 +129,7 @@ interface DeliveryNote {
   number: string
   status: string
   date: string
+  createdAt: string
   plannedDate: string | null
   deliveryDate: string | null
   transporteur: string | null

@@ -70,6 +70,7 @@ interface SalesOrder {
   totalHT: number
   totalTVA: number
   totalTTC: number
+  createdAt: string
   client: { id: string; name: string }
   lines: SalesOrderLine[]
   quoteId?: string | null
@@ -243,6 +244,9 @@ export default function SalesOrdersView() {
           break
         case 'totalTTC':
           cmp = (a.totalTTC || 0) - (b.totalTTC || 0)
+          break
+        case 'createdAt':
+          cmp = (a.createdAt || '').localeCompare(b.createdAt || '')
           break
         default:
           cmp = 0
@@ -670,8 +674,8 @@ export default function SalesOrdersView() {
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('client')}>
                     <div className="flex items-center gap-1">Client {sortField === 'client' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('date')}>
-                    <div className="flex items-center gap-1">Date {sortField === 'date' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('createdAt')}>
+                    <div className="flex items-center gap-1">Créé le {sortField === 'createdAt' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
                   </TableHead>
                   <TableHead className="hidden lg:table-cell">Livraison</TableHead>
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('status')}>
@@ -713,7 +717,7 @@ export default function SalesOrdersView() {
                       </TableCell>
                       <TableCell>{order.client.name}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {format(new Date(order.date), 'dd/MM/yyyy', { locale: fr })}
+                        {order.createdAt ? format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: fr }) : format(new Date(order.date), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground">
                         {order.deliveryDate ? format(new Date(order.deliveryDate), 'dd/MM/yyyy', { locale: fr }) : '—'}
