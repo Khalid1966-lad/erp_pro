@@ -16,6 +16,7 @@ const lineSchema = z.object({
 
 const createFromOrderSchema = z.object({
   salesOrderId: z.string().min(1),
+  preparationId: z.string().optional(),
   lines: z.array(z.object({
     salesOrderLineId: z.string().optional(),
     productId: z.string().optional(),
@@ -105,6 +106,7 @@ const deliveryNoteInclude = {
       },
     },
   },
+  preparation: { select: { id: true, number: true, status: true } },
   client: { select: { id: true, name: true, raisonSociale: true, address: true, city: true } },
   chantier: { select: { id: true, nomProjet: true, adresse: true, ville: true, codePostal: true, provincePrefecture: true, responsableNom: true, responsableFonction: true, telephone: true, gsm: true } },
   lines: {
@@ -163,16 +165,20 @@ export async function GET(req: NextRequest) {
     const clientId = searchParams.get('clientId') || ''
     const chantierId = searchParams.get('chantierId') || ''
     const salesOrderId = searchParams.get('salesOrderId') || ''
+    const preparationId = searchParams.get('preparationId') || ''
     const standalone = searchParams.get('standalone') || ''
     const search = searchParams.get('search') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
 
     const where: Record<string, unknown> = {}
+    const id = searchParams.get('id') || ''
+    if (id) where.id = id
     if (status) where.status = status
     if (clientId) where.clientId = clientId
     if (chantierId) where.chantierId = chantierId
     if (salesOrderId) where.salesOrderId = salesOrderId
+    if (preparationId) where.preparationId = preparationId
     if (standalone === 'true') where.salesOrderId = null
     if (standalone === 'false') where.salesOrderId = { not: null }
     const clientOrderNumberFilter = searchParams.get('clientOrderNumber') || ''
@@ -224,6 +230,19 @@ export async function POST(req: NextRequest) {
     // ─── Mode 1: BL from existing sales order (with per-line quantities) ───
     if (body.salesOrderId && !body.clientId) {
       const data = createFromOrderSchema.parse(body)
+
+      // ─── Check duplicate: prevent creating multiple BLs from the same preparation ───
+      if (data.preparationId) {
+        const existingBL = await db.deliveryNote.findFirst({
+          where: { preparationId: data.preparationId, status: { not: 'cancelled' } },
+        })
+        if (existingBL) {
+          return NextResponse.json(
+            { error: `Un BL (${existingBL.number}) a déjà été créé pour cette préparation`, existingBLId: existingBL.id },
+            { status: 409 }
+          )
+        }
+      }
 
       const salesOrder = await db.salesOrder.findUnique({
         where: { id: data.salesOrderId },
@@ -278,6 +297,7 @@ export async function POST(req: NextRequest) {
           data: {
             number: blNumber,
             salesOrderId: salesOrder.id,
+            preparationId: data.preparationId || null,
             clientId: salesOrder.clientId,
             chantierId: data.chantierId || null,
             deliveryAddress: data.deliveryAddress || null,
@@ -461,6 +481,7 @@ export async function PUT(req: NextRequest) {
       where: { id },
       include: {
         lines: { include: { product: true } },
+        preparation: { select: { id: true, number: true } },
         salesOrder: {
           include: { lines: true, deliveryNotes: true },
         },
@@ -481,6 +502,14 @@ export async function PUT(req: NextRequest) {
       if (existing.status === 'cancelled') {
         return NextResponse.json(
           { error: 'Impossible de modifier un BL annulé' },
+          { status: 400 }
+        )
+      }
+
+      // Block line editing for BLs created from preparation (quantities, prices, TVA, articles are immutable)
+      if (existing.preparationId) {
+        return NextResponse.json(
+          { error: 'Ce BL a été créé depuis une préparation. Les lignes (quantités, prix, TVA, articles) ne sont pas modifiables.' },
           { status: 400 }
         )
       }

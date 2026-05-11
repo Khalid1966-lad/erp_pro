@@ -146,6 +146,7 @@ interface DeliveryNote {
   } | null
   client: { id: string; name: string; address?: string | null; city?: string | null }
   lines: DeliveryNoteLineItem[]
+  preparation?: { id: string; number: string; status: string } | null
   chantier?: ChantierOption | null
   deliveryAddress?: string | null
   dueDate: string | null
@@ -305,6 +306,28 @@ export default function DeliveryNotesView() {
     if (!navigationParams) return
     if (navigationParams?.status === 'pending') {
       setStatusFilter('draft')
+    }
+    // When navigated to view a specific BL detail (e.g., from preparations truck button)
+    if (navigationParams?.viewDetailId) {
+      const blId = navigationParams.viewDetailId
+      useNavStore.setState({ navigationParams: null })
+      // Fetch the BL and open detail
+      const loadAndShowDetail = async () => {
+        try {
+          const data = await api.get<{ deliveryNotes: DeliveryNote[] }>(`/delivery-notes?id=${blId}&limit=1`)
+          const bl = data.deliveryNotes?.[0]
+          if (bl) {
+            setSelectedNote(bl)
+            setDetailOpen(true)
+          } else {
+            toast.error('Bon de livraison introuvable')
+          }
+        } catch (err: any) {
+          toast.error(err.message || 'Erreur chargement du BL')
+        }
+      }
+      loadAndShowDetail()
+      return
     }
     // When navigated from preparations with a salesOrderId, open create dialog
     if (navigationParams?.salesOrderId) {
@@ -783,6 +806,7 @@ export default function DeliveryNotesView() {
 
         await api.post('/delivery-notes', {
           salesOrderId: selectedOrderId,
+          preparationId: fromPreparationId || undefined,
           chantierId: selectedChantierId || undefined,
           deliveryAddress: createDeliveryType === 'manual' ? manualDeliveryAddress : undefined,
           transporteur: createTransporteur || undefined,
@@ -835,7 +859,11 @@ export default function DeliveryNotesView() {
       setCreateOpen(false)
       fetchDeliveryNotes()
     } catch (err: any) {
-      toast.error(err.message || 'Erreur création')
+      if (err?.status === 409 && err?.data?.existingBLId) {
+        toast.error(`Un BL existe déjà pour cette préparation : ${err.data.existingBLNumber || err.data.existingBLId}`)
+      } else {
+        toast.error(err.message || 'Erreur création')
+      }
     } finally {
       setCreating(false)
     }
@@ -1007,6 +1035,26 @@ export default function DeliveryNotesView() {
       if (editDeliveryType === 'manual' && !editManualDeliveryAddress.trim()) {
         toast.error('Veuillez saisir l\'adresse de livraison')
         setSaving(false)
+        return
+      }
+
+      // When BL comes from a preparation, always use header-only update (lines are locked)
+      if (selectedNote.preparation) {
+        await api.put('/delivery-notes', {
+          id: selectedNote.id,
+          transporteur: editTransporteur || null,
+          vehiclePlate: editVehiclePlate || null,
+          notes: editNotes || null,
+          plannedDate: editPlannedDate || undefined,
+          chantierId: editDeliveryType === 'chantier' ? editChantierId : null,
+          deliveryAddress: editDeliveryType === 'manual' ? editManualDeliveryAddress : null,
+          driverName: editDriverName || null,
+          transportType: editTransportType || null,
+          dueDate: editDueDate || undefined,
+        })
+        toast.success(`BL ${selectedNote.number} modifié`)
+        setEditOpen(false)
+        fetchDeliveryNotes()
         return
       }
 
@@ -1354,7 +1402,7 @@ export default function DeliveryNotesView() {
                         <TableCell>
                           {note.salesOrderId ? (
                             <div>
-                              <p className="font-mono text-sm">{note.salesOrder?.number}</p>
+                              <p className="font-mono text-sm">{note.salesOrder?.clientOrderNumber}</p>
                               <p className="text-xs text-muted-foreground">{note.client.name}</p>
                             </div>
                           ) : (
@@ -1465,6 +1513,7 @@ export default function DeliveryNotesView() {
                         { label: 'Date du BL', value: fmtDate(en.date) },
                         ...(en.salesOrder?.clientOrderNumber ? [{ label: 'N° Cmd Client', value: en.salesOrder.clientOrderNumber }] : []),
                         ...(en.salesOrder ? [{ label: 'Commande', value: en.salesOrder.clientOrderNumber }] : []),
+                        ...(en.preparation ? [{ label: 'B. Préparation', value: en.preparation.number }] : []),
                         { label: 'Date d\'échéance', value: fmtDate(en.dueDate || '') || '—' },
                         { label: 'Client', value: en.client.name },
                         { label: 'Adresse de livraison', value: (() => {
@@ -1559,6 +1608,12 @@ export default function DeliveryNotesView() {
                   <span className="text-muted-foreground text-xs">Nb Lignes</span>
                   <p className="font-medium">{en.lines.length}</p>
                 </div>
+                {en.preparation && (
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5">
+                    <span className="text-muted-foreground text-xs">B. Préparation</span>
+                    <p className="font-mono font-medium text-primary">{en.preparation.number}</p>
+                  </div>
+                )}
               </div>
 
               {en.chantier && (
@@ -2375,6 +2430,12 @@ export default function DeliveryNotesView() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {selectedNote?.preparation && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 border border-primary/20 rounded-md text-xs text-primary font-medium">
+                <HardHat className="h-3.5 w-3.5 shrink-0" />
+                BL créé depuis la préparation {selectedNote.preparation.number} — les lignes ne sont pas modifiables.
+              </div>
+            )}
             <div className="rounded-md bg-muted/50 p-3 text-sm">
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -2390,13 +2451,19 @@ export default function DeliveryNotesView() {
                 {selectedNote?.salesOrderId && (
                   <div>
                     <span className="text-muted-foreground">Commande</span>
-                    <p className="font-mono font-medium">{selectedNote?.salesOrder?.number}</p>
+                    <p className="font-mono font-medium">{selectedNote?.salesOrder?.clientOrderNumber}</p>
                   </div>
                 )}
                 <div>
                   <span className="text-muted-foreground">Client</span>
                   <p className="font-medium">{selectedNote?.client.name}</p>
                 </div>
+                {selectedNote?.preparation && (
+                  <div>
+                    <span className="text-muted-foreground">B. Préparation</span>
+                    <p className="font-mono font-medium">{selectedNote.preparation.number}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2587,10 +2654,12 @@ export default function DeliveryNotesView() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="font-semibold">Lignes du BL ({editLines.filter(l => l.productId).length})</Label>
-                <Button variant="outline" size="sm" onClick={addEditLine} className="gap-1">
-                  <Plus className="h-3.5 w-3.5" />
-                  Ajouter une ligne
-                </Button>
+                {!selectedNote?.preparation && (
+                  <Button variant="outline" size="sm" onClick={addEditLine} className="gap-1">
+                    <Plus className="h-3.5 w-3.5" />
+                    Ajouter une ligne
+                  </Button>
+                )}
               </div>
               <div className="rounded border max-h-[250px] overflow-auto">
                 <Table>
@@ -2601,18 +2670,18 @@ export default function DeliveryNotesView() {
                       <TableHead className="text-right w-[100px]">P.U. HT</TableHead>
                       <TableHead className="text-right w-[100px]">TVA %</TableHead>
                       <TableHead className="text-right w-[100px]">Total HT</TableHead>
-                      <TableHead className="w-[40px]"></TableHead>
+                      {!selectedNote?.preparation && <TableHead className="w-[40px]"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {editLines.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
+                        <TableCell colSpan={selectedNote?.preparation ? 5 : 6} className="text-center text-muted-foreground py-4">
                           Aucune ligne
                         </TableCell>
                       </TableRow>
                     )}
-                    {editLines.map((line) => (
+                    {editLines.map((line, editIdx) => (
                       <TableRow key={line.tempId}>
                         <TableCell>
                           {line.id ? (
@@ -2622,11 +2691,14 @@ export default function DeliveryNotesView() {
                             </span>
                           ) : (
                             <ProductCombobox
-                              products={getEditFilteredProducts(editProducts, editLineSearches[line.tempId] || '')}
+                              products={getEditFilteredProducts(2000 + editIdx)}
                               value={line.productId}
-                              onChange={(val) => updateEditLine(line.tempId, 'productId', val)}
-                              search={editLineSearches[line.tempId] || ''}
-                              onSearchChange={(val) => setEditLineSearches(line.tempId, val)}
+                              searchValue={editLineSearches[line.tempId] || ''}
+                              onSearchChange={(val) => setEditLineSearches(prev => ({ ...prev, [line.tempId]: val }))}
+                              onSelect={(productId) => {
+                                updateEditLine(line.tempId, 'productId', productId)
+                                setEditLineSearches(prev => ({ ...prev, [line.tempId]: '' }))
+                              }}
                               placeholder="Rechercher un produit..."
                             />
                           )}
@@ -2639,6 +2711,7 @@ export default function DeliveryNotesView() {
                             value={line.quantity}
                             onChange={(e) => updateEditLine(line.tempId, 'quantity', parseNum(e.target.value))}
                             className="text-right h-8 text-sm"
+                            disabled={!!selectedNote?.preparation}
                           />
                         </TableCell>
                         <TableCell>
@@ -2649,6 +2722,7 @@ export default function DeliveryNotesView() {
                             value={line.unitPrice}
                             onChange={(e) => updateEditLine(line.tempId, 'unitPrice', parseNum(e.target.value))}
                             className="text-right h-8 text-sm"
+                            disabled={!!selectedNote?.preparation}
                           />
                         </TableCell>
                         <TableCell>
@@ -2660,21 +2734,24 @@ export default function DeliveryNotesView() {
                             value={line.tvaRate}
                             onChange={(e) => updateEditLine(line.tempId, 'tvaRate', parseNum(e.target.value))}
                             className="text-right h-8 text-sm"
+                            disabled={!!selectedNote?.preparation}
                           />
                         </TableCell>
                         <TableCell className="text-right font-medium text-sm">
                           {formatCurrency(getEditLineTotalHT(line))}
                         </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => removeEditLine(line.tempId)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
+                        {!selectedNote?.preparation && (
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => removeEditLine(line.tempId)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -2748,7 +2825,7 @@ export default function DeliveryNotesView() {
                 {selectedNote.salesOrderId && (
                   <div>
                     <span className="text-muted-foreground">Commande</span>
-                    <p className="font-mono font-medium">{selectedNote.salesOrder?.number}</p>
+                    <p className="font-mono font-medium">{selectedNote.salesOrder?.clientOrderNumber}</p>
                   </div>
                 )}
                 <div>
@@ -2791,6 +2868,12 @@ export default function DeliveryNotesView() {
                   <div>
                     <span className="text-muted-foreground">Date de livraison</span>
                     <p className="font-medium">{format(new Date(selectedNote.deliveryDate), 'dd/MM/yyyy', { locale: fr })}</p>
+                  </div>
+                )}
+                {selectedNote.preparation && (
+                  <div>
+                    <span className="text-muted-foreground">B. Préparation</span>
+                    <p className="font-mono font-medium">{selectedNote.preparation.number}</p>
                   </div>
                 )}
               </div>
@@ -2999,6 +3082,7 @@ export default function DeliveryNotesView() {
                         { label: 'Date du BL', value: fmtDate(selectedNote.date) },
                         ...(selectedNote.salesOrder?.clientOrderNumber ? [{ label: 'N° Cmd Client', value: selectedNote.salesOrder.clientOrderNumber }] : []),
                         ...(selectedNote.salesOrder ? [{ label: 'Commande', value: selectedNote.salesOrder.clientOrderNumber }] : []),
+                        ...(selectedNote.preparation ? [{ label: 'B. Préparation', value: selectedNote.preparation.number }] : []),
                         { label: 'Date d\'échéance', value: fmtDate(selectedNote.dueDate || '') || '—' },
                         { label: 'Client', value: selectedNote.client.name },
                         { label: 'Adresse de livraison', value: (() => {

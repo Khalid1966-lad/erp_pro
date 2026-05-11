@@ -257,6 +257,10 @@ export default function PreparationsView() {
   // Delete confirmation
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  // Track existing BLs per preparation (for smart truck button)
+  const [existingBLs, setExistingBLs] = useState<Record<string, { id: string; number: string }>>({})
+  const [checkingBL, setCheckingBL] = useState<string | null>(null)
+
   // Table sorting
   const [sortField, setSortField] = useState<string>('number')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -586,6 +590,39 @@ export default function PreparationsView() {
     setCurrentView(target as ViewId, params)
   }
 
+  // ── Smart truck button: check for existing BL before navigating ──
+  const handleTruckClick = async (prep: Preparation) => {
+    // Check cache first
+    if (existingBLs[prep.id]) {
+      toast.info(`BL ${existingBLs[prep.id].number} déjà créé pour cette préparation`)
+      navigateTo('delivery-notes', { viewDetailId: existingBLs[prep.id].id })
+      return
+    }
+
+    setCheckingBL(prep.id)
+    try {
+      const data = await api.get<{ deliveryNotes: Array<{ id: string; number: string; status: string; preparationId: string }> }>(
+        `/delivery-notes?preparationId=${prep.id}&limit=1`
+      )
+      const existingBL = data.deliveryNotes?.find(bl => bl.status !== 'cancelled')
+      if (existingBL) {
+        setExistingBLs(prev => ({ ...prev, [prep.id]: { id: existingBL.id, number: existingBL.number } }))
+        toast.info(`BL ${existingBL.number} déjà créé pour cette préparation`)
+        navigateTo('delivery-notes', { viewDetailId: existingBL.id })
+      } else {
+        // No BL exists, navigate to create
+        navigateTo('delivery-notes', { salesOrderId: prep.salesOrder.id, preparationId: prep.id })
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      toast.error(msg || 'Erreur vérification BL')
+      // Fallback: navigate to create
+      navigateTo('delivery-notes', { salesOrderId: prep.salesOrder.id, preparationId: prep.id })
+    } finally {
+      setCheckingBL(null)
+    }
+  }
+
   // ═══════════════════════════════════════════════════════
   // Render
   // ═══════════════════════════════════════════════════════
@@ -731,11 +768,21 @@ export default function PreparationsView() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-                              onClick={() => navigateTo('delivery-notes', { salesOrderId: prep.salesOrderId, preparationId: prep.id })}
-                              title="Créer BL depuis cette préparation"
+                              className={cn(
+                                "h-8 w-8",
+                                existingBLs[prep.id]
+                                  ? "text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  : "text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                              )}
+                              onClick={() => handleTruckClick(prep)}
+                              title={existingBLs[prep.id] ? `BL ${existingBLs[prep.id].number} déjà créé — cliquer pour voir` : "Créer BL depuis cette préparation"}
+                              disabled={checkingBL === prep.id}
                             >
-                              <Truck className="h-4 w-4" />
+                              {checkingBL === prep.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Truck className="h-4 w-4" />
+                              )}
                             </Button>
                           )}
                           {(prep.status === 'pending' || prep.status === 'in_progress' || prep.status === 'cancelled') && (

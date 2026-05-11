@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 // ============ AUTH & RBAC ============
@@ -473,6 +472,7 @@ model PreparationOrder {
   updatedAt     DateTime          @updatedAt
 
   lines         PreparationLine[]
+  deliveryNotes DeliveryNote[]
 }
 
 enum DeliveryNoteStatus {
@@ -508,16 +508,18 @@ model Chantier {
 }
 
 model DeliveryNote {
-  id              String              @id @default(cuid())
-  number          String              @unique
-  salesOrderId    String?
-  salesOrder      SalesOrder?          @relation(fields: [salesOrderId], references: [id])
-  clientId        String
-  client          Client              @relation(fields: [clientId], references: [id])
-  chantierId      String?
-  chantier        Chantier?           @relation(fields: [chantierId], references: [id])
-  deliveryAddress String?
-  status          DeliveryNoteStatus  @default(draft)
+  id                String              @id @default(cuid())
+  number            String              @unique
+  salesOrderId      String?
+  salesOrder        SalesOrder?          @relation(fields: [salesOrderId], references: [id])
+  preparationId     String?
+  preparation       PreparationOrder?   @relation(fields: [preparationId], references: [id])
+  clientId          String
+  client            Client              @relation(fields: [clientId], references: [id])
+  chantierId        String?
+  chantier          Chantier?           @relation(fields: [chantierId], references: [id])
+  deliveryAddress   String?
+  status            DeliveryNoteStatus  @default(draft)
   date            DateTime            @default(now())
   plannedDate     DateTime?
   deliveryDate    DateTime?
