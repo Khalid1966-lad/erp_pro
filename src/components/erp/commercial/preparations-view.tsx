@@ -36,7 +36,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { printDocument, fmtDate } from '@/lib/print-utils'
+import { printDocument, downloadPdf, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { useNavStore } from '@/lib/stores'
@@ -1353,13 +1353,17 @@ export default function PreparationsView() {
                       title: 'BON DE PRÉPARATION',
                       docNumber: selectedPrep.number,
                       infoGrid: [
-                        { label: 'Commande', value: selectedPrep.salesOrder?.number || '—' },
-                        { label: 'Client', value: selectedPrep.salesOrder?.client?.name || '—' },
+                        { label: 'N° Préparation', value: selectedPrep.number },
+                        { label: 'N° Commande', value: selectedPrep.salesOrder.clientOrderNumber },
+                        { label: 'Client', value: selectedPrep.salesOrder.client.name },
+                        { label: 'Statut', value: statusLabels[selectedPrep.status] || selectedPrep.status },
                         { label: 'Créée le', value: fmtDate(selectedPrep.createdAt) },
                         { label: 'Complétée le', value: fmtDate(selectedPrep.completedAt || '') },
+                        { label: 'Progression', value: `${selectedPrep.fullyPreparedLines}/${selectedPrep.totalLines} lignes (${selectedPrep.progressPercent}%)` },
                       ],
                       columns: [
                         { label: 'Produit' },
+                        { label: 'Réf.' },
                         { label: 'Type' },
                         { label: 'Demandé', align: 'right' },
                         { label: 'Stock actuel', align: 'right' },
@@ -1367,20 +1371,71 @@ export default function PreparationsView() {
                         { label: 'État', align: 'center' },
                       ],
                       rows: selectedPrep.lines.map(line => [
-                        { value: `${line.product.reference} - ${line.product.designation}` },
-                        { value: productNatureLabels[line.product.productNature] || line.productNature },
+                        { value: line.product.designation },
+                        { value: line.product.reference },
+                        { value: productNatureLabels[line.product.productNature] || line.product.productNature },
                         { value: line.quantityRequested, align: 'right' },
                         { value: line.product.currentStock, align: 'right' },
                         { value: line.quantityPrepared, align: 'right' },
                         { value: line.quantityPrepared >= line.quantityRequested ? '✓ Complet' : line.quantityPrepared > 0 ? 'Partiel' : '—', align: 'center' },
                       ]),
-                      totals: [],
+                      totals: [
+                        { label: 'Total lignes', value: `${selectedPrep.lines.length}`, bold: true },
+                        { label: 'Lignes complètes', value: `${selectedPrep.fullyPreparedLines}`, bold: true },
+                        { label: 'Progression', value: `${selectedPrep.progressPercent}%`, bold: true },
+                      ],
                       notes: selectedPrep.notes || undefined,
                     })
                   }}
                 >
                   <Printer className="h-4 w-4 mr-1" />
                   Imprimer
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!selectedPrep) return
+                    downloadPdf({
+                      title: 'BON DE PRÉPARATION',
+                      docNumber: selectedPrep.number,
+                      infoGrid: [
+                        { label: 'N° Préparation', value: selectedPrep.number },
+                        { label: 'N° Commande', value: selectedPrep.salesOrder.clientOrderNumber },
+                        { label: 'Client', value: selectedPrep.salesOrder.client.name },
+                        { label: 'Statut', value: statusLabels[selectedPrep.status] || selectedPrep.status },
+                        { label: 'Créée le', value: fmtDate(selectedPrep.createdAt) },
+                        { label: 'Complétée le', value: fmtDate(selectedPrep.completedAt || '') },
+                        { label: 'Progression', value: `${selectedPrep.fullyPreparedLines}/${selectedPrep.totalLines} lignes (${selectedPrep.progressPercent}%)` },
+                      ],
+                      columns: [
+                        { label: 'Produit' },
+                        { label: 'Réf.' },
+                        { label: 'Type' },
+                        { label: 'Demandé', align: 'right' },
+                        { label: 'Stock actuel', align: 'right' },
+                        { label: 'Préparé', align: 'right' },
+                        { label: 'État', align: 'center' },
+                      ],
+                      rows: selectedPrep.lines.map(line => [
+                        { value: line.product.designation },
+                        { value: line.product.reference },
+                        { value: productNatureLabels[line.product.productNature] || line.product.productNature },
+                        { value: line.quantityRequested, align: 'right' },
+                        { value: line.product.currentStock, align: 'right' },
+                        { value: line.quantityPrepared, align: 'right' },
+                        { value: line.quantityPrepared >= line.quantityRequested ? '✓ Complet' : line.quantityPrepared > 0 ? 'Partiel' : '—', align: 'center' },
+                      ]),
+                      totals: [
+                        { label: 'Total lignes', value: `${selectedPrep.lines.length}`, bold: true },
+                        { label: 'Lignes complètes', value: `${selectedPrep.fullyPreparedLines}`, bold: true },
+                        { label: 'Progression', value: `${selectedPrep.progressPercent}%`, bold: true },
+                      ],
+                      notes: selectedPrep.notes || undefined,
+                    })
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-1" />
+                  Télécharger PDF
                 </Button>
                 {selectedPrep.status === 'pending' && (
                   <>
