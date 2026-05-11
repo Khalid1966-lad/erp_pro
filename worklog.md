@@ -535,3 +535,22 @@ Stage Summary:
 - Root cause: `CustomerReturnLine` Prisma model has no `createdAt` field, but the GET endpoint was trying to order lines by `createdAt`
 - Fix: Removed `orderBy: { createdAt: 'asc' }` from the lines include in the findMany query
 - Commit: `31c6d9e` pushed to `main`
+---
+Task ID: 2
+Agent: main
+Task: Create version 1.8.1, update references and PWA, push
+
+Work Log:
+- Bumped version from 1.8.0 → 1.8.1 in 3 files:
+  - `src/lib/version.ts`: APP_VERSION + BUILD_DATE
+  - `package.json`: version field
+  - `public/manifest.webmanifest`: version field
+- Updated BUILD_DATE to 2026-05-11
+- Verified all version references use APP_VERSION from version.ts (single source of truth)
+- PWA update mechanism: prebuild.js reads package.json → writes build-meta.json + updates manifest + injects sw.js stamp
+- Ran `bun run lint` — passed
+- Committed and pushed to main
+
+Stage Summary:
+- Version 1.8.1 deployed (commit c8cbf3b)
+- All footers, settings, print headers, and PWA manifest auto-update via APP_VERSION
