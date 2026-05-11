@@ -25,7 +25,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart, CalendarClock, Loader2, Search, RefreshCw, Printer, HardHat, MapPinned
+  Truck, MoreVertical, CheckCircle, XCircle, Eye, Trash2, Package, FileText, Plus, Pencil, Link2, Unlink, ShoppingCart, CalendarClock, Loader2, Search, RefreshCw, Printer, HardHat, MapPinned, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -313,6 +313,8 @@ export default function DeliveryNotesView() {
       // Open create dialog and load order data
       setCreateOpen(true)
       setCreateMode('order')
+      setCreatePlannedDate(new Date().toISOString().split('T')[0])
+      setCreateDueDate(new Date().toISOString().split('T')[0])
       // If from preparation, lock the mode and store preparation ID
       if (preparationId) {
         setFromPreparationId(preparationId)
@@ -417,6 +419,53 @@ export default function DeliveryNotesView() {
   const [clientOptionsForFilter, setClientOptionsForFilter] = useState<ClientOption[]>([])
   const [chantierOptionsForFilter, setChantierOptionsForFilter] = useState<ChantierOption[]>([])
 
+  // Table sorting
+  const [sortField, setSortField] = useState<string>('number')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const toggleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }
+
+  const sortedDeliveryNotes = useMemo(() => {
+    const sorted = [...deliveryNotes]
+    sorted.sort((a, b) => {
+      let cmp = 0
+      switch (sortField) {
+        case 'number':
+          cmp = a.number.localeCompare(b.number)
+          break
+        case 'clientOrderNumber':
+          cmp = (a.salesOrder?.clientOrderNumber || '').localeCompare(b.salesOrder?.clientOrderNumber || '')
+          break
+        case 'client':
+          cmp = a.client.name.localeCompare(b.client.name)
+          break
+        case 'status':
+          cmp = a.status.localeCompare(b.status)
+          break
+        case 'plannedDate':
+          cmp = (a.plannedDate || '').localeCompare(b.plannedDate || '')
+          break
+        case 'totalTTC':
+          cmp = (a.totalTTC || 0) - (b.totalTTC || 0)
+          break
+        case 'createdAt':
+          cmp = a.createdAt.localeCompare(b.createdAt)
+          break
+        default:
+          cmp = 0
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [deliveryNotes, sortField, sortDir])
+
   // Chantier for create dialog
   const [selectedChantierId, setSelectedChantierId] = useState<string>('')
   const [chantierOptions, setChantierOptions] = useState<ChantierOption[]>([])
@@ -517,10 +566,10 @@ export default function DeliveryNotesView() {
     setCreateTransporteur('')
     setCreateVehiclePlate('')
     setCreateNotes('')
-    setCreatePlannedDate('')
+    setCreatePlannedDate(new Date().toISOString().split('T')[0])
     setCreateDriverName('')
     setCreateTransportType('rendu')
-    setCreateDueDate('')
+    setCreateDueDate(new Date().toISOString().split('T')[0])
     resetLineSearches()
 
     // Fetch available data in parallel
@@ -1237,22 +1286,33 @@ export default function DeliveryNotesView() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Numéro</TableHead>
-                  <TableHead>N° Cmd Client</TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('number')}>
+                    <div className="flex items-center gap-1">Numéro {sortField === 'number' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('clientOrderNumber')}>
+                    <div className="flex items-center gap-1">N° Cmd Client {sortField === 'clientOrderNumber' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
                   <TableHead className="hidden md:table-cell">Chantier</TableHead>
-                  <TableHead>Commande / Client</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('client')}>
+                    <div className="flex items-center gap-1">Client {sortField === 'client' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('status')}>
+                    <div className="flex items-center gap-1">Statut {sortField === 'status' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
                   <TableHead className="hidden md:table-cell">Date prévue</TableHead>
                   <TableHead className="hidden md:table-cell">% Livré</TableHead>
                   <TableHead className="hidden lg:table-cell">Transporteur</TableHead>
                   <TableHead className="hidden lg:table-cell">Total TTC</TableHead>
+                  <TableHead className="hidden md:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('createdAt')}>
+                    <div className="flex items-center gap-1">Créé le {sortField === 'createdAt' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
                   <TableHead className="text-right w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {deliveryNotes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <Truck className="h-10 w-10 text-muted-foreground/30" />
                         <p className="font-medium">Aucun bon de livraison</p>
@@ -1263,7 +1323,7 @@ export default function DeliveryNotesView() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  deliveryNotes.map((note) => {
+                  sortedDeliveryNotes.map((note) => {
                     const deliveryPct = getOrderDeliveryPercentage(note)
                     return (
                       <TableRow key={note.id} className={cn("cursor-pointer", expandedNoteId === note.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedNoteId(expandedNoteId === note.id ? null : note.id)} onDoubleClick={() => openEditDialog(note)}>
@@ -1329,6 +1389,9 @@ export default function DeliveryNotesView() {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell font-medium">
                           {formatCurrency(note.totalTTC)}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                          {note.createdAt ? format(new Date(note.createdAt), 'dd/MM/yyyy', { locale: fr }) : '—'}
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
@@ -1688,6 +1751,15 @@ export default function DeliveryNotesView() {
                     </Select>
                   )}
                 </div>
+                {selectedOrderId && (() => {
+                  const selectedOrder = availableOrders.find(o => o.id === selectedOrderId)
+                  if (!selectedOrder) return null
+                  return (
+                    <p className="text-xs text-muted-foreground font-mono">
+                      N° commande : {selectedOrder.clientOrderNumber}
+                    </p>
+                  )
+                })()}
 
                 {/* Order Lines with Delivery Tracking */}
                 {selectedOrderId && (
@@ -1842,7 +1914,7 @@ export default function DeliveryNotesView() {
                       </div>
                     )}
                     {/* Supplementary Lines */}
-                    {orderLinesForDelivery.length > 0 && (
+                    {orderLinesForDelivery.length > 0 && !fromPreparationId && (
                       <div className="space-y-2 mt-3">
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">

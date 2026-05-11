@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   ClipboardList, MoreVertical, Play, CheckCircle, XCircle, Eye, Trash2, Package,
-  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search, Printer, Truck, Clock
+  Plus, RefreshCw, AlertTriangle, ShoppingCart, Factory, Loader2, ChevronRight, FileText, Search, Printer, Truck, Clock, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -256,6 +256,47 @@ export default function PreparationsView() {
 
   // Delete confirmation
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // Table sorting
+  const [sortField, setSortField] = useState<string>('number')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const toggleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }
+
+  const sortedPreparations = useMemo(() => {
+    const sorted = [...preparations]
+    sorted.sort((a, b) => {
+      let cmp = 0
+      switch (sortField) {
+        case 'number':
+          cmp = a.number.localeCompare(b.number)
+          break
+        case 'salesOrder':
+          cmp = a.salesOrder.clientOrderNumber.localeCompare(b.salesOrder.clientOrderNumber)
+          break
+        case 'client':
+          cmp = a.salesOrder.client.name.localeCompare(b.salesOrder.client.name)
+          break
+        case 'status':
+          cmp = a.status.localeCompare(b.status)
+          break
+        case 'createdAt':
+          cmp = a.createdAt.localeCompare(b.createdAt)
+          break
+        default:
+          cmp = 0
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [preparations, sortField, sortDir])
 
   // ── Fetch preparations ──
   const fetchPreparations = useCallback(async () => {
@@ -624,12 +665,22 @@ export default function PreparationsView() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Numéro</TableHead>
-                  <TableHead>Commande</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('number')}>
+                    <div className="flex items-center gap-1">Numéro {sortField === 'number' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('salesOrder')}>
+                    <div className="flex items-center gap-1">Commande {sortField === 'salesOrder' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('client')}>
+                    <div className="flex items-center gap-1">Client {sortField === 'client' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('status')}>
+                    <div className="flex items-center gap-1">Statut {sortField === 'status' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
                   <TableHead>Progression</TableHead>
-                  <TableHead className="hidden md:table-cell">Créée le</TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('createdAt')}>
+                    <div className="flex items-center gap-1">Créée le {sortField === 'createdAt' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
                   <TableHead className="text-right w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -643,7 +694,7 @@ export default function PreparationsView() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  preparations.map((prep) => (
+                  sortedPreparations.map((prep) => (
                     <TableRow
                       key={prep.id}
                       className={cn("cursor-pointer", expandedPrepId === prep.id && "bg-primary/5 border-l-2 border-l-primary")}
@@ -668,7 +719,7 @@ export default function PreparationsView() {
                           <ProgressBadge percent={prep.progressPercent} />
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {format(new Date(prep.createdAt), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell className="text-right">

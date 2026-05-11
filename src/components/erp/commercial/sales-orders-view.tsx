@@ -29,7 +29,7 @@ import {
 import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
   Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2,
-  Truck, Package, Edit, Printer, Pencil, BadgeCheck, Clock, RefreshCw
+  Truck, Package, Edit, Printer, Pencil, BadgeCheck, Clock, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -207,6 +207,50 @@ export default function SalesOrdersView() {
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
   const [allProducts, setAllProducts] = useState<ProductOption[]>([])
+
+  // Table sorting
+  const [sortField, setSortField] = useState<string>('clientOrderNumber')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const toggleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }
+
+  const sortedOrders = useMemo(() => {
+    const sorted = [...orders]
+    sorted.sort((a, b) => {
+      let cmp = 0
+      switch (sortField) {
+        case 'clientOrderNumber':
+          cmp = a.clientOrderNumber.localeCompare(b.clientOrderNumber)
+          break
+        case 'client':
+          cmp = a.client.name.localeCompare(b.client.name)
+          break
+        case 'status':
+          cmp = a.status.localeCompare(b.status)
+          break
+        case 'date':
+          cmp = a.date.localeCompare(b.date)
+          break
+        case 'totalHT':
+          cmp = (a.totalHT || 0) - (b.totalHT || 0)
+          break
+        case 'totalTTC':
+          cmp = (a.totalTTC || 0) - (b.totalTTC || 0)
+          break
+        default:
+          cmp = 0
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [orders, sortField, sortDir])
 
   // Form state
   const [formClientId, setFormClientId] = useState('')
@@ -620,14 +664,26 @@ export default function SalesOrdersView() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>N° Commande</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead className="hidden md:table-cell">Date</TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('clientOrderNumber')}>
+                    <div className="flex items-center gap-1">N° Commande {sortField === 'clientOrderNumber' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('client')}>
+                    <div className="flex items-center gap-1">Client {sortField === 'client' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('date')}>
+                    <div className="flex items-center gap-1">Date {sortField === 'date' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
                   <TableHead className="hidden lg:table-cell">Livraison</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('status')}>
+                    <div className="flex items-center gap-1">Statut {sortField === 'status' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
                   <TableHead className="hidden md:table-cell">% Livraison</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">Total HT</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">Total TTC</TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 text-right hidden sm:table-cell" onClick={() => toggleSort('totalHT')}>
+                    <div className="flex items-center gap-1 justify-end">Total HT {sortField === 'totalHT' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 text-right hidden sm:table-cell" onClick={() => toggleSort('totalTTC')}>
+                    <div className="flex items-center gap-1 justify-end">Total TTC {sortField === 'totalTTC' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
+                  </TableHead>
                   <TableHead className="text-right w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -639,7 +695,7 @@ export default function SalesOrdersView() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  orders.map((order) => (
+                  sortedOrders.map((order) => (
                     <TableRow key={order.id} className={cn("cursor-pointer", expandedOrderId === order.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)} onDoubleClick={() => openEdit(order)}>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -656,7 +712,7 @@ export default function SalesOrdersView() {
                         </div>
                       </TableCell>
                       <TableCell>{order.client.name}</TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                      <TableCell className="text-muted-foreground">
                         {format(new Date(order.date), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground">
