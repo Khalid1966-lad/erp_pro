@@ -459,3 +459,25 @@ Stage Summary:
 - PWA manifest version updated
 - Service Worker placeholder bug fixed (prebuild script can now properly inject build stamps)
 - All footers/sidebars/print-headers auto-update via shared APP_VERSION import
+
+---
+Task ID: 2
+Agent: main
+Task: Vérifier si toutes les tables et champs sont prises en compte dans Sauvegarde / Restore
+
+Work Log:
+- Read complete prisma/schema.prisma (1780 lines, 73 models)
+- Read src/lib/backup.ts (BACKUP_TABLES, DATETIME_FIELDS, TABLE_SQL_NAMES)
+- Extracted all 73 Prisma model names via grep
+- Extracted all 8 @@map annotations and compared with TABLE_SQL_NAMES
+- Verified DateTime fields for ALL 72 data models against DATETIME_FIELDS mapping
+- Checked FK order correctness for backup/restore
+
+Stage Summary:
+- 73 Prisma models total; 72 business models need backup; Backup model correctly excluded
+- BACKUP_TABLES: 72/72 models present (100% coverage)
+- TABLE_SQL_NAMES: 8/8 @@map annotations correctly mapped
+- DATETIME_FIELDS: All 47 models with DateTime fields correctly listed with exact field names
+- 25 models without DateTime fields correctly excluded from DATETIME_FIELDS
+- FK-safe order verified (parents before children, reversed for delete)
+- Conclusion: Backup/Restore system is 100% complete and correct
