@@ -481,3 +481,38 @@ Stage Summary:
 - 25 models without DateTime fields correctly excluded from DATETIME_FIELDS
 - FK-safe order verified (parents before children, reversed for delete)
 - Conclusion: Backup/Restore system is 100% complete and correct
+
+---
+Task ID: 3
+Agent: main
+Task: Fix server errors on bon de retour, factures, avoir clients — verify PostgreSQL tables
+
+Work Log:
+- Verified .env was pointing to SQLite instead of PostgreSQL — fixed locally
+- Confirmed Prisma schema is PostgreSQL (`provider = "postgresql"`)
+- Ran `prisma db push` — confirmed "database is already in sync" with Neon PostgreSQL
+- Listed ALL 72 tables in PostgreSQL via raw SQL query — all exist including:
+  - customer_returns ✅, customer_return_lines ✅
+  - CreditNote ✅, CreditNoteLine ✅
+  - Invoice ✅, InvoiceLine ✅
+- Tested Prisma queries directly against PostgreSQL for all 3 tables — all succeed
+- Verified customer_returns columns match schema (15 columns) ✅
+- Verified customer_return_lines columns match schema (8 columns) ✅
+- **ROOT CAUSE FOUND**: 7 references to `salesOrder.number` in API routes (should be `salesOrder.clientOrderNumber`)
+  - SalesOrder model has `clientOrderNumber` field, NOT `number`
+  - This caused Prisma runtime errors when invoices included salesOrder relation
+- Fixed 7 references across 5 files:
+  1. src/app/api/invoices/[id]/route.ts — salesOrder select
+  2. src/app/api/invoices/route.ts — 2 occurrences (list + BL creation)
+  3. src/app/api/invoices/uninvoiced-bls/route.ts — salesOrder select
+  4. src/app/api/finance/financial-reports/route.ts — 2 occurrences (select + property access)
+  5. src/app/api/agenda/route.ts — 2 occurrences (select + property access)
+- Fixed local .env to PostgreSQL connection string
+- ESLint passed with no errors
+- Committed as 9f3cda0 and pushed to main
+
+Stage Summary:
+- PostgreSQL tables confirmed: all 3 features (bon de retour, factures, avoirs) have correct tables/columns
+- Bug: `salesOrder.number` → `salesOrder.clientOrderNumber` in 7 API references across 5 files
+- Commit 9f3cda0 pushed to main — Vercel will auto-deploy
+- All factures, avoirs, and related features should work after deployment
