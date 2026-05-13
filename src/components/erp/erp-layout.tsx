@@ -167,6 +167,14 @@ const navigation: NavGroup[] = [
     ]
   },
   {
+    title: 'Ressources Humaines',
+    icon: <UserCog className="h-4 w-4" />,
+    items: [
+      { id: 'employees', label: 'Salariés', icon: <Users className="h-4 w-4" />, color: 'text-violet-500', permission: 'employees:read' },
+      { id: 'employee-functions', label: 'Fonctions', icon: <Briefcase className="h-4 w-4" />, color: 'text-orange-500', permission: 'employees:read' }
+    ]
+  },
+  {
     title: 'Communication',
     icon: <MessageSquare className="h-4 w-4" />,
     items: [
@@ -182,14 +190,6 @@ const navigation: NavGroup[] = [
       { id: 'audit-log', label: "Journal d'audit", icon: <Shield className="h-4 w-4" />, color: 'text-slate-500', permission: 'audit_log:read' },
       { id: 'settings', label: 'Paramètres', icon: <Settings className="h-4 w-4" />, color: 'text-gray-400', permission: 'settings:read' },
       { id: 'guide', label: "Guide d'utilisation", icon: <BookOpen className="h-4 w-4" />, color: 'text-emerald-500', permission: 'guide:read' }
-    ]
-  },
-  {
-    title: 'Ressources Humaines',
-    icon: <UserCog className="h-4 w-4" />,
-    items: [
-      { id: 'employees', label: 'Salariés', icon: <Users className="h-4 w-4" />, color: 'text-violet-500', permission: 'employees:read' },
-      { id: 'employee-functions', label: 'Fonctions', icon: <Briefcase className="h-4 w-4" />, color: 'text-orange-500', permission: 'employees:read' }
     ]
   }
 ]
