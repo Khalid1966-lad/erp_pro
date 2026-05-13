@@ -16,7 +16,7 @@ import {
 import {
   Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload,
   ImageIcon, X, Loader2, ZoomIn, ZoomOut, Printer, Database, FileDown, type LucideIcon,
-  Download, Smartphone, Monitor, CheckCircle2,
+  Download, Smartphone, Monitor, CheckCircle2, AlertTriangle, ShieldAlert,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
@@ -26,6 +26,10 @@ import { invalidateCompanyCache } from '@/lib/print-utils'
 import BackupSection from './backup-section'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { usePWAInstall } from '@/hooks/use-pwa-install'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 // ─── Types ───
 
@@ -73,6 +77,7 @@ const sidebarTabs: SidebarTab[] = [
   { id: 'backup', label: 'Sauvegarde', icon: Database },
   { id: 'brochure', label: 'Brochure', icon: FileDown },
   { id: 'about', label: 'À propos', icon: Info },
+  { id: 'advanced', label: 'Avancé', icon: ShieldAlert },
 ]
 
 // The tabs that show save/reset buttons in the header
@@ -676,6 +681,123 @@ function BrochureSection() {
   )
 }
 
+// ─── Advanced Section (reset database) — only contact@jazelwebagency.com ───
+
+function AdvancedSection() {
+  const [confirmText, setConfirmText] = useState('')
+  const [resetting, setResetting] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const handleReset = async () => {
+    if (confirmText !== 'RESET') return
+    setResetting(true)
+    try {
+      const data = await api.post<{ success: boolean; message: string; deleted: Record<string, number>; productsReset: number; clientsReset: number; suppliersReset: number }>('/reset-database', { confirm: 'RESET' })
+      if (data.success) {
+        toast.success(data.message, { duration: 5000 })
+      } else {
+        toast.error(data.message || 'Erreur')
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la réinitialisation')
+    } finally {
+      setResetting(false)
+      setConfirmText('')
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="text-destructive"><ShieldAlert className="h-5 w-5" /></div>
+            <div>
+              <CardTitle className="text-base text-destructive">Outils avancés</CardTitle>
+              <CardDescription className="text-sm">
+                Actions irréversibles — accès restreint
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="border border-destructive/20 rounded-xl p-5 bg-destructive/5 space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-semibold text-destructive">Réinitialiser la base de données</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Supprime toutes les données transactionnelles (devis, commandes, BL, factures, paiements, stock, production, etc.)
+                  et remet les compteurs à zéro. Les clients, produits, fournisseurs, utilisateurs et paramètres sont conservés.
+                </p>
+                <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
+                  <p><strong className="text-foreground">Conservés :</strong> Clients, Produits, Fournisseurs, Utilisateurs, Rôles, Paramètres, Chantiers, Employés, Postes, Équipements, Nomenclatures</p>
+                  <p><strong className="text-foreground">Réinitialisés :</strong> Stock produits → 0, Soldes clients/fournisseurs → 0, Compteurs numérotation → 1</p>
+                  <p><strong className="text-foreground">Supprimés :</strong> Devis, Commandes, Préparations, BL, Factures, Avoirs, Retours, Paiements, Effets, Mouvements stock, OT, Lots, Maintenance, Qualité, Messages, Notifications</p>
+                </div>
+              </div>
+            </div>
+
+            <AlertDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setConfirmText('') }}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full sm:w-auto">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Réinitialiser la base de données
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-5 w-5" />
+                    Confirmation de réinitialisation
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3 text-destructive">
+                      <p>
+                        Cette action est <strong>irréversible</strong>. Toutes les données transactionnelles seront définitivement supprimées.
+                      </p>
+                      <p>
+                        Pour confirmer, tapez <strong className="font-mono bg-muted px-2 py-0.5 rounded">RESET</strong> dans le champ ci-dessous :
+                      </p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-2">
+                  <Input
+                    placeholder="Tapez RESET pour confirmer"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    className="font-mono"
+                    autoFocus
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleReset}
+                    disabled={confirmText !== 'RESET' || resetting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {resetting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Réinitialisation...
+                      </>
+                    ) : (
+                      'Confirmer la réinitialisation'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 // ─── Install PWA Section ───
 
 function InstallPWASection() {
@@ -976,7 +1098,9 @@ export default function SettingsView() {
         <nav className="md:w-48 shrink-0">
           {/* Mobile: horizontal scrollable tabs */}
           <div className="flex md:hidden gap-1 overflow-x-auto pb-2 scrollbar-none">
-            {sidebarTabs.map((tab) => {
+            {sidebarTabs
+              .filter((tab) => tab.id !== 'advanced' || user?.email === 'contact@jazelwebagency.com')
+              .map((tab) => {
               const Icon = tab.icon
               return (
                 <button
@@ -998,7 +1122,9 @@ export default function SettingsView() {
           </div>
           {/* Desktop: vertical sidebar */}
           <div className="hidden md:flex flex-col gap-1 sticky top-6">
-            {sidebarTabs.map((tab) => {
+            {sidebarTabs
+              .filter((tab) => tab.id !== 'advanced' || user?.email === 'contact@jazelwebagency.com')
+              .map((tab) => {
               const Icon = tab.icon
               return (
                 <button
@@ -1072,7 +1198,17 @@ export default function SettingsView() {
 
           {activeTab === 'brochure' && <BrochureSection />}
 
-          {activeTab === 'about' && <AboutSection />}
+                    {activeTab === 'about' && <AboutSection />}
+
+          {activeTab === 'advanced' && user?.email === 'contact@jazelwebagency.com' && <AdvancedSection />}
+
+          {activeTab === 'advanced' && user?.email !== 'contact@jazelwebagency.com' && (
+            <Card>
+              <CardContent className="flex items-center justify-center py-8">
+                <p className="text-sm text-muted-foreground">Accès restreint.</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
