@@ -3,11 +3,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@/components/ui/resizable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,7 +16,6 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import {
@@ -540,12 +534,12 @@ export function ChequeTemplateEditor({
           </button>
         </div>
 
-        <div className="flex-1 flex overflow-hidden min-h-0">
-          {/* ─── LEFT PANEL: Properties ─── */}
-          <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
-          <ResizablePanel defaultSize={22} minSize={18} maxSize={30}>
-            <ScrollArea className="flex-1">
-              <div className="p-3 space-y-4">
+        {/* 3-column flex layout: left sidebar | center canvas | right sidebar */}
+        <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
+
+          {/* ─── LEFT PANEL: Properties (280px) ─── */}
+          <aside className="w-[280px] flex-shrink-0 border-r overflow-y-auto bg-background">
+            <div className="p-3 space-y-4">
                 {/* Template Info */}
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -716,15 +710,11 @@ export function ChequeTemplateEditor({
                     </p>
                   )}
                 </div>
-              </div>
-            </ScrollArea>
-          </ResizablePanel>
+            </div>
+          </aside>
 
-          <ResizableHandle withHandle />
-
-          {/* ─── CENTER: Canvas Editor ─── */}
-          <ResizablePanel defaultSize={50} minSize={35}>
-          <div className="flex flex-col overflow-hidden bg-gray-100 h-full">
+          {/* ─── CENTER: Canvas Editor (flex-1) ─── */}
+          <main className="flex-1 flex flex-col overflow-hidden bg-gray-100" style={{ minWidth: 0 }}>
             {/* Toolbar */}
             <div className="flex items-center gap-1 px-3 py-2 border-b bg-white flex-shrink-0">
               <Button
@@ -877,16 +867,11 @@ export function ChequeTemplateEditor({
                 </div>
               </div>
             </div>
-          </div>
-          </ResizablePanel>
+          </main>
 
-          <ResizableHandle withHandle />
-
-          {/* ─── RIGHT PANEL: Field Properties ─── */}
-          <ResizablePanel defaultSize={28} minSize={20} maxSize={35}>
-          <div className="border-l bg-muted/30 flex flex-col overflow-hidden h-full">
-            <ScrollArea className="flex-1">
-              <div className="p-3 space-y-3">
+          {/* ─── RIGHT PANEL: Field Properties (300px) ─── */}
+          <aside className="w-[300px] flex-shrink-0 border-l overflow-y-auto bg-muted/30">
+            <div className="p-3 space-y-3">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Champs ajoutés
                 </Label>
@@ -1064,11 +1049,9 @@ export function ChequeTemplateEditor({
                     </div>
                   </>
                 )}
-              </div>
-            </ScrollArea>
-          </div>
-          </ResizablePanel>
-          </ResizablePanelGroup>
+            </div>
+          </aside>
+
         </div>
       </div>
     , document.body
