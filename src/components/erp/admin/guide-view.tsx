@@ -14,7 +14,8 @@ import {
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
   FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database, Pencil, Trash2, Calendar, Search,
-  Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Hammer, Globe, Hash, Zap, Send, Upload, Move, type LucideIcon
+  Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Hammer, Globe, Hash, Zap, Send, Upload, Move,
+  Bold, AlignLeft, Type, Crosshair, Star, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -3808,16 +3809,256 @@ function AdministrationSection() {
       <SubTitle id="administration-modeles-cheques">Modèles de chèques</SubTitle>
       <Paragraph>
         L&apos;onglet <strong>« Modèles chèques »</strong> dans les Paramètres permet de gérer les modèles d&apos;impression
-        de chèques. Vous pouvez créer, modifier, supprimer et définir un modèle par défaut.
+        de chèques. Vous pouvez créer, modifier, supprimer et définir un modèle par défaut. L&apos;éditeur s&apos;ouvre en
+        <strong> plein écran</strong> pour un confort de travail optimal.
       </Paragraph>
 
-      <Step num={1}>Accédez à <strong>Administration → Paramètres → Modèles chèques</strong>.</Step>
-      <Step num={2}>La liste affiche tous les modèles configurés avec leur banque, dimensions et nombre de champs.</Step>
-      <Step num={3}>Pour définir un modèle par défaut, cliquez sur l&apos;icône <strong>★</strong> à côté du modèle.</Step>
+      <SubTitle>Accès à la gestion des modèles</SubTitle>
+      <Step num={1}>Accédez à <strong>Administration → Paramètres → Modèles chèques</strong> (onglet dans la barre latérale).</Step>
+      <Step num={2}>La liste affiche tous les modèles configurés avec leur banque, modèle de chèque, dimensions et nombre de champs positionnés.</Step>
+      <Step num={3}>Le badge <strong>« Par défaut »</strong> indique le modèle utilisé automatiquement pour l&apos;impression des chèques.</Step>
 
+      <SubTitle>Créer un nouveau modèle</SubTitle>
+      <Step num={1}>Cliquez sur <strong>« Nouveau modèle »</strong> — l&apos;éditeur plein écran s&apos;ouvre.</Step>
+      <Step num={2}>L&apos;éditeur est organisé en <strong>3 colonnes</strong> :</Step>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Settings className="h-4 w-4 text-sky-600" />
+              <span className="font-semibold text-sm">Panneau gauche (280px)</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Informations du modèle (nom, banque, type), dimensions du chèque en mm, liste des champs à ajouter, et import de l&apos;image de fond (scan).</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Move className="h-4 w-4 text-violet-600" />
+              <span className="font-semibold text-sm">Zone centrale</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Visualisation du chèque avec grille (snap 1mm), aperçu des champs positionnés, outil de glisser-déposer. Barre d&apos;outils en haut (grille, aperçu, annuler, dupliquer, sauvegarder).</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Pencil className="h-4 w-4 text-amber-600" />
+              <span className="font-semibold text-sm">Panneau droit (300px)</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Liste des champs ajoutés avec leurs coordonnées. En cliquant sur un champ, ses propriétés détaillées s&apos;affichent : police, graisse, alignement, dimensions, position X/Y.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <SubTitle>Étape 1 — Informations du modèle</SubTitle>
+      <Step num={1}><strong>Nom *</strong> : Nom du modèle (ex: « Chèque Attijariwafa Standard »). Ce champ est obligatoire.</Step>
+      <Step num={2}><strong>Description</strong> : Description optionnelle pour identifier le modèle.</Step>
+      <Step num={3}><strong>Banque</strong> : Sélectionnez la banque dans la liste déroulante (Attijariwafa Bank, BMCE Bank of Africa, Société Générale, Banque Populaire, CIH Bank, Crédit Agricole, CFG Bank, Al Barid Bank, Autre).</Step>
+      <Step num={4}><strong>Modèle</strong> : Type de chèque — Standard, Entreprise ou Personnalisé.</Step>
+      <Step num={5}><strong>Modèle par défaut</strong> : Activez ce commutateur pour que ce modèle soit utilisé automatiquement lors de l&apos;impression d&apos;un chèque depuis la vue « Effets &amp; Chèques ».</Step>
+
+      <SubTitle>Étape 2 — Dimensions du chèque</SubTitle>
+      <Paragraph>
+        Indiquez les <strong>dimensions réelles du chèque</strong> en millimètres. Mesurez avec une règle pour une précision optimale.
+      </Paragraph>
+      <div className="grid grid-cols-2 gap-3 my-4">
+        <Card>
+          <CardContent className="p-3 text-center">
+            <p className="text-xs text-muted-foreground">Largeur par défaut</p>
+            <p className="text-lg font-bold">160 mm</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 text-center">
+            <p className="text-xs text-muted-foreground">Hauteur par défaut</p>
+            <p className="text-lg font-bold">75 mm</p>
+          </CardContent>
+        </Card>
+      </div>
       <TipBox type="info">
-        Pour le détail complet de la configuration et de l&apos;impression des chèques, consultez la section
-        <strong> Finance → Impression de chèques</strong>.
+        <strong>Pourquoi les dimensions ?</strong> Le système utilise ces dimensions pour convertir les positions des champs (en mm) en pixels lors de l&apos;impression. Des dimensions précises garantissent un alignement parfait sur le chèque réel.
+      </TipBox>
+
+      <SubTitle>Étape 3 — Importer le scan du chèque</SubTitle>
+      <Step num={1}>Cliquez sur le bouton <strong>« Importer »</strong> dans la section « Image de fond » du panneau gauche.</Step>
+      <Step num={2}>Sélectionnez le fichier image de votre chèque scanné (PNG, JPG, etc.).</Step>
+      <Step num={3}>Le scan apparaît en <strong>fond transparent</strong> (opacité 30%) sur la zone de travail centrale.</Step>
+      <Step num={4}>Les dimensions de la zone de travail correspondent aux dimensions que vous avez indiquées (160×75 mm par défaut).</Step>
+
+      <TipBox type="warning">
+        <strong>Scan recommandé :</strong> Scannez votre chèque vierge sur une page A4 à 300 DPI minimum. Seule la zone du chèque importera — l&apos;image sert uniquement de repère visuel pour positionner les champs. <strong>Elle n&apos;est jamais imprimée.</strong>
+      </TipBox>
+
+      <SubTitle>Étape 4 — Ajouter et positionner les champs</SubTitle>
+      <Step num={1}>Dans le panneau gauche, la section <strong>« Champs disponibles »</strong> liste tous les champs non encore ajoutés. Les champs obligatoires sont marqués du badge <Badge className="bg-green-100 text-green-700">Req.</Badge></Step>
+      <Step num={2}>Cliquez sur un champ pour l&apos;ajouter sur le chèque. Il apparaît au centre de la zone de travail.</Step>
+      <Step num={3}><strong>Glissez-déposez</strong> le champ pour le positionner exactement sur la zone correspondante du chèque scanné.</Step>
+      <Step num={4}>Les positions s&apos;affichent en temps réel dans le panneau droit (coordonnées X, Y en mm).</Step>
+      <Step num={5}>Répétez pour chaque champ nécessaire.</Step>
+
+      <Card className="my-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Liste des champs disponibles</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Champ</TableHead>
+                <TableHead>Utilisé pour</TableHead>
+                <TableHead>Requis</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { field: 'Montant en chiffres', desc: 'Ex: 12 500,00 MAD', req: true },
+                { field: 'Montant en lettres', desc: 'Ex: DOUZE MILLE CINQ CENTS DIRHAMS', req: true },
+                { field: 'Bénéficiaire', desc: 'Nom du bénéficiaire du chèque', req: true },
+                { field: 'Lieu et date', desc: 'Ex: Casablanca, le 12/06/2026', req: true },
+                { field: 'Date d\'émission', desc: 'Date de création du chèque', req: false },
+                { field: 'Date d\'échéance', desc: 'Date limite de validité', req: false },
+                { field: 'Numéro du chèque', desc: 'Numéro de série du chèque', req: false },
+                { field: 'Banque émettrice', desc: 'Nom de la banque', req: false },
+                { field: 'Compte émetteur (RIB)', desc: 'Numéro de compte bancaire', req: false },
+                { field: 'BIC', desc: 'Code BIC de la banque', req: false },
+                { field: 'Motif / Libellé', desc: 'Référence facture ou motif du paiement', req: false },
+              ].map((f, i) => (
+                <TableRow key={i}>
+                  <TableCell className="font-medium text-sm">{f.field}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{f.desc}</TableCell>
+                  <TableCell>{f.req ? <Badge className="bg-green-100 text-green-700">Oui</Badge> : <Badge variant="outline">Non</Badge>}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <SubTitle>Étape 5 — Personnaliser les propriétés d&apos;un champ</SubTitle>
+      <Paragraph>
+        Cliquez sur un champ dans le panneau droit ou sur la zone de travail pour le sélectionner. Les propriétés suivantes s&apos;affichent :
+      </Paragraph>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 my-4">
+        <Card>
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold">Police (pt)</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Taille de la police entre 6 et 36 points. Par défaut : 12pt. Ajustez selon la taille des zones sur le chèque.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Bold className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold">Graisse</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Normal ou Gras. Utilisez Gras pour les montants ou le bénéficiaire si le chèque le requiert.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold">Alignement</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Gauche, Centré ou Droite. L&apos;alignement est relatif à la largeur du champ définie.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Type className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold">Famille de police</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Sans-serif (défaut), Serif, Monospace ou Cursive. Choisissez selon le style du chèque.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Move className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold">Dimensions (mm)</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Largeur et hauteur du champ en mm. Laissez vide pour « Auto ». Définissez une largeur pour aligner correctement le texte.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Crosshair className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold">Position X / Y (mm)</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Position en mm depuis le coin supérieur gauche du chèque. Saisissez manuellement pour un réglage au demi-millimètre près.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <SubTitle>Étape 6 — Utiliser la grille et l&apos;aperçu</SubTitle>
+      <Step num={1}><strong>Grille</strong> : Activez la grille dans la barre d&apos;outils pour afficher un quadrillage. Les champs se « snapent » automatiquement à la grille (1 mm par graduation, lignes majeures toutes les 10 mm).</Step>
+      <Step num={2}><strong>Aperçu</strong> : Activez l&apos;aperçu pour afficher les valeurs d&apos;exemple dans chaque champ au lieu du nom technique (ex: « 12 500,00 MAD » au lieu de « montant_chiffres »).</Step>
+      <Step num={3}><strong>Annuler</strong> : Le bouton Annuler permet de revenir en arrière (jusqu&apos;à 20 étapes).</Step>
+      <Step num={4}><strong>Dupliquer</strong> : Si vous éditez un modèle existant, le bouton Dupliquer crée une copie (renommez et sauvegardez pour créer un nouveau modèle).</Step>
+
+      <SubTitle>Étape 7 — Sauvegarder le modèle</SubTitle>
+      <Step num={1}>Vérifiez que le nom du modèle est renseigné.</Step>
+      <Step num={2}>Cliquez sur <strong>« Sauvegarder »</strong> dans la barre d&apos;outils.</Step>
+      <Step num={3}>L&apos;éditeur se ferme et le modèle apparaît dans la liste des modèles.</Step>
+
+      <TipBox type="success">
+        <strong>Modèle par défaut :</strong> Si vous activez « Modèle par défaut », ce modèle sera sélectionné automatiquement lors de l&apos;impression d&apos;un chèque depuis <strong>Finance → Effets &amp; Chèques</strong>. Vous pouvez toujours choisir un autre modèle au moment de l&apos;impression.
+      </TipBox>
+
+      <SubTitle>Gérer les modèles existants</SubTitle>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Pencil className="h-6 w-6 mx-auto mb-2 text-sky-600" />
+            <p className="text-sm font-semibold">Modifier</p>
+            <p className="text-[11px] text-muted-foreground">Ouvre l&apos;éditeur plein écran avec le modèle chargé. Modifiez les champs et sauvegardez.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Star className="h-6 w-6 mx-auto mb-2 text-amber-500" />
+            <p className="text-sm font-semibold">Définir par défaut</p>
+            <p className="text-[11px] text-muted-foreground">Cliquez sur ★ pour que ce modèle soit utilisé automatiquement à l&apos;impression.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Trash2 className="h-6 w-6 mx-auto mb-2 text-red-500" />
+            <p className="text-sm font-semibold">Supprimer</p>
+            <p className="text-[11px] text-muted-foreground">Supprime définitivement le modèle. Les chèques l&apos;utilisant ne pourront plus être imprimés avec ce format.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <SubTitle>Test et calibrage de l&apos;impression</SubTitle>
+      <Paragraph>
+        Après avoir configuré votre modèle, il est recommandé de faire un <strong>test d&apos;impression</strong> avant d&apos;utiliser de vrais chèques.
+      </Paragraph>
+      <Step num={1}>Imprimez un <strong>test avec repères</strong> : des croix de repères apparaissent aux 4 coins de la zone chèque et un contour rouge entoure chaque champ.</Step>
+      <Step num={2}>Superposez l&apos;impression sur un <strong>chèque vierge réel</strong> pour vérifier visuellement l&apos;alignement.</Step>
+      <Step num={3}>Si les champs sont décalés, revenez dans l&apos;éditeur et ajustez les coordonnées X/Y dans le panneau droit.</Step>
+      <Step num={4}>Répétez le test jusqu&apos;à obtenir un alignement parfait.</Step>
+
+      <TipBox type="warning">
+        <strong>Important :</strong> L&apos;image de fond (scan du chèque) <strong>n&apos;est jamais imprimée</strong>. Seuls les champs texte sont envoyés à l&apos;imprimante. C&apos;est pourquoi il est essentiel de bien calibrer les positions.
+      </TipBox>
+
+      <SubTitle>Imprimer un chèque depuis Effets &amp; Chèques</SubTitle>
+      <Step num={1}>Accédez à <strong>Finance → Effets &amp; Chèques</strong>.</Step>
+      <Step num={2}>Repérez le chèque souhaité dans la liste.</Step>
+      <Step num={3}>Cliquez sur l&apos;icône <strong>🖨 (Imprimer)</strong> dans la colonne Actions.</Step>
+      <Step num={4}>Si plusieurs modèles existent, sélectionnez le modèle souhaité (sinon le modèle par défaut est utilisé).</Step>
+      <Step num={5}>Vérifiez l&apos;aperçu, puis insérez un chèque vierge dans l&apos;imprimante et imprimez.</Step>
+
+      <TipBox type="success">
+        Chaque impression est <strong>enregistrée</strong> (date et nombre d&apos;impressions) dans la fiche de l&apos;effet de chèque pour un suivi complet.
       </TipBox>
     </div>
   )
