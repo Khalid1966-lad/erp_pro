@@ -222,6 +222,10 @@ body {
     padding-top: 50mm; /* prevent content from hiding behind fixed header */
   }
 }
+/* Mode sans en-tête/pied de page (papier imprimé) */
+.no-header-footer .print-header { display: none !important; }
+.no-header-footer .print-footer { display: none !important; }
+.no-header-footer .page-wrapper { padding-top: 15mm !important; padding-bottom: 15mm !important; }
 .doc-title {
   text-align: center; font-size: 15px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 12px;
@@ -458,6 +462,10 @@ export async function printDocument(options: PrintOptions) {
     <button id="print-zoom-in" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom +">+</button>
     <button id="print-zoom-fit" style="padding:0 10px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#374151;" title="Ajuster à l'écran">Ajuster</button>
     <div style="width:1px;height:20px;background:#e5e7eb;"></div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280;cursor:pointer;user-select:none;white-space:nowrap;">
+      <input type="checkbox" id="print-toggle-hf" checked style="width:15px;height:15px;accent-color:#1a1a1a;cursor:pointer;">
+      En-tête / Pied
+    </label>
     <button id="print-btn" style="display:flex;align-items:center;gap:6px;padding:0 14px;height:32px;border:none;border-radius:6px;background:#1a1a1a;color:#fff;cursor:pointer;font-size:13px;font-weight:500;">🖨 Imprimer</button>
     <button id="print-close" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Fermer">✕</button>
   `
@@ -625,6 +633,21 @@ export async function printDocument(options: PrintOptions) {
   document.getElementById('print-zoom-in')!.onclick = () => { if (zoomIdx < zoomLevels.length - 1) { zoomIdx++; applyZoom() } }
   document.getElementById('print-zoom-out')!.onclick = () => { if (zoomIdx > 0) { zoomIdx--; applyZoom() } }
   document.getElementById('print-zoom-fit')!.onclick = fitZoom
+
+  // ── Toggle header/footer (for pre-printed paper) ──
+  const toggleCb = document.getElementById('print-toggle-hf') as HTMLInputElement | null
+  toggleCb?.addEventListener('change', () => {
+    const doc = iframe.contentDocument
+    if (!doc) return
+    const wrapper = doc.querySelector('.page-wrapper')
+    if (wrapper) {
+      if (toggleCb.checked) {
+        wrapper.classList.remove('no-header-footer')
+      } else {
+        wrapper.classList.add('no-header-footer')
+      }
+    }
+  })
 
   document.getElementById('print-btn')!.onclick = () => {
     overlay.style.display = 'none'
