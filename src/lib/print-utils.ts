@@ -689,3 +689,250 @@ export async function printDocument(options: PrintOptions) {
   })
   resizeObs.observe(container)
 }
+
+/* ── Simple list print (for tables without infoGrid/totals) ──────── */
+
+export type PrintListOptions = {
+  title: string
+  columns: string[]
+  rows: (string | number)[][]
+  footer?: string
+  /** Date range for subtitle (optional) */
+  dateRange?: { from?: string; to?: string }
+}
+
+function buildListHtml(options: PrintListOptions, company: CompanyInfo): string {
+  // Subtitle with date range
+  const dateRangeHtml = options.dateRange?.from || options.dateRange?.to
+    ? `<div style="text-align:center;font-size:11px;color:#6b7280;margin-bottom:12px;">
+         ${options.dateRange.from ? `Du ${esc(options.dateRange.from)}` : ''}${options.dateRange.from && options.dateRange.to ? ' au ' : ''}${options.dateRange.to ? esc(options.dateRange.to) : ''}
+       </div>`
+    : ''
+
+  // Build table
+  let tableHtml = '<table><thead><tr>'
+  for (const col of options.columns) {
+    tableHtml += `<th>${esc(col)}</th>`
+  }
+  tableHtml += '</tr></thead><tbody>'
+  for (const row of options.rows) {
+    tableHtml += '<tr>'
+    for (const cell of row) {
+      tableHtml += `<td>${esc(String(cell))}</td>`
+    }
+    tableHtml += '</tr>'
+  }
+  tableHtml += '</tbody></table>'
+
+  // Footer
+  const footerHtml = options.footer
+    ? `<div style="margin-top:12px;padding-top:8px;border-top:1px solid #d1d5db;text-align:right;font-size:11px;font-weight:600;color:#374151;">${esc(options.footer)}</div>`
+    : ''
+
+  // Footer lines from company settings
+  const footerLines = [company.footerLine1, company.footerLine2, company.footerLine3, company.footerLine4].filter(Boolean)
+
+  const bodyHtml = `
+    ${buildHeaderHtml(company)}
+    <div class="doc-title">${esc(options.title)}</div>
+    ${dateRangeHtml}
+    ${tableHtml}
+    ${footerHtml}
+    ${buildFooterHtml(undefined, footerLines)}
+  `
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>${esc(options.title)}</title>
+  <style>${PRINT_CSS}</style>
+</head>
+<body><div class="page-wrapper">${bodyHtml}</div></body>
+</html>`
+}
+
+export async function printList(options: PrintListOptions) {
+  const company = await getCompanyInfo()
+  const fullHtml = buildListHtml(options, company)
+
+  // ── Full-screen preview dialog with zoom, scroll & pan (same as printDocument) ──
+  const overlay = document.createElement('div')
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;font-family:system-ui,sans-serif;'
+
+  // Toolbar
+  const toolbar = document.createElement('div')
+  toolbar.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #e5e7eb;flex-shrink:0;'
+  toolbar.innerHTML = `
+    <span style="font-size:13px;font-weight:600;color:#374151;">Aperçu — ${esc(options.title)}</span>
+    <div style="flex:1"></div>
+    <span style="font-size:11px;color:#9ca3af;">🖱 Double-clic pour zoomer</span>
+    <button id="print-zoom-out" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom −">−</button>
+    <span id="print-zoom-level" style="font-size:12px;color:#6b7280;min-width:48px;text-align:center;">100%</span>
+    <button id="print-zoom-in" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Zoom +">+</button>
+    <button id="print-zoom-fit" style="padding:0 10px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#374151;" title="Ajuster à l'écran">Ajuster</button>
+    <div style="width:1px;height:20px;background:#e5e7eb;"></div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280;cursor:pointer;user-select:none;white-space:nowrap;">
+      <input type="checkbox" id="print-toggle-hf" checked style="width:15px;height:15px;accent-color:#1a1a1a;cursor:pointer;">
+      En-tête / Pied
+    </label>
+    <button id="print-btn" style="display:flex;align-items:center;gap:6px;padding:0 14px;height:32px;border:none;border-radius:6px;background:#1a1a1a;color:#fff;cursor:pointer;font-size:13px;font-weight:500;">🖨 Imprimer</button>
+    <button id="print-close" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;color:#374151;" title="Fermer">✕</button>
+  `
+
+  const container = document.createElement('div')
+  container.style.cssText = 'flex:1;overflow:auto;background:#f3f4f6;'
+
+  const centerWrap = document.createElement('div')
+  centerWrap.style.cssText = 'display:flex;justify-content:center;align-items:flex-start;padding:20px;min-height:100%;min-width:100%;'
+
+  const scaledWrap = document.createElement('div')
+  scaledWrap.style.cssText = 'position:relative;flex-shrink:0;'
+
+  const page = document.createElement('div')
+  page.style.cssText = 'position:absolute;top:0;left:0;width:210mm;min-height:297mm;background:#fff;box-shadow:0 2px 20px rgba(0,0,0,0.15);transform-origin:top left;'
+
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;'
+  page.appendChild(iframe)
+  scaledWrap.appendChild(page)
+  centerWrap.appendChild(scaledWrap)
+  container.appendChild(centerWrap)
+
+  overlay.appendChild(toolbar)
+  overlay.appendChild(container)
+  document.body.appendChild(overlay)
+  document.body.style.overflow = 'hidden'
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+  if (iframeDoc) {
+    iframeDoc.open()
+    iframeDoc.write(fullHtml)
+    iframeDoc.close()
+  }
+
+  // Zoom state
+  let zoom = 1
+  const zoomLevels = [0.25, 0.33, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 1, 1.1, 1.25, 1.5, 2, 3]
+  let zoomIdx = zoomLevels.indexOf(1)
+  const A4_W = 794
+  const A4_H = 1123
+  let actualContentH = A4_H
+  let isPanning = false
+
+  const measureContent = () => {
+    try {
+      const doc = iframe.contentDocument
+      if (doc?.documentElement) {
+        actualContentH = Math.max(doc.documentElement.scrollHeight, A4_H)
+      }
+    } catch { /* cross-origin guard */ }
+  }
+
+  const updateLayout = () => {
+    const sw = Math.round(A4_W * zoom)
+    const sh = Math.round(actualContentH * zoom)
+    scaledWrap.style.width = sw + 'px'
+    scaledWrap.style.minHeight = sh + 'px'
+    const fits = sw + 40 <= container.clientWidth
+    centerWrap.style.justifyContent = fits ? 'center' : 'flex-start'
+  }
+
+  const updatePanHint = () => {
+    const hasOverflow = container.scrollHeight > container.clientHeight + 2 ||
+                        container.scrollWidth > container.clientWidth + 2
+    if (!isPanning) container.style.cursor = hasOverflow ? 'grab' : 'default'
+  }
+
+  const applyZoom = () => {
+    zoom = zoomLevels[zoomIdx]
+    page.style.transform = `scale(${zoom})`
+    document.getElementById('print-zoom-level')!.textContent = Math.round(zoom * 100) + '%'
+    updateLayout()
+    requestAnimationFrame(updatePanHint)
+  }
+
+  const fitZoom = () => {
+    const vw = container.clientWidth - 40
+    const vh = container.clientHeight - 40
+    const best = Math.min(vw / A4_W, vh / A4_H, 1)
+    zoomIdx = 0
+    for (let i = 0; i < zoomLevels.length; i++) {
+      if (zoomLevels[i] <= best) zoomIdx = i
+    }
+    applyZoom()
+    container.scrollLeft = 0
+    container.scrollTop = 0
+  }
+
+  let panStartX = 0, panStartY = 0, scrollStartX = 0, scrollStartY = 0
+
+  const onMouseDown = (e: MouseEvent) => {
+    if (e.button !== 0) return
+    if (container.scrollHeight <= container.clientHeight + 2 && container.scrollWidth <= container.clientWidth + 2) return
+    isPanning = true
+    panStartX = e.clientX; panStartY = e.clientY
+    scrollStartX = container.scrollLeft; scrollStartY = container.scrollTop
+    container.style.cursor = 'grabbing'
+    e.preventDefault()
+  }
+  const onMouseMove = (e: MouseEvent) => {
+    if (!isPanning) return
+    container.scrollLeft = scrollStartX - (e.clientX - panStartX)
+    container.scrollTop = scrollStartY - (e.clientY - panStartY)
+  }
+  const onMouseUp = () => { if (isPanning) { isPanning = false; updatePanHint() } }
+
+  container.addEventListener('mousedown', onMouseDown)
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+  container.addEventListener('dblclick', (e: MouseEvent) => {
+    if (zoom >= 0.95 && zoom <= 1.05) fitZoom()
+    else { zoomIdx = zoomLevels.indexOf(1); applyZoom(); container.scrollLeft = (scaledWrap.scrollWidth - container.clientWidth) / 2; container.scrollTop = 0 }
+  })
+
+  const cleanup = () => {
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+    document.removeEventListener('keydown', onKey)
+    document.body.style.overflow = ''
+  }
+
+  document.getElementById('print-zoom-in')!.onclick = () => { if (zoomIdx < zoomLevels.length - 1) { zoomIdx++; applyZoom() } }
+  document.getElementById('print-zoom-out')!.onclick = () => { if (zoomIdx > 0) { zoomIdx--; applyZoom() } }
+  document.getElementById('print-zoom-fit')!.onclick = fitZoom
+
+  const toggleCb = document.getElementById('print-toggle-hf') as HTMLInputElement | null
+  toggleCb?.addEventListener('change', () => {
+    const doc = iframe.contentDocument
+    if (!doc) return
+    const wrapper = doc.querySelector('.page-wrapper')
+    if (wrapper) {
+      if (toggleCb.checked) wrapper.classList.remove('no-header-footer')
+      else wrapper.classList.add('no-header-footer')
+    }
+  })
+
+  document.getElementById('print-btn')!.onclick = () => {
+    overlay.style.display = 'none'
+    document.body.style.overflow = ''
+    try { iframe.contentWindow?.print() } catch {
+      const win = window.open('', '_blank')
+      if (win) { win.document.write(fullHtml); win.document.close(); win.print() }
+    }
+    setTimeout(() => { cleanup(); try { document.body.removeChild(overlay) } catch {} }, 3000)
+  }
+
+  document.getElementById('print-close')!.onclick = () => { cleanup(); document.body.removeChild(overlay) }
+
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') { cleanup(); document.body.removeChild(overlay) }
+    if (e.key === '+' || e.key === '=') { if (zoomIdx < zoomLevels.length - 1) { zoomIdx++; applyZoom() } }
+    if (e.key === '-') { if (zoomIdx > 0) { zoomIdx--; applyZoom() } }
+  }
+  document.addEventListener('keydown', onKey)
+
+  setTimeout(() => { measureContent(); updateLayout(); fitZoom() }, 150)
+  const resizeObs = new ResizeObserver(() => { measureContent(); updateLayout(); updatePanHint() })
+  resizeObs.observe(container)
+}

@@ -38,7 +38,7 @@ import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
 import { cn } from '@/lib/utils'
 import { useNavStore } from '@/lib/stores'
-import { printDocument, fmtMoney, fmtDate } from '@/lib/print-utils'
+import { printDocument, printList, fmtMoney, fmtDate } from '@/lib/print-utils'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { HelpButton } from '@/components/erp/shared/help-button'
@@ -293,12 +293,12 @@ export default function InvoicesView() {
     const totalHT = invoices.reduce((s, i) => s + (i.totalHT || 0), 0)
     const totalTTC = invoices.reduce((s, i) => s + (i.totalTTC || 0), 0)
 
-    const title = `Liste des factures de vente${dateFrom || dateTo ? ` (${dateFrom ? `du ${dateFrom}` : ''}${dateFrom && dateTo ? ' au ' : ''}${dateTo || ''})` : ''}`
-    printDocument({
-      title,
+    printList({
+      title: 'Liste des factures de vente',
       columns: ['N° Facture', 'Client', 'Date', 'Échéance', 'Statut', 'Total HT', 'TVA', 'Total TTC'],
       rows,
       footer: `Total HT: ${formatCurrency(totalHT)} | Total TTC: ${formatCurrency(totalTTC)} | ${invoices.length} facture(s)`,
+      dateRange: { from: dateFrom, to: dateTo },
     })
   }
 

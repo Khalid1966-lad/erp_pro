@@ -603,3 +603,28 @@ Stage Summary:
 - Cheque template editor now opens as a fullscreen overlay, giving full viewport access for editing
 - No more content cut off due to fixed 1400x850 dimensions
 - Lint passes cleanly
+
+---
+Task ID: 1
+Agent: Main
+Task: Fix invoice list print — printDocument crash + empty dates handling
+
+Work Log:
+- Diagnosed root cause: `handlePrintList` in both invoices-view.tsx and supplier-invoices-view.tsx were calling `printDocument()` with wrong data format
+  - `printDocument` expects `PrintOptions` with `columns: Array<{label}>`, `rows: Array<Array<{value}>>`, plus required `docNumber`, `infoGrid`, `totals`
+  - But callers passed plain string arrays for columns/rows and a non-existent `footer` property
+  - This caused runtime crash when accessing `col.label` and `cell.value` on undefined
+- Created new `printList()` function in `src/lib/print-utils.ts` specifically for simple list/table printing
+  - Accepts `PrintListOptions`: title, columns (string[]), rows (string[][]), footer?, dateRange?
+  - Builds simple HTML with company header, title, optional date range subtitle, table, footer
+  - Uses same full-screen preview dialog with zoom, pan, and print as `printDocument`
+- Updated `invoices-view.tsx` (Vente): changed `handlePrintList` to use `printList()`, added `dateRange` param
+- Updated `supplier-invoices-view.tsx` (Achat): same fix, uses `filtered` (client-side filtered) data
+- Empty dates now work correctly: no date params sent to API = full list fetched = full list printed
+- Lint passes clean
+
+Stage Summary:
+- 3 files modified: print-utils.ts (+250 lines, new printList function), invoices-view.tsx, supplier-invoices-view.tsx
+- Print button works for both Vente and Achat invoice lists
+- Works with or without date filters (empty dates = print complete list)
+- Excel export was already working correctly (no changes needed)

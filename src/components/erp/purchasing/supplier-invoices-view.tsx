@@ -34,7 +34,7 @@ import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
 import { PrintHeader, PrintFooter, formatCurrency } from '@/components/erp/shared/print-header'
 import { ProductCombobox, ProductOption, useProductSearch } from '@/components/erp/shared/product-combobox'
 import { numberToFrenchWords } from '@/lib/number-to-words'
-import { printDocument, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
+import { printDocument, printList, fmtMoney as fmtMoneyP, fmtDate as fmtDateP } from '@/lib/print-utils'
 
 /** HTML pour encadrés Notes + Visa Fournisseur / Visa Administration dans les impressions */
 function buildSupplierVisaHtml(notes?: string | null): string {
@@ -284,12 +284,12 @@ export default function SupplierInvoicesView() {
     ])
     const totalHT = filtered.reduce((s, i) => s + (i.totalHT || 0), 0)
     const totalTTC = filtered.reduce((s, i) => s + (i.totalTTC || 0), 0)
-    const title = `Liste des factures d'achat${dateFrom || dateTo ? ` (${dateFrom ? `du ${dateFrom}` : ''}${dateFrom && dateTo ? ' au ' : ''}${dateTo || ''})` : ''}`
-    printDocument({
-      title,
+    printList({
+      title: "Liste des factures d'achat",
       columns: ['N° Facture', 'Fournisseur', 'Date', 'Échéance', 'Statut', 'Total HT', 'Total TTC'],
       rows,
       footer: `Total HT: ${formatCurrency(totalHT)} | Total TTC: ${formatCurrency(totalTTC)} | ${filtered.length} facture(s)`,
+      dateRange: { from: dateFrom, to: dateTo },
     })
   }
 
