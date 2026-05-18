@@ -587,3 +587,19 @@ Stage Summary:
 - Complete cheque printing system with visual template editor
 - Settings > Modèles chèques tab for template management
 - Print button integrated in Effets & Chèques view
+
+---
+Task ID: 1
+Agent: Main
+Task: Make cheque template editor dialog fullscreen
+
+Work Log:
+- Read settings-view.tsx to understand the cheque template dialog structure
+- Read cheque-template-editor.tsx to find the DialogContent configuration
+- Identified the dialog was constrained to w-[1400px] h-[850px]
+- Changed DialogContent to use fullscreen classes: fixed inset-0 top-0 left-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none max-h-none rounded-none border-0
+
+Stage Summary:
+- Cheque template editor now opens as a fullscreen overlay, giving full viewport access for editing
+- No more content cut off due to fixed 1400x850 dimensions
+- Lint passes cleanly

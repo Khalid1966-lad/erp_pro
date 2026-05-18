@@ -527,7 +527,7 @@ export function ChequeTemplateEditor({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[98vw] max-h-[98vh] w-[1400px] h-[850px] p-0 overflow-hidden flex flex-col [&>button]:hidden">
+      <DialogContent className="fixed inset-0 top-0 left-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none max-h-none p-0 overflow-hidden flex flex-col rounded-none border-0 [&>button]:hidden">
         <DialogHeader className="p-4 pb-2 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Printer className="h-5 w-5" />
