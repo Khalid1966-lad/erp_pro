@@ -19,7 +19,7 @@ import {
   Download, Smartphone, Monitor, CheckCircle2, AlertTriangle, ShieldAlert, FileText,
   Plus, Star, Trash2, BookOpen,
 } from 'lucide-react'
-import { useAuthStore } from '@/lib/stores'
+import { useAuthStore, useNavStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
 import { APP_VERSION, APP_NAME, BUILD_DATE } from '@/lib/version'
 import { toast } from 'sonner'
@@ -996,7 +996,10 @@ function ChequeTemplatesSettings() {
 
   const loadTemplates = useCallback(async () => {
     try {
-      const res = await fetch('/api/cheque-templates')
+      const token = useAuthStore.getState().token
+      const res = await fetch('/api/cheque-templates', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       if (res.ok) {
         const data = await res.json()
         setTemplates(data)
@@ -1029,7 +1032,11 @@ function ChequeTemplatesSettings() {
   const handleDelete = async () => {
     if (!deleteId) return
     try {
-      const res = await fetch(`/api/cheque-templates?id=${deleteId}`, { method: 'DELETE' })
+      const token = useAuthStore.getState().token
+      const res = await fetch(`/api/cheque-templates?id=${deleteId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
       if (res.ok) {
         toast.success('Modèle supprimé')
         loadTemplates()
@@ -1046,9 +1053,13 @@ function ChequeTemplatesSettings() {
 
   const handleSetDefault = async (template: ChequeTemplate) => {
     try {
+      const token = useAuthStore.getState().token
       const res = await fetch('/api/cheque-templates', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           ...template,
           isDefault: true,
@@ -1188,12 +1199,7 @@ function ChequeTemplatesSettings() {
                 size="sm"
                 className="h-7 text-xs"
                 onClick={() => {
-                  useNavStore.getState().setActiveView('guide')
-                  // Wait for navigation then scroll to section
-                  setTimeout(() => {
-                    const el = document.getElementById('finance-impression-cheques')
-                    el?.scrollIntoView({ behavior: 'smooth' })
-                  }, 500)
+                  useNavStore.getState().openHelp('administration', 'modeles-cheques')
                 }}
               >
                 <BookOpen className="h-3 w-3 mr-1" />
@@ -1327,7 +1333,7 @@ export default function SettingsView() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <HelpButton section="administration" sub="parametres" />
+          <HelpButton section="administration" sub="modeles-cheques" />
           {showSaveButtons && (
           <div className="flex gap-2">
             {hasChanges && (
