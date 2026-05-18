@@ -17,7 +17,7 @@ import {
   Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload,
   ImageIcon, X, Loader2, ZoomIn, ZoomOut, Printer, Database, FileDown, type LucideIcon,
   Download, Smartphone, Monitor, CheckCircle2, AlertTriangle, ShieldAlert, FileText,
-  Plus, Star, Trash2,
+  Plus, Star, Trash2, BookOpen,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
@@ -1182,6 +1182,24 @@ function ChequeTemplatesSettings() {
               <li>Imprimez un test avec repères pour vérifier l&apos;alignement</li>
               <li>Utilisez le bouton 🖨 dans la vue &quot;Effets &amp; Chèques&quot; pour imprimer</li>
             </ol>
+            <div className="mt-2 pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  useNavStore.getState().setActiveView('guide')
+                  // Wait for navigation then scroll to section
+                  setTimeout(() => {
+                    const el = document.getElementById('finance-impression-cheques')
+                    el?.scrollIntoView({ behavior: 'smooth' })
+                  }, 500)
+                }}
+              >
+                <BookOpen className="h-3 w-3 mr-1" />
+                Voir le guide d&apos;utilisation
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

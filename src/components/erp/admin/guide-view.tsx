@@ -14,7 +14,7 @@ import {
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
   FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database, Pencil, Trash2, Calendar, Search,
-  Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Hammer, Globe, Hash, Zap, Send, type LucideIcon
+  Wrench, Cog, Layers, AlertTriangle, Gauge, ClipboardList, Timer, Hammer, Globe, Hash, Zap, Send, Upload, Move, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
@@ -94,12 +94,14 @@ const sections: Section[] = [
     { id: 'banque', label: 'Banque' },
     { id: 'paiements', label: 'Paiements' },
     { id: 'cheques-effets', label: 'Chèques & Effets' },
+    { id: 'impression-cheques', label: 'Impression de chèques' },
     { id: 'comptabilite', label: 'Comptabilité' },
     { id: 'etats-financiers', label: 'États financiers' },
   ]},
   { id: 'impression', label: 'Impression', icon: Printer, children: [
     { id: 'docs-imprimables', label: 'Documents imprimables' },
     { id: 'entete-pied', label: 'En-tête & Pied de page' },
+    { id: 'impression-papier-en-tete', label: 'Papier pré-imprimé' },
     { id: 'notes-visa', label: 'Notes & Visa' },
   ]},
   { id: 'communication', label: 'Communication', icon: MessageSquare, children: [
@@ -119,6 +121,7 @@ const sections: Section[] = [
     { id: 'journal-audit', label: 'Journal d\'audit' },
     { id: 'parametres', label: 'Paramètres' },
     { id: 'sauvegarde', label: 'Sauvegarde' },
+    { id: 'modeles-cheques', label: 'Modèles de chèques' },
   ]},
 ]
 
@@ -2791,6 +2794,99 @@ function FinanceSection() {
         Les chèques non remis à la banque sont visibles dans le filtre <strong>« En instance »</strong>. Vérifiez régulièrement cette liste pour optimiser votre trésorerie.
       </TipBox>
 
+      {/* Impression de chèques */}
+      <SubTitle id="finance-impression-cheques">Impression de chèques</SubTitle>
+      <Paragraph>
+        GEMA ERP PRO intègre un <strong>système d&apos;impression de chèques</strong> directement depuis l&apos;application.
+        Vous pouvez configurer des modèles de chèques adaptés à votre banque et à vos formulaires pré-imprimés,
+        puis imprimer les chèques en quelques clics.
+      </Paragraph>
+
+      <FlowDiagram steps={[
+        { label: 'Configurer modèle', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: Settings },
+        { label: 'Importer scan', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: Upload },
+        { label: 'Positionner champs', color: 'bg-violet-50 border-violet-200 text-violet-700', icon: Move },
+        { label: 'Tester impression', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: Printer },
+        { label: 'Imprimer chèque', color: 'bg-blue-50 border-blue-200 text-blue-700', icon: CheckCircle },
+      ]} />
+
+      <SubTitle>Configuration d&apos;un modèle de chèque</SubTitle>
+      <Step num={1}>Accédez à <strong>Administration → Paramètres → Modèles chèques</strong>.</Step>
+      <Step num={2}>Cliquez sur <strong>« Nouveau modèle »</strong> pour ouvrir l&apos;éditeur visuel.</Step>
+      <Step num={3}>Renseignez les informations du modèle : nom, banque (Attijariwafa, BMCE, etc.), type de chèque.</Step>
+      <Step num={4}>Indiquez les <strong>dimensions réelles du chèque</strong> en mm (mesurez avec une règle pour une précision optimale). Par défaut : 160 × 75 mm.</Step>
+      <Step num={5}>Importez le <strong>scan de votre chèque vierge</strong> (bouton « Importer »). Le scan A4 sera chargé en fond de l&apos;éditeur.</Step>
+
+      <SubTitle>Positionnement des champs</SubTitle>
+      <Paragraph>
+        L&apos;éditeur vous permet de positionner chaque champ par <strong>glisser-déposer</strong> directement
+        sur l&apos;image du chèque scanné. Les champs disponibles sont :
+      </Paragraph>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Champ</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Obligatoire</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { field: 'Montant en chiffres', desc: 'Le montant du chèque en chiffres (ex: 12 500,00 MAD)', req: true },
+                { field: 'Montant en lettres', desc: 'Le montant converti en toutes lettres en français', req: true },
+                { field: 'Bénéficiaire', desc: 'Nom du bénéficiaire du chèque', req: true },
+                { field: 'Lieu et date', desc: 'Ville et date d\'émission (ex: Casablanca, le 12/06/2026)', req: true },
+                { field: 'Date d\'émission', desc: 'Date de création du chèque' },
+                { field: 'Date d\'échéance', desc: 'Date limite de validité' },
+                { field: 'Numéro du chèque', desc: 'Numéro de série du chèque' },
+                { field: 'Banque émettrice', desc: 'Nom de la banque' },
+                { field: 'Compte émetteur (RIB)', desc: 'Numéro de compte bancaire' },
+                { field: 'BIC', desc: 'Code BIC de la banque' },
+                { field: 'Motif / Libellé', desc: 'Référence de la facture ou motif du paiement' },
+              ].map((f, i) => (
+                <TableRow key={i}>
+                  <TableCell className="font-medium text-sm">{f.field}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{f.desc}</TableCell>
+                  <TableCell>{f.req ? <Badge className="bg-green-100 text-green-700">Oui</Badge> : <Badge variant="outline">Non</Badge>}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Step num={1}>Cliquez sur le nom du champ dans le panneau de gauche pour l&apos;ajouter sur le chèque.</Step>
+      <Step num={2}><strong>Glissez-déposez</strong> chaque champ pour le positionner exactement sur la zone correspondante du chèque scanné.</Step>
+      <Step num={3}>Utilisez le <strong>panneau de droite</strong> pour ajuster les propriétés : taille de police, graisse, alignement, dimensions.</Step>
+      <Step num={4}>Activez la <strong>grille</strong> pour un alignement précis (snap à 1 mm).</Step>
+
+      <TipBox type="info">
+        <strong>Astuce :</strong> les panneaux de l&apos;éditeur sont <strong>redimensionnables</strong>. Tirez les séparateurs pour agrandir la zone de travail ou le panneau de propriétés selon vos besoins.
+      </TipBox>
+
+      <SubTitle>Test et calibrage</SubTitle>
+      <Step num={1}>Cliquez sur <strong>« Imprimer test (repères) »</strong> pour imprimer une page avec des croix de repères aux 4 coins du chèque et un contour rouge.</Step>
+      <Step num={2}>Superposez cette impression sur un <strong>chèque vierge réel</strong> pour vérifier l&apos;alignement.</Step>
+      <Step num={3}>Si le texte est décalé, revenez à l&apos;éditeur et ajustez les positions des champs.</Step>
+      <Step num={4}>Répétez jusqu&apos;à obtenir un alignement parfait.</Step>
+
+      <TipBox type="warning">
+        L&apos;image de fond (le scan) <strong>n&apos;est jamais imprimée</strong>. Seuls les champs texte sont envoyés à l&apos;imprimante, directement sur le chèque pré-imprimé.
+      </TipBox>
+
+      <SubTitle>Impression d&apos;un chèque</SubTitle>
+      <Step num={1}>Accédez à <strong>Finance → Chèques &amp; Effets</strong>.</Step>
+      <Step num={2}>Repérez le chèque souhaité et cliquez sur l&apos;icône <strong>🖨 (Imprimer)</strong> dans la colonne Actions.</Step>
+      <Step num={3}>Une fenêtre d&apos;aperçu s&apos;ouvre. Vérifiez les données avant d&apos;imprimer.</Step>
+      <Step num={4}>Insérez un chèque vierge dans votre imprimante, puis cliquez sur <strong>« Imprimer »</strong>.</Step>
+
+      <TipBox type="success">
+        Le système enregistre automatiquement chaque impression (date et nombre). Si vous avez défini un modèle <strong>par défaut</strong>, il sera utilisé automatiquement pour tous les chèques.
+      </TipBox>
+
       {/* Comptabilité */}
       <SubTitle id="finance-comptabilite">Comptabilité</SubTitle>
 
@@ -3345,6 +3441,54 @@ function ImpressionSection() {
         Le pied de page des documents imprimés est configurable dans <strong>Administration → Paramètres</strong>. Vous pouvez y ajouter jusqu'à 4 lignes de texte personnalisé.
       </TipBox>
 
+      <SubTitle id="impression-papier-en-tete">Impression sur papier pré-imprimé</SubTitle>
+      <Paragraph>
+        Si votre entreprise utilise du <strong>papier à en-tête pré-imprimé</strong> (avec le logo et les coordonnées
+        déjà imprimés), vous pouvez masquer l&apos;en-tête et le pied de page lors de l&apos;impression pour éviter
+        la duplication d&apos;informations.
+      </Paragraph>
+
+      <SubTitle>Comment imprimer sans en-tête</SubTitle>
+      <Step num={1}>Ouvrez un document (devis, facture, commande, etc.) et cliquez sur <strong>« Imprimer »</strong>.</Step>
+      <Step num={2}>Dans la <strong>barre d&apos;outils de l&apos;aperçu</strong>, décochez la case <strong>« En-tête / Pied »</strong>.</Step>
+      <Step num={3}>L&apos;en-tête (logo, nom, ICE, etc.) et le pied de page sont immédiatement masqués dans l&apos;aperçu.</Step>
+      <Step num={4}>Cliquez sur le bouton d&apos;impression pour imprimer le document sans en-tête ni pied de page.</Step>
+
+      <ScreenMock title="Barre d'outils de l'aperçu d'impression">
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg border">
+          <div className="flex items-center gap-1.5">
+            <div className="w-7 h-7 rounded bg-primary text-primary-foreground flex items-center justify-center text-xs">🖨</div>
+            <span className="text-xs font-medium">Imprimer</span>
+          </div>
+          <div className="w-px h-5 bg-border" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-7 h-7 rounded bg-primary text-primary-foreground flex items-center justify-center text-xs">📄</div>
+            <span className="text-xs font-medium">PDF</span>
+          </div>
+          <div className="w-px h-5 bg-border" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-4 rounded border-2 border-primary bg-primary flex items-center justify-center">
+              <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <span className="text-xs font-medium">En-tête / Pied</span>
+          </div>
+          <div className="flex-1" />
+          <div className="flex items-center gap-1">
+            <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs">🔍</div>
+            <span className="text-xs text-muted-foreground">100%</span>
+          </div>
+        </div>
+      </ScreenMock>
+
+      <TipBox type="warning">
+        L&apos;option <strong>« En-tête / Pied »</strong> affecte <strong>uniquement l&apos;impression</strong> (via la fenêtre d&apos;impression du navigateur).
+        Le <strong>PDF téléchargé</strong> conserve toujours l&apos;en-tête et le pied de page complets.
+      </TipBox>
+
+      <TipBox type="info">
+        Le <strong>montant en lettres</strong> est toujours affiché, même lorsque l&apos;en-tête/pied est masqué.
+      </TipBox>
+
       <SubTitle id="impression-notes-visa">Encadrés Notes &amp; Visa</SubTitle>
       <Paragraph>
         Tous les documents clients (devis, commandes, BL, factures, avoirs, retours) et fournisseurs incluent
@@ -3659,6 +3803,21 @@ function AdministrationSection() {
       <TipBox type="warning">
         La restauration remplace toutes les données existantes. Le système conserve automatiquement les 7 dernières sauvegardes.
         Il est recommandé de télécharger régulièrement vos sauvegardes sur un support externe.
+      </TipBox>
+
+      <SubTitle id="administration-modeles-cheques">Modèles de chèques</SubTitle>
+      <Paragraph>
+        L&apos;onglet <strong>« Modèles chèques »</strong> dans les Paramètres permet de gérer les modèles d&apos;impression
+        de chèques. Vous pouvez créer, modifier, supprimer et définir un modèle par défaut.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Administration → Paramètres → Modèles chèques</strong>.</Step>
+      <Step num={2}>La liste affiche tous les modèles configurés avec leur banque, dimensions et nombre de champs.</Step>
+      <Step num={3}>Pour définir un modèle par défaut, cliquez sur l&apos;icône <strong>★</strong> à côté du modèle.</Step>
+
+      <TipBox type="info">
+        Pour le détail complet de la configuration et de l&apos;impression des chèques, consultez la section
+        <strong> Finance → Impression de chèques</strong>.
       </TipBox>
     </div>
   )
