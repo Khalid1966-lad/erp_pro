@@ -1,12 +1,8 @@
 'use client'
 
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { createPortal } from 'react'
+import { X } from 'lucide-react'
 import {
   ResizableHandle,
   ResizablePanel,
@@ -525,15 +521,24 @@ export function ChequeTemplateEditor({
   const areaWidthPx = chequeWidth * MM_TO_PX
   const areaHeightPx = chequeHeight * MM_TO_PX
 
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="fixed inset-0 top-0 left-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none max-h-none p-0 overflow-hidden flex flex-col rounded-none border-0 [&>button]:hidden">
-        <DialogHeader className="p-4 pb-2 flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
+  if (!open) return null
+
+  return createPortal(
+      <div className="fixed inset-0 z-[100] flex flex-col bg-background">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0 bg-background">
+          <div className="flex items-center gap-2">
             <Printer className="h-5 w-5" />
-            {template?.id ? 'Modifier le modèle de chèque' : 'Nouveau modèle de chèque'}
-          </DialogTitle>
-        </DialogHeader>
+            <span className="text-lg font-semibold">{template?.id ? 'Modifier le modèle de chèque' : 'Nouveau modèle de chèque'}</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <X className="h-5 w-5" />
+            <span className="sr-only">Fermer</span>
+          </button>
+        </div>
 
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* ─── LEFT PANEL: Properties ─── */}
@@ -1065,7 +1070,7 @@ export function ChequeTemplateEditor({
           </ResizablePanel>
           </ResizablePanelGroup>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    , document.body
   )
 }
