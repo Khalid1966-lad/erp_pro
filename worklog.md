@@ -554,3 +554,36 @@ Work Log:
 Stage Summary:
 - Version 1.8.1 deployed (commit c8cbf3b)
 - All footers, settings, print headers, and PWA manifest auto-update via APP_VERSION
+---
+Task ID: 1
+Agent: Main
+Task: Implement complete cheque printing system with visual template editor
+
+Work Log:
+- Added ChequeTemplate + ChequeTemplateField models to prisma/schema.prisma
+- Added printedAt + printCount + templateId to EffetCheque model
+- Pushed schema to Neon PostgreSQL (prisma db push)
+- Created /api/cheque-templates route (GET, POST, PUT, DELETE)
+- Created /api/effets-cheques/[id]/print-data route (formatted print data)
+- Created /api/effets-cheques/[id]/print route (print counter)
+- Created cheque-template-editor.tsx: visual drag-and-drop editor
+  - Background image upload (scan A4), grid overlay, snap to 1mm
+  - Field properties: fontSize, fontWeight, textAlign, fontFamily, dimensions
+  - Undo support, duplicate template, preview toggle
+  - 11 available cheque fields (montant_chiffres, montant_lettres, beneficiaire, etc.)
+- Created cheque-print.ts: print engine
+  - buildChequePrintHtml() for production (text only, centered on A4)
+  - buildChequePreviewHtml() for preview (with optional background)
+  - buildChequeTestHtml() with alignment markers (corner crosses, outline)
+  - printCheque() function with preview dialog
+- Added Print button in effets-view.tsx for cheque type items
+- Added "Modèles chèques" tab in settings-view.tsx with full CRUD
+- Updated backup.ts: added ChequeTemplate, ChequeTemplateField to BACKUP_TABLES, TABLE_SQL_NAMES, DATETIME_FIELDS
+- Lint passes clean
+
+Stage Summary:
+- Commit 02b1104 pushed to main
+- 9 files changed, 2162 insertions
+- Complete cheque printing system with visual template editor
+- Settings > Modèles chèques tab for template management
+- Print button integrated in Effets & Chèques view
