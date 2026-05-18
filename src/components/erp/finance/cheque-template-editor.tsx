@@ -2,6 +2,8 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { api } from '@/lib/api'
+import { useAuthStore } from '@/lib/stores'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -476,7 +478,10 @@ export function ChequeTemplateEditor({
       const method = template?.id ? 'PUT' : 'POST'
       const res = await fetch('/api/cheque-templates', {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${useAuthStore.getState().token}`,
+        },
         body: JSON.stringify(payload),
       })
 
@@ -518,7 +523,7 @@ export function ChequeTemplateEditor({
   if (!open) return null
 
   return createPortal(
-      <div className="fixed inset-0 z-[100] flex flex-col bg-background">
+      <div className="fixed inset-0 z-40 flex flex-col bg-background">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0 bg-background">
           <div className="flex items-center gap-2">
