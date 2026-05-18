@@ -2875,6 +2875,7 @@ interface ClientDetailViewProps {
 }
 
 function ClientDetailView({ client, onBack, onEdit, onDelete }: ClientDetailViewProps) {
+  const isSuperAdmin = useIsSuperAdmin()
   // Tab data
   const quotes = useTabData<DocRow>('/quotes', 'quotes', client.id)
   const orders = useTabData<DocRow>('/sales-orders', 'orders', client.id)
