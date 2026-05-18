@@ -1606,6 +1606,8 @@ model EffetCheque {
   payment           Payment     @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   bankAccountId     String?
   bankAccount       BankAccount? @relation(fields: [bankAccountId], references: [id])
+  templateId        String?
+  template          ChequeTemplate? @relation(fields: [templateId], references: [id])
   type              String      // cheque | effet
   numero            String
   statut            EffetStatut @default(en_attente)
@@ -1619,6 +1621,8 @@ model EffetCheque {
   dateRejet         DateTime?
   causeRejet        String?
   notes             String?
+  printedAt         DateTime?
+  printCount        Int         @default(0)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 }
@@ -1777,4 +1781,52 @@ model Employee {
   clientAssignments Client[] @relation("EmployeeClients")
 
   @@map("employees")
+}
+
+// ============ MODÈLES DE CHÈQUES ============
+
+model ChequeTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  bankName    String?  // "Attijariwafa", "BMCE", etc.
+  chequeModel String?  // "Standard", "Entreprise", "Personnalisé"
+  // Dimensions du chèque en mm
+  chequeWidth  Float @default(160)
+  chequeHeight Float @default(75)
+  // Zone de sélection sur le scan A4 (en mm depuis coin haut-gauche)
+  scanOffsetX  Float?  // Décalage X du chèque sur la page A4
+  scanOffsetY  Float?  // Décalage Y du chèque sur la page A4
+  // Image de fond (scan du chèque vierge) — stockée en base64
+  backgroundImage String?  // base64 PNG/JPG du scan A4
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  fields        ChequeTemplateField[]
+  effetsCheques EffetCheque[]
+
+  @@map("cheque_templates")
+}
+
+model ChequeTemplateField {
+  id          String  @id @default(cuid())
+  templateId  String
+  template    ChequeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  fieldKey    String  // "montant_chiffres", "montant_lettres", "beneficiaire", etc.
+  label       String? // Libellé affiché (optionnel)
+  x           Float   // Position X en mm depuis coin haut-gauche du chèque
+  y           Float   // Position Y en mm
+  width       Float?  // Largeur de la zone en mm
+  height      Float?  // Hauteur de la zone en mm
+  fontSize    Float   @default(12)
+  fontWeight  String  @default("normal") // "normal" | "bold"
+  textAlign   String  @default("left")   // "left" | "center" | "right"
+  fontFamily  String  @default("sans-serif")
+  sortOrder   Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("cheque_template_fields")
 }

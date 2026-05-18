@@ -16,7 +16,8 @@ import {
 import {
   Settings, Building2, Calculator, Briefcase, Save, RotateCcw, Info, Upload,
   ImageIcon, X, Loader2, ZoomIn, ZoomOut, Printer, Database, FileDown, type LucideIcon,
-  Download, Smartphone, Monitor, CheckCircle2, AlertTriangle, ShieldAlert,
+  Download, Smartphone, Monitor, CheckCircle2, AlertTriangle, ShieldAlert, FileText,
+  Plus, Star, Trash2,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
@@ -26,6 +27,7 @@ import { invalidateCompanyCache } from '@/lib/print-utils'
 import BackupSection from './backup-section'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { usePWAInstall } from '@/hooks/use-pwa-install'
+import { ChequeTemplateEditor, type ChequeTemplate } from '@/components/erp/finance/cheque-template-editor'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -72,6 +74,7 @@ const sidebarTabs: SidebarTab[] = [
   { id: 'company', label: 'Entreprise', icon: Building2 },
   { id: 'logo', label: 'Logo', icon: ImageIcon },
   { id: 'printing', label: 'Impressions', icon: Printer },
+  { id: 'cheques', label: 'Modèles chèques', icon: FileText },
   { id: 'accounting', label: 'Comptabilité', icon: Calculator },
   { id: 'rules', label: 'Règles métier', icon: Briefcase },
   { id: 'backup', label: 'Sauvegarde', icon: Database },
@@ -981,6 +984,238 @@ function AboutSection() {
   )
 }
 
+// ─── Cheque Templates Settings ───
+
+function ChequeTemplatesSettings() {
+  const [templates, setTemplates] = useState<ChequeTemplate[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<ChequeTemplate | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const loadTemplates = useCallback(async () => {
+    try {
+      const res = await fetch('/api/cheque-templates')
+      if (res.ok) {
+        const data = await res.json()
+        setTemplates(data)
+      }
+    } catch {
+      toast.error('Erreur lors du chargement des modèles')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadTemplates()
+  }, [loadTemplates])
+
+  const handleCreate = () => {
+    setEditingTemplate(null)
+    setEditorOpen(true)
+  }
+
+  const handleEdit = (template: ChequeTemplate) => {
+    setEditingTemplate(template)
+    setEditorOpen(true)
+  }
+
+  const handleSave = () => {
+    loadTemplates()
+  }
+
+  const handleDelete = async () => {
+    if (!deleteId) return
+    try {
+      const res = await fetch(`/api/cheque-templates?id=${deleteId}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Modèle supprimé')
+        loadTemplates()
+      } else {
+        toast.error('Erreur lors de la suppression')
+      }
+    } catch {
+      toast.error('Erreur serveur')
+    } finally {
+      setDeleteDialogOpen(false)
+      setDeleteId(null)
+    }
+  }
+
+  const handleSetDefault = async (template: ChequeTemplate) => {
+    try {
+      const res = await fetch('/api/cheque-templates', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...template,
+          isDefault: true,
+          fields: template.fields,
+        }),
+      })
+      if (res.ok) {
+        toast.success('Modèle par défaut mis à jour')
+        loadTemplates()
+      }
+    } catch {
+      toast.error('Erreur serveur')
+    }
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Skeleton className="h-6 w-48 mb-4" />
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Modèles de chèques</CardTitle>
+              <CardDescription className="text-sm">
+                Configurez les modèles pour l&apos;impression de chèques selon votre banque
+              </CardDescription>
+            </div>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-1" />
+              Nouveau modèle
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {templates.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground mb-1">Aucun modèle de chèque configuré</p>
+              <p className="text-xs text-muted-foreground">
+                Créez un modèle pour imprimer vos chèques directement depuis l&apos;application
+              </p>
+              <Button size="sm" className="mt-4" onClick={handleCreate}>
+                <Plus className="h-4 w-4 mr-1" />
+                Créer un modèle
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {templates.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0">
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm truncate">{t.name}</span>
+                        {t.isDefault && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                            Par défaut
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {[
+                          t.bankName,
+                          t.chequeModel,
+                          `${t.chequeWidth}×${t.chequeHeight}mm`,
+                          `${t.fields.length} champ${t.fields.length > 1 ? 's' : ''}`,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {!t.isDefault && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => handleSetDefault(t)}
+                        title="Définir comme modèle par défaut"
+                      >
+                        <Star className="h-3 w-3" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => handleEdit(t)}
+                    >
+                      Modifier
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-destructive"
+                      onClick={() => {
+                        setDeleteId(t.id)
+                        setDeleteDialogOpen(true)
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground space-y-1">
+            <p className="font-medium">💡 Comment utiliser :</p>
+            <ol className="list-decimal list-inside space-y-0.5 ml-1">
+              <li>Créez un modèle et importez le scan de votre chèque vierge</li>
+              <li>Positionnez les champs par glisser-déposer sur les zones du chèque</li>
+              <li>Imprimez un test avec repères pour vérifier l&apos;alignement</li>
+              <li>Utilisez le bouton 🖨 dans la vue &quot;Effets &amp; Chèques&quot; pour imprimer</li>
+            </ol>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Editor Dialog */}
+      <ChequeTemplateEditor
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        template={editingTemplate}
+        onSave={handleSave}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce modèle ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Les chèques utilisant ce modèle ne seront plus
+              imprimables avec le bon format.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
+
 // ─── Main Settings View ───
 
 export default function SettingsView() {
@@ -1193,6 +1428,8 @@ export default function SettingsView() {
               isDisabled={!isAdmin}
             />
           )}
+
+          {activeTab === 'cheques' && <ChequeTemplatesSettings />}
 
           {activeTab === 'backup' && <BackupSection />}
 

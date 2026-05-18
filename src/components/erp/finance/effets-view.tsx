@@ -19,8 +19,9 @@ import {
 } from '@/components/ui/select'
 import {
   FileText, Landmark, Search, Clock, CheckCircle2, XCircle, ArrowRight,
-  AlertTriangle, Send
+  AlertTriangle, Send, Printer
 } from 'lucide-react'
+import { printCheque } from '@/lib/cheque-print'
 import { HelpButton } from '@/components/erp/shared/help-button'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -422,6 +423,17 @@ export default function EffetsView() {
                           >
                             Détails
                           </Button>
+                          {effet.type === 'cheque' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => printCheque(effet.id)}
+                              title="Imprimer le chèque"
+                            >
+                              <Printer className="h-3 w-3" />
+                            </Button>
+                          )}
                           {effet.statut === 'en_attente' && (
                             <Button
                               size="sm"

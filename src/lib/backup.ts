@@ -58,6 +58,8 @@ export const BACKUP_TABLES = [
   'CustomerReturnLine',
   'Payment',
   'EffetCheque',
+  'ChequeTemplate',
+  'ChequeTemplateField',
   'SupplierQuote',
   'SupplierQuoteLine',
   'PurchaseOrder',
@@ -98,6 +100,8 @@ const TABLE_SQL_NAMES: Record<string, string> = {
   CustomerReturn: 'customer_returns',
   CustomerReturnLine: 'customer_return_lines',
   PaymentCodeCounter: 'payment_code_counters',
+  ChequeTemplate: 'cheque_templates',
+  ChequeTemplateField: 'cheque_template_fields',
 }
 
 /** Get the actual PostgreSQL table name for a Prisma model */
@@ -142,7 +146,9 @@ const DATETIME_FIELDS: Record<string, string[]> = {
   Invoice: ['date', 'dueDate', 'paymentDate', 'createdAt', 'updatedAt'],
   CreditNote: ['date', 'createdAt', 'updatedAt'],
   Payment: ['date', 'createdAt'],
-  EffetCheque: ['dateEmission', 'dateEcheance', 'dateRemiseBanque', 'dateValidation', 'dateRejet', 'createdAt', 'updatedAt'],
+  EffetCheque: ['dateEmission', 'dateEcheance', 'dateRemiseBanque', 'dateValidation', 'dateRejet', 'printedAt', 'createdAt', 'updatedAt'],
+  ChequeTemplate: ['createdAt', 'updatedAt'],
+  ChequeTemplateField: ['createdAt', 'updatedAt'],
   SupplierQuote: ['date', 'validUntil', 'createdAt', 'updatedAt'],
   PurchaseOrder: ['date', 'expectedDate', 'createdAt', 'updatedAt'],
   Reception: ['date', 'createdAt', 'updatedAt'],
