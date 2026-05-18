@@ -7,6 +7,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -522,7 +527,7 @@ export function ChequeTemplateEditor({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden flex flex-col">
+      <DialogContent className="max-w-[98vw] max-h-[98vh] w-[1400px] h-[850px] p-0 overflow-hidden flex flex-col [&>button]:hidden">
         <DialogHeader className="p-4 pb-2 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Printer className="h-5 w-5" />
@@ -530,9 +535,10 @@ export function ChequeTemplateEditor({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden min-h-0">
           {/* ─── LEFT PANEL: Properties ─── */}
-          <div className="w-72 border-r bg-muted/30 flex flex-col overflow-hidden flex-shrink-0">
+          <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
+          <ResizablePanel defaultSize={22} minSize={18} maxSize={30}>
             <ScrollArea className="flex-1">
               <div className="p-3 space-y-4">
                 {/* Template Info */}
@@ -707,10 +713,13 @@ export function ChequeTemplateEditor({
                 </div>
               </div>
             </ScrollArea>
-          </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
 
           {/* ─── CENTER: Canvas Editor ─── */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-gray-100">
+          <ResizablePanel defaultSize={50} minSize={35}>
+          <div className="flex flex-col overflow-hidden bg-gray-100 h-full">
             {/* Toolbar */}
             <div className="flex items-center gap-1 px-3 py-2 border-b bg-white flex-shrink-0">
               <Button
@@ -864,9 +873,13 @@ export function ChequeTemplateEditor({
               </div>
             </div>
           </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
 
           {/* ─── RIGHT PANEL: Field Properties ─── */}
-          <div className="w-64 border-l bg-muted/30 flex flex-col overflow-hidden flex-shrink-0">
+          <ResizablePanel defaultSize={28} minSize={20} maxSize={35}>
+          <div className="border-l bg-muted/30 flex flex-col overflow-hidden h-full">
             <ScrollArea className="flex-1">
               <div className="p-3 space-y-3">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -1049,6 +1062,8 @@ export function ChequeTemplateEditor({
               </div>
             </ScrollArea>
           </div>
+          </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
       </DialogContent>
     </Dialog>
