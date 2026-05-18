@@ -24,7 +24,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Eye, Trash2, Receipt, CheckCircle2, ShieldCheck, Pencil, Printer, XCircle, AlertCircle, Clock, RefreshCw } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, Receipt, CheckCircle2, ShieldCheck, Pencil, Printer, XCircle, AlertCircle, Clock, RefreshCw, CalendarDays, FileSpreadsheet } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -104,6 +105,7 @@ interface SupplierInvoice {
     number: string
   }
   status: 'received' | 'verified' | 'paid' | 'partially_paid' | 'overdue' | 'cancelled'
+  date: string
   dueDate: string | null
   notes: string | null
   lines: SILine[]
@@ -182,6 +184,8 @@ export default function SupplierInvoicesView() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const navigationParams = useNavStore((s) => s.navigationParams)
 
@@ -258,8 +262,63 @@ export default function SupplierInvoicesView() {
       item.supplier?.name?.toLowerCase().includes(search.toLowerCase())
     const matchStatus = statusFilter === 'all' || item.status === statusFilter
     const matchSupplier = supplierFilter === 'all' || item.supplierId === supplierFilter
-    return matchSearch && matchStatus && matchSupplier
+    const matchDateFrom = !dateFrom || (item.date && item.date >= dateFrom)
+    const matchDateTo = !dateTo || (item.date && item.date <= dateTo + 'T23:59:59.999Z')
+    return matchSearch && matchStatus && matchSupplier && matchDateFrom && matchDateTo
   })
+
+  // Print filtered list
+  const handlePrintList = () => {
+    const statusLabels: Record<string, string> = {
+      received: 'Reçue', verified: 'Vérifiée', paid: 'Payée',
+      partially_paid: 'Partiellement payée', overdue: 'En retard', cancelled: 'Annulée',
+    }
+    const rows = filtered.map((inv) => [
+      inv.number,
+      inv.supplier?.name || '-',
+      inv.date ? fmtDateP(inv.date) : '-',
+      inv.dueDate ? fmtDateP(inv.dueDate) : '-',
+      statusLabels[inv.status] || inv.status,
+      formatCurrency(inv.totalHT),
+      formatCurrency(inv.totalTTC),
+    ])
+    const totalHT = filtered.reduce((s, i) => s + (i.totalHT || 0), 0)
+    const totalTTC = filtered.reduce((s, i) => s + (i.totalTTC || 0), 0)
+    const title = `Liste des factures d'achat${dateFrom || dateTo ? ` (${dateFrom ? `du ${dateFrom}` : ''}${dateFrom && dateTo ? ' au ' : ''}${dateTo || ''})` : ''}`
+    printDocument({
+      title,
+      columns: ['N° Facture', 'Fournisseur', 'Date', 'Échéance', 'Statut', 'Total HT', 'Total TTC'],
+      rows,
+      footer: `Total HT: ${formatCurrency(totalHT)} | Total TTC: ${formatCurrency(totalTTC)} | ${filtered.length} facture(s)`,
+    })
+  }
+
+  // Export to Excel
+  const handleExportExcel = () => {
+    const statusLabels: Record<string, string> = {
+      received: 'Reçue', verified: 'Vérifiée', paid: 'Payée',
+      partially_paid: 'Partiellement payée', overdue: 'En retard', cancelled: 'Annulée',
+    }
+    const rows = filtered.map((inv) => ({
+      'N° Facture': inv.number,
+      'Fournisseur': inv.supplier?.name || '-',
+      'Date': inv.date ? fmtDateP(inv.date) : '',
+      'Échéance': inv.dueDate ? fmtDateP(inv.dueDate) : '',
+      'Statut': statusLabels[inv.status] || inv.status,
+      'Total HT': inv.totalHT || 0,
+      'TVA': inv.totalTVA || 0,
+      'Total TTC': inv.totalTTC || 0,
+      'Montant payé': inv.amountPaid || 0,
+      'Reste à payer': (inv.totalTTC || 0) - (inv.amountPaid || 0),
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }))
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Factures Fournisseurs')
+    const dateStr = `${dateFrom || 'debut'}_${dateTo || 'fin'}`
+    XLSX.writeFile(wb, `factures-achat_${dateStr}.xlsx`)
+    toast.success('Export Excel réussi')
+  }
 
   const addLine = () => {
     setLines((prev) => [...prev, { productId: '', quantity: 1, unitPrice: 0, tvaRate: 20 }])
@@ -412,12 +471,36 @@ export default function SupplierInvoicesView() {
               <SelectItem value="cancelled">Annulée</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setExpandedId(null) }}
+              className="w-[130px] h-9 text-sm"
+            />
+            <span className="text-xs text-muted-foreground">→</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setExpandedId(null) }}
+              className="w-[130px] h-9 text-sm"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <HelpButton section="achats" sub="factures-fournisseurs" />
           <Button variant="outline" size="sm" onClick={fetchItems} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
+          </Button>
+          <Button variant="outline" size="sm" onClick={handlePrintList} disabled={filtered.length === 0}>
+            <Printer className="h-4 w-4 mr-1" />
+            Imprimer
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={filtered.length === 0}>
+            <FileSpreadsheet className="h-4 w-4 mr-1" />
+            Exporter
           </Button>
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { resetForm(); setIsEditing(false) } }}>
             <DialogTrigger asChild>

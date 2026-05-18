@@ -28,9 +28,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   Receipt, Plus, Search, MoreVertical, Eye, Send, CheckCircle,
-  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText, Printer, Pencil, AlertCircle, Clock, RefreshCw
+  XCircle, Trash2, Edit, DollarSign, ShieldCheck, RotateCcw, Truck, Loader2, FileText, Printer, Pencil, AlertCircle, Clock, RefreshCw,
+  Download, FileSpreadsheet, CalendarDays
 } from 'lucide-react'
 import { toast } from 'sonner'
+import * as XLSX from 'xlsx'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -208,6 +210,8 @@ export default function InvoicesView() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const navigationParams = useNavStore((s) => s.navigationParams)
 
@@ -259,6 +263,8 @@ export default function InvoicesView() {
       const params = new URLSearchParams()
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
       if (search) params.set('search', search)
+      if (dateFrom) params.set('dateFrom', dateFrom)
+      if (dateTo) params.set('dateTo', dateTo)
       const data = await api.get<{ invoices: Invoice[]; total: number }>(`/invoices?${params.toString()}`)
       setInvoices(data.invoices)
     } catch (err: any) {
@@ -266,6 +272,61 @@ export default function InvoicesView() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Print invoices list
+  const handlePrintList = () => {
+    const statusLabels: Record<string, string> = {
+      draft: 'Brouillon', validated: 'Validée', sent: 'Envoyée',
+      paid: 'Payée', overdue: 'En retard', cancelled: 'Annulée',
+    }
+    const rows = invoices.map((inv) => [
+      inv.number,
+      inv.client?.name || '-',
+      inv.date ? fmtDate(inv.date) : '-',
+      inv.dueDate ? fmtDate(inv.dueDate) : '-',
+      statusLabels[inv.status] || inv.status,
+      formatCurrency(inv.totalHT),
+      formatCurrency(inv.totalTVA),
+      formatCurrency(inv.totalTTC),
+    ])
+    const totalHT = invoices.reduce((s, i) => s + (i.totalHT || 0), 0)
+    const totalTTC = invoices.reduce((s, i) => s + (i.totalTTC || 0), 0)
+
+    const title = `Liste des factures de vente${dateFrom || dateTo ? ` (${dateFrom ? `du ${dateFrom}` : ''}${dateFrom && dateTo ? ' au ' : ''}${dateTo || ''})` : ''}`
+    printDocument({
+      title,
+      columns: ['N° Facture', 'Client', 'Date', 'Échéance', 'Statut', 'Total HT', 'TVA', 'Total TTC'],
+      rows,
+      footer: `Total HT: ${formatCurrency(totalHT)} | Total TTC: ${formatCurrency(totalTTC)} | ${invoices.length} facture(s)`,
+    })
+  }
+
+  // Export invoices to Excel
+  const handleExportExcel = () => {
+    const statusLabels: Record<string, string> = {
+      draft: 'Brouillon', validated: 'Validée', sent: 'Envoyée',
+      paid: 'Payée', overdue: 'En retard', cancelled: 'Annulée',
+    }
+    const rows = invoices.map((inv) => ({
+      'N° Facture': inv.number,
+      'Client': inv.client?.name || '-',
+      'Date': inv.date ? fmtDate(inv.date) : '',
+      'Échéance': inv.dueDate ? fmtDate(inv.dueDate) : '',
+      'Statut': statusLabels[inv.status] || inv.status,
+      'Total HT': inv.totalHT || 0,
+      'TVA': inv.totalTVA || 0,
+      'Total TTC': inv.totalTTC || 0,
+      'Montant payé': inv.amountPaid || 0,
+      'Reste à payer': (inv.totalTTC || 0) - (inv.amountPaid || 0),
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }))
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Factures')
+    const dateStr = `${dateFrom || 'debut'}_${dateTo || 'fin'}`
+    XLSX.writeFile(wb, `factures-vente_${dateStr}.xlsx`)
+    toast.success('Export Excel réussi')
   }
 
   const fetchDropdowns = useCallback(async () => {
@@ -285,7 +346,7 @@ export default function InvoicesView() {
     fetchInvoices()
     fetchDropdowns()
     setExpandedInvoiceId(null)
-  }, [statusFilter, fetchDropdowns])
+  }, [statusFilter, dateFrom, dateTo, fetchDropdowns])
 
   const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(allProducts)
 
@@ -604,6 +665,14 @@ export default function InvoicesView() {
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
           </Button>
+          <Button variant="outline" size="sm" onClick={handlePrintList} disabled={invoices.length === 0}>
+            <Printer className="h-4 w-4 mr-1" />
+            Imprimer
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={invoices.length === 0}>
+            <FileSpreadsheet className="h-4 w-4 mr-1" />
+            Exporter
+          </Button>
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4 mr-1" />
             Nouvelle facture
@@ -621,6 +690,24 @@ export default function InvoicesView() {
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             className="pl-9"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="w-[140px] h-9 text-sm"
+            placeholder="Du"
+          />
+          <span className="text-xs text-muted-foreground">→</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="w-[140px] h-9 text-sm"
+            placeholder="Au"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>

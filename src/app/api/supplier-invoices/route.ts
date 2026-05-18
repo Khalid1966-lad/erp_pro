@@ -38,6 +38,8 @@ export async function GET(req: NextRequest) {
     const supplierId = searchParams.get('supplierId') || ''
     const status = searchParams.get('status') || ''
     const search = searchParams.get('search') || ''
+    const dateFrom = searchParams.get('dateFrom') || ''
+    const dateTo = searchParams.get('dateTo') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
 
@@ -50,6 +52,11 @@ export async function GET(req: NextRequest) {
         { supplier: { name: { contains: search, mode: 'insensitive' as const } } },
         { supplier: { code: { contains: search, mode: 'insensitive' as const } } },
       ]
+    }
+    if (dateFrom || dateTo) {
+      where.date = {}
+      if (dateFrom) where.date.gte = new Date(dateFrom)
+      if (dateTo) where.date.lte = new Date(dateTo + 'T23:59:59.999Z')
     }
 
     const [supplierInvoices, total] = await Promise.all([
