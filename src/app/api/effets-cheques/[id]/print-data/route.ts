@@ -79,11 +79,11 @@ export async function GET(
     }
 
     // Amount in words
-    const montantLettres = numberToFrenchWords(effet.montant)
+    const montantLettres = numberToFrenchWords(effet.montant || 0)
 
     // Build field values map
     const fieldValues: Record<string, string> = {
-      montant_chiffres: fmtMoney(effet.montant),
+      montant_chiffres: fmtMoney(effet.montant || 0),
       montant_lettres: montantLettres,
       beneficiaire: beneficiaire,
       lieu_date: `${lieu}, le ${fmtDate(effet.dateEmission)}`,

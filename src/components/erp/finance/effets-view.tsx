@@ -27,7 +27,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 
-const formatCurrency = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
+const formatCurrency = (n: number | null | undefined) => (n ?? 0).toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })
 
 type EffetStatut = 'en_attente' | 'remis_banque' | 'valide' | 'rejete'
 

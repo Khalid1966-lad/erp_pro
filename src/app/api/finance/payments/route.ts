@@ -419,7 +419,7 @@ export async function POST(req: NextRequest) {
       })
 
       await auditLog(auth.userId, 'create', 'Payment', payment.id, null, payment)
-      notifyAll({ title: 'Nouveau paiement enregistré', message: `Paiement ${payment.number}`, type: 'success', category: 'payment', entityType: 'Payment', entityId: payment.id }).catch(() => {})
+      notifyAll({ title: 'Nouveau paiement enregistré', message: `Paiement ${payment.reference || payment.code || payment.id.slice(0, 8)}`, type: 'success', category: 'payment', entityType: 'Payment', entityId: payment.id }).catch(() => {})
       return NextResponse.json(payment, { status: 201 })
     }
 
@@ -608,7 +608,7 @@ export async function POST(req: NextRequest) {
       })
 
       await auditLog(auth.userId, 'create', 'Payment', payment.id, null, payment)
-      notifyAll({ title: 'Nouveau paiement enregistré', message: `Paiement ${payment.number}`, type: 'success', category: 'payment', entityType: 'Payment', entityId: payment.id }).catch(() => {})
+      notifyAll({ title: 'Nouveau paiement enregistré', message: `Paiement ${payment.reference || payment.code || payment.id.slice(0, 8)}`, type: 'success', category: 'payment', entityType: 'Payment', entityId: payment.id }).catch(() => {})
       return NextResponse.json(payment, { status: 201 })
     }
 
@@ -712,7 +712,7 @@ export async function POST(req: NextRequest) {
       })
 
       await auditLog(auth.userId, 'create', 'Payment', payment.id, null, payment)
-      notifyAll({ title: 'Nouveau paiement enregistré', message: `Paiement ${payment.number}`, type: 'success', category: 'payment', entityType: 'Payment', entityId: payment.id }).catch(() => {})
+      notifyAll({ title: 'Nouveau paiement enregistré', message: `Paiement ${payment.reference || payment.code || payment.id.slice(0, 8)}`, type: 'success', category: 'payment', entityType: 'Payment', entityId: payment.id }).catch(() => {})
       return NextResponse.json(payment, { status: 201 })
     }
 
