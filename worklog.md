@@ -661,3 +661,27 @@ Stage Summary:
 - Cheque printing no longer returns 401
 - Notifications show correct payment reference
 - print-data API handles null amounts gracefully
+
+---
+Task ID: verify-178eace
+Agent: Main
+Task: Verify commit 178eace (v1.8.6) — Prisma relations fix + full system audit
+
+Work Log:
+- Fetched and merged remote commits (178eace + 2691f69 + be39593 + others)
+- Verified commit 2691f69: 3 missing @relation annotations added to schema.prisma
+  - InventoryLine.product → Product (fixes Inventaire 500 error)
+  - WorkOrderStep.workStation → WorkStation (fixes Ordres de fabrication 500 error)
+  - OTMPiece.product → Product (fixes Maintenance 500 error)
+- Verified commit 178eace: version bumped 1.8.5 → 1.8.6 in version.ts, package.json, manifest.webmanifest
+- Verified all 3 version references are consistent at 1.8.6
+- Verified BACKUP_TABLES: 74/74 business models covered (no change needed — fix was adding relations, not new tables)
+- Verified DATETIME_FIELDS: no new DateTime fields added (OTMPiece still has none)
+- Verified TABLE_SQL_NAMES: 10 @@map annotations unchanged
+- Ran `prisma db push` — Neon PostgreSQL confirmed "database is already in sync"
+
+Stage Summary:
+- Commit 178eace is correct and complete
+- All 3 server errors (Inventaire, OF, Maintenance) should be fixed after Vercel deployment
+- Backup/Restore system still 100% in sync
+- No issues found
