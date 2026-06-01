@@ -358,6 +358,8 @@ model Product {
   qualityControlLines QualityControlLine[]
   customerReturnLines CustomerReturnLine[]
   lots             Lot[]
+  inventoryLines   InventoryLine[]
+  otmPieces        OTMPiece[]
 }
 
 enum QuoteStatus {
@@ -1097,6 +1099,7 @@ model InventoryLine {
   inventoryId   String
   inventory     Inventory @relation(fields: [inventoryId], references: [id])
   productId     String
+  product       Product   @relation(fields: [productId], references: [id])
   systemQty     Float
   physicalQty   Float
   difference    Float
@@ -1127,6 +1130,7 @@ model WorkStation {
   updatedAt     DateTime        @updatedAt
 
   routingSteps  RoutingStep[]
+  workOrderSteps WorkOrderStep[]
 }
 
 model RoutingStep {
@@ -1261,6 +1265,7 @@ model WorkOrderStep {
   stepOrder      Int
   description    String?
   workStationId  String?
+  workStation    WorkStation? @relation(fields: [workStationId], references: [id])
   duration       Int
   actualDuration Int         @default(0)
   status         StepStatus  @default(pending)
@@ -1406,6 +1411,7 @@ model OTMPiece {
   otmId             String
   otm               OrdreTravailMaintenance  @relation(fields: [otmId], references: [id], onDelete: Cascade)
   productId         String
+  product           Product                    @relation(fields: [productId], references: [id])
   quantiteNecessaire Float
   quantiteUtilisee  Float                      @default(0)
   coutUnitaire      Float                      @default(0)

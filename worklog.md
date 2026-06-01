@@ -628,3 +628,36 @@ Stage Summary:
 - Print button works for both Vente and Achat invoice lists
 - Works with or without date filters (empty dates = print complete list)
 - Excel export was already working correctly (no changes needed)
+
+---
+Task ID: 2
+Agent: Main
+Task: Fix payment dialog crash, cheque print 401, null guards
+
+Work Log:
+- Diagnosed 4 bugs from user-reported errors when clicking "paiement fournisseur/client"
+
+Bug 1 (CRITICAL): formatCurrency crash — `Cannot read properties of undefined (reading 'toLocaleString')`
+- payments-view.tsx and effets-view.tsx: formatCurrency(n) crashed when n was null/undefined
+- Fix: Changed signature to `(n: number | null | undefined) => (n ?? 0).toLocaleString(...)`
+
+Bug 2 (CRITICAL): cheque-print.ts bare fetch without auth token
+- printCheque() called `/api/effets-cheques/{id}/print-data` with no Authorization header → 401
+- Also `/api/effets-cheques/{id}/print` (POST counter) missing auth
+- Fix: Import useAuthStore, add `Authorization: Bearer ${token}` to both fetch calls
+
+Bug 3 (MEDIUM): payment.number undefined in notifications
+- API route payments/route.ts used `payment.number` but Payment model has no `number` field
+- Result: notification shows "Paiement undefined"
+- Fix: Changed to `payment.reference || payment.code || payment.id.slice(0, 8)` (3 locations)
+
+Bug 4 (LOW): print-data route null guard
+- numberToFrenchWords() and fmtMoney() could crash if effet.montant is null
+- Fix: Added `|| 0` fallback
+
+Stage Summary:
+- 5 files modified, commit be39593 pushed to main
+- Paiement fournisseur/client dialogs no longer crash
+- Cheque printing no longer returns 401
+- Notifications show correct payment reference
+- print-data API handles null amounts gracefully

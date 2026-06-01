@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import type { ChequeTemplateField } from '@/components/erp/finance/cheque-template-editor'
+import { useAuthStore } from '@/lib/stores'
 
 // ─── Constants ───
 const MM_TO_PX = 3.7795275591 // 1mm = 3.78px at 96 DPI
@@ -262,7 +263,10 @@ export function buildChequeTestHtml(data: ChequePrintData): string {
  */
 export async function printCheque(effetId: string): Promise<void> {
   try {
-    const res = await fetch(`/api/effets-cheques/${effetId}/print-data`)
+    const token = useAuthStore.getState().token
+    const res = await fetch(`/api/effets-cheques/${effetId}/print-data`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.error || 'Erreur lors du chargement des données')
@@ -397,7 +401,11 @@ function showChequePrintDialog(data: any) {
         printWindow.print()
         printWindow.close()
         // Update print count
-        fetch(`/api/effets-cheques/${data.effet.id}/print`, { method: 'POST' }).catch(() => {})
+        const tkn = useAuthStore.getState().token
+        fetch(`/api/effets-cheques/${data.effet.id}/print`, {
+          method: 'POST',
+          headers: tkn ? { Authorization: `Bearer ${tkn}` } : {},
+        }).catch(() => {})
       }, 300)
     }
   })
