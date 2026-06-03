@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT - Update product
+// PUT - Update product + adjust_stock action
 export async function PUT(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -186,7 +186,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { id, ...updateData } = body
+    const { id, action, ...updateData } = body
 
     if (!id) {
       return NextResponse.json({ error: 'ID requis' }, { status: 400 })
@@ -197,6 +197,44 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Produit introuvable' }, { status: 404 })
     }
 
+    // ── Action: adjust_stock (manual stock adjustment with traceability) ──
+    if (action === 'adjust_stock') {
+      const { newStock, reason } = body as { newStock: number; reason?: string }
+      if (typeof newStock !== 'number' || newStock < 0) {
+        return NextResponse.json({ error: 'La quantité doit être un nombre positif' }, { status: 400 })
+      }
+
+      const delta = newStock - existing.currentStock
+      if (Math.abs(delta) < 0.001) {
+        return NextResponse.json({ error: 'Le stock est déjà à cette valeur' }, { status: 400 })
+      }
+
+      const product = await db.$transaction(async (tx) => {
+        // Update product stock
+        const updated = await tx.product.update({
+          where: { id },
+          data: { currentStock: newStock },
+        })
+        // Create stock movement for traceability
+        await tx.stockMovement.create({
+          data: {
+            productId: id,
+            type: delta > 0 ? 'in' : 'out',
+            origin: 'manual',
+            quantity: Math.abs(delta),
+            unitCost: existing.averageCost || 0,
+            documentRef: `AJUST-${existing.reference}`,
+            notes: reason || `Ajustement manuel de ${existing.currentStock} → ${newStock} (par ${auth.name || 'utilisateur'})`,
+          },
+        })
+        return updated
+      })
+
+      await auditLog(auth.userId, 'update', 'Product', id, existing, product)
+      return NextResponse.json(product)
+    }
+
+    // ── Normal product update ──
     const data = productSchema.partial().parse(updateData)
 
     const product = await db.product.update({ where: { id }, data })

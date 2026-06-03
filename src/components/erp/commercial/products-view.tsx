@@ -63,6 +63,7 @@ const emptyProduct = {
   productNature: 'produit_fini',
   productUsage: 'vente',
   isStockable: true,
+  currentStock: '',
   minStock: '',
   maxStock: '',
   isActive: true
@@ -254,6 +255,7 @@ export default function ProductsView() {
       productNature: product.productNature,
       productUsage: product.productUsage,
       isStockable: product.isStockable,
+      currentStock: product.currentStock.toString(),
       minStock: product.minStock?.toString() || '',
       maxStock: product.maxStock?.toString() || '',
       isActive: product.isActive
@@ -283,6 +285,22 @@ export default function ProductsView() {
       }
       if (editingProduct) {
         await api.put('/products', { id: editingProduct.id, ...body })
+        // If stock was changed, also call adjust_stock for traceability
+        if (form.isStockable && form.currentStock !== '' && editingProduct.currentStock !== parseFloat(form.currentStock)) {
+          const newStock = parseFloat(form.currentStock)
+          if (newStock >= 0 && Math.abs(newStock - editingProduct.currentStock) > 0.001) {
+            try {
+              await api.put('/products', {
+                id: editingProduct.id,
+                action: 'adjust_stock',
+                newStock,
+                reason: `Ajustement depuis la fiche produit (ancien: ${editingProduct.currentStock})`
+              })
+            } catch (stockErr) {
+              toast.error('Erreur ajustement stock', { description: 'Le produit a été mis à jour mais l\'ajustement de stock a échoué.' })
+            }
+          }
+        }
         toast.success('Produit modifié', { description: `${body.designation} a été mis à jour.` })
       } else {
         await api.post('/products', body)
@@ -675,6 +693,24 @@ export default function ProductsView() {
               </div>
               {form.isStockable && (
                 <>
+                  {editingProduct && (
+                    <div className="space-y-2">
+                      <Label htmlFor="currentStock" className="flex items-center gap-1.5">
+                        Stock actuel
+                        <span className="text-[10px] text-muted-foreground font-normal">(modifiable)</span>
+                      </Label>
+                      <Input
+                        id="currentStock"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={form.currentStock}
+                        onChange={(e) => setForm({ ...form, currentStock: e.target.value })}
+                        placeholder="0"
+                        className="font-mono"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="minStock">Stock minimum</Label>
                     <Input id="minStock" type="number" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} placeholder="0" />
