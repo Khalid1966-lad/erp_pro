@@ -52,10 +52,11 @@ export const BACKUP_TABLES = [
   'Invoice',
   'InvoiceLine',
   'InvoiceDeliveryNote',
-  'CreditNote',
-  'CreditNoteLine',
   'CustomerReturn',
   'CustomerReturnLine',
+  'CreditNote',
+  'CreditNoteLine',
+  '_CreditNoteToCustomerReturn',
   'Payment',
   'EffetCheque',
   'ChequeTemplate',
@@ -99,6 +100,9 @@ const TABLE_SQL_NAMES: Record<string, string> = {
   Chantier: 'chantiers',
   CustomerReturn: 'customer_returns',
   CustomerReturnLine: 'customer_return_lines',
+  CreditNote: 'credit_notes',
+  CreditNoteLine: 'credit_note_lines',
+  _CreditNoteToCustomerReturn: '_CreditNoteToCustomerReturn',
   PaymentCodeCounter: 'payment_code_counters',
   ChequeTemplate: 'cheque_templates',
   ChequeTemplateField: 'cheque_template_fields',
@@ -108,6 +112,11 @@ const TABLE_SQL_NAMES: Record<string, string> = {
 function getSqlTableName(prismaModel: string): string {
   return TABLE_SQL_NAMES[prismaModel] || prismaModel
 }
+
+// ─── Implicit Prisma join tables (not Prisma models — must be handled via raw SQL) ───
+const IMPLICIT_JOIN_TABLES = new Set([
+  '_CreditNoteToCustomerReturn',
+])
 
 // Reversed order for deletion (children before parents)
 export const DELETE_TABLES_ORDER = [...BACKUP_TABLES].reverse()
@@ -407,10 +416,25 @@ export async function restoreDatabase(
           return processed
         })
 
-        await tx[table as any].createMany({
-          data: processedRows,
-          skipDuplicates: false,
-        })
+        // Implicit join tables (e.g. _CreditNoteToCustomerReturn) are not Prisma models
+        // They must be inserted via raw SQL
+        if (IMPLICIT_JOIN_TABLES.has(table)) {
+          const sqlTable = getSqlTableName(table)
+          for (const row of processedRows) {
+            const columns = Object.keys(row)
+            const values = Object.values(row)
+            const placeholders = columns.map((_, i) => `$${i + 1}`)
+            await tx.$executeRawUnsafe(
+              `INSERT INTO "${sqlTable}" (${columns.map(c => `"${c}"`).join(', ')}) VALUES (${placeholders.join(', ')})`,
+              ...values
+            )
+          }
+        } else {
+          await tx[table as any].createMany({
+            data: processedRows,
+            skipDuplicates: false,
+          })
+        }
         completed++
       }
     },
