@@ -1181,7 +1181,7 @@ export default function PaymentsView() {
                             <span className="text-muted-foreground ml-2 text-xs">({entity.code})</span>
                           </div>
                           <div className="text-right">
-                            <span className={`text-xs font-mono ${entity.balance > 0 ? 'text-green-600' : entity.balance < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                            <span className={`text-xs font-mono font-semibold ${entity.balance > 0 ? 'text-red-600' : entity.balance < 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
                               {formatCurrency(entity.balance)}
                             </span>
                           </div>
@@ -1315,25 +1315,58 @@ export default function PaymentsView() {
               {/* ── Step 3: Payment Method & Details ─────────────────────── */}
               {wizardStep === 3 && (
                 <div className="space-y-4">
-                  {/* Summary card */}
-                  <Card className="border-primary/20 bg-primary/5">
-                    <CardContent className="p-4">
+                  {/* Invoice breakdown with editable amounts */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="px-4 py-2 bg-muted/30 border-b">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">{selectedEntity?.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {selectedInvoices.filter(inv => inv.checked).length} facture(s)
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold">{formatCurrency(totalSelected)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {wizardMode === 'client_payment' ? 'Encaissement' : 'Décaissement'}
-                          </p>
-                        </div>
+                        <p className="text-sm font-medium">
+                          Détail des factures — {selectedEntity?.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedInvoices.filter(inv => inv.checked).length} facture(s)
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>N° Facture</TableHead>
+                            <TableHead className="text-right">Total TTC</TableHead>
+                            <TableHead className="text-right hidden sm:table-cell">Reste</TableHead>
+                            <TableHead className="text-right pr-3">Montant à payer</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedInvoices.filter(inv => inv.checked).map(inv => (
+                            <TableRow key={inv.id}>
+                              <TableCell className="font-mono text-sm">{inv.number}</TableCell>
+                              <TableCell className="text-right text-sm">{formatCurrency(inv.totalTTC)}</TableCell>
+                              <TableCell className="text-right text-sm text-red-600 hidden sm:table-cell">{formatCurrency(inv.remaining)}</TableCell>
+                              <TableCell className="text-right pr-3">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  max={inv.remaining}
+                                  value={inv.amountToPay}
+                                  onChange={(e) => updateInvoiceAmount(inv.id, e.target.value)}
+                                  className="w-28 ml-auto text-right text-sm h-8"
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {/* Total row */}
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-primary/5 border-t">
+                      <span className="font-medium text-sm">Total à payer</span>
+                      <span className={`text-lg font-bold ${totalSelected > 0 ? (wizardMode === 'client_payment' ? 'text-green-600' : 'text-orange-600') : 'text-muted-foreground'}`}>
+                        {formatCurrency(totalSelected)}
+                      </span>
+                    </div>
+                  </div>
 
                   {/* Payment method */}
                   <div className="space-y-2">
