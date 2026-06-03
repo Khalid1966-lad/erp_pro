@@ -2,6 +2,6 @@
 // GEMA ERP PRO — Application Version
 // ═══════════════════════════════════════════════════════════════
 
-export const APP_VERSION = '1.8.8'
+export const APP_VERSION = '1.8.9'
 export const APP_NAME = 'GEMA ERP PRO'
-export const BUILD_DATE = '2026-06-03'
+export const BUILD_DATE = '2026-06-04'
