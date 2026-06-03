@@ -47,18 +47,18 @@ export async function GET(req: NextRequest) {
     const sortDir = searchParams.get('sortDir') || 'asc'
     const nextCode = searchParams.get('nextCode') === 'true'
 
-    // Return next auto-generated reference
+    // Return next auto-generated reference (find max PROD-XXXX number)
     if (nextCode) {
-      const lastProduct = await db.product.findFirst({
-        orderBy: { createdAt: 'desc' },
+      const allProdRefs = await db.product.findMany({
+        where: { reference: { startsWith: 'PROD-' } },
         select: { reference: true },
       })
-      let nextNum = 1
-      if (lastProduct?.reference) {
-        const match = lastProduct.reference.match(/^PROD-(\d+)$/)
-        if (match) nextNum = parseInt(match[1], 10) + 1
+      let maxNum = 0
+      for (const p of allProdRefs) {
+        const match = p.reference.match(/^PROD-(\d+)$/)
+        if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10))
       }
-      return NextResponse.json({ nextCode: `PROD-${String(nextNum).padStart(4, '0')}` })
+      return NextResponse.json({ nextCode: `PROD-${String(maxNum + 1).padStart(4, '0')}` })
     }
 
     const where: Record<string, unknown> = {}
@@ -141,17 +141,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const data = productSchema.parse(body)
 
-    // Auto-generate product reference (PROD-0001, PROD-0002, ...)
-    const lastProduct = await db.product.findFirst({
-      orderBy: { createdAt: 'desc' },
+    // Auto-generate product reference (PROD-0001, PROD-0002, ...) — find max existing number
+    const allProdRefs = await db.product.findMany({
+      where: { reference: { startsWith: 'PROD-' } },
       select: { reference: true },
     })
-    let nextNum = 1
-    if (lastProduct?.reference) {
-      const match = lastProduct.reference.match(/^PROD-(\d+)$/)
-      if (match) nextNum = parseInt(match[1], 10) + 1
+    let maxNum = 0
+    for (const p of allProdRefs) {
+      const match = p.reference.match(/^PROD-(\d+)$/)
+      if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10))
     }
-    const autoRef = `PROD-${String(nextNum).padStart(4, '0')}`
+    const autoRef = `PROD-${String(maxNum + 1).padStart(4, '0')}`
 
     // If a reference was provided in the body, use it instead (backward compatibility)
     const finalRef = data.reference?.trim() || autoRef
