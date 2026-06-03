@@ -169,6 +169,9 @@ export async function GET(req: NextRequest) {
       where: { status: { in: ['validated', 'sent', 'overdue', 'partially_paid'] } },
       _sum: { totalTTC: true, amountPaid: true },
     })
+    const unpaidClientCount = await db.invoice.count({
+      where: { status: { in: ['validated', 'sent', 'overdue', 'partially_paid'] } },
+    })
     const overdueClientCount = await db.invoice.count({
       where: { status: { in: ['overdue'] } },
     })
@@ -261,6 +264,7 @@ export async function GET(req: NextRequest) {
       // NEW: Client invoices
       unpaidClientInvoices,
       unpaidClientTotal: (unpaidClientTotal._sum.totalTTC || 0) - (unpaidClientTotal._sum.amountPaid || 0),
+      unpaidClientCount,
       overdueClientCount,
       overdueClientTotal: (overdueClientTotal._sum.totalTTC || 0) - (overdueClientTotal._sum.amountPaid || 0),
       // NEW: Supplier invoices

@@ -216,6 +216,7 @@ interface DashboardData {
     client: { name: string }
   }[]
   unpaidClientTotal: number
+  unpaidClientCount: number
   overdueClientCount: number
   overdueClientTotal: number
   // NEW: Supplier invoices
@@ -976,12 +977,15 @@ export default function DashboardView() {
                   <CardContent>
                     <div className="flex items-center gap-2">
                       <span className="kpi-value text-xl font-bold">
-                        {data!.overdueClientCount}
+                        {data!.unpaidClientCount}
                       </span>
-                      {data!.overdueClientCount > 0 && (
-                        <Badge variant="destructive" className="badge-pulse">En retard</Badge>
-                      )}
-                      {data!.overdueClientCount === 0 && (
+                      {data!.overdueClientCount > 0 ? (
+                        <Badge variant="destructive" className="badge-pulse">{data!.overdueClientCount} en retard</Badge>
+                      ) : data!.unpaidClientCount > 0 ? (
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                          En attente
+                        </Badge>
+                      ) : (
                         <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                           À jour
                         </Badge>
