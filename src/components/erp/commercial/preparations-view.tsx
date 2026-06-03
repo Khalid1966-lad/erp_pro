@@ -481,6 +481,27 @@ export default function PreparationsView() {
   }
 
   // ── Cancel preparation ──
+  const handleValidateById = async (id: string) => {
+    try {
+      const result = await api.put<Preparation>('/preparations', { id, action: 'validate' })
+      if ('warnings' in result && Array.isArray((result as Record<string, unknown>).warnings) && (result as Record<string, unknown[]>).warnings.length > 0) {
+        const warnings = (result as Record<string, unknown[]>).warnings as Array<{ productDesignation: string; deficit: number }>
+        toast.warning(
+          `Préparation validée avec ${warnings.length} avertissement(s) de stock`,
+          { description: warnings.map((w) => `${w.productDesignation}: déficit ${w.deficit}`).join(', ') },
+        )
+      } else {
+        toast.success('Préparation validée avec succès')
+      }
+      setDetailOpen(false)
+      setSelectedPrep(null)
+      fetchPreparations()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur validation'
+      toast.error(message)
+    }
+  }
+
   const handleCancel = async (id: string) => {
     try {
       await api.put('/preparations', { id, action: 'cancel' })
@@ -816,10 +837,16 @@ export default function PreparationsView() {
                                   </>
                                 )}
                                 {prep.status === 'in_progress' && (
-                                  <DropdownMenuItem onClick={() => handleCancel(prep.id)}>
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    Annuler
-                                  </DropdownMenuItem>
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleValidateById(prep.id)}>
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Valider
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleCancel(prep.id)}>
+                                      <XCircle className="h-4 w-4 mr-2" />
+                                      Annuler
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                                 {prep.status === 'cancelled' && isSuperAdmin && (
                                   <DropdownMenuItem
