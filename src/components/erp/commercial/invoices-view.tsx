@@ -204,6 +204,35 @@ function buildVisaHtml(notes?: string | null): string {
   return notesHtml + visaHtml
 }
 
+function buildPaymentsHtml(payments: Invoice['payments']): string {
+  if (!payments || payments.length === 0) return ''
+  const methodLabels: Record<string, string> = {
+    cash: 'Espèces', check: 'Chèque', bank_transfer: 'Virement', card: 'Carte', effet: 'Effet',
+  }
+  const codes = payments.filter(p => p.code).map(p => p.code!).join('|')
+  let rows = payments.map(p => {
+    const method = methodLabels[p.method] || p.method
+    const dateStr = (() => { try { return new Date(p.date).toLocaleDateString('fr-FR') } catch { return '' } })()
+    return `<tr>
+      <td style="font-family:monospace;font-weight:700;color:#059669;padding:4px 8px;">${p.code || '—'}</td>
+      <td style="padding:4px 8px;">${dateStr}</td>
+      <td style="padding:4px 8px;">${method}</td>
+      <td style="text-align:right;font-weight:600;padding:4px 8px;">${fmtMoney(p.amount)}</td>
+    </tr>`
+  }).join('')
+  return `
+    <div class="section-title">PAIEMENTS REÇUS${codes ? ` — Codes : ${codes}` : ''}</div>
+    <table>
+      <thead><tr>
+        <th style="width:15%">Code</th>
+        <th style="width:25%">Date</th>
+        <th style="width:30%">Mode</th>
+        <th style="width:30%;text-align:right">Montant</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`
+}
+
 export default function InvoicesView() {
   const isSuperAdmin = useIsSuperAdmin()
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -930,7 +959,7 @@ export default function InvoicesView() {
                         { label: 'TVA', value: fmtMoney(eq.totalTVA) },
                         { label: 'Total TTC', value: fmtMoney(eq.totalTTC), bold: true },
                       ],
-                      subSections: buildVisaHtml(eq.notes),
+                      subSections: buildPaymentsHtml(eq.payments) + buildVisaHtml(eq.notes),
                       amountInWords: `${numberToFrenchWords(eq.totalTTC || 0)} dirhams`,
                       amountInWordsLabel: 'Arrêtée la présente facture à la somme de',
                     })
@@ -1599,7 +1628,7 @@ export default function InvoicesView() {
                         { label: 'TVA', value: fmtMoney(selectedInvoice.totalTVA) },
                         { label: 'Total TTC', value: fmtMoney(selectedInvoice.totalTTC), bold: true },
                       ],
-                      subSections: buildVisaHtml(selectedInvoice.notes),
+                      subSections: buildPaymentsHtml(selectedInvoice.payments) + buildVisaHtml(selectedInvoice.notes),
                       amountInWords: numberToFrenchWords(selectedInvoice.totalTTC || 0) + ' dirhams',
                       amountInWordsLabel: 'Arrêté la présente facture à la somme de',
                     })

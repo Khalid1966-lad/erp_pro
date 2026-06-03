@@ -73,6 +73,9 @@ export async function GET(req: NextRequest) {
           supplier: { select: { id: true, name: true, code: true } },
           purchaseOrder: { select: { id: true, number: true } },
           lines: { include: { product: { select: { id: true, reference: true, designation: true } } } },
+          paymentLines: {
+            include: { payment: { select: { id: true, code: true, amount: true, date: true, method: true } } },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,

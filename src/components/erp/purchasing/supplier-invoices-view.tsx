@@ -59,6 +59,35 @@ function buildSupplierVisaHtml(notes?: string | null): string {
 
   return notesHtml + visaHtml
 }
+
+function buildSupplierPaymentsHtml(paymentLines: Array<{ payment: { id: string; code?: string | null; amount: number; date: string; method: string } }> | undefined): string {
+  if (!paymentLines || paymentLines.length === 0) return ''
+  const methodLabels: Record<string, string> = {
+    cash: 'Espèces', check: 'Chèque', bank_transfer: 'Virement', card: 'Carte', effet: 'Effet',
+  }
+  const codes = paymentLines.filter(pl => pl.payment.code).map(pl => pl.payment.code!).join('|')
+  let rows = paymentLines.map(pl => {
+    const method = methodLabels[pl.payment.method] || pl.payment.method
+    const dateStr = (() => { try { return new Date(pl.payment.date).toLocaleDateString('fr-FR') } catch { return '' } })()
+    return `<tr>
+      <td style="font-family:monospace;font-weight:700;color:#059669;padding:4px 8px;">${pl.payment.code || '—'}</td>
+      <td style="padding:4px 8px;">${dateStr}</td>
+      <td style="padding:4px 8px;">${method}</td>
+      <td style="text-align:right;font-weight:600;padding:4px 8px;">${fmtMoneyP(pl.payment.amount)}</td>
+    </tr>`
+  }).join('')
+  return `
+    <div class="section-title">PAIEMENTS EFFECTUÉS${codes ? ` — Codes : ${codes}` : ''}</div>
+    <table>
+      <thead><tr>
+        <th style="width:15%">Code</th>
+        <th style="width:25%">Date</th>
+        <th style="width:30%">Mode</th>
+        <th style="width:30%;text-align:right">Montant</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`
+}
 import { useIsSuperAdmin } from '@/hooks/use-super-admin'
 
 // ── Types ──────────────────────────────────────────────
@@ -115,6 +144,7 @@ interface SupplierInvoice {
   amountPaid: number
   createdAt: string
   updatedAt: string
+  paymentLines?: Array<{ payment: { id: string; code?: string | null; amount: number; date: string; method: string } }>
 }
 
 // ── Status helpers ─────────────────────────────────────
@@ -757,7 +787,7 @@ export default function SupplierInvoicesView() {
                   { label: 'TVA', value: fmtMoneyP(selected.totalTVA) },
                   { label: 'Total TTC', value: fmtMoneyP(selected.totalTTC), bold: true },
                 ],
-                subSections: buildSupplierVisaHtml(selected.notes),
+                subSections: buildSupplierPaymentsHtml(selected.paymentLines) + buildSupplierVisaHtml(selected.notes),
                 amountInWords: numberToFrenchWords(selected.totalTTC),
                 amountInWordsLabel: 'Arrêtée la présente facture fournisseur à la somme de',
               })
@@ -949,7 +979,7 @@ export default function SupplierInvoicesView() {
                         { label: 'TVA', value: fmtMoneyP(inv.totalTVA) },
                         { label: 'Total TTC', value: fmtMoneyP(inv.totalTTC), bold: true },
                       ],
-                      subSections: buildSupplierVisaHtml(inv.notes),
+                      subSections: buildSupplierPaymentsHtml(inv.paymentLines) + buildSupplierVisaHtml(inv.notes),
                       amountInWords: numberToFrenchWords(inv.totalTTC),
                       amountInWordsLabel: 'Arrêtée la présente facture fournisseur à la somme de',
                     })

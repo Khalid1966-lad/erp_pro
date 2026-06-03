@@ -13,6 +13,7 @@ interface StatementTransaction {
   debit: number
   credit: number
   balance: number
+  paymentCode?: string | null
 }
 
 interface StatementSummary {
@@ -75,7 +76,13 @@ export async function GET(
       // Supplier Invoices (not cancelled) → DEBIT
       db.supplierInvoice.findMany({
         where: { supplierId: id, status: { not: 'cancelled' }, ...(Object.keys(rangeDateFilter).length > 0 ? { date: rangeDateFilter } : {}) },
-        select: { date: true, number: true, totalTTC: true },
+        select: {
+          date: true, number: true, totalTTC: true,
+          paymentLines: {
+            where: { payment: { type: 'supplier_payment' } },
+            select: { payment: { select: { code: true, date: true } } },
+          },
+        },
       }),
 
       // Supplier Credit Notes (not cancelled) → CREDIT
@@ -116,7 +123,7 @@ export async function GET(
 
       payments = await db.payment.findMany({
         where: dateWhere,
-        select: { id: true, date: true, reference: true, amount: true, notes: true },
+        select: { id: true, date: true, reference: true, amount: true, notes: true, code: true },
         orderBy: { date: 'asc' },
       })
     }
@@ -163,9 +170,17 @@ export async function GET(
     const transactions: StatementTransaction[] = []
 
     for (const inv of supplierInvoices) {
+      // Build combined payment codes for this supplier invoice
+      const paymentCodes = (inv as any).paymentLines
+        ?.map((pl: any) => pl.payment?.code)
+        .filter(Boolean)
+        .sort((a: string, b: string) => a.localeCompare(b))
+        .join('|') || null
+
       transactions.push({
         date: inv.date.toISOString(), type: 'invoice', reference: inv.number,
         label: `Facture ${inv.number}`, debit: inv.totalTTC, credit: 0, balance: 0,
+        paymentCode: paymentCodes,
       })
     }
 
@@ -183,6 +198,7 @@ export async function GET(
           ? `Paiement ${pay.reference}${pay.notes ? ` — ${pay.notes}` : ''}`
           : `Paiement${pay.notes ? ` — ${pay.notes}` : ''}`,
         debit: 0, credit: pay.amount, balance: 0,
+        paymentCode: (pay as any).code || null,
       })
     }
 
