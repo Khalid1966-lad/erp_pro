@@ -798,3 +798,38 @@ Stage Summary:
 - Printed invoices now show a "Paiements reçus/effectués" table with payment codes
 - Supplier invoices API now returns paymentLines for frontend use
 - Supplier statement now includes paymentCode column
+---
+Task ID: 1
+Agent: Main
+Task: Dashboard refresh — auto-update, refresh button, last-updated timestamp, accurate KPIs
+
+Work Log:
+- Analyzed dashboard API (src/app/api/dashboard/route.ts): identified 3 issues
+  1. Revenue query missing overdue/partially_paid statuses → fixed
+  2. Expenses using purchaseOrder instead of supplierInvoice → switched to supplierInvoice
+  3. Recent activity sorted ASC (oldest first) → changed to DESC (newest first)
+- Added totalClients, totalSuppliers, totalProducts counts to API response
+- Updated dashboard component (src/components/erp/dashboard/dashboard-view.tsx):
+  1. Added RefreshCw, Users, UserCheck, Boxes icon imports
+  2. Added useRef import for interval management
+  3. Added refreshing state (separate from loading — no skeleton flicker on refresh)
+  4. Added lastUpdated state showing last fetch time
+  5. Added autoRefresh state (default: true, 60-second interval)
+  6. Added handleManualRefresh function
+  7. Added useEffect for auto-refresh with setInterval (60s)
+  8. Added refresh indicator bar (fixed top, subtle pulse)
+  9. Added header with: title + last-updated time + auto-refresh toggle + refresh button
+  10. Added Row 1.5: 3 clickable cards (Clients, Fournisseurs, Produits) with counts
+  11. Updated stock KPI subtitle to show product count when no alerts
+  12. Updated DashboardData interface with totalClients/totalSuppliers/totalProducts
+- Lint passes clean
+
+Stage Summary:
+- 2 files modified: dashboard/route.ts, dashboard-view.tsx
+- All KPIs query fresh DB data on each fetch (no stale cache)
+- Auto-refresh every 60 seconds (toggleable)
+- Manual refresh button with spinning animation
+- Last-updated timestamp shown in header
+- New entity counts row: Clients, Fournisseurs, Produits
+- Revenue now includes overdue + partially_paid invoices
+- Expenses now from supplier invoices (more accurate than purchase orders)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { api } from '@/lib/api'
 import { useNavStore } from '@/lib/stores'
 import { format, formatDistanceToNow } from 'date-fns'
@@ -45,6 +45,10 @@ import {
   Receipt,
   Search,
   Truck,
+  RefreshCw,
+  Users,
+  UserCheck,
+  Boxes,
 } from 'lucide-react'
 
 import {
@@ -248,6 +252,10 @@ interface DashboardData {
   pendingDeliveries: number
   // NEW: Unreconciled
   unreconciledTransactions: number
+  // NEW: Entity counts
+  totalClients: number
+  totalSuppliers: number
+  totalProducts: number
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -543,25 +551,52 @@ function SeeAllLink({ onClick }: { onClick: () => void }) {
 export default function DashboardView() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const setCurrentView = useNavStore((s) => s.setCurrentView)
 
-  const fetchDashboard = useCallback(async () => {
+  const fetchDashboard = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true)
+      if (isRefresh) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError(null)
       const result = await api.get<DashboardData>('/dashboard')
       setData(result)
+      setLastUpdated(new Date())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }, [])
 
+  // Initial load
   useEffect(() => {
     fetchDashboard()
   }, [fetchDashboard])
+
+  // Auto-refresh every 60 seconds
+  useEffect(() => {
+    if (autoRefresh) {
+      intervalRef.current = setInterval(() => {
+        fetchDashboard(true)
+      }, 60_000)
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [autoRefresh, fetchDashboard])
+
+  const handleManualRefresh = () => {
+    fetchDashboard(true)
+  }
 
   if (error) {
     return (
@@ -622,12 +657,51 @@ export default function DashboardView() {
       animate="animate"
       className="space-y-6"
     >
+      {/* Refreshing indicator — subtle top bar */}
+      {refreshing && (
+        <div className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-primary/60 animate-pulse" />
+      )}
+
       {/* Page header */}
-      <motion.div variants={staggerItem}>
-        <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
-        <p className="text-muted-foreground">
-          Vue d&apos;ensemble de votre activité
-        </p>
+      <motion.div variants={staggerItem} className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
+          <p className="text-muted-foreground">
+            Vue d&apos;ensemble de votre activité
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Last updated */}
+          {lastUpdated && !loading && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              {lastUpdated.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+          {/* Auto-refresh toggle */}
+          <button
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+              autoRefresh
+                ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400'
+                : 'border-border text-muted-foreground hover:bg-muted'
+            }`}
+            title={autoRefresh ? 'Auto-rafraîchissement activé (60s)' : 'Auto-rafraîchissement désactivé'}
+          >
+            <Activity className="h-3 w-3" />
+            <span className="hidden sm:inline">Auto</span>
+          </button>
+          {/* Refresh button */}
+          <button
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            title="Rafraîchir le tableau de bord"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            Rafraîchir
+          </button>
+        </div>
       </motion.div>
 
       {/* ── Row 1: KPI Cards ──────────────────────────────────────────── */}
@@ -699,15 +773,57 @@ export default function DashboardView() {
               iconBg="bg-amber-50 dark:bg-amber-950/40"
               iconColor="text-amber-600 dark:text-amber-400"
               subtitle={
-                data!.lowStockProducts.length > 0 && (
+                data!.lowStockProducts.length > 0 ? (
                   <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
                     <AlertTriangle className="h-3 w-3" />
                     {data!.lowStockProducts.length} produit
                     {data!.lowStockProducts.length > 1 ? 's' : ''} en alerte
                   </span>
+                ) : (
+                  <span className="text-muted-foreground">{data!.totalProducts} produit(s) actif(s)</span>
                 )
               }
             />
+          </>
+        )}
+      </motion.div>
+
+      {/* ── Row 1.5: Clients / Suppliers / Products ──────────────────────── */}
+      <motion.div
+        variants={staggerContainer}
+        className="grid grid-cols-3 gap-4 sm:grid-cols-3"
+      >
+        {!loading && (
+          <>
+            <NavigateCard onClick={() => setCurrentView('clients')} className="text-center">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Users className="h-4 w-4 text-blue-500" />
+                  <span className="text-xs font-medium text-muted-foreground">Clients</span>
+                </div>
+                <p className="text-xl font-bold">{data!.totalClients}</p>
+              </CardContent>
+            </NavigateCard>
+
+            <NavigateCard onClick={() => setCurrentView('suppliers')} className="text-center">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <UserCheck className="h-4 w-4 text-teal-500" />
+                  <span className="text-xs font-medium text-muted-foreground">Fournisseurs</span>
+                </div>
+                <p className="text-xl font-bold">{data!.totalSuppliers}</p>
+              </CardContent>
+            </NavigateCard>
+
+            <NavigateCard onClick={() => setCurrentView('products')} className="text-center">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Boxes className="h-4 w-4 text-orange-500" />
+                  <span className="text-xs font-medium text-muted-foreground">Produits</span>
+                </div>
+                <p className="text-xl font-bold">{data!.totalProducts}</p>
+              </CardContent>
+            </NavigateCard>
           </>
         )}
       </motion.div>

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     const validatedInvoices = await db.invoice.findMany({
       where: {
-        status: { in: ['validated', 'sent', 'paid'] },
+        status: { in: ['validated', 'sent', 'paid', 'overdue', 'partially_paid'] },
         date: { gte: twelveMonthsAgo },
       },
       select: {
@@ -42,14 +42,15 @@ export async function GET(req: NextRequest) {
       revenueByMonth.push({ month: monthLabel, amount: Math.round(monthRevenue * 100) / 100 })
     }
 
-    // Total revenue and expenses
+    // Total revenue (all invoices that represent actual revenue)
     const totalRevenueResult = await db.invoice.aggregate({
-      where: { status: { in: ['validated', 'sent', 'paid'] } },
+      where: { status: { in: ['validated', 'sent', 'paid', 'overdue', 'partially_paid'] } },
       _sum: { totalHT: true, totalTVA: true, totalTTC: true },
     })
 
-    const totalExpensesResult = await db.purchaseOrder.aggregate({
-      where: { status: { in: ['sent', 'partially_received', 'received'] } },
+    // Total expenses from supplier invoices (more accurate than purchase orders)
+    const totalExpensesResult = await db.supplierInvoice.aggregate({
+      where: { status: { in: ['received', 'verified', 'paid', 'overdue', 'partially_paid'] } },
       _sum: { totalHT: true, totalTTC: true },
     })
 
@@ -224,13 +225,18 @@ export async function GET(req: NextRequest) {
       where: { isReconciled: false },
     })
 
+    // Total clients and suppliers
+    const totalClients = await db.client.count({ where: { isActive: true } })
+    const totalSuppliers = await db.supplier.count({ where: { isActive: true } })
+    const totalProducts = await db.product.count({ where: { isActive: true } })
+
     // Recent activity (last 20 audit logs)
     const recentActivity = await db.auditLog.findMany({
       take: 20,
       include: {
         user: { select: { id: true, name: true, email: true } },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
     })
 
     return NextResponse.json({
@@ -248,6 +254,10 @@ export async function GET(req: NextRequest) {
       cashBalance: cashBalanceResult._sum.balance || 0,
       bankBalance: bankBalanceResult._sum.balance || 0,
       recentActivity,
+      // Counts
+      totalClients,
+      totalSuppliers,
+      totalProducts,
       // NEW: Client invoices
       unpaidClientInvoices,
       unpaidClientTotal: (unpaidClientTotal._sum.totalTTC || 0) - (unpaidClientTotal._sum.amountPaid || 0),
