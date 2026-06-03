@@ -702,3 +702,35 @@ Stage Summary:
 - Commit 7be3fb9 pushed to main
 - 2 files changed: preparations/route.ts, sales-orders-view.tsx
 - Full lifecycle now works: confirmed → in_preparation → prepared/partially_delivered → still can create preparations
+
+---
+Task ID: fix-product-create
+Agent: Main
+Task: Fix product creation fails on PostgreSQL — null values in non-nullable Float fields + detailed error messages
+
+Work Log:
+- Root cause: Frontend sent minStock=null and maxStock=null when fields empty during creation
+- Zod schema accepts null (.nullable()) but Prisma schema has `Float @default(0)` — NOT nullable
+- SQLite accepts null in Float columns (lenient), PostgreSQL rejects it (strict) → 500 on Vercel
+- Also `unit: form.unit || null` could send null to non-nullable String field
+
+Fixes applied:
+1. src/lib/api.ts — Added ApiError class carrying status + details, thrown on non-OK responses
+2. src/components/erp/commercial/products-view.tsx:
+   - handleSave body: minStock/maxStock default to 0/100 instead of null
+   - handleSave body: unit defaults to 'unité' instead of null
+   - handleSave body: priceHT/tvaRate default to 0/20 via `|| operator`
+   - handleSave body: currentStock=0 explicitly sent on creation
+   - Error catch: import ApiError, show err.message or Zod details in toast
+   - Toast duration increased to 6s for readability
+3. src/app/api/products/route.ts (POST):
+   - Before Zod parse: convert null→defaults for minStock, maxStock, currentStock, averageCost, unit, productUsage, productNature
+   - Error response: include server error message in details field for debugging
+4. src/app/api/products/route.ts (PUT):
+   - Same null→defaults conversion for product updates
+
+Stage Summary:
+- Commit 2e22d70 pushed to main
+- 4 files changed: api.ts, products-view.tsx, products/route.ts (2 sections)
+- Product creation now works on Vercel/PostgreSQL
+- Error messages now show actual API error details (Zod validation, server error, etc.)
