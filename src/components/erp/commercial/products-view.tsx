@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -273,14 +273,15 @@ export default function ProductsView() {
         description: form.description || null,
         famille: form.famille.trim() || null,
         sousFamille: form.sousFamille.trim() || null,
-        priceHT: parseFloat(form.priceHT),
-        tvaRate: parseFloat(form.tvaRate),
-        unit: form.unit || null,
+        priceHT: parseFloat(form.priceHT) || 0,
+        tvaRate: parseFloat(form.tvaRate) || 20,
+        unit: form.unit || 'unité',
         productNature: form.productNature,
         productUsage: form.productUsage,
         isStockable: form.isStockable,
-        minStock: form.minStock ? parseInt(form.minStock) : null,
-        maxStock: form.maxStock ? parseInt(form.maxStock) : null,
+        currentStock: 0,
+        minStock: form.minStock ? parseFloat(form.minStock) : 0,
+        maxStock: form.maxStock ? parseFloat(form.maxStock) : 100,
         isActive: form.isActive
       }
       if (editingProduct) {
@@ -316,7 +317,17 @@ export default function ProductsView() {
         .catch(() => {})
     } catch (err) {
       console.error('Erreur sauvegarde produit:', err)
-      toast.error('Erreur de sauvegarde', { description: 'Impossible de sauvegarder le produit.' })
+      if (err instanceof ApiError) {
+        const detailParts = Array.isArray(err.details)
+          ? (err.details as Array<{path?: string[]; message: string}>).map(d => d.message || String(d)).join('\n')
+          : ''
+        toast.error('Erreur de sauvegarde', {
+          description: detailParts || err.message || 'Impossible de sauvegarder le produit.',
+          duration: 6000
+        })
+      } else {
+        toast.error('Erreur de sauvegarde', { description: 'Impossible de sauvegarder le produit.' })
+      }
     } finally {
       setSaving(false)
     }

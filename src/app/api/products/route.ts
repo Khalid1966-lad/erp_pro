@@ -141,6 +141,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     // Clean empty reference so Zod optional works (empty string !== undefined)
     if (!body.reference?.trim()) delete body.reference
+    // Convert null → defaults for non-nullable Prisma Float fields
+    if (body.minStock === null || body.minStock === undefined) body.minStock = 0
+    if (body.maxStock === null || body.maxStock === undefined) body.maxStock = 100
+    if (body.currentStock === null || body.currentStock === undefined) body.currentStock = 0
+    if (body.averageCost === null || body.averageCost === undefined) body.averageCost = 0
+    if (!body.unit) body.unit = 'unité'
+    if (!body.productUsage) body.productUsage = 'vente'
+    if (!body.productNature) body.productNature = 'produit_fini'
+
     const data = productSchema.parse(body)
 
     // Auto-generate product reference (PROD-0001, PROD-0002, ...) — find max existing number
@@ -171,10 +180,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(product, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
+      const details = error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+      console.error('Product create Zod error:', details)
       return NextResponse.json({ error: 'Données invalides', details: error.errors }, { status: 400 })
     }
     console.error('Product create error:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: 'Erreur serveur', details: msg }, { status: 500 })
   }
 }
 
@@ -237,6 +249,11 @@ export async function PUT(req: NextRequest) {
     }
 
     // ── Normal product update ──
+    // Convert null → defaults for non-nullable Prisma Float fields
+    if (updateData.minStock === null || updateData.minStock === undefined) updateData.minStock = 0
+    if (updateData.maxStock === null || updateData.maxStock === undefined) updateData.maxStock = 100
+    if (!updateData.unit) updateData.unit = 'unité'
+
     const data = productSchema.partial().parse(updateData)
 
     const product = await db.product.update({ where: { id }, data })
