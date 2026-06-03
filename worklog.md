@@ -734,3 +734,28 @@ Stage Summary:
 - 4 files changed: api.ts, products-view.tsx, products/route.ts (2 sections)
 - Product creation now works on Vercel/PostgreSQL
 - Error messages now show actual API error details (Zod validation, server error, etc.)
+
+---
+Task ID: fix-payment-client-select
+Agent: Main
+Task: Fix payment wizard server error when selecting client — PostgreSQL enum strictness
+
+Work Log:
+- User reported: clicking a client in payment wizard → "erreur serveur"
+- Traced flow: handleEntitySelect → fetchUnpaidInvoices → /invoices?clientId=xxx&status=validated,sent,overdue,partially_paid&limit=100
+- Root cause: invoices GET handler sets `where.status = "validated,sent,overdue,partially_paid"` (entire string)
+- InvoiceStatus is a PostgreSQL enum — PostgreSQL rejects invalid enum values → Prisma crash → 500
+- SQLite treats status as plain text, silently returns no results (no crash)
+- Same issue found in supplier-invoices route
+
+Fixes applied:
+1. src/app/api/invoices/route.ts: Split comma-separated status param, use Prisma `{in: [...]}` operator
+2. src/app/api/supplier-invoices/route.ts: Same fix for supplier payment flow
+3. src/components/erp/finance/payments-view.tsx: Import ApiError, show detailed error message in toast
+4. Both API routes: Include server error message in response details field
+
+Stage Summary:
+- Commit 358a8cc pushed to main
+- 4 files changed
+- Payment wizard client/supplier selection now works on Vercel/PostgreSQL
+- Unpaid invoices correctly fetched using multiple status filter
