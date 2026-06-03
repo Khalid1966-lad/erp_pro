@@ -275,9 +275,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Bon de commande introuvable' }, { status: 404 })
     }
 
-    if (!['confirmed', 'in_preparation'].includes(salesOrder.status)) {
+    if (!['confirmed', 'in_preparation', 'prepared', 'partially_delivered'].includes(salesOrder.status)) {
       return NextResponse.json(
-        { error: 'Le bon de commande doit être confirmé ou en cours de préparation' },
+        { error: 'Le bon de commande doit être confirmé, en préparation, préparé ou partiellement livré' },
         { status: 400 },
       )
     }

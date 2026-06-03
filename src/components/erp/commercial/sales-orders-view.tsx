@@ -558,10 +558,12 @@ export default function SalesOrdersView() {
         }
         break
       case 'prepared':
+        actions.push({ label: 'Créer préparation', icon: <ClipboardList className="h-4 w-4" />, action: 'create_preparation' })
         actions.push({ label: 'Créer BL', icon: <Truck className="h-4 w-4" />, action: 'create_delivery' })
         actions.push({ label: 'Marquer livré', icon: <CheckCircle className="h-4 w-4" />, action: 'delivered' })
         break
       case 'partially_delivered':
+        actions.push({ label: 'Créer préparation', icon: <ClipboardList className="h-4 w-4" />, action: 'create_preparation' })
         actions.push({ label: 'Créer BL', icon: <Truck className="h-4 w-4" />, action: 'create_delivery' })
         actions.push({ label: 'Marquer livré', icon: <CheckCircle className="h-4 w-4" />, action: 'delivered' })
         break
