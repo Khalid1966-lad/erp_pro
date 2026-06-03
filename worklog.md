@@ -759,3 +759,42 @@ Stage Summary:
 - 4 files changed
 - Payment wizard client/supplier selection now works on Vercel/PostgreSQL
 - Unpaid invoices correctly fetched using multiple status filter
+
+---
+Task ID: payment-codes
+Agent: Main
+Task: Payment codes tracking across invoices, statements, and prints
+
+Work Log:
+- Analyzed existing system: PaymentLine model already links payments to invoices with paymentId
+- Client statement API: already had paymentLines include + paymentCode in transactions (was already working)
+- Client statement UI: already had code column in table + print (was already working)
+- Invoice detail view: already showed code règlement badge (was already working)
+
+Changes applied:
+1. Supplier statement API (suppliers/[id]/statement/route.ts):
+   - Added paymentCode field to StatementTransaction interface
+   - Added paymentLines include on supplier invoices query (with payment code + date)
+   - Build paymentCodes from paymentLines (sorted, joined with |)
+   - Added code to payment select
+   - Set paymentCode on both invoice and payment transaction rows
+
+2. Supplier invoices API (supplier-invoices/route.ts):
+   - Added paymentLines include with payment code/amount/date/method
+
+3. Client invoices print (invoices-view.tsx):
+   - Created buildPaymentsHtml() helper function
+   - Generates "PAIEMENTS REÇUS — Codes : A|AB" section with table (Code, Date, Mode, Montant)
+   - Injected into both inline print (expanded) and detail dialog print
+
+4. Supplier invoices print (supplier-invoices-view.tsx):
+   - Created buildSupplierPaymentsHtml() helper function
+   - Same format: "PAIEMENTS EFFECTUÉS — Codes : A|AB"
+   - Updated SupplierInvoice interface with paymentLines
+   - Injected into both inline and detail print locations
+
+Stage Summary:
+- Commit 68bef7a pushed to main (5 files, +85 lines, -7 lines)
+- Printed invoices now show a "Paiements reçus/effectués" table with payment codes
+- Supplier invoices API now returns paymentLines for frontend use
+- Supplier statement now includes paymentCode column
