@@ -130,6 +130,7 @@ interface EffetFormData {
 interface SelectedInvoice {
   id: string
   number: string
+  date?: string
   totalTTC: number
   amountPaid: number
   remaining: number
@@ -447,6 +448,7 @@ export default function PaymentsView() {
         invoices.map(inv => ({
           id: inv.id,
           number: inv.number,
+          date: inv.date,
           totalTTC: inv.totalTTC,
           amountPaid: inv.amountPaid,
           remaining: inv.totalTTC - inv.amountPaid,
@@ -1256,7 +1258,7 @@ export default function PaymentsView() {
                                 </TableCell>
                                 <TableCell className="font-mono text-sm">{inv.number}</TableCell>
                                 <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                                  {format(new Date(inv.date), 'dd/MM/yyyy', { locale: fr })}
+                                  {inv.date ? format(new Date(inv.date), 'dd/MM/yyyy', { locale: fr }) : '—'}
                                 </TableCell>
                                 <TableCell className="text-right text-sm">{formatCurrency(inv.totalTTC)}</TableCell>
                                 <TableCell className="text-right text-sm hidden sm:table-cell text-muted-foreground">
