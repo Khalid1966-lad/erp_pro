@@ -56,6 +56,6 @@ prompt
 server.log
 # Skills directory
 /skills/upload/logo_preview.png
-upload/
+/skills/upload/
 prisma/db/custom.db
 public/build-meta.json
