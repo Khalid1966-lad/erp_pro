@@ -27,6 +27,7 @@ const natureLabels: Record<string, string> = {
   semi_fini: 'Semi-fini',
   produit_fini: 'Produit fini',
   service: 'Service',
+  stock_maintenance: 'Stock de maintenance',
 }
 
 export default function StockAlertsView() {

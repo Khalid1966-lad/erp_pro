@@ -73,14 +73,16 @@ const natureLabels: Record<string, string> = {
   matiere_premiere: 'Matière première',
   semi_fini: 'Semi-fini',
   produit_fini: 'Produit fini',
-  service: 'Service'
+  service: 'Service',
+  stock_maintenance: 'Stock de maintenance'
 }
 
 const natureColors: Record<string, string> = {
   matiere_premiere: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
   semi_fini: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
   produit_fini: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  service: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+  service: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  stock_maintenance: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300'
 }
 
 const usageLabels: Record<string, string> = {
@@ -432,7 +434,7 @@ export default function ProductsView() {
         <Button variant={!typeFilter ? 'default' : 'outline'} size="sm" onClick={() => changeTypeFilter(null)}>
           Tous
         </Button>
-        {(['matiere_premiere', 'semi_fini', 'produit_fini', 'service'] as const).map(nature => (
+        {(['matiere_premiere', 'semi_fini', 'produit_fini', 'service', 'stock_maintenance'] as const).map(nature => (
           <Button key={nature} variant={typeFilter === nature ? 'default' : 'outline'} size="sm"
             onClick={() => changeTypeFilter(typeFilter === nature ? null : nature)}>
             {natureLabels[nature]}
@@ -638,6 +640,7 @@ export default function ProductsView() {
                     <SelectItem value="matiere_premiere">Matière première</SelectItem>
                     <SelectItem value="semi_fini">Semi-fini (intermédiaire)</SelectItem>
                     <SelectItem value="service">Service / Prestation</SelectItem>
+                    <SelectItem value="stock_maintenance">Stock de maintenance</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
