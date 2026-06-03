@@ -397,7 +397,7 @@ export default function PaymentsView() {
 
   const fetchClients = useCallback(async () => {
     try {
-      const data = await api.get<{ clients: Client[] }>('/clients?dropdown=true')
+      const data = await api.get<{ clients: Client[] }>('/clients?dropdown=true&withBalance=true')
       setClients(data.clients || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur chargement clients')
@@ -406,7 +406,7 @@ export default function PaymentsView() {
 
   const fetchSuppliers = useCallback(async () => {
     try {
-      const data = await api.get<{ suppliers: Supplier[] }>('/suppliers?dropdown=true')
+      const data = await api.get<{ suppliers: Supplier[] }>('/suppliers?dropdown=true&withBalance=true')
       setSuppliers(data.suppliers || [])
     } catch (err: any) {
       toast.error(err.message || 'Erreur chargement fournisseurs')
@@ -1157,6 +1157,11 @@ export default function PaymentsView() {
                     />
                   </div>
                   <div className="border rounded-lg max-h-64 overflow-y-auto">
+                    {/* Column headers */}
+                    <div className="flex items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground border-b bg-muted/30 sticky top-0">
+                      <div>{wizardMode === 'client_payment' ? 'Client' : 'Fournisseur'}</div>
+                      <div className="text-right">Solde impayé</div>
+                    </div>
                     {(wizardMode === 'client_payment' ? filteredClients : filteredSuppliers).length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground text-sm">
                         {entitySearch ? 'Aucun résultat trouvé' : 'Chargement...'}

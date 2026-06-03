@@ -86,13 +86,42 @@ export async function GET(req: NextRequest) {
     }
 
     // Dropdown mode: lightweight response for select components (no pagination, search by raisonSociale only)
+    const withBalance = searchParams.get('withBalance') === 'true'
     if (dropdown) {
       const orderByDropdown: Prisma.ClientOrderByWithRelationInput = { raisonSociale: 'asc' }
       const clients = await db.client.findMany({
         where,
         orderBy: orderByDropdown,
-        select: { id: true, name: true, raisonSociale: true, nomCommercial: true, ice: true, ville: true, statut: true, code: true },
+        select: {
+          id: true, name: true, raisonSociale: true, nomCommercial: true,
+          ice: true, ville: true, statut: true, code: true,
+          ...(withBalance ? { balance: true } : {}),
+        },
       })
+
+      // Compute real balance from unpaid invoices when requested
+      if (withBalance && clients.length > 0) {
+        const unpaidByClient = await db.invoice.groupBy({
+          by: ['clientId'],
+          where: {
+            clientId: { in: clients.map(c => c.id) },
+            status: { in: ['validated', 'sent', 'overdue', 'partially_paid'] },
+          },
+          _sum: {
+            totalTTC: true,
+            amountPaid: true,
+          },
+        })
+        const balanceMap = new Map(unpaidByClient.map(r => {
+          const ttc = r._sum.totalTTC || 0
+          const paid = r._sum.amountPaid || 0
+          return [r.clientId, ttc - paid]
+        }))
+        for (const c of clients) {
+          (c as Record<string, unknown>).balance = balanceMap.get(c.id) || 0
+        }
+      }
+
       return NextResponse.json({ clients, total: clients.length })
     }
 

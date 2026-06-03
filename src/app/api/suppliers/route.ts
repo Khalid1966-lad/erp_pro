@@ -62,20 +62,40 @@ export async function GET(req: NextRequest) {
     }
 
     // Dropdown mode: return all suppliers with minimal fields, no pagination
+    const withBalance = searchParams.get('withBalance') === 'true'
     if (dropdown) {
       const suppliers = await db.supplier.findMany({
         where,
         select: {
-          id: true,
-          code: true,
-          name: true,
-          email: true,
-          phone: true,
-          city: true,
-          siret: true,
+          id: true, code: true, name: true, email: true, phone: true, city: true, siret: true,
+          ...(withBalance ? { balance: true } : {}),
         },
         orderBy: { name: 'asc' },
       })
+
+      // Compute real balance from unpaid supplier invoices when requested
+      if (withBalance && suppliers.length > 0) {
+        const unpaidBySupplier = await db.supplierInvoice.groupBy({
+          by: ['supplierId'],
+          where: {
+            supplierId: { in: suppliers.map(s => s.id) },
+            status: { in: ['received', 'verified', 'partially_paid'] },
+          },
+          _sum: {
+            totalTTC: true,
+            amountPaid: true,
+          },
+        })
+        const balanceMap = new Map(unpaidBySupplier.map(r => {
+          const ttc = r._sum.totalTTC || 0
+          const paid = r._sum.amountPaid || 0
+          return [r.supplierId, ttc - paid]
+        }))
+        for (const s of suppliers) {
+          (s as Record<string, unknown>).balance = balanceMap.get(s.id) || 0
+        }
+      }
+
       return NextResponse.json({ suppliers })
     }
 
