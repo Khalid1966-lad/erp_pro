@@ -30,7 +30,7 @@ import {
 import {
   RotateCcw, Plus, Search, MoreVertical, Eye, Trash2, CheckCircle, XCircle,
   ShieldCheck, Pencil, Printer, FileText, RefreshCw, Banknote, Receipt,
-  Ban, ArrowDownToLine, PackageReturn, Loader2
+  Ban, ArrowDownToLine, Package, Loader2
 } from 'lucide-react'
 import { PrintHeader } from '@/components/erp/shared/print-header'
 import { EntityCombobox } from '@/components/erp/shared/entity-combobox'
@@ -1024,7 +1024,7 @@ export default function CreditNotesView() {
                   </div>
                 ) : availableReturns.length === 0 ? (
                   <div className="text-center py-12">
-                    <PackageReturn className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                    <Package className="h-10 w-10 mx-auto text-muted-foreground/50" />
                     <p className="mt-3 text-sm text-muted-foreground">
                       Aucun retour remis en stock disponible pour ce client.
                     </p>
