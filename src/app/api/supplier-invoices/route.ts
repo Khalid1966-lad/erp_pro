@@ -45,7 +45,14 @@ export async function GET(req: NextRequest) {
 
     const where: Record<string, unknown> = {}
     if (supplierId) where.supplierId = supplierId
-    if (status) where.status = status
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim()).filter(Boolean)
+      if (statuses.length === 1) {
+        where.status = statuses[0]
+      } else if (statuses.length > 1) {
+        where.status = { in: statuses }
+      }
+    }
     if (search) {
       where.OR = [
         { number: { contains: search, mode: 'insensitive' as const } },
@@ -77,7 +84,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ supplierInvoices, total, page, limit })
   } catch (error) {
     console.error('Supplier invoices list error:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: 'Erreur serveur', details: msg }, { status: 500 })
   }
 }
 

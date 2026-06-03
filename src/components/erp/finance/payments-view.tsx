@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -455,7 +455,8 @@ export default function PaymentsView() {
         }))
       )
     } catch (err: any) {
-      toast.error(err.message || 'Erreur chargement factures impayées')
+      const detail = err instanceof ApiError ? err.message : (err?.message || 'Erreur chargement factures impayées')
+      toast.error(detail, { duration: 6000 })
       setSelectedInvoices([])
     } finally {
       setInvoicesLoading(false)

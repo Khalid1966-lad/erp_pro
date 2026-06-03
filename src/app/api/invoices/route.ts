@@ -56,7 +56,14 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
 
     const where: Record<string, unknown> = {}
-    if (status) where.status = status
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim()).filter(Boolean)
+      if (statuses.length === 1) {
+        where.status = statuses[0]
+      } else if (statuses.length > 1) {
+        where.status = { in: statuses }
+      }
+    }
     if (clientId) where.clientId = clientId
     if (search) {
       where.OR = [
@@ -105,7 +112,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ invoices, total, page, limit })
   } catch (error) {
     console.error('Invoices list error:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: 'Erreur serveur', details: msg }, { status: 500 })
   }
 }
 
