@@ -181,6 +181,10 @@ export async function GET(req: NextRequest) {
             },
             orderBy: { id: 'asc' },
           },
+          deliveryNotes: {
+            where: { status: { not: 'cancelled' } },
+            include: { lines: true },
+          },
           salesOrder: {
             include: {
               client: { select: { id: true, name: true } },

@@ -264,14 +264,46 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      // Validate each order line's quantity against prepared-but-not-yet-delivered
+      // ── Aggregate available quantity from ALL completed preparations for this sales order ──
+      const allCompletedPreps = await db.preparationOrder.findMany({
+        where: {
+          salesOrderId: data.salesOrderId,
+          status: 'completed',
+        },
+        include: {
+          lines: true,
+          deliveryNotes: {
+            where: { status: { not: 'cancelled' } },
+            include: { lines: true },
+          },
+        },
+      })
+
+      // Map: salesOrderLineId → total available (Σ prep qty − Σ delivered via BLs)
+      const availableBySOLine = new Map<string, number>()
+      for (const prep of allCompletedPreps) {
+        for (const pLine of prep.lines) {
+          if (!pLine.salesOrderLineId) continue
+          // How much was already delivered for this preparation line via BLs
+          const alreadyDelivered = prep.deliveryNotes.reduce((sum, bl) => {
+            return sum + bl.lines
+              .filter(blLine => blLine.salesOrderLineId === pLine.salesOrderLineId)
+              .reduce((s, blLine) => s + blLine.quantity, 0)
+          }, 0)
+          const available = Math.max(0, pLine.quantityPrepared - alreadyDelivered)
+          const current = availableBySOLine.get(pLine.salesOrderLineId) || 0
+          availableBySOLine.set(pLine.salesOrderLineId, current + available)
+        }
+      }
+
+      // Validate each order line's quantity against aggregated prepared-but-not-yet-delivered
       for (const line of data.lines) {
         if (!line.salesOrderLineId) continue // supplementary line, skip validation
         const soLine = salesOrder.lines.find((l) => l.id === line.salesOrderLineId)
         if (!soLine) {
           return NextResponse.json({ error: `Ligne de commande introuvable: ${line.salesOrderLineId}` }, { status: 400 })
         }
-        const availableForDelivery = (soLine.quantityPrepared || 0) - (soLine.quantityDelivered || 0)
+        const availableForDelivery = availableBySOLine.get(soLine.id) || 0
         if (line.quantity > availableForDelivery + 0.001) {
           return NextResponse.json({
             error: `Quantité ${line.quantity} dépasse le préparé non livré (${availableForDelivery}) pour ${soLine.product?.designation || 'produit'}`

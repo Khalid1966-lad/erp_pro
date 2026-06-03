@@ -189,6 +189,8 @@ interface OrderLineWithDelivery {
   deliveryPercentage: number
   /** Quantity prepared in the source preparation (when BL comes from a preparation) */
   prepQuantity: number
+  /** Aggregated available quantity from ALL completed preparations (prepared − delivered via BLs) */
+  prepAvailable: number
   product?: { id: string; reference: string; designation: string }
 }
 
@@ -649,6 +651,31 @@ export default function DeliveryNotesView() {
         }
       }
 
+      // Fetch ALL completed preparations for this sales order to calculate aggregated available quantity
+      const prepAvailabilityMap: Record<string, number> = {}
+      try {
+        const prepsData = await api.get<{ preparations: any[] }>(`/preparations?salesOrderId=${orderId}&status=completed&limit=100`)
+        const completedPreps = prepsData.preparations || []
+        for (const prep of completedPreps) {
+          if (!prep.lines) continue
+          for (const pl of prep.lines) {
+            if (!pl.salesOrderLineId || pl.quantityPrepared <= 0) continue
+            // Get BLs linked to this preparation (non-cancelled) with delivered quantities
+            const blsForPrep = prep.deliveryNotes || []
+            const deliveredViaBLs = blsForPrep.reduce((sum: number, bl: any) => {
+              if (!bl.lines) return sum
+              return sum + bl.lines
+                .filter((blLine: any) => blLine.salesOrderLineId === pl.salesOrderLineId)
+                .reduce((s: number, blLine: any) => s + (blLine.quantity || 0), 0)
+            }, 0)
+            const available = Math.max(0, pl.quantityPrepared - deliveredViaBLs)
+            prepAvailabilityMap[pl.salesOrderLineId] = (prepAvailabilityMap[pl.salesOrderLineId] || 0) + available
+          }
+        }
+      } catch {
+        console.warn('Could not fetch preparation availability, falling back to order data')
+      }
+
       // Fetch the sales order with its lines directly using the id filter
       const data = await api.get<{ orders: any[] }>(`/sales-orders?id=${orderId}&limit=1`)
       const order = data.orders?.[0]
@@ -675,6 +702,7 @@ export default function DeliveryNotesView() {
             remaining,
             deliveryPercentage: pct,
             prepQuantity: prepLinesMap[line.id] || 0,
+            prepAvailable: prepAvailabilityMap[line.id] || 0,
             product: line.product,
           }
         })
@@ -696,9 +724,9 @@ export default function DeliveryNotesView() {
           qtyMap[l.id] = l.prepQuantity
           incMap[l.id] = true
         } else {
-          // Normal: quantity = remaining (editable)
-          qtyMap[l.id] = l.remaining
-          incMap[l.id] = true
+          // Normal: quantity = min of remaining and prepAvailable (editable, capped by preparation)
+          qtyMap[l.id] = l.prepAvailable > 0 ? Math.min(l.remaining, l.prepAvailable) : 0
+          incMap[l.id] = l.prepAvailable > 0
         }
       })
       setDeliveryQuantities(qtyMap)
@@ -733,10 +761,10 @@ export default function DeliveryNotesView() {
     if (!checked) {
       setDeliveryQuantities((prev) => ({ ...prev, [lineId]: 0 }))
     } else {
-      // Re-checking: restore to remaining
+      // Re-checking: restore to min of remaining and prepAvailable
       const line = orderLinesForDelivery.find((l) => l.id === lineId)
       if (line) {
-        setDeliveryQuantities((prev) => ({ ...prev, [lineId]: line.remaining }))
+        setDeliveryQuantities((prev) => ({ ...prev, [lineId]: line.prepAvailable > 0 ? Math.min(line.remaining, line.prepAvailable) : 0 }))
       }
     }
   }
@@ -1864,25 +1892,26 @@ export default function DeliveryNotesView() {
                                       const newQty: Record<string, number> = {}
                                       orderLinesForDelivery.forEach((l) => {
                                         newIncluded[l.id] = val
-                                        newQty[l.id] = val ? (fromPreparationId ? l.prepQuantity : l.remaining) : 0
+                                        newQty[l.id] = val ? (fromPreparationId ? l.prepQuantity : (l.prepAvailable > 0 ? Math.min(l.remaining, l.prepAvailable) : 0)) : 0
                                       })
                                       setIncludedLines(newIncluded)
                                       setDeliveryQuantities(newQty)
                                     }}
                                   />
                                 </TableHead>
-                                <TableHead className="w-[28%]">Produit</TableHead>
-                                <TableHead className="text-right w-[9%]">Commandé</TableHead>
+                                <TableHead className="w-[24%]">Produit</TableHead>
+                                <TableHead className="text-right w-[7%]">Commandé</TableHead>
                                 {fromPreparationId && (
-                                  <TableHead className="text-right w-[9%]">Préparé</TableHead>
+                                  <TableHead className="text-right w-[7%]">Préparé</TableHead>
                                 )}
-                                <TableHead className="text-right w-[9%]">Livré</TableHead>
-                                <TableHead className="text-right w-[9%]">Restant</TableHead>
-                                <TableHead className="text-center w-[10%]">Avancement</TableHead>
-                                <TableHead className="text-right w-[14%]">
-                                  {fromPreparationId ? 'Qté BL' : 'Qté BL'}
+                                <TableHead className="text-right w-[7%]">Livré</TableHead>
+                                <TableHead className="text-right w-[7%]">Restant</TableHead>
+                                <TableHead className="text-right w-[7%]">Prép. non livré</TableHead>
+                                <TableHead className="text-center w-[8%]">Avancement</TableHead>
+                                <TableHead className="text-right w-[12%]">
+                                  Qté BL
                                 </TableHead>
-                                <TableHead className="text-right w-[14%]">Total HT</TableHead>
+                                <TableHead className="text-right w-[12%]">Total HT</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -1918,6 +1947,11 @@ export default function DeliveryNotesView() {
                                     )}
                                     <TableCell className="text-right text-sm text-blue-600 font-medium">{line.quantityDelivered}</TableCell>
                                     <TableCell className="text-right text-sm text-amber-600 font-semibold">{line.remaining}</TableCell>
+                                    <TableCell className="text-right text-sm">
+                                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 font-mono text-xs">
+                                        {line.prepAvailable}
+                                      </Badge>
+                                    </TableCell>
                                     <TableCell className="text-center">
                                       <DeliveryProgressBar percentage={line.deliveryPercentage} />
                                     </TableCell>
@@ -1930,11 +1964,11 @@ export default function DeliveryNotesView() {
                                         <Input
                                           type="number"
                                           min="0"
-                                          max={line.remaining}
+                                          max={line.prepAvailable > 0 ? line.prepAvailable : line.remaining}
                                           step="0.01"
                                           value={qty}
                                           disabled={!isIncluded}
-                                          onChange={(e) => updateDeliveryQuantity(line.id, Math.min(parseNum(e.target.value), line.remaining))}
+                                          onChange={(e) => updateDeliveryQuantity(line.id, Math.min(parseNum(e.target.value), line.prepAvailable > 0 ? line.prepAvailable : line.remaining))}
                                           className="h-8 text-right text-sm"
                                         />
                                       )}
