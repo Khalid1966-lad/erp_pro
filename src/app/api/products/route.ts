@@ -5,7 +5,7 @@ import { notifyAll } from '@/lib/notify'
 import { z } from 'zod'
 
 const productSchema = z.object({
-  reference: z.string().min(1, 'La référence est requise'),
+  reference: z.string().min(1, 'La référence est requise').optional(),
   designation: z.string().min(1, 'La désignation est requise'),
   description: z.string().nullable().optional(),
   famille: z.string().nullable().optional(),
@@ -139,6 +139,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
+    // Clean empty reference so Zod optional works (empty string !== undefined)
+    if (!body.reference?.trim()) delete body.reference
     const data = productSchema.parse(body)
 
     // Auto-generate product reference (PROD-0001, PROD-0002, ...) — find max existing number
@@ -153,8 +155,8 @@ export async function POST(req: NextRequest) {
     }
     const autoRef = `PROD-${String(maxNum + 1).padStart(4, '0')}`
 
-    // If a reference was provided in the body, use it instead (backward compatibility)
-    const finalRef = data.reference?.trim() || autoRef
+    // Use provided reference if valid, otherwise auto-generate
+    const finalRef = (data.reference && data.reference.trim()) ? data.reference.trim() : autoRef
 
     const existing = await db.product.findUnique({ where: { reference: finalRef } })
     if (existing) {
