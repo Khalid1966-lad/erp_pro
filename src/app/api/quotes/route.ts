@@ -214,34 +214,58 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: 'Le devis doit être accepté pour être transformé' }, { status: 400 })
       }
 
-      const count = await db.salesOrder.count()
+      if (!existing.lines || existing.lines.length === 0) {
+        return NextResponse.json({ error: 'Le devis doit contenir au moins une ligne' }, { status: 400 })
+      }
+
+      // Generate next BC number: BC-YYYY-NNNN (per-year sequence, same pattern as DEV)
       const year = new Date().getFullYear()
-      const orderNumber = `BC-${year}-${String(count + 1).padStart(4, '0')}`
+      const prefix = `BC-${year}-`
+      const lastOrder = await db.salesOrder.findFirst({
+        where: { clientOrderNumber: { startsWith: prefix } },
+        orderBy: { clientOrderNumber: 'desc' },
+        select: { clientOrderNumber: true },
+      })
+      let next = 1
+      if (lastOrder) {
+        const numPart = lastOrder.clientOrderNumber.replace(prefix, '')
+        const parsed = parseInt(numPart, 10)
+        if (!isNaN(parsed)) next = parsed + 1
+      }
+      const orderNumber = `${prefix}${String(next).padStart(4, '0')}`
+
+      // Verify uniqueness (safety check)
+      const existingNumber = await db.salesOrder.findUnique({ where: { clientOrderNumber: orderNumber } })
+      if (existingNumber) {
+        return NextResponse.json({ error: 'Erreur de numérotation. Veuillez réessayer.' }, { status: 409 })
+      }
 
       const salesOrder = await db.salesOrder.create({
         data: {
-          number: orderNumber,
+          clientOrderNumber: orderNumber,
           quoteId: existing.id,
           clientId: existing.clientId,
           status: 'pending',
-          totalHT: existing.totalHT,
-          totalTVA: existing.totalTVA,
-          totalTTC: existing.totalTTC,
+          totalHT: existing.totalHT || 0,
+          totalTVA: existing.totalTVA || 0,
+          totalTTC: existing.totalTTC || 0,
+          notes: existing.notes || undefined,
           lines: {
             create: existing.lines.map((line) => ({
               productId: line.productId,
-              quantity: line.quantity,
-              unitPrice: line.unitPrice,
-              tvaRate: line.tvaRate,
-              totalHT: line.totalHT,
+              quantity: line.quantity || 0,
+              unitPrice: line.unitPrice || 0,
+              tvaRate: line.tvaRate || 0,
+              totalHT: line.totalHT || 0,
             })),
           },
         },
-        include: { client: true, lines: { include: { product: true } } },
+        include: { client: true, lines: { include: { product: true } }, quote: { select: { id: true, number: true } } },
       })
 
       await db.quote.update({ where: { id }, data: { status: 'accepted' } })
       await auditLog(auth.userId, 'transform_to_sales_order', 'Quote', id, existing, salesOrder)
+      notifyAll({ title: 'Commande créée depuis devis', message: `Commande ${salesOrder.clientOrderNumber}`, type: 'success', category: 'order', entityType: 'SalesOrder', entityId: salesOrder.id }).catch(() => {})
 
       return NextResponse.json(salesOrder, { status: 201 })
     }

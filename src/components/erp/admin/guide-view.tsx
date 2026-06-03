@@ -111,7 +111,12 @@ const sections: Section[] = [
   ]},
   { id: 'agenda', label: 'Agenda & Notifications', icon: Bell, children: [
     { id: 'agenda-personnel', label: 'Agenda personnel' },
+    { id: 'acces', label: 'Accès' },
+    { id: 'vue-densemble', label: 'Vue d\'ensemble' },
+    { id: 'onglets-agenda', label: 'Onglets de l\'agenda' },
     { id: 'calendrier', label: 'Calendrier' },
+    { id: 'navigation', label: 'Navigation' },
+    { id: 'badge-notifications', label: 'Badge de notifications' },
   ]},
   { id: 'rh', label: 'Ressources Humaines', icon: UserCog, children: [
     { id: 'salaries', label: 'Salariés' },
@@ -3513,50 +3518,170 @@ function AgendaNotificationsSection() {
     <div>
       <SectionTitle icon={Bell} title="Agenda & Notifications" />
       <Paragraph>
-        GEMA ERP PRO intègre un système d'agenda personnel et de notifications pour vous aider à suivre
-        vos tâches, échéances et activités importantes en temps réel.
+        GEMA ERP PRO intègre un agenda intelligent qui agrège automatiquement les données de votre activité
+        récente. Ce n'est pas un calendrier classique avec des événements créés manuellement, mais une vue
+        synthétique de vos éléments en attente à travers tous les modules.
       </Paragraph>
 
+      {/* ── Agenda personnel ── */}
       <SubTitle id="agenda-agenda-personnel">Agenda personnel</SubTitle>
       <Paragraph>
-        L'agenda affiche les données qui vous concernent directement : vos devis en cours, commandes à traiter,
-        factures impayées, ordres de fabrication actifs et alertes de stock. Chaque utilisateur voit uniquement
-        les éléments sur lesquels il a travaillé.
-      </Paragraph>
-
-      <Step num={1}>Cliquez sur l'icône <strong>calendrier</strong> dans la barre d'en-tête (à côté du bouton thème).</Step>
-      <Step num={2}>Le panneau d'agenda s'ouvre depuis la droite.</Step>
-      <Step num={3}>Utilisez le <strong>menu déroulant</strong> en haut pour naviguer entre les vues : Vue d'ensemble, Ventes, Préparations, Factures, Production, Alertes et Calendrier.</Step>
-      <Step num={4}>Dans la vue <strong>Calendrier</strong>, cliquez sur un jour pour voir les événements prévus (factures, livraisons, ordres de fabrication, commandes fournisseurs).</Step>
-
-      <SubTitle id="agenda-calendrier">Tableau de bord de l'agenda</SubTitle>
-      <Paragraph>
-        La vue d'ensemble affiche 9 cartes de statistiques : Devis actifs, Commandes, Préparations, Livraisons,
-        Factures, En retard, Ordres de fabrication, Commandes fournisseurs et Alertes stock. En dessous,
-        les échéances à venir (factures impayées dans les 7 prochains jours) et l'activité récente.
+        L'agenda est un panneau de type <strong>Sheet</strong> qui s'ouvre depuis la droite de l'écran.
+        Il rassemble vos devis en cours, commandes clients, préparations, factures impayées, ordres de
+        fabrication, commandes fournisseurs et alertes de stock. Chaque utilisateur voit uniquement les
+        éléments sur lesquels il a travaillé récemment (basé sur le journal d'audit).
       </Paragraph>
 
       <TipBox type="info">
-        Les points colorés sur le calendrier indiquent les types d'événements : <strong>rouge</strong> pour les factures,
-        <strong> bleu</strong> pour les livraisons, <strong>vert</strong> pour les ordres de fabrication, et
-        <strong>orange</strong> pour les commandes fournisseurs.
+        L'agenda est personnalisé : il se nourrit de votre activité récente via le journal d'audit.
+        Si vous venez de commencer à utiliser l'ERP, interagissez d'abord avec les modules
+        (créer un devis, une commande, etc.) pour que l'agenda se peuple.
       </TipBox>
 
-      <SubTitle>Notifications</SubTitle>
+      {/* ── Accès ── */}
+      <SubTitle id="agenda-acces">Accès</SubTitle>
       <Paragraph>
-        Le système de notifications vous alerte en temps réel sur les événements importants :
-        nouvelles commandes, factures en retard, alertes de stock, etc. Le nombre de notifications
-        non lues est affiché sous forme de badge rouge sur l'icône cloche dans la barre d'en-tête.
+        Le bouton de l'agenda se trouve dans la barre d'outils de l'ERP, en haut à droite de l'écran.
       </Paragraph>
 
-      <Step num={1}>Cliquez sur l'icône <strong>cloche</strong> dans la barre d'en-tête.</Step>
-      <Step num={2}>Le panneau de notifications s'ouvre.</Step>
-      <Step num={3}>Cliquez sur une notification pour la marquer comme lue et accéder au contenu associé.</Step>
-      <Step num={4}>Utilisez <strong>« Tout lire »</strong> pour marquer toutes les notifications comme lues.</Step>
+      <Step num={1}>Cliquez sur l'icône <strong>calendrier</strong> dans la barre d'outils de l'ERP (zone supérieure droite).</Step>
+      <Step num={2}>Le panneau d'agenda s'ouvre en tant que Sheet depuis la droite de l'écran.</Step>
+      <Step num={3}>Naviguez entre les onglets à l'aide du menu en haut du panneau.</Step>
 
       <TipBox type="success">
-        Les notifications sont actualisées automatiquement toutes les 30 secondes. Vous pouvez également
-        supprimer individuellement chaque notification en survolant l'élément et cliquant sur l'icône corbeille.
+        L'agenda se rafraîchit automatiquement toutes les <strong>2 minutes</strong>. Le compteur
+        du badge rouge sur le bouton est mis à jour en temps réel.
+      </TipBox>
+
+      {/* ── Vue d'ensemble ── */}
+      <SubTitle id="agenda-vue-densemble">Vue d'ensemble</SubTitle>
+      <Paragraph>
+        L'onglet <strong>Vue d'ensemble</strong> affiche un tableau de bord avec 9 cartes de statistiques :
+      </Paragraph>
+
+      <FlowDiagram steps={[
+        { label: 'Devis actifs', icon: FileText },
+        { label: 'Commandes', icon: ShoppingCart },
+        { label: 'Préparations', icon: Package },
+        { label: 'Livraisons', icon: Truck },
+        { label: 'Factures', icon: Receipt },
+        { label: 'En retard', icon: AlertCircle },
+        { label: 'Ordres fabr.', icon: Factory },
+        { label: 'Cmds fourn.', icon: TrendingUp },
+        { label: 'Alertes stock', icon: Warehouse },
+      ]} />
+
+      <Paragraph>
+        Chaque carte est cliquable et bascule automatiquement vers l'onglet correspondant.
+        En dessous des cartes, l'agenda affiche les échéances de factures à venir
+        (dans les 7 prochains jours) ainsi que l'activité récente.
+      </Paragraph>
+
+      {/* ── Onglets de l'agenda ── */}
+      <SubTitle id="agenda-onglets-agenda">Onglets de l'agenda</SubTitle>
+      <Paragraph>
+        L'agenda comporte 8 onglets accessibles via le menu déroulant en haut du panneau :
+      </Paragraph>
+
+      <Paragraph>
+        <strong>Vue d'ensemble</strong> — Tableau de bord avec les 9 cartes de statistiques, les échéances
+        de factures à ≤ 7 jours et l'activité récente.
+      </Paragraph>
+      <Paragraph>
+        <strong>Ventes</strong> — Liste des devis actifs et commandes clients en cours avec badges de statut,
+        montants et dates d'échéance.
+      </Paragraph>
+      <Paragraph>
+        <strong>Préparations</strong> — Liste des préparations actives et des bons de livraison planifiés.
+      </Paragraph>
+      <Paragraph>
+        <strong>Factures</strong> — Liste des factures clients en attente et en retard avec le solde restant à
+        payer et la date d'échéance.
+      </Paragraph>
+      <Paragraph>
+        <strong>Achats</strong> — Liste des commandes fournisseurs en attente avec le nom du fournisseur,
+        les montants et les dates prévues.
+      </Paragraph>
+      <Paragraph>
+        <strong>Production</strong> — Liste des ordres de fabrication avec les informations produit,
+        quantité et dates planifiées.
+      </Paragraph>
+      <Paragraph>
+        <strong>Alertes</strong> — Regroupe les alertes de stock (produits sous le stock minimum)
+        et les factures en retard.
+      </Paragraph>
+      <Paragraph>
+        <strong>Calendrier</strong> — Mini calendrier avec indicateurs visuels par jour.
+      </Paragraph>
+
+      {/* ── Calendrier ── */}
+      <SubTitle id="agenda-calendrier">Calendrier</SubTitle>
+      <Paragraph>
+        L'onglet <strong>Calendrier</strong> affiche un mini calendrier mensuel. Les jours comportant
+        des événements sont signalés par des points colorés :
+      </Paragraph>
+
+      <Card className="mb-4">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Couleur</TableHead>
+                <TableHead>Type d'événement</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow><TableCell><div className="w-3 h-3 rounded-full bg-red-500 inline-block mr-2" /></TableCell><TableCell>Factures</TableCell></TableRow>
+              <TableRow><TableCell><div className="w-3 h-3 rounded-full bg-teal-500 inline-block mr-2" /></TableCell><TableCell>Livraisons</TableCell></TableRow>
+              <TableRow><TableCell><div className="w-3 h-3 rounded-full bg-green-500 inline-block mr-2" /></TableCell><TableCell>Ordres de fabrication</TableCell></TableRow>
+              <TableRow><TableCell><div className="w-3 h-3 rounded-full bg-orange-500 inline-block mr-2" /></TableCell><TableCell>Commandes fournisseurs</TableCell></TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Paragraph>
+        Cliquez sur un jour pour afficher tous les événements de ce jour, regroupés par type.
+      </Paragraph>
+
+      {/* ── Navigation ── */}
+      <SubTitle id="agenda-navigation">Navigation</SubTitle>
+      <Paragraph>
+        Chaque élément de l'agenda est interactif et permet de naviguer directement vers le module
+        correspondant :
+      </Paragraph>
+      <Step num={1}>Les <strong>cartes de statistiques</strong> de la vue d'ensemble basculent vers l'onglet correspondant.</Step>
+      <Step num={2}>Chaque <strong>ligne d'un élément</strong> (devis, commande, facture, etc.) ouvre le module complet et ferme le panneau de l'agenda.</Step>
+      <Step num={3}>Les liens <strong>« Voir tout → »</strong> en bas de chaque section de liste naviguent vers la vue complète du module concerné.</Step>
+
+      <TipBox type="info">
+        L'agenda se ferme automatiquement lorsque vous naviguez vers un module.
+        Pour revenir à l'agenda, cliquez à nouveau sur l'icône calendrier dans la barre d'outils.
+      </TipBox>
+
+      {/* ── Badge de notifications ── */}
+      <SubTitle id="agenda-badge-notifications">Badge de notifications</SubTitle>
+      <Paragraph>
+        Un <strong>badge rouge</strong> s'affiche sur le bouton calendrier de la barre d'outils.
+        Ce compteur représente le nombre total d'éléments en attente :
+      </Paragraph>
+
+      <FlowDiagram steps={[
+        { label: 'Commandes clients', icon: ShoppingCart },
+        { label: 'Préparations', icon: Package },
+        { label: 'Factures en retard', icon: AlertCircle },
+        { label: 'Cmds fournisseurs', icon: Truck },
+        { label: 'Alertes stock', icon: Warehouse },
+      ]} />
+
+      <Paragraph>
+        Le badge est mis à jour automatiquement. Plus le nombre est élevé, plus vous avez d'actions
+        en attente nécessitant votre attention.
+      </Paragraph>
+
+      <TipBox type="warning">
+        Le badge ne compte que les éléments vous concernant directement. Les éléments assignés à
+        d'autres utilisateurs ne sont pas inclus dans votre compteur.
       </TipBox>
     </div>
   )

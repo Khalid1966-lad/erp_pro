@@ -405,10 +405,23 @@ const TABS = [
   { value: 'orders', icon: ShoppingCart, label: 'Ventes' },
   { value: 'preparations', icon: ClipboardList, label: 'Préparations' },
   { value: 'invoices', icon: Receipt, label: 'Factures' },
+  { value: 'achats', icon: ArrowDownToLine, label: 'Achats' },
   { value: 'production', icon: Factory, label: 'Production' },
   { value: 'alerts', icon: AlertTriangle, label: 'Alertes' },
   { value: 'calendar', icon: CalendarDays, label: 'Calendrier' },
 ] as const
+
+// ═══════════════════════════════════════════
+// "Voir tout" link component
+// ═══════════════════════════════════════════
+
+function SeeAllLink({ onClick: onLinkClick }: { onClick: () => void }) {
+  return (
+    <button onClick={onLinkClick} className="text-[10px] text-primary hover:underline px-1 pt-1 w-full text-right">
+      Voir tout →
+    </button>
+  )
+}
 
 // ═══════════════════════════════════════════
 // Main Agenda Panel
@@ -438,7 +451,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
   }, [open, fetchAgenda])
 
   const navigateTo = (view: string) => {
-    setCurrentView(view as 'quotes' | 'sales-orders' | 'preparations' | 'invoices' | 'work-orders')
+    setCurrentView(view as any)
     onOpenChange(false)
   }
 
@@ -661,54 +674,63 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                         label="Devis actifs"
                         value={data.stats.activeQuotes}
                         color="bg-blue-100 dark:bg-blue-900/30"
+                        onClick={() => setActiveTab('orders')}
                       />
                       <StatCard
                         icon={<ShoppingCart className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-500" />}
                         label="Commandes"
                         value={data.stats.pendingOrders}
                         color="bg-emerald-100 dark:bg-emerald-900/30"
+                        onClick={() => setActiveTab('orders')}
                       />
                       <StatCard
                         icon={<ClipboardList className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-500" />}
                         label="Préparations"
                         value={data.stats.pendingPreparations}
                         color="bg-indigo-100 dark:bg-indigo-900/30"
+                        onClick={() => setActiveTab('preparations')}
                       />
                       <StatCard
                         icon={<Truck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-teal-500" />}
                         label="Livraisons"
                         value={data.stats.upcomingDeliveries}
                         color="bg-teal-100 dark:bg-teal-900/30"
+                        onClick={() => setActiveTab('preparations')}
                       />
                       <StatCard
                         icon={<Receipt className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-rose-500" />}
                         label="Factures"
                         value={data.stats.pendingInvoices}
                         color="bg-rose-100 dark:bg-rose-900/30"
+                        onClick={() => setActiveTab('invoices')}
                       />
                       <StatCard
                         icon={<AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-red-500" />}
                         label="En retard"
                         value={data.stats.overdueInvoices}
                         color="bg-red-100 dark:bg-red-900/30"
+                        onClick={() => setActiveTab('invoices')}
                       />
                       <StatCard
                         icon={<Factory className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-600" />}
                         label="Ordres fabr."
                         value={data.stats.activeWorkOrders}
                         color="bg-green-100 dark:bg-green-900/30"
+                        onClick={() => setActiveTab('production')}
                       />
                       <StatCard
                         icon={<ArrowDownToLine className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-orange-500" />}
                         label="Cmds fourn."
                         value={data.stats.pendingPurchaseOrders}
                         color="bg-orange-100 dark:bg-orange-900/30"
+                        onClick={() => setActiveTab('achats')}
                       />
                       <StatCard
                         icon={<Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-500" />}
                         label="Alertes stock"
                         value={data.stats.stockAlerts}
                         color="bg-amber-100 dark:bg-amber-900/30"
+                        onClick={() => setActiveTab('alerts')}
                       />
                     </div>
 
@@ -787,6 +809,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', prepStatusLabels[data.preparations[0].status]?.color)}>
                               {prepStatusLabels[data.preparations[0].status]?.label}
                             </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                           </AgendaRow>
                         )}
                         {data.orders.length > 0 && (
@@ -803,6 +826,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', orderStatusLabels[data.orders[0].status]?.color)}>
                               {orderStatusLabels[data.orders[0].status]?.label}
                             </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                           </AgendaRow>
                         )}
                         {data.workOrders.length > 0 && (
@@ -819,6 +843,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', workOrderStatusLabels[data.workOrders[0].status]?.color)}>
                               {workOrderStatusLabels[data.workOrders[0].status]?.label}
                             </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                           </AgendaRow>
                         )}
                         {data.preparations.length === 0 && data.orders.length === 0 && data.workOrders.length === 0 && (
@@ -863,8 +888,10 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', quoteStatusLabels[q.status]?.color)}>
                               {quoteStatusLabels[q.status]?.label}
                             </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                           </AgendaRow>
                         ))}
+                        <SeeAllLink onClick={() => navigateTo('quotes')} />
                       </>
                     )}
                     {data.orders.length > 0 && (
@@ -888,8 +915,10 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', orderStatusLabels[o.status]?.color)}>
                               {orderStatusLabels[o.status]?.label}
                             </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                           </AgendaRow>
                         ))}
+                        <SeeAllLink onClick={() => navigateTo('sales-orders')} />
                       </>
                     )}
                     {data.quotes.length === 0 && data.orders.length === 0 && (
@@ -905,26 +934,30 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                       Préparations en cours
                     </h3>
                     {data.preparations.length > 0 ? (
-                      data.preparations.map(p => (
-                        <AgendaRow key={p.id} onClick={() => navigateTo('preparations')}>
-                          <div className="rounded-lg bg-indigo-100 dark:bg-indigo-900/30 p-1 sm:p-1.5 shrink-0">
-                            <ClipboardList className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-500" />
-                          </div>
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                              <span className="text-xs sm:text-sm font-medium truncate">{p.number}</span>
-                              <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{p.clientName}</span>
+                      <>
+                        {data.preparations.map(p => (
+                          <AgendaRow key={p.id} onClick={() => navigateTo('preparations')}>
+                            <div className="rounded-lg bg-indigo-100 dark:bg-indigo-900/30 p-1 sm:p-1.5 shrink-0">
+                              <ClipboardList className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-500" />
                             </div>
-                            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
-                              <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">Cmd: {p.orderNumber}</span>
-                              <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate hidden sm:inline">{fmtRelative(p.createdAt)}</span>
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                <span className="text-xs sm:text-sm font-medium truncate">{p.number}</span>
+                                <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{p.clientName}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
+                                <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">Cmd: {p.orderNumber}</span>
+                                <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate hidden sm:inline">{fmtRelative(p.createdAt)}</span>
+                              </div>
                             </div>
-                          </div>
-                          <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', prepStatusLabels[p.status]?.color)}>
-                            {prepStatusLabels[p.status]?.label}
-                          </Badge>
-                        </AgendaRow>
-                      ))
+                            <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', prepStatusLabels[p.status]?.color)}>
+                              {prepStatusLabels[p.status]?.label}
+                            </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                          </AgendaRow>
+                        ))}
+                        <SeeAllLink onClick={() => navigateTo('preparations')} />
+                      </>
                     ) : (
                       <EmptyState icon={<ClipboardList className="h-8 w-8" />} message="Aucune préparation en cours" />
                     )}
@@ -933,7 +966,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                       <>
                         <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider px-1 pt-3">Livraisons planifiées</p>
                         {data.deliveryNotes.map(d => (
-                          <AgendaRow key={d.id}>
+                          <AgendaRow key={d.id} onClick={() => navigateTo('delivery-notes')}>
                             <div className="rounded-lg bg-teal-100 dark:bg-teal-900/30 p-1 sm:p-1.5 shrink-0">
                               <Truck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-teal-500" />
                             </div>
@@ -954,8 +987,10 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', deliveryStatusLabels[d.status]?.color)}>
                               {deliveryStatusLabels[d.status]?.label}
                             </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                           </AgendaRow>
                         ))}
+                        <SeeAllLink onClick={() => navigateTo('delivery-notes')} />
                       </>
                     )}
                   </div>
@@ -968,88 +1003,60 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                       Factures
                     </h3>
                     {data.invoices.length > 0 ? (
-                      data.invoices.map(inv => (
-                        <AgendaRow key={inv.id} onClick={() => navigateTo('invoices')}>
-                          <div className={cn(
-                            'rounded-lg p-1 sm:p-1.5 shrink-0',
-                            inv.status === 'overdue'
-                              ? 'bg-red-100 dark:bg-red-900/30'
-                              : inv.status === 'paid'
-                                ? 'bg-green-100 dark:bg-green-900/30'
-                                : 'bg-rose-100 dark:bg-rose-900/30'
-                          )}>
-                            <Receipt className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          </div>
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                              <span className="text-xs sm:text-sm font-medium truncate">{inv.number}</span>
-                              <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{inv.clientName}</span>
+                      <>
+                        {data.invoices.map(inv => (
+                          <AgendaRow key={inv.id} onClick={() => navigateTo('invoices')}>
+                            <div className={cn(
+                              'rounded-lg p-1 sm:p-1.5 shrink-0',
+                              inv.status === 'overdue'
+                                ? 'bg-red-100 dark:bg-red-900/30'
+                                : inv.status === 'paid'
+                                  ? 'bg-green-100 dark:bg-green-900/30'
+                                  : 'bg-rose-100 dark:bg-rose-900/30'
+                            )}>
+                              <Receipt className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                             </div>
-                            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
-                              <span className="text-[10px] sm:text-xs font-mono truncate">{fmtMoney(inv.totalTTC)}</span>
-                              {inv.amountPaid > 0 && (
-                                <span className="text-[10px] sm:text-[11px] text-green-600 dark:text-green-400 truncate hidden sm:inline">
-                                  Payé {fmtMoney(inv.amountPaid)}
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                <span className="text-xs sm:text-sm font-medium truncate">{inv.number}</span>
+                                <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{inv.clientName}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
+                                <span className="text-[10px] sm:text-xs font-mono truncate">{fmtMoney(inv.totalTTC)}</span>
+                                {inv.amountPaid > 0 && (
+                                  <span className="text-[10px] sm:text-[11px] text-green-600 dark:text-green-400 truncate hidden sm:inline">
+                                    Payé {fmtMoney(inv.amountPaid)}
+                                  </span>
+                                )}
+                                <span className={cn('text-[10px] sm:text-[11px] truncate', getDueDateStyle(inv.dueDate))}>
+                                  {getDueDateLabel(inv.dueDate)}
                                 </span>
-                              )}
-                              <span className={cn('text-[10px] sm:text-[11px] truncate', getDueDateStyle(inv.dueDate))}>
-                                {getDueDateLabel(inv.dueDate)}
-                              </span>
+                              </div>
                             </div>
-                          </div>
-                          <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', invoiceStatusLabels[inv.status]?.color)}>
-                            {invoiceStatusLabels[inv.status]?.label}
-                          </Badge>
-                        </AgendaRow>
-                      ))
+                            <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', invoiceStatusLabels[inv.status]?.color)}>
+                              {invoiceStatusLabels[inv.status]?.label}
+                            </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                          </AgendaRow>
+                        ))}
+                        <SeeAllLink onClick={() => navigateTo('invoices')} />
+                      </>
                     ) : (
                       <EmptyState icon={<Receipt className="h-8 w-8" />} message="Aucune facture en cours" />
                     )}
                   </div>
                   )}
 
-                  {/* ═══ Production Tab ═══ */}
-                  {activeTab === 'production' && (
+                  {/* ═══ Achats Tab ═══ */}
+                  {activeTab === 'achats' && (
                   <div className="space-y-1">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
-                      Ordres de fabrication
+                      Commandes fournisseurs
                     </h3>
-                    {data.workOrders.length > 0 ? (
-                      data.workOrders.map(w => (
-                        <AgendaRow key={w.id} onClick={() => navigateTo('work-orders')}>
-                          <div className="rounded-lg bg-green-100 dark:bg-green-900/30 p-1 sm:p-1.5 shrink-0">
-                            <Factory className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-600" />
-                          </div>
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                              <span className="text-xs sm:text-sm font-medium truncate">{w.number}</span>
-                              <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{w.productRef}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
-                              <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{w.productDesignation}</span>
-                              <span className="text-[10px] sm:text-[11px] text-muted-foreground shrink-0">Qté: {w.quantity}</span>
-                              {w.plannedDate && (
-                                <span className={cn('text-[10px] sm:text-[11px] truncate', getDueDateStyle(w.plannedDate))}>
-                                  {getDueDateLabel(w.plannedDate)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', workOrderStatusLabels[w.status]?.color)}>
-                            {workOrderStatusLabels[w.status]?.label}
-                          </Badge>
-                        </AgendaRow>
-                      ))
-                    ) : (
-                      <EmptyState icon={<Factory className="h-8 w-8" />} message="Aucun ordre de fabrication en cours" />
-                    )}
-
-                    {/* Purchase Orders */}
-                    {data.purchaseOrders.length > 0 && (
+                    {data.purchaseOrders.length > 0 ? (
                       <>
-                        <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider px-1 pt-3">Commandes fournisseurs</p>
                         {data.purchaseOrders.map(po => (
-                          <AgendaRow key={po.id}>
+                          <AgendaRow key={po.id} onClick={() => navigateTo('purchase-orders')}>
                             <div className="rounded-lg bg-orange-100 dark:bg-orange-900/30 p-1 sm:p-1.5 shrink-0">
                               <ArrowDownToLine className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-orange-500" />
                             </div>
@@ -1068,9 +1075,55 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                             <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', poStatusLabels[po.status]?.color)}>
                               {poStatusLabels[po.status]?.label}
                             </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                           </AgendaRow>
                         ))}
+                        <SeeAllLink onClick={() => navigateTo('purchase-orders')} />
                       </>
+                    ) : (
+                      <EmptyState icon={<ArrowDownToLine className="h-8 w-8" />} message="Aucune commande fournisseur en cours" />
+                    )}
+                  </div>
+                  )}
+
+                  {/* ═══ Production Tab ═══ */}
+                  {activeTab === 'production' && (
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 truncate">
+                      Ordres de fabrication
+                    </h3>
+                    {data.workOrders.length > 0 ? (
+                      <>
+                        {data.workOrders.map(w => (
+                          <AgendaRow key={w.id} onClick={() => navigateTo('work-orders')}>
+                            <div className="rounded-lg bg-green-100 dark:bg-green-900/30 p-1 sm:p-1.5 shrink-0">
+                              <Factory className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-600" />
+                            </div>
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                <span className="text-xs sm:text-sm font-medium truncate">{w.number}</span>
+                                <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{w.productRef}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
+                                <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{w.productDesignation}</span>
+                                <span className="text-[10px] sm:text-[11px] text-muted-foreground shrink-0">Qté: {w.quantity}</span>
+                                {w.plannedDate && (
+                                  <span className={cn('text-[10px] sm:text-[11px] truncate', getDueDateStyle(w.plannedDate))}>
+                                    {getDueDateLabel(w.plannedDate)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <Badge className={cn('text-[10px] px-1 sm:px-1.5 py-0 shrink-0', workOrderStatusLabels[w.status]?.color)}>
+                              {workOrderStatusLabels[w.status]?.label}
+                            </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                          </AgendaRow>
+                        ))}
+                        <SeeAllLink onClick={() => navigateTo('work-orders')} />
+                      </>
+                    ) : (
+                      <EmptyState icon={<Factory className="h-8 w-8" />} message="Aucun ordre de fabrication en cours" />
                     )}
                   </div>
                   )}
@@ -1082,30 +1135,34 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                       Alertes stock
                     </h3>
                     {data.stockAlerts.length > 0 ? (
-                      data.stockAlerts.map(s => (
-                        <AgendaRow key={s.id}>
-                          <div className="rounded-lg bg-amber-100 dark:bg-amber-900/30 p-1 sm:p-1.5 shrink-0">
-                            <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-500" />
-                          </div>
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                              <span className="text-xs sm:text-sm font-medium truncate">{s.reference}</span>
-                              <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{s.designation}</span>
+                      <>
+                        {data.stockAlerts.map(s => (
+                          <AgendaRow key={s.id} onClick={() => navigateTo('stock-alerts')}>
+                            <div className="rounded-lg bg-amber-100 dark:bg-amber-900/30 p-1 sm:p-1.5 shrink-0">
+                              <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-500" />
                             </div>
-                            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
-                              <span className={cn('text-[10px] sm:text-xs font-mono truncate', s.currentStock <= 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-amber-600 dark:text-amber-400')}>
-                                Stock: {s.currentStock}
-                              </span>
-                              <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">
-                                Min: {s.minStock}
-                              </span>
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                <span className="text-xs sm:text-sm font-medium truncate">{s.reference}</span>
+                                <span className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:inline">{s.designation}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 min-w-0">
+                                <span className={cn('text-[10px] sm:text-xs font-mono truncate', s.currentStock <= 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-amber-600 dark:text-amber-400')}>
+                                  Stock: {s.currentStock}
+                                </span>
+                                <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">
+                                  Min: {s.minStock}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                          <Badge className="text-[10px] px-1 sm:px-1.5 py-0 shrink-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
-                            {s.currentStock <= 0 ? 'Rupture' : 'Bas'}
-                          </Badge>
-                        </AgendaRow>
-                      ))
+                            <Badge className="text-[10px] px-1 sm:px-1.5 py-0 shrink-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                              {s.currentStock <= 0 ? 'Rupture' : 'Bas'}
+                            </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                          </AgendaRow>
+                        ))}
+                        <SeeAllLink onClick={() => navigateTo('stock-alerts')} />
+                      </>
                     ) : (
                       <EmptyState icon={<Package className="h-8 w-8" />} message="Aucune alerte stock" />
                     )}
@@ -1136,6 +1193,7 @@ function AgendaPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
                             <Badge className="text-[10px] px-1 sm:px-1.5 py-0 shrink-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
                               Retard
                             </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                           </AgendaRow>
                         ))}
                       </>
