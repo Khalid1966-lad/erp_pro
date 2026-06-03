@@ -685,3 +685,20 @@ Stage Summary:
 - All 3 server errors (Inventaire, OF, Maintenance) should be fixed after Vercel deployment
 - Backup/Restore system still 100% in sync
 - No issues found
+
+---
+Task ID: fix-prep-status
+Agent: Main
+Task: Fix — allow preparation creation for prepared/partially_delivered orders
+
+Work Log:
+- Found bug: preparations API only accepted `confirmed` and `in_preparation` statuses
+- Command 12358 (partially_delivered) could not create new preparation after BL delivery
+- Backend fix: added `prepared` and `partially_delivered` to accepted statuses in preparations/route.ts
+- Frontend fix: added "Créer préparation" button for `prepared` and `partially_delivered` statuses in sales-orders-view.tsx
+- Lint passes clean
+
+Stage Summary:
+- Commit 7be3fb9 pushed to main
+- 2 files changed: preparations/route.ts, sales-orders-view.tsx
+- Full lifecycle now works: confirmed → in_preparation → prepared/partially_delivered → still can create preparations
