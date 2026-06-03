@@ -22,7 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, CheckCircle2, XCircle, Printer, Clock, AlertCircle, ShieldCheck, Ban, FileText, RefreshCw } from 'lucide-react'
+import { Plus, Search, Pencil, Eye, Trash2, RotateCcw, CheckCircle2, XCircle, Printer, Clock, AlertCircle, ShieldCheck, Ban, FileText, RefreshCw, PackageSearch, ArrowDownToLine, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -190,11 +190,17 @@ export default function CustomerReturnsView() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [qualityOpen, setQualityOpen] = useState(false)
+  const [restockOpen, setRestockOpen] = useState(false)
+  const [restockWithCreditNote, setRestockWithCreditNote] = useState(true)
   const [selected, setSelected] = useState<CustomerReturn | null>(null)
   const [clients, setClients] = useState<Client[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [deliveryNotes, setDeliveryNotes] = useState<Array<{ id: string; number: string }>>([])
-  const [invoices, setInvoices] = useState<Array<{ id: string; number: string }>>([])
+  const [deliveryNotes, setDeliveryNotes] = useState<Array<{ id: string; number: string; totalTTC?: number; date?: string }>>([])
+  const [invoices, setInvoices] = useState<Array<{ id: string; number: string; totalTTC?: number; date?: string }>>([])
+  const [relatedLoading, setRelatedLoading] = useState(false)
+  const [sourceType, setSourceType] = useState<'bl' | 'facture' | ''>('')
+  // Document lines loaded from BL or invoice
+  const [docLines, setDocLines] = useState<Array<{ id?: string; productId: string; product?: { reference: string; designation: string }; maxQty: number; unitPrice: number; tvaRate: number }>>([])
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -239,19 +245,39 @@ export default function CustomerReturnsView() {
     } catch { /* silent */ }
   }, [])
 
-  const fetchRelated = useCallback(async () => {
+  // Fetch BLs and invoices filtered by selected client
+  const fetchRelated = useCallback(async (cid?: string) => {
+    if (!cid) {
+      setDeliveryNotes([])
+      setInvoices([])
+      return
+    }
     try {
+      setRelatedLoading(true)
       const [dns, invs] = await Promise.all([
-        api.get<{ deliveryNotes: Array<{ id: string; number: string }> }>('/delivery-notes').then(d => d.deliveryNotes || []).catch(() => []),
-        api.get<{ invoices: Array<{ id: string; number: string }> }>('/invoices').then(d => d.invoices || []).catch(() => []),
+        api.get<{ deliveryNotes: Array<{ id: string; number: string; totalTTC?: number; date?: string }> }>(`/delivery-notes?clientId=${cid}&limit=100`).then(d => d.deliveryNotes || []).catch(() => []),
+        api.get<{ invoices: Array<{ id: string; number: string; totalTTC?: number; date?: string }> }>(`/invoices?clientId=${cid}&limit=100`).then(d => d.invoices || []).catch(() => []),
       ])
       setDeliveryNotes(dns)
       setInvoices(invs)
-    } catch { /* silent */ }
+    } catch { /* silent */ } finally {
+      setRelatedLoading(false)
+    }
   }, [])
 
   useEffect(() => { fetchItems() }, [fetchItems])
-  useEffect(() => { fetchClients(); fetchProducts(); fetchRelated() }, [fetchClients, fetchProducts, fetchRelated])
+  useEffect(() => { fetchClients(); fetchProducts() }, [fetchClients, fetchProducts])
+  // When clientId changes in create mode, fetch filtered docs
+  useEffect(() => {
+    if (clientId && !isEditing) {
+      setDeliveryNoteId('')
+      setInvoiceId('')
+      setSourceType('')
+      setDocLines([])
+      setLines([])
+      fetchRelated(clientId)
+    }
+  }, [clientId, fetchRelated, isEditing])
 
   const filtered = items.filter((item) => {
     const clientName = item.client?.raisonSociale || item.client?.name || ''
@@ -274,6 +300,81 @@ export default function CustomerReturnsView() {
     setLines((prev) => prev.map((l, i) => (i !== idx ? l : { ...l, [field]: value })))
   }
 
+  // Load lines from a delivery note or invoice
+  const loadDocLines = async (type: 'bl' | 'facture', docId: string) => {
+    setSourceType(type)
+    setDocLines([])
+    setLines([])
+    try {
+      let url = ''
+      if (type === 'bl') {
+        url = `/delivery-notes?id=${docId}&includeLines=true`
+      } else {
+        url = `/invoices?id=${docId}&includeLines=true`
+      }
+      const res = await api.get<{ deliveryNotes?: Array<any>; invoices?: Array<any> }>(url)
+      const doc = res.deliveryNotes?.[0] || res.invoices?.[0]
+      if (!doc) {
+        toast.error('Document introuvable')
+        return
+      }
+      const docItems = (doc.lines || []).map((l: any) => ({
+        id: l.id,
+        productId: l.productId,
+        product: l.product ? { reference: l.product.reference, designation: l.product.designation } : undefined,
+        maxQty: l.quantity,
+        unitPrice: l.unitPrice || 0,
+        tvaRate: l.tvaRate || 20,
+      }))
+      setDocLines(docItems)
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur chargement des articles')
+    }
+  }
+
+  const handleBLSelect = (blId: string) => {
+    setDeliveryNoteId(blId)
+    setInvoiceId('')
+    if (blId) {
+      loadDocLines('bl', blId)
+    } else {
+      setSourceType('')
+      setDocLines([])
+      setLines([])
+    }
+  }
+
+  const handleInvoiceSelect = (invId: string) => {
+    setInvoiceId(invId)
+    setDeliveryNoteId('')
+    if (invId) {
+      loadDocLines('facture', invId)
+    } else {
+      setSourceType('')
+      setDocLines([])
+      setLines([])
+    }
+  }
+
+  // Toggle a doc line into the return lines (with quantity)
+  const toggleDocLine = (docLine: typeof docLines[0]) => {
+    const existing = lines.find((l) => l.productId === docLine.productId)
+    if (existing) {
+      // Remove it
+      setLines((prev) => prev.filter((l) => l.productId !== docLine.productId))
+    } else {
+      // Add with max quantity
+      setLines((prev) => [
+        ...prev,
+        { productId: docLine.productId, quantity: docLine.maxQty, unitPrice: docLine.unitPrice, tvaRate: docLine.tvaRate },
+      ])
+    }
+  }
+
+  const isDocLineSelected = (productId: string) => {
+    return lines.some((l) => l.productId === productId)
+  }
+
   const lineTotalHT = lines.reduce((sum, l) => sum + (l.quantity * l.unitPrice), 0)
   const lineTotalTVA = lines.reduce((sum, l) => sum + (l.quantity * l.unitPrice * l.tvaRate / 100), 0)
   const lineTotalTTC = lineTotalHT + lineTotalTVA
@@ -286,6 +387,10 @@ export default function CustomerReturnsView() {
     setNotes('')
     setLines([])
     setIsEditing(false)
+    setSourceType('')
+    setDocLines([])
+    setDeliveryNotes([])
+    setInvoices([])
     resetLineSearches()
   }
 
@@ -361,10 +466,10 @@ export default function CustomerReturnsView() {
     }
   }
 
-  const handleTransition = async (id: string, newStatus: string) => {
+  const handleTransition = async (id: string, newStatus: string, extra?: Record<string, unknown>) => {
     try {
       setTransitioning(id)
-      await api.put('/customer-returns', { id, status: newStatus })
+      await api.put('/customer-returns', { id, status: newStatus, ...extra })
       toast.success(`Statut mis à jour : ${statusConfig[newStatus]?.label || newStatus}`)
       fetchItems()
       if (detailOpen && selected?.id === id) {
@@ -474,40 +579,96 @@ export default function CustomerReturnsView() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Bon de livraison lié (optionnel)</Label>
-                    <Select value={deliveryNoteId} onValueChange={setDeliveryNoteId}>
-                      <SelectTrigger><SelectValue placeholder="BL..." /></SelectTrigger>
+                    <Select value={deliveryNoteId} onValueChange={handleBLSelect} disabled={!clientId || relatedLoading}>
+                      <SelectTrigger><SelectValue placeholder={clientId ? (relatedLoading ? 'Chargement...' : deliveryNotes.length === 0 ? 'Aucun BL' : 'Sélectionner un BL...') : 'Sélectionnez d\'abord un client'} /></SelectTrigger>
                       <SelectContent>
-                        {deliveryNotes.map((dn) => (
-                          <SelectItem key={dn.id} value={dn.id}>{dn.number}</SelectItem>
-                        ))}
+                        {deliveryNotes.length === 0 ? (
+                          <div className="px-3 py-4 text-center text-sm text-muted-foreground">Aucun BL pour ce client</div>
+                        ) : (
+                          deliveryNotes.map((dn) => (
+                            <SelectItem key={dn.id} value={dn.id}>{dn.number}{dn.totalTTC ? ` (${fmtMoney(dn.totalTTC)})` : ''}</SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Facture liée (optionnel)</Label>
-                    <Select value={invoiceId} onValueChange={setInvoiceId}>
-                      <SelectTrigger><SelectValue placeholder="Facture..." /></SelectTrigger>
+                    <Select value={invoiceId} onValueChange={handleInvoiceSelect} disabled={!clientId || relatedLoading}>
+                      <SelectTrigger><SelectValue placeholder={clientId ? (relatedLoading ? 'Chargement...' : invoices.length === 0 ? 'Aucune facture' : 'Sélectionner une facture...') : 'Sélectionnez d\'abord un client'} /></SelectTrigger>
                       <SelectContent>
-                        {invoices.map((inv) => (
-                          <SelectItem key={inv.id} value={inv.id}>{inv.number}</SelectItem>
-                        ))}
+                        {invoices.length === 0 ? (
+                          <div className="px-3 py-4 text-center text-sm text-muted-foreground">Aucune facture pour ce client</div>
+                        ) : (
+                          invoices.map((inv) => (
+                            <SelectItem key={inv.id} value={inv.id}>{inv.number}{inv.totalTTC ? ` (${fmtMoney(inv.totalTTC)})` : ''}</SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
+                {/* Source document articles picker */}
+                {docLines.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <PackageSearch className="h-4 w-4 text-primary" />
+                      <Label>Articles du {sourceType === 'bl' ? 'bon de livraison' : 'de la facture'} — Sélectionnez les articles à retourner</Label>
+                    </div>
+                    <div className="border rounded-md max-h-48 overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-10"></TableHead>
+                            <TableHead>Produit</TableHead>
+                            <TableHead className="text-right w-20">Qté dispo</TableHead>
+                            <TableHead className="text-right w-28">P.U. HT</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {docLines.map((dl) => (
+                            <TableRow key={dl.productId} className={cn('cursor-pointer', isDocLineSelected(dl.productId) && 'bg-primary/10')}
+                              onClick={() => toggleDocLine(dl)}>
+                              <TableCell className="text-center">
+                                <div className={cn('h-4 w-4 rounded border mx-auto flex items-center justify-center', isDocLineSelected(dl.productId) && 'bg-primary border-primary text-primary-foreground')}>
+                                  {isDocLineSelected(dl.productId) && <Check className="h-3 w-3" />}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm font-medium">
+                                <span className="font-mono text-muted-foreground mr-1">{dl.product?.reference || ''}</span>
+                                {dl.product?.designation || '—'}
+                              </TableCell>
+                              <TableCell className="text-right text-sm">{dl.maxQty}</TableCell>
+                              <TableCell className="text-right text-sm">{fmtMoney(dl.unitPrice)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Cliquez sur un article pour l'ajouter ou le retirer de la liste de retour.</p>
+                  </div>
+                )}
+
                 {/* Lines */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>Articles retournés</Label>
+                    <Label className="flex items-center gap-2">
+                      Articles retournés
+                      {lines.length > 0 && <Badge variant="secondary">{lines.length}</Badge>}
+                    </Label>
                     <Button type="button" variant="outline" size="sm" onClick={addLine}>
                       <Plus className="h-3.5 w-3.5 mr-1" />
-                      Ajouter une ligne
+                      Ajouter manuellement
                     </Button>
                   </div>
                   {lines.length === 0 ? (
                     <div className="border rounded-md p-6 text-center text-sm text-muted-foreground">
-                      Aucune ligne. Cliquez sur &quot;Ajouter une ligne&quot; pour commencer.
+                      {clientId && !deliveryNoteId && !invoiceId ? (
+                        <span>Sélectionnez un bon de livraison ou une facture pour charger les articles, ou ajoutez manuellement.</span>
+                      ) : (
+                        <span>Aucune ligne. Cliquez sur &quot;Ajouter manuellement&quot; ou sélectionnez un document ci-dessus.</span>
+                      )}
                     </div>
                   ) : (
                     <div className="border rounded-md overflow-hidden">
@@ -590,6 +751,70 @@ export default function CustomerReturnsView() {
           </Dialog>
         </div>
       </div>
+
+      {/* Restock Dialog with credit note option */}
+      <Dialog open={restockOpen} onOpenChange={setRestockOpen}>
+        <DialogContent resizable className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowDownToLine className="h-5 w-5" />
+              Remise en stock — {selected?.number}
+            </DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Les articles conformes et partiels seront remis en stock. Cette action est irréversible.
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="createCreditNote"
+                    checked={restockWithCreditNote}
+                    onChange={(e) => setRestockWithCreditNote(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="createCreditNote" className="cursor-pointer flex-1">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <span className="font-medium">Créer un avoir automatiquement</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Génère un avoir (AV-...) validé avec les articles conformes/partiels. Le solde client sera mis à jour.
+                    </p>
+                  </Label>
+                </div>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
+                <p className="font-medium">Résumé des articles à remettre en stock :</p>
+                {(selected.lines || []).filter(l => l.qualityCheck === 'conforme' || l.qualityCheck === 'partiel').map((l) => (
+                  <div key={l.id || l.productId} className="flex justify-between text-xs">
+                    <span>{l.product?.reference || ''} — {l.product?.designation || ''} <QualityBadge quality={l.qualityCheck || 'pending'} /></span>
+                    <span>Qté : {l.qualityCheck === 'partiel' ? Math.floor((l.quantity || 0) / 2) : (l.quantity || 0)}</span>
+                  </div>
+                ))}
+                {(selected.lines || []).filter(l => l.qualityCheck === 'conforme' || l.qualityCheck === 'partiel').length === 0 && (
+                  <p className="text-xs text-destructive">Aucun article conforme ou partiel — effectuez d'abord le contrôle qualité.</p>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRestockOpen(false)}>Annuler</Button>
+            <Button
+              onClick={async () => {
+                if (!selected) return
+                setRestockOpen(false)
+                await handleTransition(selected.id, 'restocked', { createCreditNote: restockWithCreditNote })
+              }}
+              disabled={saving || (selected?.lines || []).filter(l => l.qualityCheck === 'conforme' || l.qualityCheck === 'partiel').length === 0}
+            >
+              {transitioning === selected?.id ? 'Traitement...' : 'Remettre en stock'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Quality Check Dialog */}
       <Dialog open={qualityOpen} onOpenChange={setQualityOpen}>
@@ -866,7 +1091,7 @@ export default function CustomerReturnsView() {
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"
                               disabled={transitioning === item.id}
-                              onClick={() => handleTransition(item.id, 'restocked')}
+                              onClick={() => { setSelected(item); setRestockWithCreditNote(true); setRestockOpen(true) }}
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               Stocker
