@@ -196,10 +196,10 @@ export default function CustomerReturnsView() {
   const [clients, setClients] = useState<Client[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [deliveryNotes, setDeliveryNotes] = useState<Array<{ id: string; number: string; totalTTC?: number; date?: string }>>([])
-  const [invoices, setInvoices] = useState<Array<{ id: string; number: string; totalTTC?: number; date?: string }>>([])
+  // invoices removed — returns only from BL
   const [relatedLoading, setRelatedLoading] = useState(false)
-  const [sourceType, setSourceType] = useState<'bl' | 'facture' | ''>('')
-  // Document lines loaded from BL or invoice
+  const [sourceType, setSourceType] = useState<'bl' | ''>('')
+  // Document lines loaded from BL
   const [docLines, setDocLines] = useState<Array<{ id?: string; productId: string; product?: { reference: string; designation: string }; maxQty: number; unitPrice: number; tvaRate: number }>>([])
   const [saving, setSaving] = useState(false)
   const [transitioning, setTransitioning] = useState<string | null>(null)
@@ -210,7 +210,7 @@ export default function CustomerReturnsView() {
   // Form state
   const [clientId, setClientId] = useState('')
   const [deliveryNoteId, setDeliveryNoteId] = useState('')
-  const [invoiceId, setInvoiceId] = useState('')
+  const [invoiceId, setInvoiceId] = useState('') // kept for display of existing returns
   const [reason, setReason] = useState('')
   const [notes, setNotes] = useState('')
   const [lines, setLines] = useState<Array<{ productId: string; quantity: number; unitPrice: number; tvaRate: number }>>([])
@@ -245,21 +245,16 @@ export default function CustomerReturnsView() {
     } catch { /* silent */ }
   }, [])
 
-  // Fetch BLs and invoices filtered by selected client
+  // Fetch BLs filtered by selected client
   const fetchRelated = useCallback(async (cid?: string) => {
     if (!cid) {
       setDeliveryNotes([])
-      setInvoices([])
       return
     }
     try {
       setRelatedLoading(true)
-      const [dns, invs] = await Promise.all([
-        api.get<{ deliveryNotes: Array<{ id: string; number: string; totalTTC?: number; date?: string }> }>(`/delivery-notes?clientId=${cid}&limit=100`).then(d => d.deliveryNotes || []).catch(() => []),
-        api.get<{ invoices: Array<{ id: string; number: string; totalTTC?: number; date?: string }> }>(`/invoices?clientId=${cid}&limit=100`).then(d => d.invoices || []).catch(() => []),
-      ])
+      const dns = await api.get<{ deliveryNotes: Array<{ id: string; number: string; totalTTC?: number; date?: string }> }>(`/delivery-notes?clientId=${cid}&limit=100`).then(d => d.deliveryNotes || []).catch(() => [])
       setDeliveryNotes(dns)
-      setInvoices(invs)
     } catch { /* silent */ } finally {
       setRelatedLoading(false)
     }
@@ -267,11 +262,10 @@ export default function CustomerReturnsView() {
 
   useEffect(() => { fetchItems() }, [fetchItems])
   useEffect(() => { fetchClients(); fetchProducts() }, [fetchClients, fetchProducts])
-  // When clientId changes in create mode, fetch filtered docs
+  // When clientId changes in create mode, fetch filtered BLs
   useEffect(() => {
     if (clientId && !isEditing) {
       setDeliveryNoteId('')
-      setInvoiceId('')
       setSourceType('')
       setDocLines([])
       setLines([])
@@ -300,22 +294,16 @@ export default function CustomerReturnsView() {
     setLines((prev) => prev.map((l, i) => (i !== idx ? l : { ...l, [field]: value })))
   }
 
-  // Load lines from a delivery note or invoice
-  const loadDocLines = async (type: 'bl' | 'facture', docId: string) => {
-    setSourceType(type)
+  // Load lines from a delivery note
+  const loadDocLines = async (docId: string) => {
+    setSourceType('bl')
     setDocLines([])
     setLines([])
     try {
-      let url = ''
-      if (type === 'bl') {
-        url = `/delivery-notes?id=${docId}&includeLines=true`
-      } else {
-        url = `/invoices?id=${docId}&includeLines=true`
-      }
-      const res = await api.get<{ deliveryNotes?: Array<any>; invoices?: Array<any> }>(url)
-      const doc = res.deliveryNotes?.[0] || res.invoices?.[0]
+      const res = await api.get<{ deliveryNotes?: Array<any> }>(`/delivery-notes?id=${docId}&includeLines=true`)
+      const doc = res.deliveryNotes?.[0]
       if (!doc) {
-        toast.error('Document introuvable')
+        toast.error('Bon de livraison introuvable')
         return
       }
       const docItems = (doc.lines || []).map((l: any) => ({
@@ -334,21 +322,8 @@ export default function CustomerReturnsView() {
 
   const handleBLSelect = (blId: string) => {
     setDeliveryNoteId(blId)
-    setInvoiceId('')
     if (blId) {
-      loadDocLines('bl', blId)
-    } else {
-      setSourceType('')
-      setDocLines([])
-      setLines([])
-    }
-  }
-
-  const handleInvoiceSelect = (invId: string) => {
-    setInvoiceId(invId)
-    setDeliveryNoteId('')
-    if (invId) {
-      loadDocLines('facture', invId)
+      loadDocLines(blId)
     } else {
       setSourceType('')
       setDocLines([])
@@ -390,7 +365,6 @@ export default function CustomerReturnsView() {
     setSourceType('')
     setDocLines([])
     setDeliveryNotes([])
-    setInvoices([])
     resetLineSearches()
   }
 
@@ -449,7 +423,7 @@ export default function CustomerReturnsView() {
         await api.post('/customer-returns', {
           clientId,
           deliveryNoteId: deliveryNoteId || null,
-          invoiceId: invoiceId || null,
+          invoiceId: null,
           reason: reason || null,
           notes: notes || null,
           lines,
@@ -576,37 +550,20 @@ export default function CustomerReturnsView() {
                     disabled={isEditing}
                   />
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Bon de livraison lié (optionnel)</Label>
+                <div className="space-y-2">
+                  <Label>Bon de livraison *</Label>
                     <Select value={deliveryNoteId} onValueChange={handleBLSelect} disabled={!clientId || relatedLoading}>
-                      <SelectTrigger><SelectValue placeholder={clientId ? (relatedLoading ? 'Chargement...' : deliveryNotes.length === 0 ? 'Aucun BL' : 'Sélectionner un BL...') : 'Sélectionnez d\'abord un client'} /></SelectTrigger>
-                      <SelectContent>
-                        {deliveryNotes.length === 0 ? (
-                          <div className="px-3 py-4 text-center text-sm text-muted-foreground">Aucun BL pour ce client</div>
-                        ) : (
-                          deliveryNotes.map((dn) => (
-                            <SelectItem key={dn.id} value={dn.id}>{dn.number}{dn.totalTTC ? ` (${fmtMoney(dn.totalTTC)})` : ''}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Facture liée (optionnel)</Label>
-                    <Select value={invoiceId} onValueChange={handleInvoiceSelect} disabled={!clientId || relatedLoading}>
-                      <SelectTrigger><SelectValue placeholder={clientId ? (relatedLoading ? 'Chargement...' : invoices.length === 0 ? 'Aucune facture' : 'Sélectionner une facture...') : 'Sélectionnez d\'abord un client'} /></SelectTrigger>
-                      <SelectContent>
-                        {invoices.length === 0 ? (
-                          <div className="px-3 py-4 text-center text-sm text-muted-foreground">Aucune facture pour ce client</div>
-                        ) : (
-                          invoices.map((inv) => (
-                            <SelectItem key={inv.id} value={inv.id}>{inv.number}{inv.totalTTC ? ` (${fmtMoney(inv.totalTTC)})` : ''}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <SelectTrigger><SelectValue placeholder={clientId ? (relatedLoading ? 'Chargement...' : deliveryNotes.length === 0 ? 'Aucun BL' : 'Sélectionner un BL...') : 'Sélectionnez d\'abord un client'} /></SelectTrigger>
+                    <SelectContent>
+                      {deliveryNotes.length === 0 ? (
+                        <div className="px-3 py-4 text-center text-sm text-muted-foreground">Aucun BL pour ce client</div>
+                      ) : (
+                        deliveryNotes.map((dn) => (
+                          <SelectItem key={dn.id} value={dn.id}>{dn.number}{dn.totalTTC ? ` (${fmtMoney(dn.totalTTC)})` : ''}</SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Source document articles picker */}
@@ -614,7 +571,7 @@ export default function CustomerReturnsView() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <PackageSearch className="h-4 w-4 text-primary" />
-                      <Label>Articles du {sourceType === 'bl' ? 'bon de livraison' : 'de la facture'} — Sélectionnez les articles à retourner</Label>
+                      <Label>Articles du bon de livraison — Sélectionnez les articles à retourner</Label>
                     </div>
                     <div className="border rounded-md max-h-48 overflow-y-auto">
                       <Table>
@@ -664,8 +621,8 @@ export default function CustomerReturnsView() {
                   </div>
                   {lines.length === 0 ? (
                     <div className="border rounded-md p-6 text-center text-sm text-muted-foreground">
-                      {clientId && !deliveryNoteId && !invoiceId ? (
-                        <span>Sélectionnez un bon de livraison ou une facture pour charger les articles, ou ajoutez manuellement.</span>
+                      {clientId && !deliveryNoteId ? (
+                        <span>Sélectionnez un bon de livraison pour charger les articles, ou ajoutez manuellement.</span>
                       ) : (
                         <span>Aucune ligne. Cliquez sur &quot;Ajouter manuellement&quot; ou sélectionnez un document ci-dessus.</span>
                       )}
