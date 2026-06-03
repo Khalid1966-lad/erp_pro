@@ -187,7 +187,6 @@ export async function PUT(req: NextRequest) {
     const data: Record<string, unknown> = {}
     if (reason !== undefined) data.reason = reason
     if (notes !== undefined) data.notes = notes
-    const createCreditNote = body.createCreditNote === true
 
     // Update quality check on individual lines
     if (qualityLines && Array.isArray(qualityLines)) {
@@ -291,51 +290,6 @@ export async function PUT(req: NextRequest) {
       })
 
       await auditLog(auth.userId, 'update', 'CustomerReturn', id, existing, customerReturn)
-
-      // Auto-create credit note if requested
-      if (createCreditNote) {
-        try {
-          let cnTotalHT = 0
-          let cnTotalTVA = 0
-          const cnLines = conformLines.map((l) => {
-            const qty = l.qualityCheck === 'partiel' ? Math.floor(l.quantity / 2) : l.quantity
-            const lineHT = qty * l.unitPrice
-            const lineTVA = lineHT * (l.tvaRate / 100)
-            cnTotalHT += lineHT
-            cnTotalTVA += lineTVA
-            return {
-              productId: l.productId,
-              quantity: qty,
-              unitPrice: l.unitPrice,
-              tvaRate: l.tvaRate,
-              totalHT: lineHT,
-            }
-          })
-
-          const cnCount = await db.creditNote.count()
-          const cnYear = new Date().getFullYear()
-          const cnNumber = `AV-${cnYear}-${String(cnCount + 1).padStart(4, '0')}`
-
-          const creditNote = await db.creditNote.create({
-            data: {
-              number: cnNumber,
-              clientId: existing.clientId,
-              invoiceId: existing.invoiceId || null,
-              status: 'validated',
-              date: new Date(),
-              reason: `Avoir automatique - Retour client ${existing.number}`,
-              totalHT: cnTotalHT,
-              totalTVA: cnTotalTVA,
-              totalTTC: cnTotalHT + cnTotalTVA,
-              lines: { create: cnLines },
-            },
-          })
-          await auditLog(auth.userId, 'create', 'CreditNote', creditNote.id, null, creditNote)
-        } catch (cnError) {
-          console.error('Auto credit note creation failed (non-blocking):', cnError)
-        }
-      }
-
       return NextResponse.json({ customerReturn })
     }
 

@@ -611,39 +611,48 @@ model InvoiceLine {
 enum CreditNoteStatus {
   draft
   validated
+  partially_applied
   applied
+  refunded
   cancelled
 }
 
 model CreditNote {
-  id            String            @id @default(cuid())
-  number        String            @unique
-  invoiceId     String
-  invoice       Invoice           @relation(fields: [invoiceId], references: [id])
-  clientId      String
-  client        Client            @relation(fields: [clientId], references: [id])
-  status        CreditNoteStatus  @default(draft)
-  date          DateTime          @default(now())
-  reason        String?
-  totalHT       Float             @default(0)
-  totalTVA      Float             @default(0)
-  totalTTC      Float             @default(0)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id               String            @id @default(cuid())
+  number           String            @unique
+  invoiceId        String?
+  invoice          Invoice?          @relation(fields: [invoiceId], references: [id])
+  clientId         String
+  client           Client            @relation(fields: [clientId], references: [id])
+  status           CreditNoteStatus  @default(draft)
+  date             DateTime          @default(now())
+  reason           String?
+  totalHT          Float             @default(0)
+  totalTVA         Float             @default(0)
+  totalTTC         Float             @default(0)
+  amountUsed       Float             @default(0)
+  amountRefunded   Float             @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  lines         CreditNoteLine[]
+  customerReturns  CustomerReturn[]
+  lines            CreditNoteLine[]
+  @@map("credit_notes")
 }
 
 model CreditNoteLine {
-  id            String      @id @default(cuid())
-  creditNoteId  String
-  creditNote    CreditNote @relation(fields: [creditNoteId], references: [id])
-  productId     String
-  product       Product     @relation(fields: [productId], references: [id])
-  quantity      Float
-  unitPrice     Float
-  tvaRate       Float
-  totalHT       Float
+  id               String      @id @default(cuid())
+  creditNoteId     String
+  creditNote       CreditNote @relation(fields: [creditNoteId], references: [id])
+  customerReturnLineId String?
+  customerReturnLine   CustomerReturnLine? @relation(fields: [customerReturnLineId], references: [id])
+  productId        String
+  product          Product     @relation(fields: [productId], references: [id])
+  quantity         Float
+  unitPrice        Float
+  tvaRate          Float
+  totalHT          Float
+  @@map("credit_note_lines")
 }
 
 // ============ BON DE RETOUR CLIENT ============
@@ -668,6 +677,7 @@ model CustomerReturn {
   updatedAt       DateTime @updatedAt
 
   lines           CustomerReturnLine[]
+  creditNotes     CreditNote[]
 
   @@map("customer_returns")
 }
@@ -683,6 +693,7 @@ model CustomerReturnLine {
   tvaRate         Float   @default(20)
   qualityCheck    String  @default("pending")
   qualityNotes    String?
+  creditNoteLines CreditNoteLine[]
 
   @@map("customer_return_lines")
 }

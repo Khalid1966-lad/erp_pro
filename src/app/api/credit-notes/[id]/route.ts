@@ -21,11 +21,13 @@ export async function GET(
     const creditNote = await db.creditNote.findUnique({
       where: { id },
       include: {
-        client: { select: { name: true, ice: true } },
-        invoice: { select: { number: true } },
+        client: { select: { id: true, name: true, raisonSociale: true, ice: true } },
+        invoice: { select: { id: true, number: true } },
+        customerReturns: { select: { id: true, number: true } },
         lines: {
           include: {
-            product: { select: { reference: true, designation: true } },
+            product: { select: { id: true, reference: true, designation: true } },
+            customerReturnLine: { select: { id: true } },
           },
         },
       },

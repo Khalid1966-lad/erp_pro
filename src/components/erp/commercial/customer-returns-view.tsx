@@ -191,7 +191,6 @@ export default function CustomerReturnsView() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [qualityOpen, setQualityOpen] = useState(false)
   const [restockOpen, setRestockOpen] = useState(false)
-  const [restockWithCreditNote, setRestockWithCreditNote] = useState(true)
   const [selected, setSelected] = useState<CustomerReturn | null>(null)
   const [clients, setClients] = useState<Client[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -709,7 +708,7 @@ export default function CustomerReturnsView() {
         </div>
       </div>
 
-      {/* Restock Dialog with credit note option */}
+      {/* Restock Dialog */}
       <Dialog open={restockOpen} onOpenChange={setRestockOpen}>
         <DialogContent resizable className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -722,27 +721,8 @@ export default function CustomerReturnsView() {
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Les articles conformes et partiels seront remis en stock. Cette action est irréversible.
+                Vous pourrez créer un avoir à partir de ce retour ensuite.
               </p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-3 p-3 border rounded-lg">
-                  <input
-                    type="checkbox"
-                    id="createCreditNote"
-                    checked={restockWithCreditNote}
-                    onChange={(e) => setRestockWithCreditNote(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <Label htmlFor="createCreditNote" className="cursor-pointer flex-1">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="font-medium">Créer un avoir automatiquement</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Génère un avoir (AV-...) validé avec les articles conformes/partiels. Le solde client sera mis à jour.
-                    </p>
-                  </Label>
-                </div>
-              </div>
               <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
                 <p className="font-medium">Résumé des articles à remettre en stock :</p>
                 {(selected.lines || []).filter(l => l.qualityCheck === 'conforme' || l.qualityCheck === 'partiel').map((l) => (
@@ -763,7 +743,7 @@ export default function CustomerReturnsView() {
               onClick={async () => {
                 if (!selected) return
                 setRestockOpen(false)
-                await handleTransition(selected.id, 'restocked', { createCreditNote: restockWithCreditNote })
+                await handleTransition(selected.id, 'restocked')
               }}
               disabled={saving || (selected?.lines || []).filter(l => l.qualityCheck === 'conforme' || l.qualityCheck === 'partiel').length === 0}
             >
@@ -1048,7 +1028,7 @@ export default function CustomerReturnsView() {
                             <Button
                               variant="ghost" size="sm" className="h-8 text-xs gap-1"
                               disabled={transitioning === item.id}
-                              onClick={() => { setSelected(item); setRestockWithCreditNote(true); setRestockOpen(true) }}
+                              onClick={() => { setSelected(item); setRestockOpen(true) }}
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               Stocker
