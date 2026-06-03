@@ -567,6 +567,9 @@ export default function DashboardView() {
       }
       setError(null)
       const result = await api.get<DashboardData>('/dashboard')
+      if (!result || (typeof result === 'object' && 'error' in result)) {
+        throw new Error(result?.error || 'Données invalides')
+      }
       setData(result)
       setLastUpdated(new Date())
     } catch (err) {
@@ -793,7 +796,7 @@ export default function DashboardView() {
         variants={staggerContainer}
         className="grid grid-cols-3 gap-4 sm:grid-cols-3"
       >
-        {!loading && (
+        {!loading && data && (
           <>
             <NavigateCard onClick={() => setCurrentView('clients')} className="text-center">
               <CardContent className="p-4">
@@ -801,7 +804,7 @@ export default function DashboardView() {
                   <Users className="h-4 w-4 text-blue-500" />
                   <span className="text-xs font-medium text-muted-foreground">Clients</span>
                 </div>
-                <p className="text-xl font-bold">{data!.totalClients}</p>
+                <p className="text-xl font-bold">{data.totalClients}</p>
               </CardContent>
             </NavigateCard>
 
@@ -811,7 +814,7 @@ export default function DashboardView() {
                   <UserCheck className="h-4 w-4 text-teal-500" />
                   <span className="text-xs font-medium text-muted-foreground">Fournisseurs</span>
                 </div>
-                <p className="text-xl font-bold">{data!.totalSuppliers}</p>
+                <p className="text-xl font-bold">{data.totalSuppliers}</p>
               </CardContent>
             </NavigateCard>
 
@@ -821,7 +824,7 @@ export default function DashboardView() {
                   <Boxes className="h-4 w-4 text-orange-500" />
                   <span className="text-xs font-medium text-muted-foreground">Produits</span>
                 </div>
-                <p className="text-xl font-bold">{data!.totalProducts}</p>
+                <p className="text-xl font-bold">{data.totalProducts}</p>
               </CardContent>
             </NavigateCard>
           </>

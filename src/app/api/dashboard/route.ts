@@ -226,8 +226,8 @@ export async function GET(req: NextRequest) {
     })
 
     // Total clients and suppliers
-    const totalClients = await db.client.count({ where: { isActive: true } })
-    const totalSuppliers = await db.supplier.count({ where: { isActive: true } })
+    const totalClients = await db.client.count({ where: { isDeleted: false } })
+    const totalSuppliers = await db.supplier.count()
     const totalProducts = await db.product.count({ where: { isActive: true } })
 
     // Recent activity (last 20 audit logs)
