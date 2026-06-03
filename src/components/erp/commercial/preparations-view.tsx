@@ -115,6 +115,7 @@ interface SalesOrderOption {
     productId: string
     quantity: number
     quantityPrepared: number
+    quantityDelivered: number
     product: ProductInfo
   }>
 }
@@ -336,8 +337,8 @@ export default function PreparationsView() {
 
       const loadAndOpen = async () => {
         const orders = await api.get<{ orders: SalesOrderOption[] }>(
-          '/sales-orders?status=confirmed&status=in_preparation&limit=100&includeLines=true',
-        ).then(d => d.orders.filter(so => so.status === 'confirmed' || so.status === 'in_preparation'))
+          '/sales-orders?status=confirmed&status=in_preparation&status=prepared&status=partially_delivered&limit=100&includeLines=true',
+        ).then(d => d.orders.filter(so => ['confirmed', 'in_preparation', 'prepared', 'partially_delivered'].includes(so.status)))
         setSalesOrders(orders)
         setCreateNotes('')
         setSelectedOrderId(orderId)
@@ -346,7 +347,7 @@ export default function PreparationsView() {
         if (order) {
           const qtys: Record<string, number> = {}
           order.lines.forEach((l) => {
-            const remaining = l.quantity - (l.quantityPrepared || 0)
+            const remaining = l.quantity - (l.quantityPrepared || 0) - (l.quantityDelivered || 0)
             if (remaining > 0) qtys[l.id] = remaining
           })
           setCreateLineQtys(qtys)
@@ -361,11 +362,11 @@ export default function PreparationsView() {
   const fetchSalesOrders = useCallback(async () => {
     try {
       const data = await api.get<{ orders: SalesOrderOption[] }>(
-        '/sales-orders?status=confirmed&status=in_preparation&limit=100&includeLines=true',
+        '/sales-orders?status=confirmed&status=in_preparation&status=prepared&status=partially_delivered&limit=100&includeLines=true',
       )
-      // Filter to get only confirmed and in_preparation
+      // Filter to get only orders that can have preparations
       const filtered = data.orders.filter(
-        (so) => so.status === 'confirmed' || so.status === 'in_preparation',
+        (so) => ['confirmed', 'in_preparation', 'prepared', 'partially_delivered'].includes(so.status),
       )
       setSalesOrders(filtered)
     } catch (err: unknown) {
@@ -414,12 +415,12 @@ export default function PreparationsView() {
       const lines = createPreview
         ? createPreview.lines
             .filter((l) => {
-              const remaining = l.quantity - (l.quantityPrepared || 0)
+              const remaining = l.quantity - (l.quantityPrepared || 0) - (l.quantityDelivered || 0)
               return remaining > 0
             })
             .map((l) => ({
               salesOrderLineId: l.id,
-              quantity: createLineQtys[l.id] ?? (l.quantity - (l.quantityPrepared || 0)),
+              quantity: createLineQtys[l.id] ?? (l.quantity - (l.quantityPrepared || 0) - (l.quantityDelivered || 0)),
             }))
             .filter((l) => l.quantity > 0)
         : undefined
