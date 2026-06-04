@@ -333,7 +333,8 @@ export async function POST(req: NextRequest) {
             clientId: salesOrder.clientId,
             chantierId: data.chantierId || null,
             deliveryAddress: data.deliveryAddress || null,
-            status: 'draft',
+            status: 'delivered',
+            deliveryDate: new Date(),
             transporteur: data.transporteur || null,
             vehiclePlate: data.vehiclePlate || null,
             driverName: data.driverName || null,
@@ -394,12 +395,38 @@ export async function POST(req: NextRequest) {
           data: { totalHT, totalTVA, totalTTC },
         })
 
-        // Update SO status to partially_delivered if needed
-        if (salesOrder.status === 'prepared') {
-          await tx.salesOrder.update({
-            where: { id: salesOrder.id },
-            data: { status: 'partially_delivered' },
+        // Auto-delivered: update quantityDelivered + quantityPrepared on SalesOrderLines
+        if (note.lines.length > 0) {
+          for (const blLine of note.lines) {
+            if (blLine.salesOrderLineId) {
+              await tx.salesOrderLine.update({
+                where: { id: blLine.salesOrderLineId },
+                data: {
+                  quantityDelivered: { increment: blLine.quantity },
+                  quantityPrepared: { decrement: blLine.quantity },
+                },
+              })
+            }
+          }
+
+          // Re-fetch all SO lines to check delivery status
+          const updatedSoLines = await tx.salesOrderLine.findMany({
+            where: { orderId: salesOrder.id },
           })
+          const allDelivered = updatedSoLines.every((l) => l.quantityDelivered >= l.quantity)
+          const anyDelivered = updatedSoLines.some((l) => l.quantityDelivered > 0)
+
+          if (allDelivered) {
+            await tx.salesOrder.update({
+              where: { id: salesOrder.id },
+              data: { status: 'delivered' },
+            })
+          } else if (anyDelivered) {
+            await tx.salesOrder.update({
+              where: { id: salesOrder.id },
+              data: { status: 'partially_delivered' },
+            })
+          }
         }
 
         return { ...note, totalHT, totalTVA, totalTTC }
@@ -430,7 +457,8 @@ export async function POST(req: NextRequest) {
             clientId: data.clientId,
             chantierId: data.chantierId || null,
             deliveryAddress: data.deliveryAddress || null,
-            status: 'draft',
+            status: 'delivered',
+            deliveryDate: new Date(),
             transporteur: data.transporteur || null,
             vehiclePlate: data.vehiclePlate || null,
             driverName: data.driverName || null,
@@ -468,6 +496,15 @@ export async function POST(req: NextRequest) {
           where: { id: note.id },
           data: { totalHT, totalTVA, totalTTC },
         })
+
+        // Auto-delivered standalone BL: stock movement required
+        for (const blLine of note.lines) {
+          await createStockMovement(
+            tx, blLine.productId, 'out', blLine.quantity, 'sale',
+            note.number,
+            `Livraison ${note.number}`
+          )
+        }
 
         return { ...note, totalHT, totalTVA, totalTTC }
       })
@@ -758,32 +795,10 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(result)
     }
 
-    // Action: confirm
-    if (action === 'confirm') {
-      if (existing.status !== 'draft') {
-        return NextResponse.json(
-          { error: 'Seul un brouillon peut être confirmé' },
-          { status: 400 }
-        )
-      }
-
-      const deliveryNote = await db.deliveryNote.update({
-        where: { id },
-        data: { status: 'confirmed', ...updateData },
-        include: deliveryNoteInclude,
-      })
-
-      await auditLog(auth.userId, 'confirm', 'DeliveryNote', id, existing, deliveryNote)
-      return NextResponse.json(deliveryNote)
-    }
-
-    // Action: deliver (update delivered/prepared qty, NO stock movement for order-linked BLs)
+    // Action: deliver (for delivered BLs: already handled at creation; kept for compatibility)
     if (action === 'deliver') {
-      if (existing.status !== 'confirmed' && existing.status !== 'draft') {
-        return NextResponse.json(
-          { error: 'Le bon de livraison doit être confirmé ou en brouillon pour être livré' },
-          { status: 400 }
-        )
+      if (existing.status === 'delivered') {
+        return NextResponse.json({ message: 'BL déjà livré', deliveryNote: existing })
       }
 
       const deliveryNote = await db.$transaction(async (tx) => {
@@ -895,93 +910,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json(deliveryNote)
     }
 
-    // Action: undeliver (reverse delivery — adjust delivered/prepared, NO stock for order-linked BLs)
-    if (action === 'undeliver') {
-      if (existing.status !== 'delivered') {
-        return NextResponse.json(
-          { error: 'Seul un BL livré peut être remis en confirmation' },
-          { status: 400 }
-        )
-      }
-
-      const deliveryNote = await db.$transaction(async (tx) => {
-        const undelivered = await tx.deliveryNote.update({
-          where: { id },
-          data: { status: 'confirmed', deliveryDate: null },
-          include: deliveryNoteInclude,
-        })
-
-        // Reverse SO quantityDelivered and quantityPrepared
-        if (existing.salesOrderId && existing.lines.length > 0) {
-          for (const blLine of existing.lines) {
-            if (blLine.salesOrderLineId) {
-              const soLine = existing.salesOrder?.lines.find(l => l.id === blLine.salesOrderLineId)
-              if (soLine) {
-                const newDelivered = Math.max(0, soLine.quantityDelivered - blLine.quantity)
-                const newPrepared = Math.max(0, (soLine.quantityPrepared || 0) + blLine.quantity)
-                await tx.salesOrderLine.update({
-                  where: { id: blLine.salesOrderLineId },
-                  data: { quantityDelivered: newDelivered, quantityPrepared: newPrepared },
-                })
-              }
-            }
-          }
-
-          // Update SO status
-          const updatedSoLines = await tx.salesOrderLine.findMany({
-            where: { orderId: existing.salesOrderId },
-          })
-          const allDelivered = updatedSoLines.every(l => l.quantityDelivered >= l.quantity)
-          const anyDelivered = updatedSoLines.some(l => l.quantityDelivered > 0)
-
-          // Check if other delivered BLs exist
-          const otherDeliveredBLs = await tx.deliveryNote.count({
-            where: {
-              salesOrderId: existing.salesOrderId,
-              status: 'delivered',
-              id: { not: id },
-            },
-          })
-
-          if (allDelivered && otherDeliveredBLs > 0) {
-            await tx.salesOrder.update({
-              where: { id: existing.salesOrderId },
-              data: { status: 'delivered' },
-            })
-          } else if (anyDelivered || otherDeliveredBLs > 0) {
-            await tx.salesOrder.update({
-              where: { id: existing.salesOrderId },
-              data: { status: 'partially_delivered' },
-            })
-          } else {
-            const allPrepared = updatedSoLines.every(l => l.quantityPrepared >= l.quantity)
-            await tx.salesOrder.update({
-              where: { id: existing.salesOrderId },
-              data: { status: allPrepared ? 'prepared' : 'in_preparation' },
-            })
-          }
-        }
-
-        // Reverse stock movements only for standalone BLs (order-linked: stock managed at preparation)
-        if (!existing.salesOrderId) {
-          for (const blLine of existing.lines) {
-            await createStockMovement(
-              tx, blLine.productId, 'in', blLine.quantity, 'return',
-              existing.number,
-              `Annulation livraison ${existing.number}`
-            )
-          }
-        }
-
-        return undelivered
-      })
-
-      await auditLog(auth.userId, 'undeliver', 'DeliveryNote', id, existing, deliveryNote)
-      return NextResponse.json(deliveryNote)
-    }
-
     // Simple update (notes, transporteur, vehiclePlate, plannedDate)
-    // Allow for draft, confirmed, and delivered status
+    // Allow for delivered and cancelled status
     if (existing.status === 'cancelled') {
       return NextResponse.json(
         { error: 'Impossible de modifier un BL annulé' },
@@ -1007,7 +937,7 @@ export async function PUT(req: NextRequest) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// DELETE - Delete draft/cancelled delivery notes
+// DELETE - Delete cancelled delivery notes only
 // ═══════════════════════════════════════════════════════════
 
 export async function DELETE(req: NextRequest) {
@@ -1037,9 +967,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Bon de livraison introuvable' }, { status: 404 })
     }
 
-    if (existing.status !== 'draft' && existing.status !== 'cancelled') {
+    if (existing.status !== 'cancelled') {
       return NextResponse.json(
-        { error: 'Seuls les brouillons ou bons annulés peuvent être supprimés' },
+        { error: 'Seuls les bons annulés peuvent être supprimés' },
         { status: 400 }
       )
     }

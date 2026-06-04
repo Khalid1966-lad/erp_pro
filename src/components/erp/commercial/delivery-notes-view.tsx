@@ -210,15 +210,11 @@ interface ChantierOption {
 // ─── Status Config ───
 
 const statusLabels: Record<string, string> = {
-  draft: 'Brouillon',
-  confirmed: 'Confirmé',
   delivered: 'Livré',
   cancelled: 'Annulé'
 }
 
 const statusColors: Record<string, string> = {
-  draft: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-blue-100 text-blue-800',
   delivered: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800'
 }
@@ -261,8 +257,6 @@ function DeliveryProgressBar({ percentage }: { percentage: number }) {
 
 function getStatusIcon(status: string) {
   const config: Record<string, { icon: React.ReactNode; color: string }> = {
-    draft: { icon: <FileText className="h-4 w-4" />, color: 'text-yellow-500' },
-    confirmed: { icon: <Truck className="h-4 w-4" />, color: 'text-blue-500' },
     delivered: { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-500' },
     cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-red-500' },
   }
@@ -285,8 +279,6 @@ function IconLegend({ items }: { items: Array<{ icon: React.ReactNode; label: st
 }
 
 const deliveryNoteLegendItems = [
-  { icon: <FileText className="h-3.5 w-3.5" />, label: 'Brouillon', color: 'text-yellow-500' },
-  { icon: <Truck className="h-3.5 w-3.5" />, label: 'Confirmé', color: 'text-blue-500' },
   { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Livré', color: 'text-green-500' },
   { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Annulé', color: 'text-red-500' },
 ]
@@ -306,9 +298,6 @@ export default function DeliveryNotesView() {
   // Apply navigation params from dashboard or other views
   useEffect(() => {
     if (!navigationParams) return
-    if (navigationParams?.status === 'pending') {
-      setStatusFilter('draft')
-    }
     // When navigated to view a specific BL detail (e.g., from preparations truck button)
     if (navigationParams?.viewDetailId) {
       const blId = navigationParams.viewDetailId
@@ -1156,36 +1145,6 @@ export default function DeliveryNotesView() {
 
   // ─── Status Actions ───
 
-  const handleConfirm = async (note: DeliveryNote) => {
-    try {
-      await api.put('/delivery-notes', { id: note.id, action: 'confirm' })
-      toast.success(`BL ${note.number} confirmé`)
-      fetchDeliveryNotes()
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur confirmation')
-    }
-  }
-
-  const handleDeliver = async (note: DeliveryNote) => {
-    try {
-      await api.put('/delivery-notes', { id: note.id, action: 'deliver' })
-      toast.success(`BL ${note.number} livré — stock mis à jour`)
-      fetchDeliveryNotes()
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur livraison')
-    }
-  }
-
-  const handleUndeliver = async (note: DeliveryNote) => {
-    try {
-      await api.put('/delivery-notes', { id: note.id, action: 'undeliver' })
-      toast.success(`BL ${note.number} remis en confirmation — stock et qté livrée ajustés`)
-      fetchDeliveryNotes()
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur annulation livraison')
-    }
-  }
-
   const handleCancel = async (id: string) => {
     try {
       await api.put('/delivery-notes', { id, action: 'cancel' })
@@ -1229,20 +1188,12 @@ export default function DeliveryNotesView() {
   const getActions = (note: DeliveryNote) => {
     const actions: { label: string; icon: React.ReactNode; action: string }[] = []
     switch (note.status) {
-      case 'draft':
-        actions.push({ label: 'Modifier', icon: <Pencil className="h-4 w-4" />, action: 'edit' })
-        actions.push({ label: 'Confirmer', icon: <CheckCircle className="h-4 w-4" />, action: 'confirm' })
-        actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancel' })
-        if (isSuperAdmin) actions.push({ label: 'Supprimer', icon: <Trash2 className="h-4 w-4" />, action: 'delete' })
-        break
-      case 'confirmed':
-        actions.push({ label: 'Modifier', icon: <Pencil className="h-4 w-4" />, action: 'edit' })
-        actions.push({ label: 'Livrer', icon: <Truck className="h-4 w-4" />, action: 'deliver' })
-        actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancel' })
-        break
       case 'delivered':
         actions.push({ label: 'Modifier', icon: <Pencil className="h-4 w-4" />, action: 'edit' })
-        actions.push({ label: 'Dé-livrer', icon: <RefreshCw className="h-4 w-4" />, action: 'undeliver' })
+        actions.push({ label: 'Annuler', icon: <XCircle className="h-4 w-4" />, action: 'cancel' })
+        break
+      case 'cancelled':
+        if (isSuperAdmin) actions.push({ label: 'Supprimer', icon: <Trash2 className="h-4 w-4" />, action: 'delete' })
         break
     }
     return actions
@@ -1251,9 +1202,6 @@ export default function DeliveryNotesView() {
   const executeAction = async (note: DeliveryNote, action: string) => {
     switch (action) {
       case 'edit': openEditDialog(note); break
-      case 'confirm': await handleConfirm(note); break
-      case 'deliver': await handleDeliver(note); break
-      case 'undeliver': await handleUndeliver(note); break
       case 'cancel': await handleCancel(note.id); break
       case 'delete': confirmDelete(note.id); break
     }
@@ -1347,8 +1295,6 @@ export default function DeliveryNotesView() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
-            <SelectItem value="draft">Brouillon</SelectItem>
-            <SelectItem value="confirmed">Confirmé</SelectItem>
             <SelectItem value="delivered">Livré</SelectItem>
             <SelectItem value="cancelled">Annulé</SelectItem>
           </SelectContent>
@@ -1377,7 +1323,6 @@ export default function DeliveryNotesView() {
                     <div className="flex items-center gap-1">Statut {sortField === 'status' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
                   </TableHead>
                   <TableHead className="hidden md:table-cell">Date prévue</TableHead>
-                  <TableHead className="hidden md:table-cell">% Livré</TableHead>
                   <TableHead className="hidden lg:table-cell">Transporteur</TableHead>
                   <TableHead className="hidden lg:table-cell">Total TTC</TableHead>
                   <TableHead className="hidden md:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('createdAt')}>
@@ -1389,7 +1334,7 @@ export default function DeliveryNotesView() {
               <TableBody>
                 {deliveryNotes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <Truck className="h-10 w-10 text-muted-foreground/30" />
                         <p className="font-medium">Aucun bon de livraison</p>
@@ -1401,7 +1346,6 @@ export default function DeliveryNotesView() {
                   </TableRow>
                 ) : (
                   sortedDeliveryNotes.map((note) => {
-                    const deliveryPct = getOrderDeliveryPercentage(note)
                     return (
                       <TableRow key={note.id} className={cn("cursor-pointer", expandedNoteId === note.id && "bg-primary/5 border-l-2 border-l-primary")} onClick={() => setExpandedNoteId(expandedNoteId === note.id ? null : note.id)} onDoubleClick={() => openEditDialog(note)}>
                         <TableCell>
@@ -1452,13 +1396,6 @@ export default function DeliveryNotesView() {
                             </span>
                           ) : (
                             <span className="text-sm text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {deliveryPct !== null ? (
-                            <DeliveryProgressBar percentage={deliveryPct} />
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
@@ -3173,27 +3110,17 @@ export default function DeliveryNotesView() {
                   <Printer className="h-4 w-4 mr-1" />
                   Imprimer
                 </Button>
-                {selectedNote.status === 'draft' && (
+                {selectedNote.status === 'delivered' && (
                   <>
                     <Button variant="outline" size="sm" onClick={() => { setDetailOpen(false); openEditDialog(selectedNote) }}>
                       <Pencil className="h-4 w-4 mr-1" /> Modifier
                     </Button>
-                    <Button size="sm" onClick={() => { setDetailOpen(false); handleConfirm(selectedNote) }}>
-                      <CheckCircle className="h-4 w-4 mr-1" /> Confirmer
+                    <Button size="sm" variant="destructive" onClick={() => { setDetailOpen(false); handleCancel(selectedNote.id) }}>
+                      <XCircle className="h-4 w-4 mr-1" /> Annuler
                     </Button>
                   </>
                 )}
-                {(selectedNote.status === 'draft' || selectedNote.status === 'confirmed') && (
-                  <Button size="sm" variant="destructive" onClick={() => { setDetailOpen(false); handleCancel(selectedNote.id) }}>
-                    <XCircle className="h-4 w-4 mr-1" /> Annuler
-                  </Button>
-                )}
-                {selectedNote.status === 'confirmed' && (
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => { setDetailOpen(false); handleDeliver(selectedNote) }}>
-                    <Truck className="h-4 w-4 mr-1" /> Marquer livré
-                  </Button>
-                )}
-                {isSuperAdmin && (selectedNote.status === 'draft' || selectedNote.status === 'cancelled') && (
+                {isSuperAdmin && selectedNote.status === 'cancelled' && (
                   <Button size="sm" variant="destructive" onClick={() => { setDetailOpen(false); confirmDelete(selectedNote.id) }}>
                     <Trash2 className="h-4 w-4 mr-1" /> Supprimer
                   </Button>
