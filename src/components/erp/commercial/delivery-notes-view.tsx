@@ -417,6 +417,7 @@ export default function DeliveryNotesView() {
   const [editDueDate, setEditDueDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
+  const [printShowAmounts, setPrintShowAmounts] = useState(false)
 
   // Edit form - delivery address
   const [editDeliveryType, setEditDeliveryType] = useState<string>('none')
@@ -1468,8 +1469,37 @@ export default function DeliveryNotesView() {
                     <Eye className="h-4 w-4 mr-1" />
                     Ouvrir
                   </Button>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                      <Checkbox
+                        checked={printShowAmounts}
+                        onCheckedChange={(checked) => setPrintShowAmounts(checked === true)}
+                      />
+                      Montants
+                    </label>
                   <Button variant="outline" size="sm" onClick={() => {
                     if (!en) return
+                    const cols = [
+                      { label: 'Produit' },
+                      { label: 'Qté', align: 'right' as const },
+                      ...(printShowAmounts ? [
+                        { label: 'P.U. HT', align: 'right' as const },
+                        { label: 'Total HT', align: 'right' as const },
+                      ] : []),
+                    ]
+                    const rows = en.lines.map(line => [
+                      { value: `${line.product?.reference || ''} - ${line.product?.designation || ''}` },
+                      { value: line.quantity, align: 'right' as const },
+                      ...(printShowAmounts ? [
+                        { value: fmtMoney(line.unitPrice), align: 'right' as const },
+                        { value: fmtMoney(line.totalHT), align: 'right' as const },
+                      ] : []),
+                    ])
+                    const totals = printShowAmounts ? [
+                      { label: 'Total HT', value: fmtMoney(en.totalHT) },
+                      { label: 'TVA', value: fmtMoney(en.totalTVA) },
+                      { label: 'Total TTC', value: fmtMoney(en.totalTTC), bold: true as const },
+                    ] : undefined
                     printDocument({
                       title: 'BON DE LIVRAISON',
                       docNumber: en.number,
@@ -1501,39 +1531,20 @@ export default function DeliveryNotesView() {
                         { label: 'Transporteur', value: en.transporteur || '—' },
                         { label: 'Responsable BL', value: en.createdByName || '—' },
                       ],
-                      columns: [
-                        { label: 'Produit' },
-                        { label: 'Qté', align: 'right' },
-                        { label: 'Qté livrée', align: 'right' },
-                        { label: 'Reste', align: 'right' },
-                        { label: 'P.U. HT', align: 'right' },
-                        { label: 'Total HT', align: 'right' },
-                      ],
-                      rows: en.lines.map(line => {
-                        const totalDelivered = line.salesOrderLine ? (line.salesOrderLine.quantityDelivered || 0) : line.quantity
-                        const remaining = line.salesOrderLine ? Math.max(0, line.salesOrderLine.quantity - (line.salesOrderLine.quantityDelivered || 0)) : (line.remainingAfterDelivery ?? 0)
-                        return [
-                          { value: `${line.product?.reference || ''} - ${line.product?.designation || ''}` },
-                          { value: line.quantity, align: 'right' },
-                          { value: totalDelivered, align: 'right' },
-                          { value: remaining, align: 'right' },
-                          { value: fmtMoney(line.unitPrice), align: 'right' },
-                          { value: fmtMoney(line.totalHT), align: 'right' },
-                        ]
-                      }),
-                      totals: [
-                        { label: 'Total HT', value: fmtMoney(en.totalHT) },
-                        { label: 'TVA', value: fmtMoney(en.totalTVA) },
-                        { label: 'Total TTC', value: fmtMoney(en.totalTTC), bold: true },
-                      ],
+                      columns: cols,
+                      rows,
+                      ...(totals ? { totals } : {}),
                       subSections: buildVisaHtml(en.notes),
-                      amountInWords: numberToFrenchWords(en.totalTTC || 0) + ' dirhams',
-                      amountInWordsLabel: 'Arrêté le présent bon de livraison à la somme de',
+                      ...(printShowAmounts ? {
+                        amountInWords: numberToFrenchWords(en.totalTTC || 0) + ' dirhams',
+                        amountInWordsLabel: 'Arrêté le présent bon de livraison à la somme de',
+                      } : {}),
                     })
                   }}>
                     <Printer className="h-4 w-4 mr-1" />
                     Imprimer
                   </Button>
+                  </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedNoteId(null)}>
                     <XCircle className="h-4 w-4" />
                   </Button>
@@ -3041,10 +3052,39 @@ export default function DeliveryNotesView() {
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-2 pt-2">
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={printShowAmounts}
+                      onCheckedChange={(checked) => setPrintShowAmounts(checked === true)}
+                    />
+                    Montants
+                  </label>
                 <Button
                   variant="outline"
                   onClick={() => {
                     if (!selectedNote) return
+                    const cols = [
+                      { label: 'Produit' },
+                      { label: 'Qté', align: 'right' as const },
+                      ...(printShowAmounts ? [
+                        { label: 'P.U. HT', align: 'right' as const },
+                        { label: 'Total HT', align: 'right' as const },
+                      ] : []),
+                    ]
+                    const rows = selectedNote.lines.map(line => [
+                      { value: `${line.product?.reference || ''} - ${line.product?.designation || ''}` },
+                      { value: line.quantity, align: 'right' as const },
+                      ...(printShowAmounts ? [
+                        { value: fmtMoney(line.unitPrice), align: 'right' as const },
+                        { value: fmtMoney(line.totalHT), align: 'right' as const },
+                      ] : []),
+                    ])
+                    const totals = printShowAmounts ? [
+                      { label: 'Total HT', value: fmtMoney(selectedNote.totalHT) },
+                      { label: 'TVA', value: fmtMoney(selectedNote.totalTVA) },
+                      { label: 'Total TTC', value: fmtMoney(selectedNote.totalTTC), bold: true as const },
+                    ] : undefined
                     printDocument({
                       title: 'BON DE LIVRAISON',
                       docNumber: selectedNote.number,
@@ -3076,40 +3116,21 @@ export default function DeliveryNotesView() {
                         { label: 'Transporteur', value: selectedNote.transporteur || '—' },
                         { label: 'Responsable BL', value: selectedNote.createdByName || '—' },
                       ],
-                      columns: [
-                        { label: 'Produit' },
-                        { label: 'Qté', align: 'right' },
-                        { label: 'Qté livrée', align: 'right' },
-                        { label: 'Reste', align: 'right' },
-                        { label: 'P.U. HT', align: 'right' },
-                        { label: 'Total HT', align: 'right' },
-                      ],
-                      rows: selectedNote.lines.map(line => {
-                        const totalDelivered = line.salesOrderLine ? (line.salesOrderLine.quantityDelivered || 0) : line.quantity
-                        const remaining = line.salesOrderLine ? Math.max(0, line.salesOrderLine.quantity - (line.salesOrderLine.quantityDelivered || 0)) : (line.remainingAfterDelivery ?? 0)
-                        return [
-                          { value: `${line.product?.reference || ''} - ${line.product?.designation || ''}` },
-                          { value: line.quantity, align: 'right' },
-                          { value: totalDelivered, align: 'right' },
-                          { value: remaining, align: 'right' },
-                          { value: fmtMoney(line.unitPrice), align: 'right' },
-                          { value: fmtMoney(line.totalHT), align: 'right' },
-                        ]
-                      }),
-                      totals: [
-                        { label: 'Total HT', value: fmtMoney(selectedNote.totalHT) },
-                        { label: 'TVA', value: fmtMoney(selectedNote.totalTVA) },
-                        { label: 'Total TTC', value: fmtMoney(selectedNote.totalTTC), bold: true },
-                      ],
+                      columns: cols,
+                      rows,
+                      ...(totals ? { totals } : {}),
                       subSections: buildVisaHtml(selectedNote.notes),
-                      amountInWords: numberToFrenchWords(selectedNote.totalTTC || 0) + ' dirhams',
-                      amountInWordsLabel: 'Arrêté le présent bon de livraison à la somme de',
+                      ...(printShowAmounts ? {
+                        amountInWords: numberToFrenchWords(selectedNote.totalTTC || 0) + ' dirhams',
+                        amountInWordsLabel: 'Arrêté le présent bon de livraison à la somme de',
+                      } : {}),
                     })
                   }}
                 >
                   <Printer className="h-4 w-4 mr-1" />
                   Imprimer
                 </Button>
+                </div>
                 {selectedNote.status === 'delivered' && (
                   <>
                     <Button variant="outline" size="sm" onClick={() => { setDetailOpen(false); openEditDialog(selectedNote) }}>

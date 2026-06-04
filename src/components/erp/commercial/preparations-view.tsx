@@ -736,7 +736,6 @@ export default function PreparationsView() {
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('status')}>
                     <div className="flex items-center gap-1">Statut {sortField === 'status' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
                   </TableHead>
-                  <TableHead>Progression</TableHead>
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('createdAt')}>
                     <div className="flex items-center gap-1">Créée le {sortField === 'createdAt' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
                   </TableHead>
@@ -746,7 +745,7 @@ export default function PreparationsView() {
               <TableBody>
                 {preparations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {statusFilter !== 'all'
                         ? 'Aucune préparation trouvée pour ce statut.'
                         : 'Aucune préparation enregistrée.'}
@@ -771,12 +770,6 @@ export default function PreparationsView() {
                         <Badge variant="secondary" className={statusColors[prep.status] || ''}>
                           {statusLabels[prep.status] || prep.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 min-w-[120px]">
-                          <Progress value={prep.progressPercent} className="h-2 flex-1" />
-                          <ProgressBadge percent={prep.progressPercent} />
-                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {format(new Date(prep.createdAt), 'dd/MM/yyyy', { locale: fr })}
