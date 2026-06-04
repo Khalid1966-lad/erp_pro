@@ -701,7 +701,7 @@ export default function ProductsView() {
                 <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="unité">Unité</SelectItem><SelectItem value="kg">Kg</SelectItem><SelectItem value="litre">Litre</SelectItem><SelectItem value="mètre">Mètre</SelectItem><SelectItem value="m²">M²</SelectItem><SelectItem value="m³">M³</SelectItem><SelectItem value="palette">Palette</SelectItem><SelectItem value="lot">Lot</SelectItem>
+                    <SelectItem value="unité">Unité</SelectItem><SelectItem value="kg">Kg</SelectItem><SelectItem value="litre">Litre</SelectItem><SelectItem value="mètre">Mètre</SelectItem><SelectItem value="ML">ML (Mètre linéaire)</SelectItem><SelectItem value="m²">M²</SelectItem><SelectItem value="m³">M³</SelectItem><SelectItem value="palette">Palette</SelectItem><SelectItem value="lot">Lot</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
