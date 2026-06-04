@@ -54,6 +54,7 @@ interface QuoteLine {
   product?: { id: string; reference: string; designation: string }
 }
 import { useIsSuperAdmin } from '@/hooks/use-super-admin'
+import { useNavStore } from '@/lib/stores'
 
 interface Quote {
   id: string
@@ -358,9 +359,11 @@ export default function QuotesView() {
 
   const handleTransform = async (quote: Quote) => {
     try {
-      await api.put('/quotes', { id: quote.id, action: 'transform' })
-      toast.success(`Devis ${quote.number} transformé en commande`)
-      fetchQuotes()
+      const result: any = await api.put('/quotes', { id: quote.id, action: 'transform' })
+      toast.success(`Devis ${quote.number} transformé en commande ${result.clientOrderNumber}`)
+      // Navigate to sales orders view and open the created order for editing
+      const { setCurrentView } = useNavStore.getState()
+      setCurrentView('sales-orders', { editOrderId: result.id } as unknown as Record<string, string>)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur'
       toast.error(msg || 'Erreur transformation')

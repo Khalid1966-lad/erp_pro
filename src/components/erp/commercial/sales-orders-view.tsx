@@ -75,10 +75,19 @@ interface SalesOrder {
   lines: SalesOrderLine[]
   quoteId?: string | null
   quote?: { id: string; number: string } | null
+  chantierId?: string | null
+  chantier?: { id: string; nomProjet: string } | null
 }
 
 interface Client { id: string; name: string }
 interface Product { id: string; reference: string; designation: string; priceHT: number; tvaRate: number }
+
+interface Chantier {
+  id: string
+  nomProjet: string
+  clientId: string
+  actif: boolean
+}
 
 interface QuoteLine {
   id?: string
@@ -208,9 +217,35 @@ export default function SalesOrdersView() {
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
   const [allProducts, setAllProducts] = useState<ProductOption[]>([])
+  const [clientFilter, setClientFilter] = useState<string>('all')
+  const [chantierFilter, setChantierFilter] = useState<string>('all')
+  const [chantiers, setChantiers] = useState<Chantier[]>([])
+  const [formChantierId, setFormChantierId] = useState<string>('')
+
+  // Handle nav params (e.g., editOrderId from quote transform)
+  const editOrderIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const params = useNavStore.getState().navParams
+    if (params && (params as Record<string, string>).editOrderId) {
+      editOrderIdRef.current = (params as Record<string, string>).editOrderId
+    }
+  }, [])
+
+  // When orders are loaded and we have an editOrderId, open it in edit mode
+  useEffect(() => {
+    if (editOrderIdRef.current && orders.length > 0 && !loading) {
+      const order = orders.find(o => o.id === editOrderIdRef.current)
+      if (order) {
+        openEdit(order)
+        editOrderIdRef.current = null
+        // Clear nav params
+        useNavStore.getState().setCurrentView('sales-orders', {})
+      }
+    }
+  }, [orders, loading])
 
   // Table sorting
-  const [sortField, setSortField] = useState<string>('clientOrderNumber')
+  const [sortField, setSortField] = useState<string>('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   const toggleSort = (field: string) => {
@@ -277,6 +312,8 @@ export default function SalesOrdersView() {
       const params = new URLSearchParams()
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
       if (search) params.set('search', search)
+      if (clientFilter && clientFilter !== 'all') params.set('clientId', clientFilter)
+      if (chantierFilter && chantierFilter !== 'all') params.set('chantierId', chantierFilter)
       const data = await api.get<{ orders: SalesOrder[]; total: number }>(`/sales-orders?${params.toString()}`)
       setOrders(data.orders)
     } catch (err: unknown) {
@@ -304,7 +341,30 @@ export default function SalesOrdersView() {
     fetchOrders()
     fetchDropdowns()
     setExpandedOrderId(null)
-  }, [statusFilter, fetchDropdowns])
+  }, [statusFilter, clientFilter, chantierFilter, fetchDropdowns])
+
+  // Fetch chantiers when formClientId changes
+  useEffect(() => {
+    if (formClientId) {
+      api.get<{ chantiers: Chantier[] }>(`/clients/${formClientId}/chantiers?actif=false`)
+        .then(res => setChantiers(res.chantiers || []))
+        .catch(() => setChantiers([]))
+    } else {
+      setChantiers([])
+    }
+  }, [formClientId])
+
+  // Fetch chantiers when clientFilter changes
+  useEffect(() => {
+    if (clientFilter && clientFilter !== 'all') {
+      api.get<{ chantiers: Chantier[] }>(`/clients/${clientFilter}/chantiers`)
+        .then(res => setChantiers(res.chantiers || []))
+        .catch(() => setChantiers([]))
+    } else {
+      setChantiers([])
+      setChantierFilter('all')
+    }
+  }, [clientFilter])
 
   const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(allProducts)
 
@@ -339,6 +399,7 @@ export default function SalesOrdersView() {
     setFormLines([emptyLine()])
     setFormQuoteId(null)
     setFormQuoteNumber(null)
+    setFormChantierId('')
     resetLineSearches()
     setDialogOpen(true)
   }
@@ -357,6 +418,7 @@ export default function SalesOrdersView() {
     setFormLines(order.lines.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, tvaRate: l.tvaRate, discount: l.discount || 0 })))
     setFormQuoteId(order.quoteId || null)
     setFormQuoteNumber(order.quote?.number || null)
+    setFormChantierId(order.chantierId || '')
     resetLineSearches()
     setDialogOpen(true)
   }
@@ -487,6 +549,7 @@ export default function SalesOrdersView() {
           clientOrderNumber: formClientOrderNumber.trim(),
           deliveryDate,
           notes: formNotes || undefined,
+          chantierId: formChantierId && formChantierId !== '__none__' ? formChantierId : null,
           lines: validLines.map(l => ({
             productId: l.productId,
             quantity: l.quantity,
@@ -503,6 +566,7 @@ export default function SalesOrdersView() {
           deliveryDate,
           notes: formNotes || undefined,
           quoteId: formQuoteId || undefined,
+          chantierId: formChantierId && formChantierId !== '__none__' ? formChantierId : null,
           lines: validLines.map(l => ({
             productId: l.productId,
             quantity: l.quantity,
@@ -660,6 +724,30 @@ export default function SalesOrdersView() {
             <SelectItem value="cancelled">Annulé</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={clientFilter} onValueChange={(v) => { setClientFilter(v); setChantierFilter('all') }}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Client" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les clients</SelectItem>
+            {clients.map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {clientFilter !== 'all' && (
+          <Select value={chantierFilter} onValueChange={setChantierFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Chantier" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les chantiers</SelectItem>
+              {chantiers.map(ch => (
+                <SelectItem key={ch.id} value={ch.id}>{ch.nomProjet}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Table */}
@@ -676,6 +764,7 @@ export default function SalesOrdersView() {
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('client')}>
                     <div className="flex items-center gap-1">Client {sortField === 'client' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
                   </TableHead>
+                  <TableHead className="hidden lg:table-cell">Chantier</TableHead>
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort('createdAt')}>
                     <div className="flex items-center gap-1">Créé le {sortField === 'createdAt' ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}</div>
                   </TableHead>
@@ -696,7 +785,7 @@ export default function SalesOrdersView() {
               <TableBody>
                 {orders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       {search || statusFilter !== 'all' ? 'Aucune commande trouvée.' : 'Aucune commande enregistrée.'}
                     </TableCell>
                   </TableRow>
@@ -718,6 +807,9 @@ export default function SalesOrdersView() {
                         </div>
                       </TableCell>
                       <TableCell>{order.client.name}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-muted-foreground">
+                        {order.chantier ? order.chantier.nomProjet : <span className="text-xs">Non</span>}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {order.createdAt ? format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: fr }) : format(new Date(order.date), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
@@ -1045,6 +1137,23 @@ export default function SalesOrdersView() {
               <div className="space-y-2">
                 <Label>Date de livraison souhaitée</Label>
                 <Input type="date" value={formDeliveryDate} onChange={(e) => setFormDeliveryDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Chantier <span className="text-muted-foreground text-xs">(optionnel)</span></Label>
+                <Select value={formChantierId} onValueChange={setFormChantierId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un chantier..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Aucun</SelectItem>
+                    {formClientId && chantiers
+                      .filter(ch => ch.clientId === formClientId && ch.actif)
+                      .map(ch => (
+                        <SelectItem key={ch.id} value={ch.id}>{ch.nomProjet}</SelectItem>
+                      ))}
+                    {!formClientId && <div className="px-3 py-2 text-xs text-muted-foreground">Sélectionnez d'abord un client</div>}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

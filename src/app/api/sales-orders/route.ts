@@ -16,6 +16,7 @@ const salesOrderSchema = z.object({
   clientId: z.string(),
   clientOrderNumber: z.string().min(1, 'Le numéro de commande client est obligatoire'),
   quoteId: z.string().optional(),
+  chantierId: z.string().optional().nullable(),
   status: z.enum(['pending', 'confirmed', 'in_preparation', 'prepared', 'partially_delivered', 'delivered', 'cancelled']).optional(),
   deliveryDate: z.string().datetime().optional().nullable(),
   notes: z.string().optional(),
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get('id') || ''
     const statuses = searchParams.getAll('status').filter(Boolean)
     const clientId = searchParams.get('clientId') || ''
+    const chantierId = searchParams.get('chantierId') || ''
     const search = searchParams.get('search') || ''
     const includeLines = searchParams.get('includeLines') === 'true'
     const page = parseInt(searchParams.get('page') || '1')
@@ -44,6 +46,7 @@ export async function GET(req: NextRequest) {
     if (id) where.id = id
     if (statuses.length > 0) where.status = { in: statuses }
     if (clientId) where.clientId = clientId
+    if (chantierId) where.chantierId = chantierId
     const clientOrderNumber = searchParams.get('clientOrderNumber') || ''
     if (clientOrderNumber) {
       where.clientOrderNumber = { contains: clientOrderNumber, mode: 'insensitive' }
@@ -65,8 +68,9 @@ export async function GET(req: NextRequest) {
             : { include: { product: { select: { id: true, reference: true, designation: true } } } },
           preparationOrders: true,
           quote: { select: { id: true, number: true } },
+          chantier: { select: { id: true, nomProjet: true } },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -144,6 +148,7 @@ export async function POST(req: NextRequest) {
         clientOrderNumber: data.clientOrderNumber,
         clientId: data.clientId,
         quoteId: data.quoteId || null,
+        chantierId: data.chantierId || null,
         status: data.status || 'pending',
         deliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
         notes: data.notes,
@@ -156,6 +161,7 @@ export async function POST(req: NextRequest) {
         client: true,
         lines: { include: { product: true } },
         quote: { select: { id: true, number: true } },
+        chantier: { select: { id: true, nomProjet: true } },
       },
     })
 
@@ -189,7 +195,7 @@ export async function PUT(req: NextRequest) {
 
     const existing = await db.salesOrder.findUnique({
       where: { id },
-      include: { lines: { include: { product: true } }, client: true, quote: true },
+      include: { lines: { include: { product: true } }, client: true, quote: true, chantier: { select: { id: true, nomProjet: true } } },
     })
     if (!existing) {
       return NextResponse.json({ error: 'Bon de commande introuvable' }, { status: 404 })
@@ -317,6 +323,7 @@ export async function PUT(req: NextRequest) {
           lines: { include: { product: true } },
           preparationOrders: true,
           quote: { select: { id: true, number: true } },
+          chantier: { select: { id: true, nomProjet: true } },
         },
       })
 
@@ -333,6 +340,7 @@ export async function PUT(req: NextRequest) {
         lines: { include: { product: true } },
         preparationOrders: true,
         quote: { select: { id: true, number: true } },
+        chantier: { select: { id: true, nomProjet: true } },
       },
     })
 

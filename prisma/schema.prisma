@@ -429,6 +429,8 @@ model SalesOrder {
   totalHT            Float             @default(0)
   totalTVA           Float             @default(0)
   totalTTC           Float             @default(0)
+  chantierId         String?
+  chantier           Chantier?         @relation(fields: [chantierId], references: [id])
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
@@ -505,6 +507,7 @@ model Chantier {
   updatedAt           DateTime  @updatedAt
 
   deliveryNotes       DeliveryNote[]
+  salesOrders         SalesOrder[]
 
   @@map("chantiers")
 }
