@@ -121,6 +121,27 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NUMERIC INPUTS — Remove spinner arrows, proper sizing
+   Keeps type="number" for validation & mobile numeric keyboard
+   ═══════════════════════════════════════════════════════════ */
+
+/* Chrome, Safari, Edge, Opera */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+  /* Ensure enough width for 4+ digit quantities */
+  min-width: 5.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
 /* Always-visible scrollbars for data tables */
 .scrollbar-visible {
   scrollbar-width: thin;
