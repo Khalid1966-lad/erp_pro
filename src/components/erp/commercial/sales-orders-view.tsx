@@ -27,9 +27,15 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList
+} from '@/components/ui/command'
+import {
+  Popover, PopoverContent, PopoverTrigger
+} from '@/components/ui/popover'
+import {
   ShoppingCart, Plus, Search, MoreVertical, Eye, Trash2, ClipboardList,
   Receipt, CheckCircle, XCircle, ArrowRight, FileDown, FileText, Loader2,
-  Truck, Package, Edit, Printer, Pencil, BadgeCheck, Clock, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown
+  Truck, Package, Edit, Printer, Pencil, BadgeCheck, Clock, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Check
 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { numberToFrenchWords } from '@/lib/number-to-words'
@@ -218,9 +224,12 @@ export default function SalesOrdersView() {
   const [clients, setClients] = useState<Client[]>([])
   const [allProducts, setAllProducts] = useState<ProductOption[]>([])
   const [clientFilter, setClientFilter] = useState<string>('all')
+  const [clientFilterOpen, setClientFilterOpen] = useState(false)
+  const [clientFilterSearch, setClientFilterSearch] = useState('')
   const [chantierFilter, setChantierFilter] = useState<string>('all')
   const [chantiers, setChantiers] = useState<Chantier[]>([])
   const [formChantierId, setFormChantierId] = useState<string>('')
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Handle nav params (e.g., editOrderId from quote transform)
   const editOrderIdRef = useRef<string | null>(null)
@@ -368,10 +377,36 @@ export default function SalesOrdersView() {
 
   const { lineSearches, setLineSearches, getFilteredProducts, resetLineSearches } = useProductSearch(allProducts)
 
+  // Debounced dynamic search: triggers fetchOrders after 300ms of inactivity
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setExpandedOrderId(null)
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    if (!value.trim()) {
+      fetchOrders()
+      return
+    }
+    searchTimerRef.current = setTimeout(() => {
+      fetchOrders()
+    }, 300)
+  }
+
   const handleSearch = () => {
     setExpandedOrderId(null)
     fetchOrders()
   }
+
+  // Filtered clients for the searchable dropdown
+  const filteredClients = useMemo(() => {
+    if (!clientFilterSearch) return clients
+    const q = clientFilterSearch.toLowerCase()
+    return clients.filter(c => c.name.toLowerCase().includes(q))
+  }, [clients, clientFilterSearch])
+
+  const selectedClientName = useMemo(() => {
+    if (clientFilter === 'all') return 'Tous les clients'
+    return clients.find(c => c.id === clientFilter)?.name || 'Tous les clients'
+  }, [clientFilter, clients])
 
   const calcFormTotals = useMemo(() => {
     let totalHT = 0
@@ -704,7 +739,7 @@ export default function SalesOrdersView() {
           <Input
             placeholder="Rechercher par numéro ou client..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             className="pl-9"
           />
@@ -724,17 +759,57 @@ export default function SalesOrdersView() {
             <SelectItem value="cancelled">Annulé</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={clientFilter} onValueChange={(v) => { setClientFilter(v); setChantierFilter('all') }}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Client" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous les clients</SelectItem>
-            {clients.map(c => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={clientFilterOpen} onOpenChange={(open) => { setClientFilterOpen(open); if (!open) setClientFilterSearch('') }}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="w-[200px] justify-start text-left font-normal">
+              <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{selectedClientName}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[250px] p-0" align="start">
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Rechercher un client..."
+                value={clientFilterSearch}
+                onValueChange={setClientFilterSearch}
+              />
+              <CommandList>
+                <CommandEmpty>Aucun client trouvé</CommandEmpty>
+                <CommandGroup className="max-h-64 overflow-y-auto">
+                  <CommandItem
+                    value="all"
+                    onSelect={() => {
+                      setClientFilter('all');
+                      setChantierFilter('all');
+                      setClientFilterOpen(false);
+                      setClientFilterSearch('');
+                    }}
+                    className={clientFilter === 'all' ? 'bg-accent' : ''}
+                  >
+                    <Check className={cn("mr-2 h-4 w-4", clientFilter === 'all' ? 'opacity-100' : 'opacity-0')} />
+                    Tous les clients
+                  </CommandItem>
+                  {filteredClients.map(c => (
+                    <CommandItem
+                      key={c.id}
+                      value={c.id}
+                      onSelect={() => {
+                        setClientFilter(c.id);
+                        setChantierFilter('all');
+                        setClientFilterOpen(false);
+                        setClientFilterSearch('');
+                      }}
+                      className={clientFilter === c.id ? 'bg-accent' : ''}
+                    >
+                      <Check className={cn("mr-2 h-4 w-4", clientFilter === c.id ? 'opacity-100' : 'opacity-0')} />
+                      {c.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         {clientFilter !== 'all' && (
           <Select value={chantierFilter} onValueChange={setChantierFilter}>
             <SelectTrigger className="w-[180px]">
