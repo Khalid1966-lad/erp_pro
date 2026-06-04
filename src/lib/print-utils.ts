@@ -287,7 +287,7 @@ export type PrintOptions = {
   infoGrid: Array<{ label: string; value: string; colspan?: number }>
   columns: Array<{ label: string; align?: string }>
   rows: Array<Array<{ value: string | number; align?: string }>>
-  totals: Array<{ label: string; value: string; bold?: boolean; negative?: boolean }>
+  totals?: Array<{ label: string; value: string; bold?: boolean; negative?: boolean }>
   notes?: string
   amountInWords?: string
   amountInWordsLabel?: string
@@ -322,17 +322,20 @@ export async function buildDocumentHtml(options: PrintOptions): Promise<string> 
   tableHtml += '</tbody></table>'
 
   // Build totals
-  let totalsHtml = '<div class="totals-box"><table class="totals-table">'
-  for (let i = 0; i < options.totals.length; i++) {
-    const t = options.totals[i]
-    const isGrandTotal = t.bold
-    const isNegative = t.negative || options.negativeTotals
-    totalsHtml += `<tr class="${isGrandTotal ? 'grand-total' : ''} ${isNegative ? 'negative' : ''}">
-      <td class="total-label">${esc(t.label)}</td>
-      <td class="total-value">${esc(t.value)}</td>
-    </tr>`
+  let totalsHtml = ''
+  if (options.totals && options.totals.length > 0) {
+    totalsHtml = '<div class="totals-box"><table class="totals-table">'
+    for (let i = 0; i < options.totals.length; i++) {
+      const t = options.totals[i]
+      const isGrandTotal = t.bold
+      const isNegative = t.negative || options.negativeTotals
+      totalsHtml += `<tr class="${isGrandTotal ? 'grand-total' : ''} ${isNegative ? 'negative' : ''}">
+        <td class="total-label">${esc(t.label)}</td>
+        <td class="total-value">${esc(t.value)}</td>
+      </tr>`
+    }
+    totalsHtml += '</table></div>'
   }
-  totalsHtml += '</table></div>'
 
   // Notes
   let notesHtml = ''
