@@ -10,7 +10,7 @@ import {
   Home, LogIn, LayoutDashboard, Users, Package, FileText, ShoppingCart,
   Receipt, Warehouse, Factory, CreditCard,
   Landmark, Settings, BookOpen, Shield, ChevronRight, ChevronDown, CheckCircle2,
-  ArrowRight, Info, AlertCircle, CircleDot, ArrowDown, Eye,
+  ArrowRight, Info, AlertCircle, CircleDot, ArrowDown, ArrowDownToLine, Eye,
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
   FileCheck, FileSpreadsheet, Cpu, Building2, Printer, MessageSquare, Bell, Database, Pencil, Trash2, Calendar, Search,
@@ -59,6 +59,7 @@ const sections: Section[] = [
     { id: 'commandes', label: 'Commandes' },
     { id: 'preparations', label: 'Préparations' },
     { id: 'bons-livraison', label: 'Bons de livraison' },
+    { id: 'bons-retour-clients', label: 'Bons de retour clients' },
     { id: 'icones-statut', label: 'Légende des icônes' },
     { id: 'factures-tva', label: 'Factures & TVA' },
     { id: 'avoirs', label: 'Avoirs' },
@@ -1125,6 +1126,242 @@ function VentesSection() {
 
       <TipBox type="warning">
         Les factures doivent respecter les obligations légales : numéro séquentiel, date, identifiant fiscal du client, détail des opérations et mentions légales complètes.
+      </TipBox>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* BONS DE RETOUR CLIENTS */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <SubTitle id="ventes-bons-retour-clients">Bons de retour clients</SubTitle>
+      <Paragraph>
+        Les <strong>bons de retour clients</strong> permettent de gérer les retours de marchandise effectués par les clients.
+        Un retour est toujours lié à un <strong>bon de livraison (BL)</strong> existant et suit un processus strict en 3 étapes :
+        création, contrôle qualité, puis remise en stock.
+      </Paragraph>
+
+      <SubTitle>Vue d'ensemble du processus</SubTitle>
+      <FlowDiagram steps={[
+        { label: '1. Création', color: 'bg-gray-100 border-gray-200 text-gray-600', icon: FileText },
+        { label: '2. Validation', color: 'bg-sky-50 border-sky-200 text-sky-700', icon: ShieldCheck },
+        { label: '3. Contrôle qualité', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: ShieldCheck },
+        { label: '4. Remise en stock', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: ArrowDownToLine },
+        { label: '5. Avoir (optionnel)', color: 'bg-orange-50 border-orange-200 text-orange-700', icon: RotateCcw },
+      ]} />
+
+      <TipBox type="info">
+        Un bon de retour peut être supprimé uniquement s'il est au statut <strong>Brouillon</strong>.
+        La suppression n'est possible que par le <strong>super administrateur</strong>.
+      </TipBox>
+
+      {/* ── Étape 1 : Création ── */}
+      <SubTitle>Étape 1 : Créer un bon de retour</SubTitle>
+      <Paragraph>
+        La création d'un bon de retour se fait à partir de la liste des retours. Le bon est automatiquement
+        créé en statut <strong>Brouillon</strong>.
+      </Paragraph>
+
+      <Step num={1}>Accédez à <strong>Ventes → Retours clients</strong> et cliquez sur <strong>« + Nouveau retour »</strong>.</Step>
+      <Step num={2}>Sélectionnez le <strong>client</strong> concerné. Les bons de livraison de ce client s'affichent automatiquement.</Step>
+      <Step num={3}>Choisissez le <strong>bon de livraison</strong> d'origine. Les articles livrés s'affichent dans un tableau cliquable.</Step>
+      <Step num={4}>Cliquez sur les articles à retourner dans le tableau — ils sont ajoutés automatiquement avec la quantité livrée.</Step>
+      <Step num={5}>Vous pouvez aussi cliquer sur <strong>« Ajouter manuellement »</strong> pour ajouter des articles hors BL.</Step>
+      <Step num={6}>Renseignez le <strong>motif du retour</strong> et les <strong>notes</strong> si nécessaire.</Step>
+      <Step num={7}>Cliquez sur <strong>« Créer le retour »</strong>. Le bon est créé en statut <strong>Brouillon</strong>.</Step>
+
+      <ScreenMock title="Nouveau bon de retour client — Sélection des articles depuis un BL">
+        <div className="space-y-3 max-w-2xl">
+          <div className="text-sm text-muted-foreground">Client : <strong>SARL Al Mouataz Industrie</strong> · BL : <strong>BL-2025-0018</strong></div>
+          <div className="border rounded-md text-sm">
+            <div className="bg-muted/50 px-3 py-2 font-semibold text-xs">Articles du bon de livraison — Sélectionnez les articles à retourner</div>
+            <div className="divide-y">
+              <div className="flex items-center gap-3 px-3 py-2 bg-primary/10">
+                <div className="w-4 h-4 rounded border bg-primary flex items-center justify-center"><span className="text-[10px] text-primary-foreground">✓</span></div>
+                <span className="font-mono text-xs text-muted-foreground">PVC-110</span>
+                <span className="flex-1">Tuyau PVC 110mm (4m)</span>
+                <span className="text-xs">Qté dispo: <strong>50</strong></span>
+                <span className="text-xs">120,00 MAD</span>
+              </div>
+              <div className="flex items-center gap-3 px-3 py-2">
+                <div className="w-4 h-4 rounded border" />
+                <span className="font-mono text-xs text-muted-foreground">CPV-90</span>
+                <span className="flex-1">Coude PVC 90° 110mm</span>
+                <span className="text-xs">Qté dispo: <strong>30</strong></span>
+                <span className="text-xs">45,00 MAD</span>
+              </div>
+              <div className="flex items-center gap-3 px-3 py-2 bg-primary/10">
+                <div className="w-4 h-4 rounded border bg-primary flex items-center justify-center"><span className="text-[10px] text-primary-foreground">✓</span></div>
+                <span className="font-mono text-xs text-muted-foreground">CLP-110</span>
+                <span className="flex-1">Collier PVC 110mm</span>
+                <span className="text-xs">Qté dispo: <strong>20</strong></span>
+                <span className="text-xs">25,00 MAD</span>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">Cliquez sur un article pour l'ajouter ou le retirer de la liste de retour.</p>
+        </div>
+      </ScreenMock>
+
+      <TipBox type="success">
+        Vous pouvez ajuster manuellement la quantité retournée dans le tableau des lignes, même après avoir sélectionné un article depuis le BL. Le prix unitaire HT et le taux de TVA sont repris du BL d'origine.
+      </TipBox>
+
+      {/* ── Statuts ── */}
+      <SubTitle>Statuts du bon de retour</SubTitle>
+      <Paragraph>Un bon de retour passe par les statuts suivants :</Paragraph>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Statut</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Action suivante</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell><StatusBadge status="Brouillon" /></TableCell>
+                <TableCell className="text-sm">Création initiale — modifiable et supprimable</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Passer en Validé</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Validé" /></TableCell>
+                <TableCell className="text-sm">Retour confirmé — prêt pour le contrôle qualité</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Effectuer le contrôle qualité</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Remis en stock" /></TableCell>
+                <TableCell className="text-sm">Articles conformes remis en stock — irréversible</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Créer un avoir (optionnel)</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><StatusBadge status="Annulé" /></TableCell>
+                <TableCell className="text-sm">Retour annulé — aucune action possible</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Aucune</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* ── Étape 2 : Validation ── */}
+      <SubTitle>Étape 2 : Valider le retour</SubTitle>
+      <Paragraph>
+        Après la création, le bon de retour doit être <strong>validé</strong> avant de pouvoir effectuer le contrôle qualité
+        et la remise en stock. La validation est une confirmation manuelle que le retour est accepté.
+      </Paragraph>
+      <Step num={1}>Ouvrez le détail du bon de retour (statut Brouillon).</Step>
+      <Step num={2}>Vérifiez les articles, quantités et montants.</Step>
+      <Step num={3}>Cliquez sur <strong>« Valider »</strong> pour passer au statut Validé.</Step>
+
+      {/* ── Étape 3 : Contrôle qualité ── */}
+      <SubTitle>Étape 3 : Contrôle qualité</SubTitle>
+      <Paragraph>
+        Le <strong>contrôle qualité</strong> est une étape obligatoire avant la remise en stock. Il permet d'évaluer l'état
+        de chaque article retourné. Le résultat du contrôle détermine la quantité qui sera effectivement remise en stock.
+      </Paragraph>
+
+      <Step num={1}>Ouvrez le détail d'un retour au statut <strong>Validé</strong>.</Step>
+      <Step num={2}>Cliquez sur le bouton <strong>Contrôle qualité</strong>.</Step>
+      <Step num={3}>Pour chaque ligne, sélectionnez le résultat du contrôle :</Step>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Résultat</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Qté remise en stock</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell><span className="inline-flex items-center gap-1 text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full"><Clock className="h-3 w-3" /> En attente</span></TableCell>
+                <TableCell className="text-sm">Contrôle non encore effectué</TableCell>
+                <TableCell className="text-xs text-muted-foreground">Aucune</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><span className="inline-flex items-center gap-1 text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full"><CheckCircle2 className="h-3 w-3" /> Conforme</span></TableCell>
+                <TableCell className="text-sm">L'article est en bon état, remis en stock intégralement</TableCell>
+                <TableCell className="text-xs font-medium">100% de la quantité</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><span className="inline-flex items-center gap-1 text-xs font-medium bg-red-100 text-red-700 px-2 py-0.5 rounded-full"><XCircle className="h-3 w-3" /> Non conforme</span></TableCell>
+                <TableCell className="text-sm">L'article est défectueux ou irrécupérable</TableCell>
+                <TableCell className="text-xs font-medium text-red-600">Aucune (0)</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><span className="inline-flex items-center gap-1 text-xs font-medium bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full"><AlertCircle className="h-3 w-3" /> Partiel</span></TableCell>
+                <TableCell className="text-sm">L'article est partiellement récupérable</TableCell>
+                <TableCell className="text-xs font-medium text-amber-600">50% de la quantité (arrondi inférieur)</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Step num={4}>Ajoutez des <strong>notes qualité</strong> pour chaque ligne (optionnel).</Step>
+      <Step num={5}>Cliquez sur <strong>« Enregistrer le contrôle »</strong>.</Step>
+
+      <TipBox type="info">
+        Le contrôle qualité peut être modifié à tout moment tant que le retour n'est pas passé en statut <strong>Remis en stock</strong>.
+      </TipBox>
+
+      <TipBox type="warning">
+        <strong>Attention :</strong> Pour un contrôle <strong>Partiel</strong>, seule la moitié de la quantité (arrondie à l'inférieur)
+        sera remise en stock. Par exemple, si la quantité retournée est 7, seule 3 unités seront remises en stock.
+      </TipBox>
+
+      {/* ── Étape 4 : Remise en stock ── */}
+      <SubTitle>Étape 4 : Remise en stock</SubTitle>
+      <Paragraph>
+        La <strong>remise en stock</strong> est l'étape finale qui met à jour le stock des produits. Elle est <strong>irréversible</strong>.
+        Seuls les articles contrôlés comme <strong>Conforme</strong> ou <strong>Partiel</strong> sont remis en stock.
+      </Paragraph>
+
+      <Step num={1}>Assurez-vous que le contrôle qualité est terminé (toutes les lignes évaluées).</Step>
+      <Step num={2}>Ouvrez le détail du retour au statut <strong>Validé</strong>.</Step>
+      <Step num={3}>Cliquez sur <strong>« Remettre en stock »</strong>. Un récapitulatif s'affiche.</Step>
+      <Step num={4}>Vérifiez les quantités qui seront remises en stock et confirmez.</Step>
+
+      <ScreenMock title="Remise en stock — Récapitulatif">
+        <div className="space-y-3 max-w-lg">
+          <p className="text-sm text-muted-foreground">
+            Les articles conformes et partiels seront remis en stock. Cette action est irréversible.
+          </p>
+          <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-2">
+            <p className="font-medium">Résumé des articles à remettre en stock :</p>
+            <div className="flex justify-between text-xs">
+              <span>PVC-110 — Tuyau PVC 110mm <StatusBadge status="Actif" /></span>
+              <span className="font-medium">Qté : 50</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span>CLP-110 — Collier PVC 110mm <StatusBadge status="Partielle" /></span>
+              <span className="font-medium">Qté : 10</span>
+            </div>
+          </div>
+        </div>
+      </ScreenMock>
+
+      <TipBox type="success">
+        La remise en stock génère automatiquement des <strong>mouvements de stock de type « Entrée / Retour »</strong>.
+        Le stock de chaque produit est incrémenté de la quantité remise. Vous pouvez retracer ces mouvements dans <strong>Stock → Mouvements</strong>.
+      </TipBox>
+
+      <TipBox type="warning">
+        La remise en stock est <strong>irréversible</strong>. Une fois effectuée, le bon de retour passe au statut « Remis en stock »
+        et aucune modification n'est plus possible.
+      </TipBox>
+
+      {/* ── Avoir après retour ── */}
+      <SubTitle>Étape 5 : Avoir (optionnel)</SubTitle>
+      <Paragraph>
+        Après la remise en stock, vous pouvez créer un <strong>avoir client</strong> pour compenser le client.
+        L'avoir est créé depuis le module <strong>Ventes → Avoirs</strong> en sélectionnant le bon de retour comme source.
+      </Paragraph>
+
+      <TipBox type="info">
+        L'avoir n'est pas automatique. Il doit être créé manuellement après validation du retour par le service comptable ou commercial.
       </TipBox>
 
       {/* Avoirs */}
