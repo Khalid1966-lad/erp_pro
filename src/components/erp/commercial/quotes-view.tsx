@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/popover'
 import {
   FileText, Plus, Search, MoreVertical, Eye, Send, CheckCircle, XCircle, ArrowRight,
-  Trash2, Edit, Printer, Check, ChevronsUpDown, Loader2, Pencil, Clock, RefreshCw
+  Trash2, Edit, Printer, Check, ChevronsUpDown, Loader2, Pencil, Clock, RefreshCw, ArrowUpDown
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -158,6 +158,8 @@ export default function QuotesView() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<string>('date')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
@@ -229,7 +231,54 @@ export default function QuotesView() {
     fetchQuotes()
   }
 
-  const filteredQuotes = useMemo(() => quotes, [quotes])
+  const filteredQuotes = useMemo(() => {
+    const sorted = [...quotes]
+    sorted.sort((a, b) => {
+      let cmp = 0
+      switch (sortBy) {
+        case 'number':
+          cmp = a.number.localeCompare(b.number)
+          break
+        case 'client':
+          cmp = a.client.name.localeCompare(b.client.name)
+          break
+        case 'date':
+          cmp = new Date(a.date).getTime() - new Date(b.date).getTime()
+          break
+        case 'validity':
+          cmp = new Date(a.validUntil).getTime() - new Date(b.validUntil).getTime()
+          break
+        case 'status':
+          cmp = (statusLabels[a.status] || a.status).localeCompare(statusLabels[b.status] || b.status)
+          break
+        case 'totalTTC':
+          cmp = a.totalTTC - b.totalTTC
+          break
+        default:
+          cmp = 0
+      }
+      return sortDir === 'desc' ? -cmp : cmp
+    })
+    return sorted
+  }, [quotes, sortBy, sortDir])
+
+  const handleSort = (col: string) => {
+    if (sortBy === col) {
+      setSortDir(prev => prev === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortBy(col)
+      setSortDir('desc')
+    }
+  }
+
+  const SortableHead = ({ col, children, className }: { col: string; children: React.ReactNode; className?: string }) => (
+    <TableHead className={cn('cursor-pointer select-none hover:bg-muted/50', className)} onClick={() => handleSort(col)}>
+      <div className="flex items-center gap-1">
+        {children}
+        <ArrowUpDown className={cn('h-3 w-3 shrink-0', sortBy === col ? 'text-foreground' : 'text-muted-foreground/40')} />
+      </div>
+    </TableHead>
+  )
 
   // Client combobox: filter by raisonSociale / name
   const filteredClients = useMemo(() => {
@@ -543,13 +592,13 @@ export default function QuotesView() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Numéro</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead className="hidden md:table-cell">Date</TableHead>
-                  <TableHead className="hidden lg:table-cell">Validité</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <SortableHead col="number">Numéro</SortableHead>
+                  <SortableHead col="client">Client</SortableHead>
+                  <SortableHead col="date" className="hidden md:table-cell">Date</SortableHead>
+                  <SortableHead col="validity" className="hidden lg:table-cell">Validité</SortableHead>
+                  <SortableHead col="status">Statut</SortableHead>
                   <TableHead className="text-right hidden sm:table-cell">Total HT</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">Total TTC</TableHead>
+                  <SortableHead col="totalTTC" className="text-right hidden sm:table-cell">Total TTC</SortableHead>
                   <TableHead className="text-right w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>

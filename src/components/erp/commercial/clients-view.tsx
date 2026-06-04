@@ -1799,20 +1799,6 @@ function ClientFormView({ mode, client, onBack, onSaved }: ClientFormViewProps) 
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <FormField control={form.control} name="seuilLotMinimal" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Seuil lot minimal</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={field.value}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
                   <FormField control={form.control} name="frequenceReporting" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Fréquence de reporting</FormLabel>
