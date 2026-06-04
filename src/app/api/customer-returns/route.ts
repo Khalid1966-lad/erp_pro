@@ -15,10 +15,10 @@ const customerReturnLineSchema = z.object({
 
 const customerReturnSchema = z.object({
   clientId: z.string(),
-  deliveryNoteId: z.string().optional(),
-  invoiceId: z.string().optional(),
-  reason: z.string().optional(),
-  notes: z.string().optional(),
+  deliveryNoteId: z.string().nullish(),
+  invoiceId: z.string().nullish(),
+  reason: z.string().nullish(),
+  notes: z.string().nullish(),
   lines: z.array(customerReturnLineSchema).min(1, 'Au moins une ligne requise'),
 })
 
