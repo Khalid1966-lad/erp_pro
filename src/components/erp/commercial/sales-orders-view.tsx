@@ -627,7 +627,17 @@ export default function SalesOrdersView() {
   const updateLine = (idx: number, field: keyof SalesOrderLine, value: string | number) => {
     const updated = [...formLines]
     updated[idx] = { ...updated[idx], [field]: value }
-    if (field === 'productId') {
+    if (field === 'productId' && value) {
+      // Check for duplicate product
+      const duplicateIdx = updated.findIndex((l, i) => i !== idx && l.productId === value)
+      if (duplicateIdx >= 0) {
+        toast.warning(`Cet article est déjà présent à la ligne ${duplicateIdx + 1}`)
+        updated[idx].productId = ''
+        updated[idx].unitPrice = 0
+        updated[idx].tvaRate = 20
+        setFormLines(updated)
+        return
+      }
       const prod = allProducts.find(p => p.id === value)
       if (prod) {
         updated[idx].unitPrice = prod.priceHT || 0
