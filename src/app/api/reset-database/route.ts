@@ -32,6 +32,7 @@ const TABLES_TO_DELETE = [
   'PriceRequestLine',
   'PriceRequest',
   // Sales (children first)
+  '_CreditNoteToCustomerReturn',
   'CustomerReturnLine',
   'CustomerReturn',
   'CreditNoteLine',
@@ -79,6 +80,8 @@ const TABLE_SQL_NAMES: Record<string, string> = {
   Chantier: 'chantiers',
   CustomerReturn: 'customer_returns',
   CustomerReturnLine: 'customer_return_lines',
+  CreditNote: 'credit_notes',
+  CreditNoteLine: 'credit_note_lines',
   PaymentCodeCounter: 'payment_code_counters',
 }
 
