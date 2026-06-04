@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
         include: {
           client: { select: { id: true, name: true } },
           lines: { include: { product: { select: { id: true, reference: true, designation: true } } } },
+          salesOrders: { select: { id: true, clientOrderNumber: true } },
         },
         orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
@@ -216,6 +217,12 @@ export async function PUT(req: NextRequest) {
 
       if (!existing.lines || existing.lines.length === 0) {
         return NextResponse.json({ error: 'Le devis doit contenir au moins une ligne' }, { status: 400 })
+      }
+
+      // Prevent duplicate transformation
+      const existingOrderCount = await db.salesOrder.count({ where: { quoteId: id } })
+      if (existingOrderCount > 0) {
+        return NextResponse.json({ error: 'Ce devis a déjà été transformé en bon de commande' }, { status: 400 })
       }
 
       // Generate next BC number: BC-YYYY-NNNN (per-year sequence, same pattern as DEV)

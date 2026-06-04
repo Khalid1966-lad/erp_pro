@@ -70,6 +70,7 @@ interface Quote {
   totalTTC: number
   client: { id: string; name: string }
   lines: QuoteLine[]
+  salesOrders?: { id: string; clientOrderNumber: string }[]
 }
 
 interface ClientOption {
@@ -529,7 +530,9 @@ export default function QuotesView() {
         actions.push({ label: 'Remettre en brouillon', icon: <Edit className="h-4 w-4" />, status: 'draft' })
         break
       case 'accepted':
-        actions.push({ label: 'Transformer en commande', icon: <ArrowRight className="h-4 w-4" />, status: 'transform' })
+        if (!quote.salesOrders || quote.salesOrders.length === 0) {
+          actions.push({ label: 'Transformer en commande', icon: <ArrowRight className="h-4 w-4" />, status: 'transform' })
+        }
         break
     }
     return actions
@@ -639,9 +642,17 @@ export default function QuotesView() {
                         {format(new Date(quote.validUntil), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className={statusColors[quote.status] || ''}>
-                          {statusLabels[quote.status] || quote.status}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge variant="secondary" className={statusColors[quote.status] || ''}>
+                            {statusLabels[quote.status] || quote.status}
+                          </Badge>
+                          {quote.salesOrders && quote.salesOrders.length > 0 && (
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              <ArrowRight className="h-3 w-3 mr-1" />
+                              {quote.salesOrders[0].clientOrderNumber}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right hidden sm:table-cell font-medium">
                         {formatCurrency(quote.totalHT)}
@@ -739,6 +750,12 @@ export default function QuotesView() {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold font-mono">{eq.number}</span>
                       <Badge variant="secondary" className={statusColors[eq.status]}>{statusLabels[eq.status]}</Badge>
+                      {eq.salesOrders && eq.salesOrders.length > 0 && (
+                        <Badge variant="secondary" className="bg-green-100 text-green-800">
+                          <ArrowRight className="h-3 w-3 mr-1" />
+                          BC : {eq.salesOrders[0].clientOrderNumber}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">{eq.client.name} — {format(new Date(eq.date), 'dd/MM/yyyy', { locale: fr })}</p>
                   </div>
