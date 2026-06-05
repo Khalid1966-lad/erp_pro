@@ -50,6 +50,26 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
       const m = settingsData.settingsMap || {}
       // Logo exists if company_logo_url is set in settings (stored in DB on Vercel)
       const hasLogo = !!m.company_logo_url
+      // Fetch logo as base64 data URL for reliable printing (html2pdf/iframe)
+      let logoUrl: string | null = null
+      if (hasLogo) {
+        try {
+          const resp = await fetch('/api/logo?t=' + Date.now())
+          if (resp.ok) {
+            const contentType = resp.headers.get('Content-Type') || 'image/png'
+            const blob = await resp.blob()
+            logoUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onloadend = () => resolve(reader.result as string)
+              reader.onerror = reject
+              reader.readAsDataURL(blob)
+            })
+          }
+        } catch {
+          // Fallback to URL reference
+          logoUrl = `/api/logo?t=${Date.now()}`
+        }
+      }
       companyCache = {
         name: m.company_name || '',
         address: m.company_address || '',
@@ -65,7 +85,7 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
         rc: m.company_rc || '',
         legalForm: m.company_legal_form || '',
         capital: m.company_capital || '',
-        logoUrl: hasLogo ? `/api/logo?t=${Date.now()}` : null,
+        logoUrl,
         logoShape: m.company_logo_shape === 'rectangle' ? 'rectangle' : 'square',
         logoWidth: parseInt(m.company_logo_width, 10) || 140,
         footerLine1: m.print_footer_line1 || '',
@@ -110,7 +130,7 @@ function buildHeaderHtml(c: CompanyInfo): string {
   const identLine2 = [c.rc ? `RC : ${c.rc}` : '', c.capital ? `Capital : ${c.capital}` : ''].filter(Boolean).join(' &nbsp;|&nbsp; ')
   const contactLine = [c.phone ? `Tél : ${c.phone}` : '', c.email ? `Email : ${c.email}` : ''].filter(Boolean).join(' &nbsp;|&nbsp; ')
 
-  const logoSrc = c.logoUrl ? (c.logoUrl.startsWith('http') ? c.logoUrl : `${window.location.origin}${c.logoUrl}`) : ''
+  const logoSrc = c.logoUrl || ''
   const isRect = c.logoShape === 'rectangle'
   const logoW = c.logoWidth + 'px'
   const logoH = isRect ? Math.round(c.logoWidth * 0.43) + 'px' : c.logoWidth + 'px'
