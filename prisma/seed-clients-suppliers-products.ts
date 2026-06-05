@@ -1,121 +1,46 @@
-import { PrismaClient } from "@prisma/client";
-import { createHash } from "crypto";
+/**
+ * Optimized seed script: Clients, Suppliers, Products & ClientContacts
+ *
+ * Uses Prisma createMany for bulk inserts (fast) instead of individual creates.
+ * Deletes existing data in FK order before inserting.
+ *
+ * Usage:
+ *   npx ts-node prisma/seed-clients-suppliers-products.ts
+ *   # or
+ *   npx tsx prisma/seed-clients-suppliers-products.ts
+ */
 
-const db = new PrismaClient({
+import { PrismaClient } from "@prisma/client";
+
+// ─── Database connection ──────────────────────────────────────────────────────
+const DATABASE_URL =
+  process.env.DATABASE_URL ||
+  "postgresql://neondb_owner:npg_VjZ3u1cQOotx@ep-round-unit-aj8b7o9b-pooler.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+
+const prisma = new PrismaClient({
   datasources: {
-    db: {
-      url: process.env.DIRECT_URL || process.env.DATABASE_URL,
-    },
+    db: { url: DATABASE_URL },
   },
 });
 
-function hashPassword(password: string): string {
-  return createHash("sha256").update(password + (process.env.PASSWORD_SALT || "erp-salt")).digest("hex");
-}
-
+// ─── Deterministic random helper (seeded-like via Math) ───────────────────────
 function rnd(min: number, max: number, decimals = 0): number {
   const val = Math.random() * (max - min) + min;
   return decimals > 0 ? parseFloat(val.toFixed(decimals)) : Math.floor(val);
 }
 
-const now = new Date("2025-01-15T08:00:00.000Z");
+// ─── ICE generator (sequential counter → unique) ──────────────────────────────
+let iceCounter = 100000;
+function genICE(): string {
+  iceCounter++;
+  return `00${String(iceCounter).padStart(6, "0")}000${String(rnd(1, 999)).padStart(3, "0")}`;
+}
 
-// ======================== DATA DEFINITIONS ========================
+// ═══════════════════════════════════════════════════════════════════════════════
+// DATA DEFINITIONS — extracted verbatim from seed.ts
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// ROLES & PERMISSIONS
-const rolesData = [
-  { name: "admin", label: "Administrateur", description: "Accès complet à toutes les fonctionnalités", isSystem: true },
-  { name: "commercial", label: "Commercial", description: "Gestion des clients, devis, commandes", isSystem: true },
-  { name: "magasinier", label: "Magasinier", description: "Gestion du stock, réceptions, livraisons", isSystem: true },
-  { name: "production", label: "Responsable Production", description: "Gestion des ordres de fabrication, BOM", isSystem: true },
-  { name: "acheteur", label: "Acheteur", description: "Gestion des achats, fournisseurs, demandes de prix", isSystem: true },
-  { name: "comptable", label: "Comptable", description: "Gestion de la comptabilité, factures, paiements", isSystem: true },
-  { name: "caissier", label: "Caissier", description: "Gestion de la caisse", isSystem: true },
-  { name: "direction", label: "Direction", description: "Consultation et tableaux de bord", isSystem: true },
-  { name: "operateur", label: "Opérateur", description: "Opérateur de production", isSystem: true },
-];
-
-const permissionsMap: Record<string, string[]> = {
-  admin: ["clients.read", "clients.write", "products.read", "products.write", "suppliers.read", "suppliers.write",
-    "quotes.read", "quotes.write", "sales_orders.read", "sales_orders.write", "invoices.read", "invoices.write",
-    "purchases.read", "purchases.write", "stock.read", "stock.write", "production.read", "production.write",
-    "finance.read", "finance.write", "hr.read", "hr.write", "settings.read", "settings.write",
-    "reports.read", "reports.write", "delivery.read", "delivery.write"],
-  commercial: ["clients.read", "clients.write", "products.read", "suppliers.read",
-    "quotes.read", "quotes.write", "sales_orders.read", "sales_orders.write", "invoices.read",
-    "delivery.read", "reports.read"],
-  magasinier: ["products.read", "stock.read", "stock.write", "delivery.read", "delivery.write",
-    "purchases.read", "production.read"],
-  production: ["products.read", "products.write", "production.read", "production.write", "stock.read"],
-  acheteur: ["suppliers.read", "suppliers.write", "purchases.read", "purchases.write", "products.read", "stock.read"],
-  comptable: ["invoices.read", "invoices.write", "finance.read", "finance.write", "clients.read", "reports.read"],
-  caissier: ["finance.read", "finance.write"],
-  direction: ["clients.read", "products.read", "suppliers.read", "quotes.read", "sales_orders.read",
-    "invoices.read", "purchases.read", "stock.read", "production.read", "finance.read", "reports.read", "hr.read"],
-  operateur: ["production.read", "stock.read"],
-};
-
-// USERS
-const usersData = [
-  { email: "admin@jazel.ma", name: "Admin Jazel", role: "admin", phone: "0522-000001", isSuperAdmin: true },
-  { email: "commercial@jazel.ma", name: "Ahmed Bennani", role: "commercial", phone: "0661-100001" },
-  { email: "magasinier@jazel.ma", name: "Karim El Idrissi", role: "magasinier", phone: "0661-100002" },
-  { email: "production@jazel.ma", name: "Youssef Amrani", role: "production", phone: "0661-100003" },
-  { email: "acheteur@jazel.ma", name: "Rachid Tazi", role: "acheteur", phone: "0661-100004" },
-  { email: "comptable@jazel.ma", name: "Fatima Zahra Berrada", role: "comptable", phone: "0661-100005" },
-  { email: "caissier@jazel.ma", name: "Samira Chraibi", role: "caissier", phone: "0661-100006" },
-  { email: "direction@jazel.ma", name: "Mohamed Alami", role: "direction", phone: "0661-100007" },
-  { email: "operateur@jazel.ma", name: "Hassan Ouazzani", role: "operateur", phone: "0661-100008" },
-];
-
-// SETTINGS
-const settingsData = [
-  { key: "company_name", value: "Jazel Menuiserie SARL" },
-  { key: "company_address", value: "123, Boulevard Zerktouni, Casablanca 20000" },
-  { key: "company_city", value: "Casablanca" },
-  { key: "company_postal_code", value: "20000" },
-  { key: "company_country", value: "Maroc" },
-  { key: "company_phone", value: "0522-27-27-27" },
-  { key: "company_email", value: "contact@jazel-menuiserie.ma" },
-  { key: "company_website", value: "www.jazel-menuiserie.ma" },
-  { key: "company_ice", value: "001234567000078" },
-  { key: "company_patente", value: "12345678" },
-  { key: "company_cnss", value: "98765432" },
-  { key: "company_identifiant_fiscal", value: "IF12345678" },
-  { key: "company_rc", value: "RC-123456" },
-  { key: "company_ville_rc", value: "Casablanca" },
-  { key: "company_forme_juridique", value: "SARL" },
-  { key: "company_logo", value: "" },
-  { key: "currency", value: "MAD" },
-  { key: "currency_symbol", value: "DH" },
-  { key: "locale", value: "fr-MA" },
-  { key: "timezone", value: "Africa/Casablanca" },
-  { key: "default_tva_rate", value: "20" },
-  { key: "default_payment_terms", value: "30 jours" },
-  { key: "invoice_prefix", value: "FA" },
-  { key: "quote_prefix", value: "DEV" },
-  { key: "sales_order_prefix", value: "BC" },
-  { key: "delivery_note_prefix", value: "BL" },
-  { key: "purchase_order_prefix", value: "BA" },
-  { key: "credit_note_prefix", value: "AV" },
-  { key: "default_bank_account", value: "Attijariwafa Bank" },
-  { key: "default_rib", value: "MA12345678901234" },
-  { key: "industry", value: "menuiserie_aluminium_pvc" },
-];
-
-// ======================== WORKSTATIONS ========================
-const workStationsData = [
-  { name: "Coupe profilé", description: "Scie double coupe aluminium/PVC. Coupe précise des profilés selon les côtes de fabrication." },
-  { name: "Soudure PVC", description: "Poste de soudure par contact thermique pour assemblage des cadres et dormants PVC. Température: 260°C." },
-  { name: "Assemblage cadre", description: "Assemblage des cadres aluminium par système coupé-collé. Pression et nettoyage des sections." },
-  { name: "Montage vitrage", description: "Pose du double/triple vitrage sur cadres. Application de cales, garnitures et mise en feuillure." },
-  { name: "Pose quincaillerie", description: "Installation des poignées, crémones, paumelles, serrures multipoints et galets coulissants." },
-  { name: "Contrôle qualité", description: "Vérification dimensions, étanchéité, fonctionnement mécanique, aspect visuel. Tests air/eau/vent." },
-  { name: "Véranda/Façade", description: "Assemblage spécifique pour vérandas, façades rideaux et murs rideau. Structure et vitrage." },
-  { name: "Emballage", description: "Protection, calage et emballage des produits finis pour transport. Films, cartons, protections." },
-];
-
-// ======================== PRODUCTS ========================
+// ─── PRODUCTS: Matières Premières ──────────────────────────────────────────────
 const matieresPremieres = [
   { reference: "MP-001", designation: "Profilé coulissant série 6000", description: "Profilé aluminium coulissant série 6000 pour fenêtres et baies coulissantes", famille: "Profilés Aluminium", sousFamille: "Coulissant", priceHT: 45, unit: "ml", currentStock: 500, minStock: 100, maxStock: 2000, averageCost: 38 },
   { reference: "MP-002", designation: "Profilé fixe série 6000", description: "Profilé aluminium fixe série 6000 pour ouvrants dormants", famille: "Profilés Aluminium", sousFamille: "Fixe", priceHT: 38, unit: "ml", currentStock: 400, minStock: 80, maxStock: 1500, averageCost: 32 },
@@ -154,6 +79,7 @@ const matieresPremieres = [
   { reference: "MP-035", designation: "Cheville nylon lot 50", description: "Lot de 50 chevilles nylon pour fixation murale", famille: "Accessoires", sousFamille: "Fixation", priceHT: 15, unit: "lot", currentStock: 400, minStock: 100, maxStock: 1500, averageCost: 12 },
 ];
 
+// ─── PRODUCTS: Semi-Finis ─────────────────────────────────────────────────────
 const semiFinis = [
   { reference: "SF-001", designation: "Cadre aluminium coupé-collé 120x120", description: "Cadre aluminium assemblé par système coupé-collé pour fenêtre 120x120", famille: "Semi-finis Aluminium", sousFamille: "Cadres", priceHT: 380, unit: "unité", currentStock: 30, minStock: 10, maxStock: 80, averageCost: 310 },
   { reference: "SF-002", designation: "Cadre aluminium coupé-collé 150x120", description: "Cadre aluminium assemblé pour fenêtre 150x120", famille: "Semi-finis Aluminium", sousFamille: "Cadres", priceHT: 420, unit: "unité", currentStock: 25, minStock: 8, maxStock: 60, averageCost: 345 },
@@ -172,6 +98,7 @@ const semiFinis = [
   { reference: "SF-015", designation: "Porte sectionnelle assemblée 250x250", description: "Porte de garage sectionnelle assemblée 250x250cm", famille: "Semi-finis Portes", sousFamille: "Sectionnelle", priceHT: 680, unit: "unité", currentStock: 5, minStock: 2, maxStock: 15, averageCost: 560 },
 ];
 
+// ─── PRODUCTS: Produits Finis ──────────────────────────────────────────────────
 const produitsFinis = [
   { reference: "PF-001", designation: "Fenêtre alu coulissante 120x120", description: "Fenêtre aluminium coulissante 2 vantaux 120x120cm, double vitrage", famille: "Fenêtres Aluminium", sousFamille: "Coulissante", priceHT: 1850, currentStock: 15, minStock: 5, maxStock: 40, averageCost: 1280 },
   { reference: "PF-002", designation: "Fenêtre alu coulissante 150x120", description: "Fenêtre aluminium coulissante 2 vantaux 150x120cm, double vitrage", famille: "Fenêtres Aluminium", sousFamille: "Coulissante", priceHT: 2150, currentStock: 12, minStock: 4, maxStock: 30, averageCost: 1490 },
@@ -225,7 +152,7 @@ const produitsFinis = [
   { reference: "PF-050", designation: "Grille de ventilation aluminium 60x60", description: "Grille de ventilation aluminium 60x60cm pour façade", famille: "Ventilation", sousFamille: "Grilles", priceHT: 450, unit: "unité", currentStock: 25, minStock: 8, maxStock: 60, averageCost: 310 },
 ];
 
-// ======================== SUPPLIERS ========================
+// ─── SUPPLIERS ────────────────────────────────────────────────────────────────
 const suppliersData = [
   { code: "FOU-001", name: "ALUMECO Maroc SA", siret: "IF00123456789", address: "Zone Industrielle, Lot 45", city: "Casablanca", postalCode: "20153", country: "Maroc", phone: "0522-35-40-40", email: "contact@alumeco.ma", deliveryDelay: 7, paymentTerms: "30 jours", notes: "Principal fournisseur profilés aluminium série 6000 et 7000. Accord cadre annuel.", balance: 45000, creditLimit: 200000, rating: 4.8 },
   { code: "FOU-002", name: "Profilal Maroc SARL", siret: "IF00234567890", address: "Km 12, Route de Rabat", city: "Tanger", postalCode: "90000", country: "Maroc", phone: "0539-32-11-22", email: "commercial@profilal.ma", deliveryDelay: 5, paymentTerms: "15 jours", notes: "Profilés aluminium spéciaux, livraison express depuis Tanger.", balance: 28000, creditLimit: 150000, rating: 4.5 },
@@ -259,15 +186,9 @@ const suppliersData = [
   { code: "FOU-030", name: "PackagingPro Maroc", siret: "IF03067890123", address: "Zone Industrielle Had Soualem", city: "Had Soualem", postalCode: "26000", country: "Maroc", phone: "0523-45-66-77", email: "contact@packagingpro.ma", deliveryDelay: 5, paymentTerms: "15 jours", notes: "Films de protection, cartons, calages pour emballage menuiserie.", balance: 3000, creditLimit: 15000, rating: 3.6 },
 ];
 
-// ======================== CLIENTS ========================
-// Helper to generate unique ICE numbers
-let iceCounter = 100000;
-function genICE(): string {
-  iceCounter++;
-  return `00${String(iceCounter).padStart(6, "0")}000${String(rnd(1, 999)).padStart(3, "0")}`;
-}
+// ─── CLIENTS ──────────────────────────────────────────────────────────────────
 
-// Cities distribution by region
+// City distributions by region
 const villesCasablanca = ["Casablanca", "Mohammedia", "El Jadida", "Bouskoura", "Nouaceur", "Berrechid", "Settat"];
 const villesRabat = ["Rabat", "Salé", "Témara", "Kénitra", "Skhirat"];
 const villesMarrakech = ["Marrakech", "Safi", "El Kelaa des Sraghna", "Essaouira"];
@@ -281,11 +202,7 @@ const villesOriental = ["Oujda", "Nador", "Jerada", "Berkane"];
 const villesLaayoune = ["Laâyoune", "Boujdour", "Smara", "Es-Semara"];
 const villesDakhla = ["Dakhla", "Aousserd", "Lagouira"];
 
-const formeJuridiques: ("SARL" | "SA" | "SNC" | "SARLAU" | "Autre")[] = ["SARL", "SA", "SNC", "SARLAU", "Autre"];
-const regimesFiscaux: ("IS" | "IR" | "reel_simplifie" | "reel_normal")[] = ["IS", "IR", "reel_simplifie", "reel_normal"];
-const modesReglement: ("virement" | "cheque" | "effet" | "especes")[] = ["virement", "cheque", "effet", "especes"];
-const originesProspect = ["salon", "bouche-à-oreille", "site web", "prospection", "référence", "publicité"];
-
+// Build client from parameters (deterministic-ish, same as seed.ts)
 function makeClient(
   idx: number,
   code: string,
@@ -311,23 +228,18 @@ function makeClient(
   const rc = `RC-${rnd(100000, 999999)}`;
   const cp = isExport ? String(rnd(10000, 99999)) : `${String(rnd(10000, 30000))}`;
 
-  // Build email
   const emailDomain = isExport ? ["gmail.com", "outlook.com", "yahoo.fr"][rnd(0, 2)] : "gmail.com";
   const emailClean = nomCommercial.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 15);
   const email = `${emailClean}@${emailDomain}`;
 
-  // Build GSM
   const gsmPrefix = country === "Maroc" ? "06" : "+33";
   const gsm = `${gsmPrefix}${String(rnd(10000000, 99999999))}`;
   const telephone = `05${String(rnd(20000000, 99999999))}`;
 
-  // Conditions paiement
   const condPaiement = isProspect ? "30 jours" : ["30 jours", "45 jours", "60 jours", "comptant"][rnd(0, 3)];
 
-  // Transporteur
   const transporteurs = ["Transport Adrar", "Logistica.ma", "CTM Cargo", "AJT Express", "AMJ Express", "TNT Express Maroc"];
   const transporteur = transporteurs[rnd(0, transporteurs.length - 1)];
-
 
   const streetNames = ["Bd Mohammed V", "Rue Ibn Batouta", "Avenue Hassan II", "Rue Allal Ben Abdellah", "Bd Zerktouni", "Rue Atlas", "Avenue des FAR", "Bd Anfa", "Rue de Fes", "Lotissement"];
   const streetNames2 = ["Bd Mohammed V", "Rue Ibn Batouta", "Avenue Hassan II", "Rue Allal Ben Abdellah", "Bd Zerktouni"];
@@ -414,9 +326,10 @@ function makeClient(
   };
 }
 
+// Build the full clients array (100 clients)
 const clientsData: ReturnType<typeof makeClient>[] = [];
 
-// ============= GRANDS COMPTES (15) - Construction companies & developers =============
+// GRANDS COMPTES (15)
 clientsData.push(makeClient(1, "CL-0001", "CGI Bâtiment Maroc SA", "CGI Bâtiment", villesCasablanca[0], "Casablanca-Settat", "grand_compte", "client_privilegie", "SA", "IS", "virement", "salon", "Maroc", null));
 clientsData.push(makeClient(2, "CL-0002", "Alliances Développement SA", "Alliances Dév.", villesCasablanca[0], "Casablanca-Settat", "grand_compte", "actif", "SA", "IS", "virement", "prospection", "Maroc", null));
 clientsData.push(makeClient(3, "CL-0003", "Résidences Atlas SARL", "Résidences Atlas", villesCasablanca[1], "Casablanca-Settat", "grand_compte", "actif", "SARL", "IS", "cheque", "référence", "Maroc", null));
@@ -433,7 +346,7 @@ clientsData.push(makeClient(13, "CL-0013", "Draa Valley Real Estate SARL", "Draa
 clientsData.push(makeClient(14, "CL-0014", "Oriental Builders SARL", "Oriental Builders", villesOriental[0], "Oriental", "grand_compte", "actif", "SARL", "IS", "cheque", "site web", "Maroc", null));
 clientsData.push(makeClient(15, "CL-0015", "Laâyoune Construction SARL", "Laâyoune Const.", villesLaayoune[0], "Laâyoune-Sakia El Hamra", "grand_compte", "actif", "SARL", "IS", "virement", "prospection", "Maroc", null));
 
-// ============= PME (40) - Small-medium builders and contractors =============
+// PME (40)
 clientsData.push(makeClient(16, "CL-0016", "BatiPro SARL", "BatiPro", villesCasablanca[0], "Casablanca-Settat", "PME", "actif", "SARL", "IS", "virement", "bouche-à-oreille", "Maroc", null));
 clientsData.push(makeClient(17, "CL-0017", "Menuiserie Moderne SARL", "Menuiserie Moderne", villesCasablanca[2], "Casablanca-Settat", "PME", "actif", "SARL", "IS", "cheque", "prospection", "Maroc", null));
 clientsData.push(makeClient(18, "CL-0018", "Génie Bâtir SARL", "Génie Bâtir", villesCasablanca[0], "Casablanca-Settat", "PME", "actif", "SARL", "IS", "virement", "site web", "Maroc", null));
@@ -475,7 +388,7 @@ clientsData.push(makeClient(53, "CL-0053", "Skhirat Rénovation SARL", "Skhirat 
 clientsData.push(makeClient(54, "CL-0054", "Larache Menuiserie SARL", "Larache Menu.", villesTanger[4], "Tanger-Tétouan-Al Hoceima", "PME", "actif", "SARL", "IS", "cheque", "bouche-à-oreille", "Maroc", null));
 clientsData.push(makeClient(55, "CL-0055", "Taza Construction SARL", "Taza Const.", villesFes[3], "Fès-Meknès", "PME", "actif", "SARL", "IS", "virement", "site web", "Maroc", null));
 
-// ============= REVENDEURS (20) - Window dealers and distributors =============
+// REVENDEURS (20)
 clientsData.push(makeClient(56, "CL-0056", "AluTech Distribution SARL", "AluTech Dist.", villesCasablanca[0], "Casablanca-Settat", "revendeur", "actif", "SARL", "IS", "virement", "salon", "Maroc", null));
 clientsData.push(makeClient(57, "CL-0057", "Menuiserie Express SARL", "Menuiserie Exp.", villesCasablanca[0], "Casablanca-Settat", "revendeur", "actif", "SARL", "IS", "cheque", "référence", "Maroc", null));
 clientsData.push(makeClient(58, "CL-0058", "Casablanca Fenêtres SARL", "Casa Fenêtres", villesCasablanca[3], "Casablanca-Settat", "revendeur", "actif", "SARL", "IS", "virement", "site web", "Maroc", null));
@@ -497,7 +410,7 @@ clientsData.push(makeClient(73, "CL-0073", "Laâyoune Fenêtres SARL", "Laâyoun
 clientsData.push(makeClient(74, "CL-0074", "Béni Mellal Distribution SARL", "BM Dist.", villesBeniMellal[0], "Béni Mellal-Khénifra", "revendeur", "actif", "SARL", "reel_simplifie", "cheque", "référence", "Maroc", null));
 clientsData.push(makeClient(75, "CL-0075", "Casablanca Wholesale SARL", "Casa Wholesale", villesCasablanca[0], "Casablanca-Settat", "revendeur", "client_privilegie", "SARL", "IS", "virement", "salon", "Maroc", null));
 
-// ============= PARTICULIERS (10) - Individual homeowners =============
+// PARTICULIERS (10)
 clientsData.push(makeClient(76, "CL-0076", "M. Karim Alaoui", "K. Alaoui", villesCasablanca[0], "Casablanca-Settat", "particulier", "actif", "Autre", "IR", "especes", "site web", "Maroc", null));
 clientsData.push(makeClient(77, "CL-0077", "Mme Fatima Zahra El Fassi", "F.Z. El Fassi", villesRabat[0], "Rabat-Salé-Kénitra", "particulier", "actif", "Autre", "IR", "especes", "bouche-à-oreille", "Maroc", null));
 clientsData.push(makeClient(78, "CL-0078", "M. Hassan Benjelloun", "H. Benjelloun", villesMarrakech[0], "Marrakech-Safi", "particulier", "actif", "Autre", "IR", "cheque", "référence", "Maroc", null));
@@ -509,7 +422,7 @@ clientsData.push(makeClient(83, "CL-0083", "M. Youssef Amrani", "Y. Amrani", vil
 clientsData.push(makeClient(84, "CL-0084", "M. Driss Lahlou", "D. Lahlou", villesRabat[1], "Rabat-Salé-Kénitra", "particulier", "inactif", "Autre", "IR", "especes", "référence", "Maroc", null));
 clientsData.push(makeClient(85, "CL-0085", "Mme Amina Kettani", "A. Kettani", villesFes[1], "Fès-Meknès", "particulier", "actif", "Autre", "IR", "cheque", "site web", "Maroc", null));
 
-// ============= EXPORT (10) - European and African clients =============
+// EXPORT (10)
 clientsData.push(makeClient(86, "CL-0086", "AluTrade Spain SL", "AluTrade Spain", "Valencia", "Valencia", "export", "actif", "SA", "IS", "virement", "salon", "Espagne", "FCA"));
 clientsData.push(makeClient(87, "CL-0087", "Fenêtre Services France SAS", "Fenêtre Services", "Marseille", "Bouches-du-Rhône", "export", "actif", "SA", "IS", "virement", "prospection", "France", "DAP"));
 clientsData.push(makeClient(88, "CL-0088", "Mauritania Building Co. Ltd", "Mauritania Bldg", "Nouakchott", "Nouakchott", "export", "actif", "SA", "IS", "virement", "site web", "Mauritanie", "FCA"));
@@ -521,938 +434,310 @@ clientsData.push(makeClient(93, "CL-0093", "Tunisie Aluminium SARL", "Tunisie Al
 clientsData.push(makeClient(94, "CL-0094", "Libya Construction & Trading Co.", "Libya C&T", "Tripoli", "Tripoli", "export", "actif", "Autre", "IS", "virement", "site web", "Libye", "FCA"));
 clientsData.push(makeClient(95, "CL-0095", "Ivory Coast Building Materials SARL", "ICBM SARL", "Abidjan", "Abidjan", "export", "inactif", "SA", "IS", "virement", "référence", "Côte d'Ivoire", "DAP"));
 
-// ============= PROSPECTS (5) =============
+// PROSPECTS (5)
 clientsData.push(makeClient(96, "CL-0096", "Promo Sud SARL", "Promo Sud", villesGuelmim[0], "Guelmim-Oued Noun", "PME", "prospect", "SARL", "IS", "virement", "prospection", "Maroc", null));
 clientsData.push(makeClient(97, "CL-0097", "Tan-Tan Construction SARL", "Tan-Tan Const.", villesGuelmim[1], "Guelmim-Oued Noun", "PME", "prospect", "SARL", "IS", "cheque", "publicité", "Maroc", null));
 clientsData.push(makeClient(98, "CL-0098", "Oasis Habitat SARL", "Oasis Habitat", villesDraa[2], "Drâa-Tafilalet", "PME", "prospect", "SARL", "IS", "virement", "site web", "Maroc", null));
 clientsData.push(makeClient(99, "CL-0099", "Midelt Bâtiment SARL", "Midelt Bât.", villesDraa[3], "Drâa-Tafilalet", "PME", "prospect", "SARL", "IS", "cheque", "salon", "Maroc", null));
 clientsData.push(makeClient(100, "CL-0100", "Lagouira Construction SARL", "Lagouira Const.", villesDakhla[2], "Dakhla-Oued Ed Dahab", "PME", "prospect", "SARL", "IS", "virement", "prospection", "Maroc", null));
 
-console.log(`Prepared ${clientsData.length} clients.`);
-console.log(`  - Grands comptes: ${clientsData.filter(c => c.categorie === "grand_compte").length}`);
-console.log(`  - PME: ${clientsData.filter(c => c.categorie === "PME").length}`);
-console.log(`  - Revendeurs: ${clientsData.filter(c => c.categorie === "revendeur").length}`);
-console.log(`  - Particuliers: ${clientsData.filter(c => c.categorie === "particulier").length}`);
-console.log(`  - Export: ${clientsData.filter(c => c.categorie === "export").length}`);
-console.log(`  - Prospects: ${clientsData.filter(c => c.statut === "prospect").length}`);
+// ─── CLIENT CONTACT NAMES (French-Moroccan pool) ────────────────────────────
+const prenomsHomme = [
+  "Mohammed", "Ahmed", "Youssef", "Karim", "Omar", "Rachid", "Hassan", "Mehdi",
+  "Hamza", "Amine", "Zakaria", "Soufiane", "Adil", "Hicham", "Mustapha",
+  "Khalid", "Reda", "Ayoub", "Ilyass", "Yassine",
+];
+const prenomsFemme = [
+  "Fatima", "Nadia", "Samira", "Khadija", "Amina", "Salma", "Hajar", "Zineb",
+  "Meryem", "Rim", "Imane", "Sanaa", "Houda", "Nisrine", "Laila",
+  "Douae", "Ghita", "Ikram", "Oumaima", "Rania",
+];
+const noms = [
+  "Alaoui", "Benjelloun", "El Fassi", "Berrada", "Tazi", "Chraibi", "Amrani",
+  "Bennani", "El Idrissi", "Ouazzani", "Squalli", "Kettani", "Lahlou",
+  "Belhaj", "Fassi Fihri", "Bouzidi", "Koraichi", "Alami", "Bensalem",
+  "Hajji", "Lemrini", "Filali", "Ziani", "Doukkali", "Mouline",
+  "Rahmouni", "Senhaji", "Naciri", "Cherkaoui", "Belkadi",
+];
+const fonctions = [
+  "Directeur Général", "Directeur Technique", "Responsable Achats",
+  "Chef de Projet", "Responsable Commercial", "Gérant", "Directeur Commercial",
+  "Ingénieur Bâtiment", "Architecte", "Responsable Logistique",
+  "Chargé d'Affaires", "Directeur Financier", "Responsable Production",
+  "Conducteur de Travaux", "Chef de Chantier",
+];
 
-// ======================== MAIN SEED FUNCTION ========================
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRODUCT TRANSFORMATION HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function transformProduct(
+  p: Record<string, unknown>,
+  nature: "matiere_premiere" | "semi_fini" | "produit_fini",
+  usage: "consommation" | "vente"
+) {
+  return {
+    reference: p.reference as string,
+    designation: p.designation as string,
+    description: (p.description as string) ?? null,
+    famille: (p.famille as string) ?? null,
+    sousFamille: (p.sousFamille as string) ?? null,
+    priceHT: p.priceHT as number,
+    tvaRate: 20,
+    unit: (p.unit as string) || "unité",
+    productNature: nature,
+    productUsage: usage,
+    isStockable: true,
+    currentStock: p.currentStock as number,
+    minStock: p.minStock as number,
+    maxStock: p.maxStock as number,
+    averageCost: p.averageCost as number,
+    isActive: true,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN SEED FUNCTION
+// ═══════════════════════════════════════════════════════════════════════════════
 
 async function main() {
-  console.log("🌱 Démarrage du seeding Jazel ERP Pro - Menuiserie Aluminium & PVC...\n");
+  const startTime = Date.now();
+  console.log("🚀 Starting optimized seed: Clients, Suppliers, Products & Contacts");
+  console.log(`   DB: ${DATABASE_URL.replace(/\/\/[^:]+:[^@]+@/, "//***:***@")}`);
+  console.log("");
 
-  // ==================== CLEANUP (FK order) ====================
-  console.log("🧹 Nettoyage de la base de données...");
-  await db.paymentLine.deleteMany();
-  await db.payment.deleteMany();
-  await db.effetCheque.deleteMany();
-  await db.accountingEntry.deleteMany();
-  await db.bankTransaction.deleteMany();
-  await db.cashMovement.deleteMany();
-  await db.creditNoteLine.deleteMany();
-  await db.customerReturnLine.deleteMany();
-  await db.customerReturn.deleteMany();
-  await db.creditNote.deleteMany();
-  await db.invoiceLine.deleteMany();
-  await db.invoiceDeliveryNote.deleteMany();
-  await db.invoice.deleteMany();
-  await db.deliveryNoteLine.deleteMany();
-  await db.deliveryNote.deleteMany();
-  await db.preparationLine.deleteMany();
-  await db.preparationOrder.deleteMany();
-  await db.salesOrderLine.deleteMany();
-  await db.salesOrder.deleteMany();
-  await db.quoteLine.deleteMany();
-  await db.quote.deleteMany();
-  await db.chantier.deleteMany();
-  await db.receptionLine.deleteMany();
-  await db.reception.deleteMany();
-  await db.supplierCreditNoteLine.deleteMany();
-  await db.supplierCreditNote.deleteMany();
-  await db.supplierReturnLine.deleteMany();
-  await db.supplierReturn.deleteMany();
-  await db.supplierInvoiceLine.deleteMany();
-  await db.supplierInvoice.deleteMany();
-  await db.purchaseOrderLine.deleteMany();
-  await db.purchaseOrder.deleteMany();
-  await db.supplierQuoteLine.deleteMany();
-  await db.supplierQuote.deleteMany();
-  await db.priceRequestLine.deleteMany();
-  await db.priceRequest.deleteMany();
-  await db.stockMovement.deleteMany();
-  await db.inventoryLine.deleteMany();
-  await db.inventory.deleteMany();
-  await db.productionBatch.deleteMany();
-  await db.lotMouvement.deleteMany();
-  await db.lot.deleteMany();
-  await db.qualityControlLine.deleteMany();
-  await db.qualityControl.deleteMany();
-  await db.workOrderStep.deleteMany();
-  await db.workOrder.deleteMany();
-  await db.routingStep.deleteMany();
-  await db.bomComponent.deleteMany();
-  await db.product.deleteMany();
-  await db.workStation.deleteMany();
-  await db.equipement.deleteMany();
-  await db.planMaintenance.deleteMany();
-  await db.ordreTravailMaintenance.deleteMany();
-  await db.oTMPiece.deleteMany();
-  await db.supplier.deleteMany();
-  await db.clientDocument.deleteMany();
-  await db.clientContact.deleteMany();
-  await db.client.deleteMany();
-  await db.employee.deleteMany();
-  await db.employeeFunction.deleteMany();
-  await db.notification.deleteMany();
-  await db.conversationParticipant.deleteMany();
-  await db.message.deleteMany();
-  await db.conversation.deleteMany();
-  await db.auditLog.deleteMany();
-  await db.setting.deleteMany();
-  await db.paymentCodeCounter.deleteMany();
-  await db.user.deleteMany();
-  await db.rolePermission.deleteMany();
-  await db.role.deleteMany();
-  await db.cashRegister.deleteMany();
-  await db.bankAccount.deleteMany();
-  await db.chequeTemplateField.deleteMany();
-  await db.chequeTemplate.deleteMany();
-  console.log("✅ Nettoyage terminé.\n");
+  // ─── Step 1: DELETE existing data in FK order ──────────────────────────────
+  console.log("🗑️  Step 1: Deleting existing data in FK order...");
 
-  // ==================== ROLES & PERMISSIONS ====================
-  console.log("🔑 Création des rôles et permissions...");
-  const createdRoles: Record<string, string> = {};
-  for (const r of rolesData) {
-    const role = await db.role.create({ data: r });
-    createdRoles[r.name] = role.id;
-    console.log(`   ✓ Rôle: ${r.label}`);
-  }
-  for (const [roleName, perms] of Object.entries(permissionsMap)) {
-    const roleId = createdRoles[roleName];
-    if (roleId) {
-      await db.rolePermission.createMany({
-        data: perms.map((p) => ({ roleId, permission: p })),
+  // Level 1: Client-dependent records
+  const delClientLevel = await prisma.$transaction([
+    prisma.clientContact.deleteMany(),
+    prisma.clientDocument.deleteMany(),
+    prisma.chantier.deleteMany(),
+  ]);
+  console.log(`   ✓ Deleted client-dependent records: ${delClientLevel[0].count + delClientLevel[1].count + delClientLevel[2].count} rows`);
+
+  // Level 2: Sales records (Client + Product dependent)
+  const delSalesLevel = await prisma.$transaction([
+    prisma.quoteLine.deleteMany(),
+    prisma.quote.deleteMany(),
+    prisma.salesOrderLine.deleteMany(),
+    prisma.salesOrder.deleteMany(),
+    prisma.invoiceLine.deleteMany(),
+    prisma.invoice.deleteMany(),
+    prisma.creditNoteLine.deleteMany(),
+    prisma.creditNote.deleteMany(),
+    prisma.deliveryNoteLine.deleteMany(),
+    prisma.deliveryNote.deleteMany(),
+    prisma.customerReturnLine.deleteMany(),
+    prisma.customerReturn.deleteMany(),
+  ]);
+  const salesTotal = delSalesLevel.reduce((sum, r) => sum + r.count, 0);
+  console.log(`   ✓ Deleted sales records: ${salesTotal} rows`);
+
+  // Level 3: Purchase records (Supplier + Product dependent)
+  const delPurchaseLevel = await prisma.$transaction([
+    prisma.purchaseOrderLine.deleteMany(),
+    prisma.purchaseOrder.deleteMany(),
+    prisma.supplierQuoteLine.deleteMany(),
+    prisma.supplierQuote.deleteMany(),
+    prisma.supplierInvoiceLine.deleteMany(),
+    prisma.supplierInvoice.deleteMany(),
+    prisma.supplierReturnLine.deleteMany(),
+    prisma.supplierReturn.deleteMany(),
+    prisma.supplierCreditNoteLine.deleteMany(),
+    prisma.supplierCreditNote.deleteMany(),
+    prisma.receptionLine.deleteMany(),
+    prisma.reception.deleteMany(),
+    prisma.priceRequestLine.deleteMany(),
+    prisma.priceRequest.deleteMany(),
+  ]);
+  const purchaseTotal = delPurchaseLevel.reduce((sum, r) => sum + r.count, 0);
+  console.log(`   ✓ Deleted purchase records: ${purchaseTotal} rows`);
+
+  // Level 4: Product-dependent records
+  const delProductLevel = await prisma.$transaction([
+    prisma.stockMovement.deleteMany(),
+    prisma.inventoryLine.deleteMany(),
+    prisma.inventory.deleteMany(),
+    prisma.productionBatch.deleteMany(),
+    prisma.lotMouvement.deleteMany(),
+    prisma.lot.deleteMany(),
+    prisma.qualityControlLine.deleteMany(),
+    prisma.qualityControl.deleteMany(),
+    prisma.workOrderStep.deleteMany(),
+    prisma.workOrder.deleteMany(),
+    prisma.routingStep.deleteMany(),
+    prisma.bomComponent.deleteMany(),
+    prisma.preparationLine.deleteMany(),
+  ]);
+  const productLevelTotal = delProductLevel.reduce((sum, r) => sum + r.count, 0);
+  console.log(`   ✓ Deleted product-dependent records: ${productLevelTotal} rows`);
+
+  // Level 5: Core entities
+  const delCore = await prisma.$transaction([
+    prisma.product.deleteMany(),
+    prisma.supplier.deleteMany(),
+    prisma.client.deleteMany(),
+  ]);
+  console.log(`   ✓ Deleted core: ${delCore[0].count} products, ${delCore[1].count} suppliers, ${delCore[2].count} clients`);
+  console.log("");
+
+  // ─── Step 2: BUILD product payloads ─────────────────────────────────────────
+  console.log("📦 Step 2: Preparing product data...");
+
+  const productsPayload = [
+    ...matieresPremieres.map((p) => transformProduct(p, "matiere_premiere", "consommation")),
+    ...semiFinis.map((p) => transformProduct(p, "semi_fini", "consommation")),
+    ...produitsFinis.map((p) => transformProduct(p, "produit_fini", "vente")),
+  ];
+  console.log(`   Total products: ${productsPayload.length} (${matieresPremieres.length} MP + ${semiFinis.length} SF + ${produitsFinis.length} PF)`);
+
+  // ─── Step 3: BUILD supplier payload ──────────────────────────────────────────
+  console.log("📦 Step 3: Preparing supplier data...");
+
+  const suppliersPayload = suppliersData.map((s) => ({
+    code: s.code,
+    name: s.name,
+    siret: s.siret,
+    address: s.address,
+    city: s.city,
+    postalCode: s.postalCode,
+    country: s.country,
+    phone: s.phone,
+    email: s.email,
+    deliveryDelay: s.deliveryDelay,
+    paymentTerms: s.paymentTerms,
+    notes: s.notes,
+    balance: s.balance,
+    creditLimit: s.creditLimit,
+    rating: s.rating,
+  }));
+  console.log(`   Total suppliers: ${suppliersPayload.length}`);
+
+  // ─── Step 4: BUILD client payload ───────────────────────────────────────────
+  console.log("📦 Step 4: Preparing client data...");
+  console.log(`   Total clients: ${clientsData.length}`);
+  console.log(`     - Grands comptes: ${clientsData.filter((c) => c.categorie === "grand_compte").length}`);
+  console.log(`     - PME: ${clientsData.filter((c) => c.categorie === "PME").length}`);
+  console.log(`     - Revendeurs: ${clientsData.filter((c) => c.categorie === "revendeur").length}`);
+  console.log(`     - Particuliers: ${clientsData.filter((c) => c.categorie === "particulier").length}`);
+  console.log(`     - Export: ${clientsData.filter((c) => c.categorie === "export").length}`);
+
+  // ─── Step 5: INSERT all data ───────────────────────────────────────────────
+  console.log("");
+  console.log("💾 Step 5: Bulk inserting data...");
+
+  await prisma.$transaction(async (tx) => {
+    // 5a. Insert Products
+    console.log("   Inserting products...");
+    const productResult = await tx.product.createMany({
+      data: productsPayload,
+      skipDuplicates: true,
+    });
+    console.log(`   ✓ Products inserted: ${productResult.count}`);
+
+    // 5b. Insert Suppliers
+    console.log("   Inserting suppliers...");
+    const supplierResult = await tx.supplier.createMany({
+      data: suppliersPayload,
+      skipDuplicates: true,
+    });
+    console.log(`   ✓ Suppliers inserted: ${supplierResult.count}`);
+
+    // 5c. Insert Clients
+    console.log("   Inserting clients...");
+    const clientResult = await tx.client.createMany({
+      data: clientsData,
+      skipDuplicates: true,
+    });
+    console.log(`   ✓ Clients inserted: ${clientResult.count}`);
+
+    // 5d. Fetch inserted clients to get their IDs for contacts
+    console.log("   Fetching client IDs for contact generation...");
+    const insertedClients = await tx.client.findMany({
+      select: { id: true, code: true, email: true },
+      orderBy: { code: "asc" },
+    });
+    console.log(`   ✓ Found ${insertedClients.length} clients`);
+
+    // 5e. Generate and insert ClientContacts
+    console.log("   Generating client contacts...");
+    const clientById = new Map(insertedClients.map((c) => [c.code, c]));
+    const contactsData: { clientId: string; type: "principal" | "commercial"; nom: string; prenom: string; fonction: string; telephoneDirect: string; email: string }[] = [];
+
+    for (const client of insertedClients) {
+      // Every client gets at least 1 principal contact
+      const isHomme = Math.random() > 0.35;
+      const prenom = isHomme ? pickRandom(prenomsHomme) : pickRandom(prenomsFemme);
+      const nom = pickRandom(noms);
+      const fonct = pickRandom(fonctions);
+      const emailClean = `${prenom.toLowerCase().replace(/'/g, "")}.${nom.toLowerCase()}`.slice(0, 25);
+      const emailBase = client.email?.split("@")[1] || "gmail.com";
+
+      contactsData.push({
+        clientId: client.id,
+        type: "principal",
+        nom,
+        prenom,
+        fonction: fonct,
+        telephoneDirect: `06${String(rnd(10000000, 99999999))}`,
+        email: `${emailClean}@${emailBase}`,
       });
+
+      // ~60% of clients get a second commercial contact
+      if (Math.random() > 0.4) {
+        const prenom2 = pickRandom(Math.random() > 0.5 ? prenomsHomme : prenomsFemme);
+        const nom2 = pickRandom(noms);
+        const emailClean2 = `${prenom2.toLowerCase().replace(/'/g, "")}.${nom2.toLowerCase()}`.slice(0, 25);
+
+        contactsData.push({
+          clientId: client.id,
+          type: "commercial",
+          nom: nom2,
+          prenom: prenom2,
+          fonction: pickRandom(["Responsable Commercial", "Chargé d'Affaires", "Responsable Achats", "Directeur Technique"]),
+          telephoneDirect: `06${String(rnd(10000000, 99999999))}`,
+          email: `${emailClean2}@${emailBase}`,
+        });
+      }
     }
-  }
-  console.log(`✅ ${rolesData.length} rôles créés avec permissions.\n`);
 
-  // ==================== USERS ====================
-  console.log("👤 Création des utilisateurs...");
-  for (const u of usersData) {
-    const roleId = createdRoles[u.role];
-    await db.user.create({
-      data: {
-        email: u.email,
-        passwordHash: hashPassword("Jazel2025!"),
-        name: u.name,
-        role: u.role,
-        phone: u.phone,
-        isSuperAdmin: u.isSuperAdmin || false,
-        roleId,
-      },
-    });
-    console.log(`   ✓ Utilisateur: ${u.name} (${u.email})`);
-  }
-  console.log(`✅ ${usersData.length} utilisateurs créés.\n`);
+    console.log(`   Inserting ${contactsData.length} client contacts...`);
+    // Batch insert in chunks of 50 to avoid query size limits
+    const CHUNK = 50;
+    let totalContactsInserted = 0;
+    for (let i = 0; i < contactsData.length; i += CHUNK) {
+      const chunk = contactsData.slice(i, i + CHUNK);
+      const result = await tx.clientContact.createMany({
+        data: chunk,
+        skipDuplicates: true,
+      });
+      totalContactsInserted += result.count;
+    }
+    console.log(`   ✓ Client contacts inserted: ${totalContactsInserted}`);
+  }, { timeout: 120000 });
 
-  // ==================== SETTINGS ====================
-  console.log("⚙️ Création des paramètres...");
-  await db.setting.createMany({ data: settingsData });
-  console.log(`✅ ${settingsData.length} paramètres créés.\n`);
-
-  // ==================== FINANCE ====================
-  console.log("🏦 Création des comptes financiers...");
-  const caisse = await db.cashRegister.create({
-    data: { name: "Caisse Principale", description: "Caisse principale de l'entreprise", balance: 50000, minBalance: 5000 },
-  });
-  await db.cashRegister.create({
-    data: { name: "Caisse Chantier", description: "Caisse dédiée aux dépenses de chantier", balance: 10000, minBalance: 2000 },
-  });
-  await db.bankAccount.create({
-    data: {
-      name: "Attijariwafa Bank - Compte Courant",
-      iban: "MA76 0000 0000 0000 0000 0000 000",
-      bic: "BCMAMAMC",
-      balance: 250000,
-      statementBalance: 260000,
-    },
-  });
-  await db.bankAccount.create({
-    data: {
-      name: "BMCE Bank - Compte Épargne",
-      iban: "MA76 1111 2222 3333 4444 5555 666",
-      bic: "BMCEMAMC",
-      balance: 100000,
-      statementBalance: 105000,
-    },
-  });
-  console.log("✅ Comptes financiers créés.\n");
-
-  // ==================== EMPLOYEE FUNCTIONS ====================
-  console.log("👔 Création des fonctions employés...");
-  const fnCom = await db.employeeFunction.create({ data: { name: "Commercial", description: "Responsable commercial et prospection" } });
-  await db.employeeFunction.create({ data: { name: "Magasinier", description: "Gestionnaire de stock et réceptions" } });
-  await db.employeeFunction.create({ data: { name: "Opérateur Production", description: "Opérateur de fabrication menuiserie" } });
-  await db.employeeFunction.create({ data: { name: "Chef Production", description: "Responsable de la production" } });
-  await db.employeeFunction.create({ data: { name: "Comptable", description: "Gestion comptable et financière" } });
-  await db.employeeFunction.create({ data: { name: "Acheteur", description: "Responsable des achats" } });
-  await db.employeeFunction.create({ data: { name: "Directeur", description: "Direction générale" } });
-  console.log("✅ Fonctions employés créées.\n");
-
-  // ==================== EMPLOYEES ====================
-  console.log("👥 Création des employés...");
-  const empCom1 = await db.employee.create({
-    data: { matricule: "EMP-001", firstName: "Ahmed", lastName: "Bennani", phone: "0661-100001", email: "ahmed@jazel.ma", city: "Casablanca", fonctionId: fnCom.id, department: "Commercial", salaryBase: 8000, dateEmbauche: new Date("2020-03-15") },
-  });
-  const empCom2 = await db.employee.create({
-    data: { matricule: "EMP-002", firstName: "Sara", lastName: "Mansouri", phone: "0661-100010", email: "sara@jazel.ma", city: "Casablanca", fonctionId: fnCom.id, department: "Commercial", salaryBase: 7500, dateEmbauche: new Date("2021-06-01"), gender: "F" },
-  });
-  const empMag1 = await db.employee.create({
-    data: { matricule: "EMP-003", firstName: "Karim", lastName: "El Idrissi", phone: "0661-100002", email: "karim@jazel.ma", city: "Mohammedia", fonctionId: null, department: "Stock", salaryBase: 6500, dateEmbauche: new Date("2019-01-10") },
-  });
-  await db.employee.create({
-    data: { matricule: "EMP-004", firstName: "Youssef", lastName: "Amrani", phone: "0661-100003", email: "youssef@jazel.ma", city: "Casablanca", fonctionId: null, department: "Production", salaryBase: 7000, dateEmbauche: new Date("2018-09-20") },
-  });
-  await db.employee.create({
-    data: { matricule: "EMP-005", firstName: "Rachid", lastName: "Tazi", phone: "0661-100004", email: "rachid@jazel.ma", city: "Casablanca", fonctionId: null, department: "Achats", salaryBase: 7500, dateEmbauche: new Date("2020-05-15") },
-  });
-  console.log("✅ 5 employés créés.\n");
-
-  // ==================== PRODUCTS ====================
-  console.log("📦 Création des produits...");
-  const productIds: Record<string, string> = {};
-
-  // Matières Premières
-  for (const p of matieresPremieres) {
-    const prod = await db.product.create({
-      data: {
-        reference: p.reference, designation: p.designation, description: p.description,
-        famille: p.famille, sousFamille: p.sousFamille,
-        priceHT: p.priceHT, tvaRate: 20, unit: p.unit || "unité",
-        productNature: "matiere_premiere", productUsage: "consommation",
-        isStockable: true, currentStock: p.currentStock, minStock: p.minStock,
-        maxStock: p.maxStock, averageCost: p.averageCost, isActive: true,
-      },
-    });
-    productIds[p.reference] = prod.id;
-  }
-  console.log(`   ✓ ${matieresPremieres.length} matières premières créées`);
-
-  // Semi-Finis
-  for (const p of semiFinis) {
-    const prod = await db.product.create({
-      data: {
-        reference: p.reference, designation: p.designation, description: p.description,
-        famille: p.famille, sousFamille: p.sousFamille,
-        priceHT: p.priceHT, tvaRate: 20, unit: p.unit || "unité",
-        productNature: "semi_fini", productUsage: "consommation",
-        isStockable: true, currentStock: p.currentStock, minStock: p.minStock,
-        maxStock: p.maxStock, averageCost: p.averageCost, isActive: true,
-      },
-    });
-    productIds[p.reference] = prod.id;
-  }
-  console.log(`   ✓ ${semiFinis.length} semi-finis créés`);
-
-  // Produits Finis
-  for (const p of produitsFinis) {
-    const prod = await db.product.create({
-      data: {
-        reference: p.reference, designation: p.designation, description: p.description,
-        famille: p.famille, sousFamille: p.sousFamille,
-        priceHT: p.priceHT, tvaRate: 20, unit: p.unit || "unité",
-        productNature: "produit_fini", productUsage: "vente",
-        isStockable: true, currentStock: p.currentStock, minStock: p.minStock,
-        maxStock: p.maxStock, averageCost: p.averageCost, isActive: true,
-      },
-    });
-    productIds[p.reference] = prod.id;
-  }
-  console.log(`   ✓ ${produitsFinis.length} produits finis créés`);
-  console.log(`✅ Total: ${matieresPremieres.length + semiFinis.length + produitsFinis.length} produits créés.\n`);
-
-  // ==================== SUPPLIERS ====================
-  console.log("🏭 Création des fournisseurs...");
-  for (const s of suppliersData) {
-    await db.supplier.create({ data: s });
-  }
-  console.log(`✅ ${suppliersData.length} fournisseurs créés.\n`);
-
-  // ==================== CLIENTS ====================
-  console.log("👥 Création des clients...");
-  const clientIds: Record<string, string> = {};
-  for (let i = 0; i < clientsData.length; i++) {
-    const c = clientsData[i];
-    const client = await db.client.create({
-      data: {
-        code: c.code,
-        name: c.name,
-        siret: c.siret,
-        address: c.address,
-        city: c.city,
-        postalCode: c.postalCode,
-        phone: c.phone,
-        country: c.country,
-        creditLimit: c.creditLimit,
-        paymentTerms: c.paymentTerms,
-        balance: c.balance,
-        notes: c.notes,
-        raisonSociale: c.raisonSociale,
-        nomCommercial: c.nomCommercial,
-        ice: c.ice,
-        patente: c.patente,
-        cnss: c.cnss,
-        identifiantFiscal: c.identifiantFiscal,
-        registreCommerce: c.registreCommerce,
-        villeRC: c.villeRC,
-        formeJuridique: c.formeJuridique,
-        dateCreation: c.dateCreation,
-        adresse: c.adresse,
-        codePostal: c.codePostal,
-        ville: c.ville,
-        provincePrefecture: c.provincePrefecture,
-        telephone: c.telephone,
-        gsm: c.gsm,
-        email: c.email,
-        emailSecondaire: c.emailSecondaire,
-        siteWeb: c.siteWeb,
-        langueCommunication: c.langueCommunication,
-        conditionsPaiement: c.conditionsPaiement,
-        modeReglementPrefere: c.modeReglementPrefere,
-        escompte: c.escompte,
-        remisePermanente: c.remisePermanente,
-        baremePrix: c.baremePrix,
-        seuilCredit: c.seuilCredit,
-        delaiLivraison: c.delaiLivraison,
-        transporteurPrefere: c.transporteurPrefere,
-        incoterm: c.incoterm,
-        tauxTva: c.tauxTva,
-        codeComptableClient: c.codeComptableClient,
-        modeFacturation: c.modeFacturation,
-        emailFacturation: c.emailFacturation,
-        regimeFiscal: c.regimeFiscal,
-        datePremierAchat: c.datePremierAchat,
-        dateDernierAchat: c.dateDernierAchat,
-        caTotalHT: c.caTotalHT,
-        nbCommandes: c.nbCommandes,
-        panierMoyen: c.panierMoyen,
-        tauxRetour: c.tauxRetour,
-        dernierDevisDate: c.dernierDevisDate,
-        dernierDevisMontant: c.dernierDevisMontant,
-        dernierDevisStatut: c.dernierDevisStatut,
-        derniereFactureDate: c.derniereFactureDate,
-        derniereFactureMontant: c.derniereFactureMontant,
-        statutPaiement: c.statutPaiement,
-        typeSociete: c.typeSociete,
-        statut: c.statut,
-        categorie: c.categorie,
-        priorite: c.priorite,
-        origineProspect: c.origineProspect,
-        commentairesInternes: c.commentairesInternes,
-        nbImpayes: c.nbImpayes,
-        delaiMoyenPaiement: c.delaiMoyenPaiement,
-        alerteImpaye: c.alerteImpaye,
-        certificationsRequises: c.certificationsRequises,
-        seuilLotMinimal: c.seuilLotMinimal,
-        frequenceReporting: c.frequenceReporting,
-        commercialId: i % 2 === 0 ? empCom1.id : empCom2.id,
-      },
-    });
-    clientIds[c.code] = client.id;
-  }
-  console.log(`✅ ${clientsData.length} clients créés.\n`);
-
-  // ==================== WORKSTATIONS ====================
-  console.log("🔧 Création des postes de travail...");
-  const wsIds: Record<string, string> = {};
-  for (const ws of workStationsData) {
-    const station = await db.workStation.create({ data: ws });
-    wsIds[ws.name] = station.id;
-  }
-  console.log(`✅ ${workStationsData.length} postes de travail créés.\n`);
-
-  // ==================== BOMs (Nomenclatures) ====================
-  console.log("📋 Création des nomenclatures (BOMs)...");
-
-  // BOM: Fenêtre alu coulissante 120x120 (PF-001)
-  const bomPF001 = [
-    { component: "MP-001", qty: 4.8 },   // Profilé coulissant série 6000: 4x120cm + coupes
-    { component: "MP-004", qty: 2.4 },   // Profilé dormant: 2x120cm
-    { component: "MP-006", qty: 1.2 },   // Traverse basse
-    { component: "MP-009", qty: 1.2 },   // Seuil
-    { component: "MP-014", qty: 1.44 },  // Double vitrage 4/16/4 (1.2 x 1.2 m²)
-    { component: "MP-021", qty: 2 },     // Poignée aluminium
-    { component: "MP-026", qty: 4 },     // Galet coulissant
-    { component: "MP-030", qty: 9.6 },  // Joint EPDM 6mm (périmètre)
-    { component: "MP-034", qty: 1 },     // Vis A2 inox lot 100
-    { component: "MP-035", qty: 1 },     // Cheville nylon lot 50
-  ];
-  for (const item of bomPF001) {
-    await db.bomComponent.create({
-      data: { bomId: productIds["PF-001"], componentId: productIds[item.component], quantity: item.qty, notes: `Composant pour PF-001` },
-    });
-  }
-
-  // BOM: Fenêtre PVC oscillo-battante 120x120 (PF-014)
-  const bomPF014 = [
-    { component: "MP-011", qty: 4.8 },   // Profilé PVC 5 chambres
-    { component: "MP-013", qty: 4.8 },   // Renfort acier PVC
-    { component: "MP-014", qty: 1.44 },  // Double vitrage
-    { component: "MP-022", qty: 2 },     // Poignée PVC
-    { component: "MP-023", qty: 1 },     // Crémone ROTO
-    { component: "MP-025", qty: 1 },     // Ferrure oscillo-battant MACO
-    { component: "MP-031", qty: 9.6 },  // Joint EPDM 10mm
-    { component: "MP-034", qty: 1 },     // Vis
-  ];
-  for (const item of bomPF014) {
-    await db.bomComponent.create({
-      data: { bomId: productIds["PF-014"], componentId: productIds[item.component], quantity: item.qty, notes: `Composant pour PF-014` },
-    });
-  }
-
-  // BOM: Porte d'entrée aluminium 90x210 (PF-017)
-  const bomPF017 = [
-    { component: "MP-005", qty: 6.0 },   // Profilé battant série 7000
-    { component: "MP-007", qty: 0.9 },   // Traverse haute
-    { component: "MP-009", qty: 0.9 },   // Seuil
-    { component: "MP-014", qty: 1.35 },  // Double vitrage (partie supérieure)
-    { component: "MP-021", qty: 1 },      // Poignée aluminium
-    { component: "MP-027", qty: 1 },      // Verrou multipoint
-    { component: "MP-029", qty: 3 },      // Charnière invisible
-    { component: "MP-030", qty: 12 },     // Joint EPDM 6mm
-    { component: "MP-033", qty: 1 },      // Silicone neutre
-    { component: "MP-034", qty: 1 },      // Vis
-  ];
-  for (const item of bomPF017) {
-    await db.bomComponent.create({
-      data: { bomId: productIds["PF-017"], componentId: productIds[item.component], quantity: item.qty, notes: `Composant pour PF-017` },
-    });
-  }
-
-  // BOM: Volet roulant alvéolaire 120x120 (PF-030)
-  const bomPF030 = [
-    { component: "MP-001", qty: 2.4 },   // Profilé coulissant (coffret)
-    { component: "MP-006", qty: 1.2 },   // Traverse basse
-    { component: "MP-026", qty: 2 },     // Galet coulissant
-    { component: "MP-032", qty: 1 },     // Mousse PU expansif
-    { component: "MP-034", qty: 1 },     // Vis
-  ];
-  for (const item of bomPF030) {
-    await db.bomComponent.create({
-      data: { bomId: productIds["PF-030"], componentId: productIds[item.component], quantity: item.qty, notes: `Composant pour PF-030` },
-    });
-  }
-  console.log(`✅ 4 BOMs créés (${bomPF001.length + bomPF014.length + bomPF017.length + bomPF030.length} composants total).\n`);
-
-  // ==================== ROUTINGS (Gammes de fabrication) ====================
-  console.log("🔄 Création des gammes de fabrication...");
-
-  // Routing: Fenêtre alu coulissante 120x120
-  const routingPF001 = [
-    { ws: "Coupe profilé", order: 1, dur: 15, desc: "Coupe des profilés aluminium selon cotes de fabrication 120x120" },
-    { ws: "Assemblage cadre", order: 2, dur: 20, desc: "Assemblage cadre aluminium par système coupé-collé" },
-    { ws: "Montage vitrage", order: 3, dur: 15, desc: "Pose du double vitrage sur cadre avec cales et garnitures" },
-    { ws: "Pose quincaillerie", order: 4, dur: 10, desc: "Installation poignées, galets coulissants et joints" },
-    { ws: "Contrôle qualité", order: 5, dur: 10, desc: "Vérification dimensions, étanchéité, fonctionnement" },
-    { ws: "Emballage", order: 6, dur: 5, desc: "Protection et emballage pour transport" },
-  ];
-  for (const r of routingPF001) {
-    await db.routingStep.create({
-      data: { productId: productIds["PF-001"], workStationId: wsIds[r.ws], stepOrder: r.order, duration: r.dur, description: r.desc },
-    });
-  }
-
-  // Routing: Fenêtre PVC oscillo-battante 120x120
-  const routingPF014 = [
-    { ws: "Coupe profilé", order: 1, dur: 15, desc: "Coupe des profilés PVC et renforts acier" },
-    { ws: "Soudure PVC", order: 2, dur: 20, desc: "Soudure des angles du cadre PVC par thermosoudure 260°C" },
-    { ws: "Montage vitrage", order: 3, dur: 15, desc: "Pose du double vitrage sur cadre PVC soudé" },
-    { ws: "Pose quincaillerie", order: 4, dur: 12, desc: "Installation crémone ROTO, ferrure MACO et poignée PVC" },
-    { ws: "Contrôle qualité", order: 5, dur: 10, desc: "Tests étanchéité air/eau/vent, contrôle visuel" },
-    { ws: "Emballage", order: 6, dur: 5, desc: "Emballage avec protection angles et film" },
-  ];
-  for (const r of routingPF014) {
-    await db.routingStep.create({
-      data: { productId: productIds["PF-014"], workStationId: wsIds[r.ws], stepOrder: r.order, duration: r.dur, description: r.desc },
-    });
-  }
-
-  // Routing: Porte d'entrée aluminium
-  const routingPF017 = [
-    { ws: "Coupe profilé", order: 1, dur: 18, desc: "Coupe profilés battants et traverses pour porte 90x210" },
-    { ws: "Assemblage cadre", order: 2, dur: 25, desc: "Assemblage du cadre de porte aluminium" },
-    { ws: "Montage vitrage", order: 3, dur: 12, desc: "Pose vitrage partie supérieure de la porte" },
-    { ws: "Pose quincaillerie", order: 4, dur: 15, desc: "Installation verrou multipoint, charnières invisibles, poignée" },
-    { ws: "Contrôle qualité", order: 5, dur: 12, desc: "Test fermeture, verrouillage, isolation, aspect" },
-    { ws: "Emballage", order: 6, dur: 8, desc: "Emballage renforcé avec protections multiples" },
-  ];
-  for (const r of routingPF017) {
-    await db.routingStep.create({
-      data: { productId: productIds["PF-017"], workStationId: wsIds[r.ws], stepOrder: r.order, duration: r.dur, description: r.desc },
-    });
-  }
-  console.log(`✅ 3 gammes de fabrication créées (${routingPF001.length + routingPF014.length + routingPF017.length} étapes total).\n`);
-
-  // ==================== SAMPLE COMMERCIAL DOCUMENTS ====================
-  console.log("📄 Création des documents commerciaux exemples...");
-
-  // ---- CHANTIERS (Sites de livraison) ----
-  const chantier1 = await db.chantier.create({
-    data: {
-      clientId: clientIds["CL-0001"],
-      nomProjet: "Résidence Les Jardins de Casablanca - Phase 2",
-      adresse: "45, Bd Zerktouni",
-      ville: "Casablanca",
-      codePostal: "20100",
-      provincePrefecture: "Casablanca-Settat",
-      responsableNom: "M. Laurent Martin",
-      responsableFonction: "Chef de projet",
-      telephone: "0522-35-40-40",
-      gsm: "0661-200001",
-      notes: "Résidence haut standing, 120 appartements. Livraison échelonnée sur 6 mois.",
-      actif: true,
-    },
-  });
-  const chantier2 = await db.chantier.create({
-    data: {
-      clientId: clientIds["CL-0006"],
-      nomProjet: "Hôtel Palais Marrakech",
-      adresse: "Route de Ouarzazate, Km 3",
-      ville: "Marrakech",
-      codePostal: "40000",
-      provincePrefecture: "Marrakech-Safi",
-      responsableNom: "M. Philippe Dubois",
-      responsableFonction: "Directeur travaux",
-      telephone: "0524-42-33-44",
-      gsm: "0661-300001",
-      notes: "Hôtel 5 étoiles, 80 chambres. Menuiserie aluminium haut de gamme.",
-      actif: true,
-    },
-  });
-  const chantier3 = await db.chantier.create({
-    data: {
-      clientId: clientIds["CL-0002"],
-      nomProjet: "Centre Commercial Anfa Plaza",
-      adresse: "Bd Anfa,angle Bd Corniche",
-      ville: "Casablanca",
-      codePostal: "20100",
-      provincePrefecture: "Casablanca-Settat",
-      responsableNom: "Mme Catherine Moreau",
-      responsableFonction: "Responsable achats",
-      telephone: "0522-28-55-66",
-      gsm: "0661-400001",
-      notes: "Centre commercial nouvelle génération. Façades aluminium et cloisons.",
-      actif: true,
-    },
-  });
-  console.log(`   ✓ 3 chantiers créés`);
-
-  // ---- DEVIS (Quotes) ----
-  // Devis 1: CGI Bâtiment - Résidence (grand compte)
-  const quoteDate1 = new Date("2025-01-02T10:00:00.000Z");
-  const quote1Lines = [
-    { productId: productIds["PF-001"], qty: 48, price: 1850, tva: 20 },
-    { productId: productIds["PF-002"], qty: 32, price: 2150, tva: 20 },
-    { productId: productIds["PF-006"], qty: 24, price: 1650, tva: 20 },
-    { productId: productIds["PF-030"], qty: 100, price: 2200, tva: 20 },
-    { productId: productIds["PF-035"], qty: 100, price: 650, tva: 20 },
-  ];
-  const totalHT1 = quote1Lines.reduce((s, l) => s + l.qty * l.price, 0);
-  const quote1 = await db.quote.create({
-    data: {
-      number: "DEV-2025-0001",
-      clientId: clientIds["CL-0001"],
-      status: "accepted",
-      date: quoteDate1,
-      validUntil: new Date("2025-02-15T00:00:00.000Z"),
-      discountRate: 5,
-      totalHT: totalHT1,
-      totalTVA: totalHT1 * 0.2,
-      totalTTC: totalHT1 * 1.2,
-      notes: "Devis pour Résidence Les Jardins Phase 2. Remise 5% accordée pour volume. Livraison échelonnée.",
-    },
-  });
-  for (const l of quote1Lines) {
-    await db.quoteLine.create({
-      data: {
-        quoteId: quote1.id, productId: l.productId, quantity: l.qty,
-        unitPrice: l.price, tvaRate: l.tva, totalHT: l.qty * l.price,
-      },
-    });
-  }
-
-  // Devis 2: Marrakech Prestige - Hôtel
-  const quote2Lines = [
-    { productId: productIds["PF-017"], qty: 80, price: 3500, tva: 20 },
-    { productId: productIds["PF-019"], qty: 2, price: 5200, tva: 20 },
-    { productId: productIds["PF-027"], qty: 1, price: 10500, tva: 20 },
-    { productId: productIds["PF-044"], qty: 12, price: 4500, tva: 20 },
-    { productId: productIds["PF-046"], qty: 8, price: 6800, tva: 20 },
-  ];
-  const totalHT2 = quote2Lines.reduce((s, l) => s + l.qty * l.price, 0);
-  const quote2 = await db.quote.create({
-    data: {
-      number: "DEV-2025-0002",
-      clientId: clientIds["CL-0006"],
-      status: "sent",
-      date: new Date("2025-01-05T09:00:00.000Z"),
-      validUntil: new Date("2025-02-20T00:00:00.000Z"),
-      totalHT: totalHT2,
-      totalTVA: totalHT2 * 0.2,
-      totalTTC: totalHT2 * 1.2,
-      notes: "Devis Hôtel Palais Marrakech. Portes d'entrée aluminium premium et baies vitrées.",
-    },
-  });
-  for (const l of quote2Lines) {
-    await db.quoteLine.create({
-      data: {
-        quoteId: quote2.id, productId: l.productId, quantity: l.qty,
-        unitPrice: l.price, tvaRate: l.tva, totalHT: l.qty * l.price,
-      },
-    });
-  }
-
-  // Devis 3: Particulier - M. Alaoui (petite commande)
-  const quote3Lines = [
-    { productId: productIds["PF-014"], qty: 4, price: 1380, tva: 20 },
-    { productId: productIds["PF-048"], qty: 2, price: 3800, tva: 20 },
-    { productId: productIds["PF-035"], qty: 6, price: 650, tva: 20 },
-  ];
-  const totalHT3 = quote3Lines.reduce((s, l) => s + l.qty * l.price, 0);
-  const quote3 = await db.quote.create({
-    data: {
-      number: "DEV-2025-0003",
-      clientId: clientIds["CL-0076"],
-      status: "draft",
-      date: new Date("2025-01-10T14:00:00.000Z"),
-      validUntil: new Date("2025-02-10T00:00:00.000Z"),
-      totalHT: totalHT3,
-      totalTVA: totalHT3 * 0.2,
-      totalTTC: totalHT3 * 1.2,
-      notes: "Devis pour villa individuelle M. Alaoui. Fenêtres PVC et cabines de douche.",
-    },
-  });
-  for (const l of quote3Lines) {
-    await db.quoteLine.create({
-      data: {
-        quoteId: quote3.id, productId: l.productId, quantity: l.qty,
-        unitPrice: l.price, tvaRate: l.tva, totalHT: l.qty * l.price,
-      },
-    });
-  }
-  console.log(`   ✓ 3 devis créés (DEV-2025-0001: accepté, DEV-2025-0002: envoyé, DEV-2025-0003: brouillon)`);
-
-  // ---- BONS DE COMMANDE (Sales Orders) ----
-  // BC 1: Converti du devis 1 (CGI Bâtiment)
-  const so1Lines = quote1Lines.map(l => ({ ...l, totalHT: l.qty * l.price }));
-  const so1TotalHT = so1Lines.reduce((s, l) => s + l.totalHT, 0);
-  const salesOrder1 = await db.salesOrder.create({
-    data: {
-      clientOrderNumber: "BC-2025-0001",
-      quoteId: quote1.id,
-      clientId: clientIds["CL-0001"],
-      status: "confirmed",
-      date: new Date("2025-01-08T09:00:00.000Z"),
-      deliveryDate: new Date("2025-06-30T00:00:00.000Z"),
-      chantierId: chantier1.id,
-      totalHT: so1TotalHT,
-      totalTVA: so1TotalHT * 0.2,
-      totalTTC: so1TotalHT * 1.2,
-      notes: "Commande confirmée pour Résidence Les Jardins Phase 2. Livraison par lots.",
-    },
-  });
-  for (const l of so1Lines) {
-    await db.salesOrderLine.create({
-      data: {
-        orderId: salesOrder1.id, productId: l.productId, quantity: l.qty,
-        unitPrice: l.price, tvaRate: l.tva, totalHT: l.totalHT,
-      },
-    });
-  }
-
-  // BC 2: Commande directe AluTech Distribution
-  const so2Lines = [
-    { productId: productIds["PF-001"], qty: 20, price: 1850, tva: 20, totalHT: 37000 },
-    { productId: productIds["PF-006"], qty: 15, price: 1650, tva: 20, totalHT: 24750 },
-    { productId: productIds["PF-011"], qty: 25, price: 1450, tva: 20, totalHT: 36250 },
-    { productId: productIds["PF-014"], qty: 20, price: 1380, tva: 20, totalHT: 27600 },
-  ];
-  const so2TotalHT = so2Lines.reduce((s, l) => s + l.totalHT, 0);
-  const salesOrder2 = await db.salesOrder.create({
-    data: {
-      clientOrderNumber: "BC-2025-0002",
-      clientId: clientIds["CL-0056"],
-      status: "in_preparation",
-      date: new Date("2025-01-12T10:00:00.000Z"),
-      deliveryDate: new Date("2025-02-28T00:00:00.000Z"),
-      totalHT: so2TotalHT,
-      totalTVA: so2TotalHT * 0.2,
-      totalTTC: so2TotalHT * 1.2,
-      notes: "Commande grossiste AluTech Distribution. Remise permanente 8% appliquée.",
-    },
-  });
-  for (const l of so2Lines) {
-    await db.salesOrderLine.create({
-      data: {
-        orderId: salesOrder2.id, productId: l.productId, quantity: l.qty,
-        unitPrice: l.price, tvaRate: l.tva, totalHT: l.totalHT,
-      },
-    });
-  }
-  console.log(`   ✓ 2 bons de commande créés (BC-2025-0001: confirmé, BC-2025-0002: en préparation)`);
-
-  // ---- FACTURES (Invoices) ----
-  // Facture 1: Pour BC 1 (CGI Bâtiment) - première livraison partielle
-  const inv1Lines = [
-    { productId: productIds["PF-001"], qty: 12, price: 1850, tva: 20, totalHT: 22200 },
-    { productId: productIds["PF-006"], qty: 6, price: 1650, tva: 20, totalHT: 9900 },
-    { productId: productIds["PF-030"], qty: 25, price: 2200, tva: 20, totalHT: 55000 },
-  ];
-  const inv1TotalHT = inv1Lines.reduce((s, l) => s + l.totalHT, 0);
-  const invoice1 = await db.invoice.create({
-    data: {
-      number: "FA-2025-0001",
-      salesOrderId: salesOrder1.id,
-      clientId: clientIds["CL-0001"],
-      status: "sent",
-      date: new Date("2025-01-10T08:00:00.000Z"),
-      dueDate: new Date("2025-02-25T00:00:00.000Z"),
-      discountRate: 5,
-      totalHT: inv1TotalHT,
-      totalTVA: inv1TotalHT * 0.2,
-      totalTTC: inv1TotalHT * 1.2,
-      amountPaid: 0,
-      notes: "1ère facture intermédiaire - Résidence Les Jardins Phase 2. Lot 1/4.",
-    },
-  });
-  for (const l of inv1Lines) {
-    await db.invoiceLine.create({
-      data: {
-        invoiceId: invoice1.id, productId: l.productId, quantity: l.qty,
-        unitPrice: l.price, tvaRate: l.tva, totalHT: l.totalHT,
-      },
-    });
-  }
-
-  // Facture 2: Pour Alliances Dév. (commande directe facturée)
-  const inv2Lines = [
-    { productId: productIds["PF-017"], qty: 10, price: 3500, tva: 20, totalHT: 35000 },
-    { productId: productIds["PF-025"], qty: 10, price: 1580, tva: 20, totalHT: 15800 },
-    { productId: productIds["PF-035"], qty: 20, price: 650, tva: 20, totalHT: 13000 },
-  ];
-  const inv2TotalHT = inv2Lines.reduce((s, l) => s + l.totalHT, 0);
-  const invoice2 = await db.invoice.create({
-    data: {
-      number: "FA-2025-0002",
-      clientId: clientIds["CL-0002"],
-      status: "paid",
-      date: new Date("2024-12-15T08:00:00.000Z"),
-      dueDate: new Date("2025-01-15T00:00:00.000Z"),
-      totalHT: inv2TotalHT,
-      totalTVA: inv2TotalHT * 0.2,
-      totalTTC: inv2TotalHT * 1.2,
-      amountPaid: inv2TotalHT * 1.2,
-      paymentDate: new Date("2025-01-10T00:00:00.000Z"),
-      notes: "Facture soldée - Centre Commercial Anfa Plaza. Paiement reçu par virement.",
-    },
-  });
-  for (const l of inv2Lines) {
-    await db.invoiceLine.create({
-      data: {
-        invoiceId: invoice2.id, productId: l.productId, quantity: l.qty,
-        unitPrice: l.price, tvaRate: l.tva, totalHT: l.totalHT,
-      },
-    });
-  }
-  console.log(`   ✓ 2 factures créées (FA-2025-0001: envoyée, FA-2025-0002: payée)`);
-
-  // ---- SAMPLE STOCK MOVEMENTS ----
-  console.log("📊 Création des mouvements de stock exemples...");
-  const stockMovements = [
-    { productId: productIds["MP-001"], type: "in" as const, origin: "purchase_reception" as const, qty: 200, cost: 38, ref: "RE-2025-0001" },
-    { productId: productIds["MP-014"], type: "in" as const, origin: "purchase_reception" as const, qty: 50, cost: 160, ref: "RE-2025-0002" },
-    { productId: productIds["MP-021"], type: "in" as const, origin: "purchase_reception" as const, qty: 100, cost: 38, ref: "RE-2025-0003" },
-    { productId: productIds["PF-001"], type: "in" as const, origin: "production_output" as const, qty: 5, cost: 1280, ref: "OF-2025-0001" },
-    { productId: productIds["PF-014"], type: "in" as const, origin: "production_output" as const, qty: 8, cost: 955, ref: "OF-2025-0002" },
-    { productId: productIds["MP-001"], type: "out" as const, origin: "production_input" as const, qty: 24, cost: 38, ref: "OF-2025-0001" },
-    { productId: productIds["MP-014"], type: "out" as const, origin: "production_input" as const, qty: 8.64, cost: 160, ref: "OF-2025-0002" },
-    { productId: productIds["PF-001"], type: "out" as const, origin: "sale" as const, qty: 12, cost: 1280, ref: "FA-2025-0001" },
-  ];
-  for (const sm of stockMovements) {
-    await db.stockMovement.create({
-      data: {
-        productId: sm.productId, type: sm.type, origin: sm.origin,
-        quantity: sm.qty, unitCost: sm.cost, documentRef: sm.ref,
-        notes: `Mouvement de stock ${sm.ref}`,
-      },
-    });
-  }
-  console.log(`   ✓ ${stockMovements.length} mouvements de stock créés`);
-
-  // ---- SAMPLE WORK ORDERS ----
-  console.log("🏭 Création des ordres de fabrication exemples...");
-  const wo1 = await db.workOrder.create({
-    data: {
-      number: "OF-2025-0001",
-      productId: productIds["PF-001"],
-      quantity: 10,
-      status: "in_progress",
-      plannedDate: new Date("2025-01-06T08:00:00.000Z"),
-      startedAt: new Date("2025-01-07T08:00:00.000Z"),
-      notes: "Ordre de fabrication pour BC-2025-0001 Lot 1. 10 fenêtres alu coulissantes 120x120.",
-      goodQuantity: 5,
-      totalCost: 6400,
-    },
-  });
-  // Work order steps
-  for (const r of routingPF001) {
-    const isCompleted = r.order <= 3;
-    await db.workOrderStep.create({
-      data: {
-        workOrderId: wo1.id, workStationId: wsIds[r.ws],
-        stepOrder: r.order, description: r.desc, duration: r.dur,
-        actualDuration: isCompleted ? r.dur : 0,
-        status: isCompleted ? "completed" : r.order === 4 ? "in_progress" : "pending",
-        startedAt: isCompleted ? new Date("2025-01-07T08:00:00.000Z") : null,
-        completedAt: isCompleted ? new Date("2025-01-07T08:00:00.000Z") : null,
-        goodQuantity: isCompleted ? 5 : 0,
-      },
-    });
-  }
-
-  const wo2 = await db.workOrder.create({
-    data: {
-      number: "OF-2025-0002",
-      productId: productIds["PF-014"],
-      quantity: 20,
-      status: "completed",
-      plannedDate: new Date("2025-01-03T08:00:00.000Z"),
-      startedAt: new Date("2025-01-04T08:00:00.000Z"),
-      completedAt: new Date("2025-01-09T16:00:00.000Z"),
-      notes: "20 fenêtres PVC oscillo-battantes pour commande grossiste.",
-      goodQuantity: 20,
-      scrapQuantity: 0,
-      totalCost: 19100,
-    },
-  });
-  console.log(`   ✓ 2 ordres de fabrication créés`);
-
-  // ---- SAMPLE EQUIPMENT (Maintenance) ----
-  console.log("🔧 Création des équipements...");
-  const equip1 = await db.equipement.create({
-    data: {
-      code: "EQ-001", designation: "Scie double coupe Elumatec AFM 500",
-      type: "decoupeuse", marque: "Elumatec", modele: "AFM 500",
-      numeroSerie: "ELU-2020-001234", emplacement: "Atelier Coupe",
-      statut: "en_service", criticite: "haute",
-      ficheTechnique: "Scie double coupe CNC pour profilés aluminium. Capacité: 6000mm. Précision: 0.1mm.",
-      notes: "Machine principale pour la coupe des profilés aluminium.",
-      dateInstallation: new Date("2020-03-15T00:00:00.000Z"),
-    },
-  });
-  await db.equipement.create({
-    data: {
-      code: "EQ-002", designation: "Machine de soudure PVC Urban 696",
-      type: "moule", marque: "Urban", modele: "696",
-      numeroSerie: "URB-2021-005678", emplacement: "Atelier Soudure PVC",
-      statut: "en_service", criticite: "haute",
-      ficheTechnique: "Machine de soudure PVC 6 têtes. Température: 260°C. Profilés max 70mm.",
-      notes: "Soudure simultanée de tous les angles du cadre.",
-      dateInstallation: new Date("2021-06-20T00:00:00.000Z"),
-    },
-  });
-  await db.equipement.create({
-    data: {
-      code: "EQ-003", designation: "Presse d'assemblage铝 aluminium",
-      type: "compresseur", marque: "Cemab", modele: "KM 202",
-      numeroSerie: "CEM-2019-009012", emplacement: "Atelier Assemblage",
-      statut: "en_service", criticite: "moyenne",
-      ficheTechnique: "Presse d'assemblage coupé-collé pour cadres aluminium. Force: 10 tonnes.",
-      notes: "Utilisée pour le pressage des cadres aluminium après encollage.",
-      dateInstallation: new Date("2019-01-10T00:00:00.000Z"),
-    },
-  });
-  await db.equipement.create({
-    data: {
-      code: "EQ-004", designation: "Compresseur d'air Atlas Copco GA 30",
-      type: "compresseur", marque: "Atlas Copco", modele: "GA 30",
-      numeroSerie: "ATC-2018-000456", emplacement: "Local Technique",
-      statut: "en_service", criticite: "haute",
-      ficheTechnique: "Compresseur d'air 30 bar, 30kW. Alimentation pneumatique atelier.",
-      notes: "Alimente les outils pneumatiques et la presse d'assemblage.",
-      dateInstallation: new Date("2018-05-25T00:00:00.000Z"),
-    },
-  });
-  console.log(`   ✓ 4 équipements créés`);
-
-  // Plan de maintenance pour la scie double coupe
-  await db.planMaintenance.create({
-    data: {
-      equipementId: equip1.id,
-      type: "temporel",
-      frequence: 30,
-      description: "Entretien mensuel scie double coupe: nettoyage, lubrification, vérification alignement, test précision.",
-      dureeEstimee: 2,
-      actif: true,
-      derniereExecution: new Date("2025-01-05T08:00:00.000Z"),
-      prochaineExecution: new Date("2025-02-05T08:00:00.000Z"),
-    },
-  });
-  console.log(`   ✓ 1 plan de maintenance créé`);
-
-  // ---- PAYMENT CODE COUNTER ----
-  await db.paymentCodeCounter.create({ data: { year: 2025, counter: 0 } });
-  console.log("   ✓ Compteur de codes de paiement initialisé");
-
-  // ---- SAMPLE NOTIFICATIONS ----
-  console.log("🔔 Création des notifications...");
-  const adminUser = await db.user.findFirst({ where: { email: "admin@jazel.ma" } });
-  if (adminUser) {
-    await db.notification.create({
-      data: {
-        userId: adminUser.id, title: "Stock critique", message: "Le produit MP-001 (Profilé coulissant série 6000) est en dessous du seuil minimum de stock.",
-        type: "warning", category: "stock", entityType: "Product",
-      },
-    });
-    await db.notification.create({
-      data: {
-        userId: adminUser.id, title: "Facture en retard", message: "La facture FA-2024-0089 du client CL-0028 (Safi Aluminium) est en retard de 15 jours.",
-        type: "error", category: "payment", entityType: "Invoice",
-      },
-    });
-    await db.notification.create({
-      data: {
-        userId: adminUser.id, title: "Ordre de fabrication terminé", message: "L'ordre OF-2025-0002 (20 fenêtres PVC) est terminé. Contrôle qualité validé.",
-        type: "success", category: "production", entityType: "WorkOrder",
-      },
-    });
-  }
-  console.log("   ✓ 3 notifications créées");
-
-  console.log("\n🎉 ═══════════════════════════════════════════════════");
-  console.log("   SEEDING JAZEL ERP PRO TERMINÉ AVEC SUCCÈS !");
-  console.log("   ═══════════════════════════════════════════════════");
-  console.log(`   📦 Produits:        ${matieresPremieres.length} MP + ${semiFinis.length} SF + ${produitsFinis.length} PF = ${matieresPremieres.length + semiFinis.length + produitsFinis.length}`);
-  console.log(`   👥 Clients:         ${clientsData.length}`);
-  console.log(`   🏭 Fournisseurs:    ${suppliersData.length}`);
-  console.log(`   🔑 Utilisateurs:    ${usersData.length}`);
-  console.log(`   📄 Devis:           3`);
-  console.log(`   🛒 Commandes:       2`);
-  console.log(`   💰 Factures:        2`);
-  console.log(`   🔧 Postes travail:  ${workStationsData.length}`);
-  console.log(`   📋 BOMs:            4`);
-  console.log(`   🔄 Gammes:          3`);
-  console.log(`   🏗️ Chantiers:       3`);
-  console.log(`   🏭 Équipements:     4`);
-  console.log(`   🌱 Done!\n`);
+  // ─── Summary ────────────────────────────────────────────────────────────────
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log("");
+  console.log("✅ Seed completed successfully!");
+  console.log(`   Products:   ${productsPayload.length} (${matieresPremieres.length} MP + ${semiFinis.length} SF + ${produitsFinis.length} PF)`);
+  console.log(`   Suppliers:  ${suppliersPayload.length}`);
+  console.log(`   Clients:    ${clientsData.length}`);
+  console.log(`   Contacts:   generated during insert`);
+  console.log(`   ⏱️  Elapsed: ${elapsed}s`);
 }
 
 main()
-  .catch((e) => {
-    console.error("❌ Erreur pendant le seeding:", e);
+  .catch((err) => {
+    console.error("❌ Seed failed:", err);
     process.exit(1);
   })
   .finally(async () => {
-    await db.$disconnect();
+    await prisma.$disconnect();
   });
