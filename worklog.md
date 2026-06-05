@@ -833,3 +833,23 @@ Stage Summary:
 - New entity counts row: Clients, Fournisseurs, Produits
 - Revenue now includes overdue + partially_paid invoices
 - Expenses now from supplier invoices (more accurate than purchase orders)
+---
+Task ID: 1
+Agent: Main Agent
+Task: Seed database with ~100 clients, suppliers, and products (delete existing first)
+
+Work Log:
+- Read Prisma schema to understand Client, Supplier, Product models and all their fields
+- Existing seed.ts already had ~100 clients, 100 products, 30 suppliers for menuiserie aluminium/PVC
+- Created optimized seed script `prisma/seed-clients-suppliers-products.ts` using `createMany` for fast bulk inserts
+- Script deletes ALL existing data in FK-safe order before inserting fresh data
+- Increased transaction timeout to 120s for remote Neon DB connection
+- Successfully executed seed: 100 products (35 MP + 15 SF + 50 PF), 30 suppliers, 100 clients, 164 client contacts
+- Pushed to GitHub main branch (commit 685fdcf)
+
+Stage Summary:
+- Database seeded with fresh data on Neon PostgreSQL
+- Old data deleted, new data inserted
+- 100 products, 30 suppliers, 100 clients with max info per record
+- 164 client contacts auto-generated
+- Vercel deployment triggered via GitHub push
