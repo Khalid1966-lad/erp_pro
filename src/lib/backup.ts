@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// GEMA ERP PRO — Backup & Restore Core Utility
+// Jazel ERP Pro — Backup & Restore Core Utility
 // ═══════════════════════════════════════════════════════════════
 
 import fs from 'fs/promises'
@@ -232,7 +232,7 @@ export async function exportDatabase(db: any): Promise<{
   }
 
   const meta = {
-    app: 'GEMA ERP PRO',
+    app: 'Jazel ERP Pro',
     version: APP_VERSION,
     exportedAt: new Date().toISOString(),
     totalTables: BACKUP_TABLES.length,
@@ -308,8 +308,8 @@ export async function validateBackupFile(fileBuffer: Buffer): Promise<{
   meta = parsed.meta
 
   // Step 4: Check app name
-  if (meta.app !== 'GEMA ERP PRO') {
-    errors.push(`Ce fichier ne provient pas de GEMA ERP PRO (app: "${meta.app ?? 'inconnu'}").`)
+  if (meta.app !== 'Jazel ERP Pro') {
+    errors.push(`Ce fichier ne provient pas de Jazel ERP Pro (app: "${meta.app ?? 'inconnu'}").`)
     return { valid: false, errors, warnings, meta }
   }
 

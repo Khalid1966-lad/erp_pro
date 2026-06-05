@@ -340,7 +340,7 @@ export default function AccountingView() {
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Journal Comptable — GEMA ERP PRO</title>
+  <title>Journal Comptable — Jazel ERP Pro</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20mm 10mm; color: #000; }
@@ -356,7 +356,7 @@ export default function AccountingView() {
   </style>
 </head>
 <body>
-  <h1>Journal Comptable — GEMA ERP PRO</h1>
+  <h1>Journal Comptable — Jazel ERP Pro</h1>
   <p class="print-date">Imprimé le ${printDate}</p>
   ${html}
   <script>

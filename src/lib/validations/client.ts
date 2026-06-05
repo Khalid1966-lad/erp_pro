@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // ═══════════════════════════════════════════════════════════════
-// GEMA ERP PRO - Validations Client (Maroc)
+// Jazel ERP Pro - Validations Client (Maroc)
 // ═══════════════════════════════════════════════════════════════
 
 // ICE: Identifiant Commun de l'Entreprise — exactly 15 alphanumeric digits

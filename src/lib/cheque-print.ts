@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// GEMA ERP PRO — Cheque Print Engine
+// Jazel ERP Pro — Cheque Print Engine
 // ═══════════════════════════════════════════════════════════════
 
 import type { ChequeTemplateField } from '@/components/erp/finance/cheque-template-editor'

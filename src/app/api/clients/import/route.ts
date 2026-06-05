@@ -4,7 +4,7 @@ import { getUser, auditLog } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
 // ═══════════════════════════════════════════════════════════════
-// GEMA ERP PRO - Client Excel Import/Template
+// Jazel ERP Pro - Client Excel Import/Template
 // ═══════════════════════════════════════════════════════════════
 
 // Column mapping: French header → internal field name

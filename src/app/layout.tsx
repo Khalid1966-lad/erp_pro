@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GEMA ERP PRO - ERP de Production — Maroc",
+  title: "Jazel ERP Pro - ERP de Production — Maroc",
   description: "Système ERP complet pour la gestion de production industrielle au Maroc. Commercial, Achats, Stock, Production, Finance.",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
-    'apple-mobile-web-app-title': 'GEMA ERP',
+    'apple-mobile-web-app-title': 'Jazel ERP',
     'msapplication-TileColor': '#0f172a',
     'theme-color': '#0f172a',
   },

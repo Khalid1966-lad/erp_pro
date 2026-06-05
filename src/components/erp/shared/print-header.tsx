@@ -193,7 +193,7 @@ export function PrintFooter({ amount, label }: { amount: number; label: string }
             </p>
           ))}
           <p className="text-[8px] text-center text-muted-foreground/50 mt-2">
-            GEMA ERP PRO v{APP_VERSION} — Document généré automatiquement
+            Jazel ERP Pro v{APP_VERSION} — Document généré automatiquement
           </p>
         </div>
       )}

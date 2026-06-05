@@ -14,7 +14,7 @@ function hashPassword(password: string): string {
 }
 
 async function main() {
-  console.log('🌱 Seeding GEMA ERP PRO database...\n')
+  console.log('🌱 Seeding Jazel ERP Pro database...\n')
 
   // Clean existing data (in correct order due to relations)
   console.log('🧹 Cleaning existing data...')
@@ -57,7 +57,7 @@ async function main() {
   console.log('⚙️  Creating settings...')
   await db.setting.createMany({
     data: [
-      { key: 'company_name', value: 'GEMA ERP PRO Industries' },
+      { key: 'company_name', value: 'Jazel ERP Pro Industries' },
       { key: 'company_address', value: '123 Avenue de l\'Industrie, 69000 Lyon' },
       { key: 'company_phone', value: '+33 4 72 00 00 00' },
       { key: 'company_email', value: 'contact@gema-erp-industries.ma' },

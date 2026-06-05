@@ -77,7 +77,7 @@ model AuditLog {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GEMA ERP PRO - ENUMS CLIENTS (Maroc)
+// Jazel ERP Pro - ENUMS CLIENTS (Maroc)
 // ═══════════════════════════════════════════════════════════════
 
 enum FormeJuridique {
@@ -160,7 +160,7 @@ enum StatutPaiement {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GEMA ERP PRO - GESTION DES CLIENTS (Maroc)
+// Jazel ERP Pro - GESTION DES CLIENTS (Maroc)
 // ═══════════════════════════════════════════════════════════════
 
 // ============ COMMERCIAL (SALES) ============

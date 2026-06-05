@@ -207,7 +207,7 @@ const roleLabels: Record<string, string> = {
   direction: 'Direction'
 }
 
-// ─── Logo component: always shows the GEMA ERP PRO app logo ───
+// ─── Logo component: always shows the Jazel ERP Pro app logo ───
 function SidebarLogo() {
   const { sidebarOpen } = useNavStore()
   const size = sidebarOpen ? 'w-9 h-9' : 'w-8 h-8'
@@ -216,7 +216,7 @@ function SidebarLogo() {
     <div className={cn('relative shrink-0', size)}>
       <Image
         src="/logo.png"
-        alt="GEMA ERP PRO"
+        alt="Jazel ERP Pro"
         fill
         className="object-contain"
         priority
@@ -257,7 +257,7 @@ function SidebarContent() {
         <SidebarLogo />
         {sidebarOpen && (
           <div className="flex flex-col overflow-hidden">
-            <span className="font-bold text-sm tracking-tight truncate">GEMA ERP PRO</span>
+            <span className="font-bold text-sm tracking-tight truncate">Jazel ERP Pro</span>
             <span className="text-[10px] text-muted-foreground truncate">Production & Gestion</span>
           </div>
         )}
@@ -379,7 +379,7 @@ function SidebarContent() {
       <div className="border-t border-border px-4 py-2 shrink-0">
         {sidebarOpen ? (
           <p className="text-[10px] text-muted-foreground/60 text-center">
-            GEMA ERP PRO v{APP_VERSION}
+            Jazel ERP Pro v{APP_VERSION}
           </p>
         ) : (
           <p className="text-[9px] text-muted-foreground/50 text-center leading-none">v{APP_VERSION}</p>
@@ -416,7 +416,7 @@ export function ERPSidebar() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[260px] p-0 overflow-hidden">
-          <SheetTitle className="sr-only">Navigation GEMA ERP PRO</SheetTitle>
+          <SheetTitle className="sr-only">Navigation Jazel ERP Pro</SheetTitle>
           <SidebarContent />
         </SheetContent>
       </Sheet>

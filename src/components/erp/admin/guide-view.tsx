@@ -254,12 +254,12 @@ function ScreenMock({ title, children }: { title: string; children: React.ReactN
 function IntroSection() {
   return (
     <div>
-      <SectionTitle icon={Home} title="Bienvenue dans GEMA ERP PRO" />
+      <SectionTitle icon={Home} title="Bienvenue dans Jazel ERP Pro" />
       <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 mb-6">
         <CardContent className="p-6">
-          <h3 className="text-xl font-bold mb-2">Qu'est-ce que GEMA ERP PRO ?</h3>
+          <h3 className="text-xl font-bold mb-2">Qu'est-ce que Jazel ERP Pro ?</h3>
           <p className="text-muted-foreground leading-relaxed">
-            GEMA ERP PRO est une solution de gestion intégré (ERP) complète conçue spécialement pour les entreprises marocaines.
+            Jazel ERP Pro est une solution de gestion intégré (ERP) complète conçue spécialement pour les entreprises marocaines.
             Elle couvre l'ensemble du cycle d'activité : de la gestion commerciale et des achats, jusqu'à la production,
             la finance et l'administration. Développée avec les standards du marché marocain (ICE, TVA, CNSS, Patente),
             elle s'adapte à tous les secteurs d'activité.
@@ -269,7 +269,7 @@ function IntroSection() {
 
       <SubTitle id="introduction-bienvenue">À qui s'adresse ce guide ?</SubTitle>
       <Paragraph>
-        Ce guide est conçu pour les nouveaux utilisateurs de GEMA ERP PRO. Que vous soyez commercial,
+        Ce guide est conçu pour les nouveaux utilisateurs de Jazel ERP Pro. Que vous soyez commercial,
         magasinier, responsable de production, comptable ou administrateur, vous trouverez ici toutes les informations
         nécessaires pour maîtriser le système rapidement.
       </Paragraph>
@@ -306,7 +306,7 @@ function IntroSection() {
 
       <SubTitle id="introduction-modules-roles">10 rôles utilisateurs</SubTitle>
       <Paragraph>
-        GEMA ERP PRO gère 10 rôles distincts pour contrôler précisément les accès de chaque utilisateur :
+        Jazel ERP Pro gère 10 rôles distincts pour contrôler précisément les accès de chaque utilisateur :
       </Paragraph>
       <Card>
         <CardContent className="p-0">
@@ -351,7 +351,7 @@ function ConnexionSection() {
       <SectionTitle icon={LogIn} title="Connexion & Navigation" />
 
       <SubTitle id="connexion-se-connecter">Comment se connecter</SubTitle>
-      <Paragraph>Suivez ces étapes simples pour accéder à votre espace GEMA ERP PRO :</Paragraph>
+      <Paragraph>Suivez ces étapes simples pour accéder à votre espace Jazel ERP Pro :</Paragraph>
 
       <Step num={1}>
         <p className="text-sm text-muted-foreground">
@@ -379,7 +379,7 @@ function ConnexionSection() {
         </p>
       </Step>
 
-      <ScreenMock title="GEMA ERP PRO — Connexion">
+      <ScreenMock title="Jazel ERP Pro — Connexion">
         <div className="max-w-sm mx-auto space-y-4">
           <div className="text-center mb-4">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary mb-2">
@@ -413,7 +413,7 @@ function ConnexionSection() {
 
       <SubTitle id="connexion-mode-sombre">Mode sombre</SubTitle>
       <Paragraph>
-        GEMA ERP PRO prend en charge le <strong>mode sombre</strong>. Pour basculer entre le mode clair et sombre,
+        Jazel ERP Pro prend en charge le <strong>mode sombre</strong>. Pour basculer entre le mode clair et sombre,
         cliquez sur l'icône soleil/lune dans la barre d'en-tête en haut à droite de l'écran. Le choix est mémorisé
         automatiquement pour votre prochaine session.
       </Paragraph>
@@ -453,7 +453,7 @@ function DashboardSection() {
     <div>
       <SectionTitle icon={LayoutDashboard} title="Tableau de bord" />
       <Paragraph>
-        Le tableau de bord est la page d'accueil de GEMA ERP PRO. Il offre une vue synthétique de l'activité
+        Le tableau de bord est la page d'accueil de Jazel ERP Pro. Il offre une vue synthétique de l'activité
         de l'entreprise avec des indicateurs clés de performance (KPI) actualisés en temps réel.
       </Paragraph>
 
@@ -3040,7 +3040,7 @@ function FinanceSection() {
       {/* Impression de chèques */}
       <SubTitle id="finance-impression-cheques">Impression de chèques</SubTitle>
       <Paragraph>
-        GEMA ERP PRO intègre un <strong>système d&apos;impression de chèques</strong> directement depuis l&apos;application.
+        Jazel ERP Pro intègre un <strong>système d&apos;impression de chèques</strong> directement depuis l&apos;application.
         Vous pouvez configurer des modèles de chèques adaptés à votre banque et à vos formulaires pré-imprimés,
         puis imprimer les chèques en quelques clics.
       </Paragraph>
@@ -3146,7 +3146,7 @@ function FinanceSection() {
       </Paragraph>
 
       <TipBox type="info">
-        Le journal comptable de GEMA ERP PRO vous permet de créer, modifier et consulter les écritures manuellement, en plus des écritures
+        Le journal comptable de Jazel ERP Pro vous permet de créer, modifier et consulter les écritures manuellement, en plus des écritures
         générées automatiquement par les factures, paiements et avoirs.
       </TipBox>
 
@@ -3351,11 +3351,11 @@ function FinanceSection() {
       {/* ─── Comptes disponibles ─── */}
       <SubTitle>Comptes disponibles</SubTitle>
       <Paragraph>
-        Voici la liste des comptes comptables disponibles dans GEMA ERP PRO. Utilisez ces codes lors de la création
+        Voici la liste des comptes comptables disponibles dans Jazel ERP Pro. Utilisez ces codes lors de la création
         de vos écritures :
       </Paragraph>
 
-      <ScreenMock title="Plan des comptes — GEMA ERP PRO">
+      <ScreenMock title="Plan des comptes — Jazel ERP Pro">
         <Table>
           <TableHeader>
             <TableRow>
@@ -3595,7 +3595,7 @@ function ImpressionSection() {
     <div>
       <SectionTitle icon={Printer} title="Impression" />
       <Paragraph>
-        GEMA ERP PRO permet d'imprimer <strong>tous les 13 types de documents</strong> du système
+        Jazel ERP Pro permet d'imprimer <strong>tous les 13 types de documents</strong> du système
         au format PDF professionnel. Chaque document imprimé inclut automatiquement l'en-tête de l'entreprise
         (logo, identifiants fiscaux) et le montant en toutes lettres en français.
       </Paragraph>
@@ -3755,7 +3755,7 @@ function AgendaNotificationsSection() {
     <div>
       <SectionTitle icon={Bell} title="Agenda & Notifications" />
       <Paragraph>
-        GEMA ERP PRO intègre un agenda intelligent qui agrège automatiquement les données de votre activité
+        Jazel ERP Pro intègre un agenda intelligent qui agrège automatiquement les données de votre activité
         récente. Ce n'est pas un calendrier classique avec des événements créés manuellement, mais une vue
         synthétique de vos éléments en attente à travers tous les modules.
       </Paragraph>
@@ -4622,7 +4622,7 @@ export default function GuideView() {
                 </div>
                 <div>
                   <CardTitle className="text-base">Guide d&apos;utilisation</CardTitle>
-                  <CardDescription className="text-xs">GEMA ERP PRO v{APP_VERSION}</CardDescription>
+                  <CardDescription className="text-xs">Jazel ERP Pro v{APP_VERSION}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -4713,7 +4713,7 @@ export default function GuideView() {
               Guide d&apos;utilisation
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Découvrez GEMA ERP PRO et apprenez à maîtriser tous les modules du système.
+              Découvrez Jazel ERP Pro et apprenez à maîtriser tous les modules du système.
               Ce guide complet vous accompagne pas à pas.
             </p>
             <div className="flex items-center justify-center gap-3 mt-4">
@@ -4763,7 +4763,7 @@ export default function GuideView() {
           <Separator />
           <div className="text-center py-8 text-sm text-muted-foreground">
             <BookOpen className="h-8 w-8 mx-auto mb-3 text-primary/30" />
-            <p className="font-medium">GEMA ERP PRO v{APP_VERSION} — Guide d&apos;utilisation</p>
+            <p className="font-medium">Jazel ERP Pro v{APP_VERSION} — Guide d&apos;utilisation</p>
             <p className="mt-1">Développé avec passion au Maroc.</p>
             <p className="mt-1 text-xs">&copy; {new Date().getFullYear()} JAZEL WEB AGENCY SARL. Tous droits réservés.</p>
           </div>

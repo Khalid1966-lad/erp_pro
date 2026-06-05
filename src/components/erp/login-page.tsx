@@ -70,7 +70,7 @@ export default function LoginPage() {
             <div className="login-logo-ring">
               <Image
                 src="/logo.png"
-                alt="GEMA ERP PRO"
+                alt="Jazel ERP Pro"
                 width={72}
                 height={72}
                 className="object-contain"
@@ -81,7 +81,7 @@ export default function LoginPage() {
 
           {/* Title */}
           <div className="login-title-section">
-            <h1 className="login-title">GEMA ERP PRO</h1>
+            <h1 className="login-title">Jazel ERP Pro</h1>
             <p className="login-subtitle">Solution de Gestion Intégrée</p>
           </div>
 
@@ -138,7 +138,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <p className="login-footer">
-            GEMA ERP PRO v{APP_VERSION}
+            Jazel ERP Pro v{APP_VERSION}
           </p>
         </div>
       </div>

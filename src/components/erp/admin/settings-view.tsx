@@ -95,7 +95,7 @@ const settingGroups: SettingGroup[] = [
     icon: <Building2 className="h-5 w-5" />,
     category: 'company',
     fields: [
-      { key: 'company_name', label: 'Nom de l\'entreprise', type: 'text', placeholder: 'GEMA ERP PRO' },
+      { key: 'company_name', label: 'Nom de l\'entreprise', type: 'text', placeholder: 'Jazel ERP Pro' },
       { key: 'company_address', label: 'Adresse', type: 'textarea', placeholder: '12 Rue de l\'Industrie' },
       { key: 'company_city', label: 'Ville', type: 'text', placeholder: 'Lyon' },
       { key: 'company_postal_code', label: 'Code postal', type: 'text', placeholder: '69001' },
@@ -604,7 +604,7 @@ function BrochureSection() {
             <div>
               <CardTitle className="text-base">Brochure marketing</CardTitle>
               <CardDescription className="text-sm">
-                Résumé marketing de GEMA ERP PRO pour GEMAPLAST Maroc
+                Résumé marketing de Jazel ERP Pro pour GEMAPLAST Maroc
               </CardDescription>
             </div>
           </div>
@@ -616,7 +616,7 @@ function BrochureSection() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary mb-4">
                 <FileDown className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-bold text-foreground">GEMA ERP PRO</h3>
+              <h3 className="text-lg font-bold text-foreground">Jazel ERP Pro</h3>
               <p className="text-sm text-muted-foreground mt-1">Brochure commerciale v{APP_VERSION}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Signée par Jazel Web Agency</p>
             </div>
@@ -813,7 +813,7 @@ function InstallPWASection() {
       const accepted = await install()
       if (accepted) {
         toast.success('Application installée !', {
-          description: 'GEMA ERP PRO a été ajouté à votre écran d\'accueil.',
+          description: 'Jazel ERP Pro a été ajouté à votre écran d\'accueil.',
           duration: 5000,
         })
       }
@@ -832,7 +832,7 @@ function InstallPWASection() {
           <div>
             <CardTitle className="text-base">Installer l&apos;application</CardTitle>
             <CardDescription className="text-sm">
-              Accédez à GEMA ERP PRO comme une application native
+              Accédez à Jazel ERP Pro comme une application native
             </CardDescription>
           </div>
         </div>
@@ -847,7 +847,7 @@ function InstallPWASection() {
                 Application installée
               </p>
               <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
-                GEMA ERP PRO est accessible depuis votre écran d&apos;accueil
+                Jazel ERP Pro est accessible depuis votre écran d&apos;accueil
               </p>
             </div>
           </div>
@@ -922,7 +922,7 @@ function InstallPWASection() {
                 </div>
                 <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
                   <li>Ouvrir le site dans Chrome</li>
-                  <li>Menu ⋮ → <strong>Installer GEMA ERP PRO</strong></li>
+                  <li>Menu ⋮ → <strong>Installer Jazel ERP Pro</strong></li>
                   <li>Confirmer l&apos;installation</li>
                 </ol>
               </div>

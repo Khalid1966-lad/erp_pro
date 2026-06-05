@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// GEMA ERP PRO — Notification Helper
+// Jazel ERP Pro — Notification Helper
 // ═══════════════════════════════════════════════════════════════
 // Utility to send notifications to users from any API route.
 // Uses fire-and-forget approach (non-blocking).

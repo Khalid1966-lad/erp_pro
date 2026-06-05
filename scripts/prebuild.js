@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════
-// GEMA ERP PRO — Pre-build script
+// Jazel ERP Pro — Pre-build script
 // Generates /public/build-meta.json with a unique build stamp.
 // Updates /public/manifest.webmanifest with the current version.
 // This guarantees:
