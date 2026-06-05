@@ -58,11 +58,12 @@ export function PrintHeader() {
   const [logoError, setLogoError] = useState(false)
 
   useEffect(() => {
-    api.get<{ settingsMap: Record<string, string> }>('/settings')
-    .then((data) => {
+    // Load settings + check if logo exists by fetching /api/logo
+    Promise.all([
+      api.get<{ settingsMap: Record<string, string> }>('/settings'),
+      fetch('/api/logo?t=' + Date.now()).then(r => r.ok ? '/api/logo?t=' + Date.now() : null).catch(() => null),
+    ]).then(([data, logoUrl]) => {
       const m = data.settingsMap || {}
-      // Logo exists if company_logo_url is set in settings (stored in DB on Vercel)
-      const hasLogo = !!m.company_logo_url
       setCompany({
         name: m.company_name || '',
         address: m.company_address || '',
@@ -78,7 +79,7 @@ export function PrintHeader() {
         rc: m.company_rc || '',
         legalForm: m.company_legal_form || '',
         capital: m.company_capital || '',
-        logoUrl: hasLogo ? `/api/logo?t=${Date.now()}` : null,
+        logoUrl,
         logoShape: (m.company_logo_shape === 'rectangle' ? 'rectangle' : 'square') as 'square' | 'rectangle',
         logoWidth: parseInt(m.company_logo_width, 10) || 140,
         footerLine1: m.print_footer_line1 || '',

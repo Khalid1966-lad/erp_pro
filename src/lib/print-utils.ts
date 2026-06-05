@@ -48,27 +48,21 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
     try {
       const settingsData = await api.get<{ settingsMap: Record<string, string> }>('/settings')
       const m = settingsData.settingsMap || {}
-      // Logo exists if company_logo_url is set in settings (stored in DB on Vercel)
-      const hasLogo = !!m.company_logo_url
       // Fetch logo as base64 data URL for reliable printing (html2pdf/iframe)
       let logoUrl: string | null = null
-      if (hasLogo) {
-        try {
-          const resp = await fetch('/api/logo?t=' + Date.now())
-          if (resp.ok) {
-            const contentType = resp.headers.get('Content-Type') || 'image/png'
-            const blob = await resp.blob()
-            logoUrl = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader()
-              reader.onloadend = () => resolve(reader.result as string)
-              reader.onerror = reject
-              reader.readAsDataURL(blob)
-            })
-          }
-        } catch {
-          // Fallback to URL reference
-          logoUrl = `/api/logo?t=${Date.now()}`
+      try {
+        const resp = await fetch('/api/logo?t=' + Date.now())
+        if (resp.ok) {
+          const blob = await resp.blob()
+          logoUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(blob)
+          })
         }
+      } catch {
+        // No logo available — ignore
       }
       companyCache = {
         name: m.company_name || '',
