@@ -853,3 +853,20 @@ Stage Summary:
 - 100 products, 30 suppliers, 100 clients with max info per record
 - 164 client contacts auto-generated
 - Vercel deployment triggered via GitHub push
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix logo not displaying on printouts
+
+Work Log:
+- Identified root cause: logo was loaded via `/api/logo` URL reference in iframe/html2pdf context
+- html2pdf (html2canvas) cannot load same-origin images that require session cookies
+- Fixed `getCompanyInfo()` to fetch logo as base64 data URL and embed directly in HTML
+- Simplified `buildHeaderHtml()` logo src to use data URL directly (no window.location.origin needed)
+- Added fallback to URL reference if fetch fails
+- Pushed to GitHub main (commit 25c0ae5)
+
+Stage Summary:
+- Logo now embedded as base64 data URL in print HTML
+- Works for both preview (iframe) and PDF download (html2pdf)
+- No more CORS/session issues with printed documents
