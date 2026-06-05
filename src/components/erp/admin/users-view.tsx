@@ -131,6 +131,7 @@ const roleLabelMap: Record<string, string> = {
 function UsersViewInner() {
   const { user: currentUser } = useAuthStore()
   const isSuperAdmin = currentUser?.role === 'super_admin' || currentUser?.isSuperAdmin
+  const isOwner = currentUser?.email?.toLowerCase() === 'contact@jazelwebagency.com'
 
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -650,7 +651,7 @@ function UsersViewInner() {
                               size="icon"
                               className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
                               onClick={() => handleBlock(u.id, false)}
-                              disabled={u.isSuperAdmin}
+                              disabled={u.id === currentUser?.id || (u.isSuperAdmin && !isOwner)}
                               title="Débloquer"
                             >
                               <Unlock className="h-4 w-4" />
@@ -662,17 +663,18 @@ function UsersViewInner() {
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 text-red-500 hover:text-red-600"
-                                  disabled={u.id === currentUser?.id || u.isSuperAdmin}
-                                  title="Bloquer"
+                                  disabled={u.id === currentUser?.id || (u.isSuperAdmin && !isOwner)}
+                                  title={u.isSuperAdmin ? 'Bloquer ce super administrateur' : 'Bloquer'}
                                 >
                                   <Ban className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Bloquer cet utilisateur ?</AlertDialogTitle>
+                                  <AlertDialogTitle>{u.isSuperAdmin ? 'Bloquer ce super administrateur ?' : 'Bloquer cet utilisateur ?'}</AlertDialogTitle>
                                   <AlertDialogDescription>
                                     <strong>{u.name}</strong> ({u.email}) ne pourra plus se connecter à l&apos;application. Vous pourrez le débloquer à tout moment.
+                                    {u.isSuperAdmin && <><br /><br /><span className="text-red-600 font-semibold">Attention : il s&apos;agit d&apos;un super administrateur.</span></>}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -681,7 +683,7 @@ function UsersViewInner() {
                                     onClick={() => handleBlock(u.id, true)}
                                     className="bg-red-600 text-white hover:bg-red-700"
                                   >
-                                    Bloquer
+                                    {u.isSuperAdmin ? 'Bloquer le super admin' : 'Bloquer'}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>

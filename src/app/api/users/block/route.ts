@@ -2,7 +2,10 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, auditLog } from '@/lib/auth'
 
-// POST /api/users/block — Block or unblock a user (super_admin only)
+// Owner email — only this account can block/unblock other super admins
+const OWNER_EMAIL = 'contact@jazelwebagency.com'
+
+// POST /api/users/block — Block or unblock a user (super_admin only, owner can block super admins)
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -23,14 +26,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
     }
 
-    // Cannot block/unblock a super admin
-    if (user.isSuperAdmin) {
-      return NextResponse.json({ error: 'Impossible de bloquer un super administrateur' }, { status: 403 })
-    }
-
     // Cannot block yourself
     if (userId === auth.userId) {
       return NextResponse.json({ error: 'Impossible de bloquer votre propre compte' }, { status: 400 })
+    }
+
+    // Only the owner can block/unblock a super admin
+    if (user.isSuperAdmin) {
+      const authUser = await db.user.findUnique({ where: { id: auth.userId } })
+      const isOwner = authUser?.email?.toLowerCase() === OWNER_EMAIL.toLowerCase()
+      if (!isOwner) {
+        return NextResponse.json({ error: 'Seul le propriétaire peut bloquer un super administrateur' }, { status: 403 })
+      }
     }
 
     const updated = await db.user.update({
@@ -60,8 +67,11 @@ export async function POST(req: NextRequest) {
         role: updated.role,
         isBlocked: updated.isBlocked,
         isActive: updated.isActive,
+        isSuperAdmin: updated.isSuperAdmin,
       },
-      message: block ? 'Utilisateur bloqué' : 'Utilisateur débloqué',
+      message: block
+        ? (user.isSuperAdmin ? 'Super administrateur bloqué' : 'Utilisateur bloqué')
+        : (user.isSuperAdmin ? 'Super administrateur débloqué' : 'Utilisateur débloqué'),
     })
   } catch (error) {
     console.error('Block/unblock error:', error)
