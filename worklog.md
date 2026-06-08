@@ -893,3 +893,24 @@ Stage Summary:
 - 1 line changed in guide-view.tsx: added ShieldCheck to imports
 - All 3 errors resolved (ShieldCheck crash was the root cause of all)
 - Commit 13cae58 pushed to GitHub main
+
+---
+Task ID: rename-product-codes
+Agent: Main
+Task: Replace product references with PROD-0001, PROD-0002, etc.
+
+Work Log:
+- Checked Product model: uses `reference` field (unique) as product code
+- Found 100 products with mixed prefixes (MP-001..MP-035, SF-001..SF-015, PF-001..PF-050)
+- Created temp script to connect to Neon PostgreSQL and renumber sequentially
+- Renamed all 100 products ordered by createdAt:
+  - MP-001..MP-035 → PROD-0001..PROD-0035 (matières premières)
+  - SF-001..SF-015 → PROD-0036..PROD-0050 (semi-finis)
+  - PF-001..PF-050 → PROD-0051..PROD-0100 (produits finis)
+- Verified products API auto-generation code already uses PROD-XXXX format with max+1 logic
+- Next product creation will auto-generate PROD-0101
+
+Stage Summary:
+- 100 products renumbered from MP/SF/PF prefixes to PROD-0001..PROD-0100
+- No code changes needed — existing auto-generation already uses PROD-XXXX format
+- Temporary script deleted after execution
