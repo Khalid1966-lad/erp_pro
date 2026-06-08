@@ -32,18 +32,18 @@ export async function GET(req: NextRequest) {
       isDeleted: false,
     }
 
-    // Return next auto-generated code
+    // Return next auto-generated code (find MAX CL-XXXX number)
     if (nextCode) {
-      const lastClient = await db.client.findFirst({
-        orderBy: { createdAt: 'desc' },
+      const allClients = await db.client.findMany({
+        where: { code: { startsWith: 'CL-' } },
         select: { code: true },
       })
-      let nextNum = 1
-      if (lastClient?.code) {
-        const match = lastClient.code.match(/^CL-(\d+)$/)
-        if (match) nextNum = parseInt(match[1], 10) + 1
+      let maxNum = 0
+      for (const c of allClients) {
+        const m = c.code.match(/^CL-(\d+)$/)
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10))
       }
-      return NextResponse.json({ nextCode: `CL-${String(nextNum).padStart(4, '0')}` })
+      return NextResponse.json({ nextCode: `CL-${String(maxNum + 1).padStart(4, '0')}` })
     }
 
     // Search across multiple fields (full list mode)
@@ -219,17 +219,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Auto-generate client code (CL-001, CL-002, ...)
-    const lastClient = await db.client.findFirst({
-      orderBy: { createdAt: 'desc' },
+    // Auto-generate client code — find MAX CL-XXXX number
+    const allClients = await db.client.findMany({
+      where: { code: { startsWith: 'CL-' } },
       select: { code: true },
     })
-    let nextNum = 1
-    if (lastClient?.code) {
-      const match = lastClient.code.match(/^CL-(\d+)$/)
-      if (match) nextNum = parseInt(match[1], 10) + 1
+    let maxNum = 0
+    for (const c of allClients) {
+      const m = c.code.match(/^CL-(\d+)$/)
+      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10))
     }
-    const autoCode = `CL-${String(nextNum).padStart(4, '0')}`
+    const autoCode = `CL-${String(maxNum + 1).padStart(4, '0')}`
 
     // Check code uniqueness (race condition guard)
     const existingCode = await db.client.findUnique({ where: { code: autoCode } })

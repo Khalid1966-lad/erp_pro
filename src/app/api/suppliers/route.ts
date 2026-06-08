@@ -37,18 +37,18 @@ export async function GET(req: NextRequest) {
     const dropdown = searchParams.get('dropdown') === 'true'
     const nextCode = searchParams.get('nextCode') === 'true'
 
-    // Return next auto-generated code
+    // Return next auto-generated code (find MAX FR-XXX number)
     if (nextCode) {
-      const lastSupplier = await db.supplier.findFirst({
-        orderBy: { createdAt: 'desc' },
+      const allSuppliers = await db.supplier.findMany({
+        where: { code: { startsWith: 'FR-' } },
         select: { code: true },
       })
-      let nextNum = 1
-      if (lastSupplier?.code) {
-        const match = lastSupplier.code.match(/^FR-(\d+)$/)
-        if (match) nextNum = parseInt(match[1], 10) + 1
+      let maxNum = 0
+      for (const s of allSuppliers) {
+        const m = s.code.match(/^FR-(\d+)$/)
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10))
       }
-      return NextResponse.json({ nextCode: `FR-${String(nextNum).padStart(4, '0')}` })
+      return NextResponse.json({ nextCode: `FR-${String(maxNum + 1).padStart(3, '0')}` })
     }
 
     const where: Record<string, unknown> = {}
