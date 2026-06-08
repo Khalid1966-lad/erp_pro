@@ -245,7 +245,8 @@ export default function SuppliersView() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Code *</Label>
-                  <Input value={form.code} onChange={(e) => updateField('code', e.target.value)} placeholder="Auto-généré" disabled />
+                  <Input value={form.code} placeholder="Auto-généré" className="font-mono bg-muted" disabled />
+                  <p className="text-xs text-muted-foreground">Code attribué automatiquement par le système — non modifiable</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Raison Sociale *</Label>

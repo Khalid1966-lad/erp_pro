@@ -233,6 +233,9 @@ export async function PUT(req: NextRequest) {
     }
 
     // ── Normal product update ──
+    // Protect reference from manual override — auto-generated, immutable
+    delete updateData.reference
+
     // Convert null → defaults for non-nullable Prisma Float fields
     if (updateData.minStock === null || updateData.minStock === undefined) updateData.minStock = 0
     if (updateData.maxStock === null || updateData.maxStock === undefined) updateData.maxStock = 100

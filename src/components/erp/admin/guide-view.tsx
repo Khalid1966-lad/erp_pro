@@ -532,6 +532,12 @@ function VentesSection() {
         Identité, Coordonnées, Contacts, Commercial, Fiscal, Suivi, Relances et Production.
       </Paragraph>
 
+      <TipBox type="info">
+        Le <strong>code client</strong> est <strong>auto-généré</strong> par le système au format <code className="text-xs bg-muted px-1 py-0.5 rounded font-mono">CL-XXXX</code> (4 chiffres).
+        Ce code est <strong>attribué automatiquement</strong> à la création et <strong>ne peut pas être modifié</strong> manuellement.
+        En cas de suppression d'un client, son code est <strong>définitivement perdu</strong> et ne sera jamais réattribué.
+      </TipBox>
+
       <Step num={1}>Accédez à <strong>Ventes → Clients</strong> depuis la barre latérale.</Step>
       <Step num={2}>Cliquez sur <strong>« + Nouveau client »</strong> pour créer un client.</Step>
       <Step num={3}>Remplissez les 8 onglets de la fiche client selon les besoins.</Step>
@@ -539,6 +545,10 @@ function VentesSection() {
 
       <ScreenMock title="Fiche client — SARL AL MOUATAZ INDUSTRIE (onglet Identité)">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Code client (auto)</label>
+            <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm font-mono">CL-0042</div>
+          </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Raison sociale *</label>
             <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm">SARL AL MOUATAZ INDUSTRIE</div>
@@ -550,10 +560,6 @@ function VentesSection() {
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">IF (Identifiant Fiscal)</label>
             <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm font-mono">12345678</div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">CNSS</label>
-            <div className="h-8 rounded border bg-muted/50 px-3 flex items-center text-sm font-mono">98765432</div>
           </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Ville *</label>
@@ -576,6 +582,12 @@ function VentesSection() {
         Le sous-module Produits gère le catalogue complet : matières premières, semi-finis et produits finis.
         Chaque produit dispose d'une fiche avec prix HT, unité de mesure et seuil de stock minimum.
       </Paragraph>
+
+      <TipBox type="info">
+        La <strong>référence produit</strong> est <strong>auto-générée</strong> par le système au format <code className="text-xs bg-muted px-1 py-0.5 rounded font-mono">PROD-XXXX</code> (4 chiffres).
+        Cette référence est <strong>attribuée automatiquement</strong> à la création et <strong>ne peut pas être modifiée</strong> manuellement.
+        En cas de suppression d'un produit, sa référence est <strong>définitivement perdue</strong> et ne sera jamais réattribuée.
+      </TipBox>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {[
@@ -1403,6 +1415,12 @@ function AchatsSection() {
         Le sous-module Fournisseurs gère votre base de données fournisseurs avec les informations légales,
         les coordonnées bancaires et les conditions commerciales (délais de livraison, remises).
       </Paragraph>
+
+      <TipBox type="info">
+        Le <strong>code fournisseur</strong> est <strong>auto-généré</strong> par le système au format <code className="text-xs bg-muted px-1 py-0.5 rounded font-mono">FR-XXX</code> (3 chiffres).
+        Ce code est <strong>attribué automatiquement</strong> à la création et <strong>ne peut pas être modifié</strong> manuellement.
+        En cas de suppression d'un fournisseur, son code est <strong>définitivement perdu</strong> et ne sera jamais réattribué.
+      </TipBox>
 
       <Step num={1}>Accédez à <strong>Achats → Fournisseurs</strong>.</Step>
       <Step num={2}>Cliquez sur <strong>« + Nouveau fournisseur »</strong>.</Step>

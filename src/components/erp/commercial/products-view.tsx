@@ -672,7 +672,8 @@ export default function ProductsView() {
               <div className="md:col-span-2 mt-2"><h4 className="text-sm font-semibold text-muted-foreground mb-3 border-b border-border pb-2">Identification</h4></div>
               <div className="space-y-2">
                 <Label htmlFor="reference">Référence *</Label>
-                <Input id="reference" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="Auto-généré" className="font-mono" disabled={!!editingProduct} />
+                <Input id="reference" value={form.reference} placeholder="Auto-généré" className="font-mono bg-muted" disabled />
+                <p className="text-xs text-muted-foreground">Référence attribuée automatiquement par le système — non modifiable</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="designation">Désignation *</Label>
