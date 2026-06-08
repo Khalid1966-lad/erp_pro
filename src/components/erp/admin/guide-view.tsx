@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Home, LogIn, LayoutDashboard, Users, Package, FileText, ShoppingCart,
   Receipt, Warehouse, Factory, CreditCard,
-  Landmark, Settings, BookOpen, Shield, ChevronRight, ChevronDown, CheckCircle2,
+  Landmark, Settings, BookOpen, Shield, ShieldCheck, ChevronRight, ChevronDown, CheckCircle2,
   ArrowRight, Info, AlertCircle, CircleDot, ArrowDown, ArrowDownToLine, Eye,
   Lock, UserCog, RotateCcw, Truck, TrendingUp, Calculator,
   PackageCheck, Circle, ArrowLeftRight, Ban, CheckCircle, XCircle, Clock,
