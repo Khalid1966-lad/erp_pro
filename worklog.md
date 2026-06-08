@@ -870,3 +870,26 @@ Stage Summary:
 - Logo now embedded as base64 data URL in print HTML
 - Works for both preview (iframe) and PDF download (html2pdf)
 - No more CORS/session issues with printed documents
+
+---
+Task ID: fix-guide-shieldcheck
+Agent: Main
+Task: Fix Guide d'utilisation crash — ShieldCheck not imported
+
+Work Log:
+- User reported 3 errors when accessing "Guide d'utilisation":
+  1. 401 error on resource load
+  2. Chart width/height -1 warning
+  3. `ReferenceError: ShieldCheck is not defined` at ventes function
+- Investigated guide-view.tsx imports: `Shield` was imported but `ShieldCheck` was NOT
+- Lines 1144-1145 use `ShieldCheck` icon in FlowDiagram for bon de retour steps
+- The ReferenceError crashed the entire VentesSection → cascading errors (401, chart)
+- Added `ShieldCheck` to lucide-react imports on line 12
+- Lint passes clean
+- Committed as 13cae58 and pushed to main
+
+Stage Summary:
+- Root cause: ShieldCheck used but never imported from lucide-react
+- 1 line changed in guide-view.tsx: added ShieldCheck to imports
+- All 3 errors resolved (ShieldCheck crash was the root cause of all)
+- Commit 13cae58 pushed to GitHub main
