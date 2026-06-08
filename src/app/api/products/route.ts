@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
 import { notifyAll } from '@/lib/notify'
 import { z } from 'zod'
+import { getNextCode, generateNextCode } from '@/lib/code-counter'
 
 const productSchema = z.object({
   reference: z.string().min(1, 'La référence est requise').optional(),
@@ -47,18 +48,10 @@ export async function GET(req: NextRequest) {
     const sortDir = searchParams.get('sortDir') || 'asc'
     const nextCode = searchParams.get('nextCode') === 'true'
 
-    // Return next auto-generated reference (find max PROD-XXXX number)
+    // Return next auto-generated reference
     if (nextCode) {
-      const allProdRefs = await db.product.findMany({
-        where: { reference: { startsWith: 'PROD-' } },
-        select: { reference: true },
-      })
-      let maxNum = 0
-      for (const p of allProdRefs) {
-        const match = p.reference.match(/^PROD-(\d+)$/)
-        if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10))
-      }
-      return NextResponse.json({ nextCode: `PROD-${String(maxNum + 1).padStart(4, '0')}` })
+      const code = await getNextCode('product')
+      return NextResponse.json({ nextCode: code })
     }
 
     const where: Record<string, unknown> = {}
@@ -152,20 +145,11 @@ export async function POST(req: NextRequest) {
 
     const data = productSchema.parse(body)
 
-    // Auto-generate product reference (PROD-0001, PROD-0002, ...) — find max existing number
-    const allProdRefs = await db.product.findMany({
-      where: { reference: { startsWith: 'PROD-' } },
-      select: { reference: true },
-    })
-    let maxNum = 0
-    for (const p of allProdRefs) {
-      const match = p.reference.match(/^PROD-(\d+)$/)
-      if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10))
-    }
-    const autoRef = `PROD-${String(maxNum + 1).padStart(4, '0')}`
+    // Auto-generate product reference using persistent counter
+    const autoRef = await generateNextCode('product')
 
-    // Use provided reference if valid, otherwise auto-generate
-    const finalRef = (data.reference && data.reference.trim()) ? data.reference.trim() : autoRef
+    // Reference is always auto-generated, never from user input
+    const finalRef = autoRef
 
     const existing = await db.product.findUnique({ where: { reference: finalRef } })
     if (existing) {

@@ -1751,6 +1751,16 @@ model Backup {
   createdAt    DateTime @default(now())
 }
 
+// ============ CODE COUNTERS (auto-increment, never decreases) ============
+
+model CodeCounter {
+  id        String   @id @default(cuid())
+  entity    String   @unique  // "client", "supplier", "product"
+  nextValue Int      @default(1)
+
+  @@map("code_counters")
+}
+
 // ═══════════════════════════════════════════════════════════════
 // GESTION DU PERSONNEL (HR / EMPLOYEES)
 // ═══════════════════════════════════════════════════════════════

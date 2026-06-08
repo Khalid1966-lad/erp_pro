@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
 import { notifyAll } from '@/lib/notify'
 import { z } from 'zod'
+import { getNextCode, generateNextCode } from '@/lib/code-counter'
 
 const supplierSchema = z.object({
   code: z.string().optional(), // Auto-generated, not user-provided
@@ -37,18 +38,10 @@ export async function GET(req: NextRequest) {
     const dropdown = searchParams.get('dropdown') === 'true'
     const nextCode = searchParams.get('nextCode') === 'true'
 
-    // Return next auto-generated code (find MAX FR-XXX number)
+    // Return next auto-generated code
     if (nextCode) {
-      const allSuppliers = await db.supplier.findMany({
-        where: { code: { startsWith: 'FR-' } },
-        select: { code: true },
-      })
-      let maxNum = 0
-      for (const s of allSuppliers) {
-        const m = s.code.match(/^FR-(\d+)$/)
-        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10))
-      }
-      return NextResponse.json({ nextCode: `FR-${String(maxNum + 1).padStart(3, '0')}` })
+      const code = await getNextCode('supplier')
+      return NextResponse.json({ nextCode: code })
     }
 
     const where: Record<string, unknown> = {}
@@ -131,23 +124,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const data = supplierSchema.parse(body)
 
-    // Auto-generate supplier code (FR-0001, FR-0002, ...)
-    const lastSupplier = await db.supplier.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { code: true },
-    })
-    let nextNum = 1
-    if (lastSupplier?.code) {
-      const match = lastSupplier.code.match(/^FR-(\d+)$/)
-      if (match) nextNum = parseInt(match[1], 10) + 1
-    }
-    const autoCode = `FR-${String(nextNum).padStart(4, '0')}`
-
-    // Code is always auto-generated, never from user input
-    const existing = await db.supplier.findUnique({ where: { code: autoCode } })
-    if (existing) {
-      return NextResponse.json({ error: 'Erreur de génération du code fournisseur' }, { status: 409 })
-    }
+    // Auto-generate supplier code using persistent counter
+    const autoCode = await generateNextCode('supplier')
 
     const supplier = await db.supplier.create({ data: { ...data, code: autoCode } })
 

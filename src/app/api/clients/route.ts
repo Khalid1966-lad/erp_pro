@@ -4,6 +4,7 @@ import { requireAuth, hasPermission, auditLog } from '@/lib/auth'
 import { notifyAll } from '@/lib/notify'
 import { clientCreateSchema } from '@/lib/validations/client'
 import { Prisma } from '@prisma/client'
+import { getNextCode, generateNextCode } from '@/lib/code-counter'
 
 // GET /api/clients — List with pagination and filters
 export async function GET(req: NextRequest) {
@@ -32,18 +33,10 @@ export async function GET(req: NextRequest) {
       isDeleted: false,
     }
 
-    // Return next auto-generated code (find MAX CL-XXXX number)
+    // Return next auto-generated code
     if (nextCode) {
-      const allClients = await db.client.findMany({
-        where: { code: { startsWith: 'CL-' } },
-        select: { code: true },
-      })
-      let maxNum = 0
-      for (const c of allClients) {
-        const m = c.code.match(/^CL-(\d+)$/)
-        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10))
-      }
-      return NextResponse.json({ nextCode: `CL-${String(maxNum + 1).padStart(4, '0')}` })
+      const code = await getNextCode('client')
+      return NextResponse.json({ nextCode: code })
     }
 
     // Search across multiple fields (full list mode)
@@ -219,26 +212,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Auto-generate client code — find MAX CL-XXXX number
-    const allClients = await db.client.findMany({
-      where: { code: { startsWith: 'CL-' } },
-      select: { code: true },
-    })
-    let maxNum = 0
-    for (const c of allClients) {
-      const m = c.code.match(/^CL-(\d+)$/)
-      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10))
-    }
-    const autoCode = `CL-${String(maxNum + 1).padStart(4, '0')}`
-
-    // Check code uniqueness (race condition guard)
-    const existingCode = await db.client.findUnique({ where: { code: autoCode } })
-    if (existingCode) {
-      return NextResponse.json(
-        { error: 'Erreur de génération du code client' },
-        { status: 409 }
-      )
-    }
+    // Auto-generate client code using persistent counter
+    const autoCode = await generateNextCode('client')
 
     // Map date strings to Date objects
     const createData: Record<string, unknown> = { ...data, code: autoCode }
