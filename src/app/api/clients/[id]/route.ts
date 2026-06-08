@@ -135,6 +135,9 @@ export async function PUT(
     // Protect balance from manual override — it's computed from transactions
     delete updateData.balance
 
+    // Protect code from manual override — auto-generated, immutable
+    delete updateData.code
+
     // Increment version
     updateData.version = { increment: 1 }
     updateData.updatedBy = auth.userId

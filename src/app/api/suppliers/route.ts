@@ -5,7 +5,7 @@ import { notifyAll } from '@/lib/notify'
 import { z } from 'zod'
 
 const supplierSchema = z.object({
-  code: z.string().min(1, 'Le code est requis'),
+  code: z.string().optional(), // Auto-generated, not user-provided
   name: z.string().min(1, 'La raison sociale est requise'),
   siret: z.string().optional(),
   address: z.string().optional(),
@@ -143,15 +143,13 @@ export async function POST(req: NextRequest) {
     }
     const autoCode = `FR-${String(nextNum).padStart(4, '0')}`
 
-    // If a code was provided in the body, use it instead (backward compatibility)
-    const finalCode = data.code?.trim() || autoCode
-
-    const existing = await db.supplier.findUnique({ where: { code: finalCode } })
+    // Code is always auto-generated, never from user input
+    const existing = await db.supplier.findUnique({ where: { code: autoCode } })
     if (existing) {
-      return NextResponse.json({ error: 'Ce code fournisseur existe déjà' }, { status: 409 })
+      return NextResponse.json({ error: 'Erreur de génération du code fournisseur' }, { status: 409 })
     }
 
-    const supplier = await db.supplier.create({ data: { ...data, code: finalCode } })
+    const supplier = await db.supplier.create({ data: { ...data, code: autoCode } })
 
     await auditLog(auth.userId, 'create', 'Supplier', supplier.id, null, supplier)
     notifyAll({ title: 'Nouveau fournisseur', message: `${supplier.name} (${supplier.code})`, type: 'success', category: 'order', entityType: 'Supplier', entityId: supplier.id }).catch(() => {})
@@ -186,13 +184,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Fournisseur introuvable' }, { status: 404 })
     }
 
-    // If code is being changed, check uniqueness
-    if (updateData.code && updateData.code !== existing.code) {
-      const codeExists = await db.supplier.findUnique({ where: { code: updateData.code } })
-      if (codeExists) {
-        return NextResponse.json({ error: 'Ce code fournisseur existe déjà' }, { status: 409 })
-      }
-    }
+    // Protect code from manual override — auto-generated, immutable
+    delete updateData.code
 
     const data = supplierSchema.partial().parse(updateData)
     const supplier = await db.supplier.update({ where: { id }, data })
